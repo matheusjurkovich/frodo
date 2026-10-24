@@ -1,7 +1,7 @@
 import System from 'system';
 import GLib from 'gi://GLib';
 import {parseMeminfo, formatGb, readMemory} from '../lib/meminfo.js';
-import {batteryIconName, claudeErrorText, formatDate} from '../lib/format.js';
+import {batteryIconName, claudeErrorText, formatDate, centerClamp} from '../lib/format.js';
 import {parseUsage, readToken, errorForStatus, formatReset, ClaudeUsage} from '../lib/claude.js';
 
 let failures = 0;
@@ -57,6 +57,11 @@ assertEq(claudeErrorText('expired'), 'Faça login no Claude Code', 'erro expirad
 assertEq(claudeErrorText('network'), 'Sem conexão', 'erro rede');
 assertEq(claudeErrorText(null), '', 'sem erro');
 assertEq(formatDate(new Date(2026, 9, 24)), 'sáb, 24 out', 'data curta');
+
+assertEq(centerClamp(900, 120, 600, 0, 1920), 660, 'painel centrado na pílula');
+assertEq(centerClamp(10, 120, 600, 0, 1920), 8, 'painel preso à esquerda');
+assertEq(centerClamp(1850, 60, 600, 0, 1920), 1312, 'painel preso à direita');
+assertEq(centerClamp(2800, 120, 600, 1920, 1920), 2560, 'segundo monitor');
 
 const mem = await readMemory();
 assertEq(mem !== null && mem.totalKb > 0 && mem.usedKb > 0 && mem.usedKb < mem.totalKb, true, 'readMemory real');

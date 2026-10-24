@@ -2,10 +2,16 @@ import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import GnomeDesktop from 'gi://GnomeDesktop';
 import St from 'gi://St';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {EventEmitter} from 'resource:///org/gnome/shell/misc/signals.js';
+import {GrabHelper} from 'resource:///org/gnome/shell/ui/grabHelper.js';
 
 import {formatGb} from './lib/meminfo.js';
-import {batteryIconName} from './lib/format.js';
+import {batteryIconName, centerClamp} from './lib/format.js';
+
+const OPEN_DELAY_MS = 150;
+const CLOSE_DELAY_MS = 300;
+const ANIM_MS = 250;
 
 const CLAUDE_COLOR = [0xd9 / 255, 0x77 / 255, 0x57 / 255];
 function sep() {
@@ -48,6 +54,30 @@ export class Island extends EventEmitter {
             track_hover: true,
         });
 
+        this.panel = new St.Bin({
+            style_class: 'frodo-panel',
+            reactive: true,
+            track_hover: true,
+            visible: false,
+        });
+        this._grab = new GrabHelper(this.panel);
+        this._openTimer = 0;
+        this._closeTimer = 0;
+        this.pill.connect('notify::hover', () => this._onPillHover());
+        this.pill.connect('button-press-event', (_a, event) => {
+            if (event.get_button() !== Clutter.BUTTON_PRIMARY)
+                return Clutter.EVENT_PROPAGATE;
+            this.open('click');
+            return Clutter.EVENT_STOP;
+        });
+        this.panel.connect('notify::hover', () => this._onPanelHover());
+        this.panel.connect('key-press-event', (_a, event) => {
+            if (event.get_key_symbol() !== Clutter.KEY_Escape)
+                return Clutter.EVENT_PROPAGATE;
+            this.close();
+            return Clutter.EVENT_STOP;
+        });
+
         this._clock = new GnomeDesktop.WallClock();
         this._clockId = this._clock.connect('notify::clock', () => this._syncClock());
 
@@ -57,6 +87,121 @@ export class Island extends EventEmitter {
             .map(e => data.connect(e, () => this._update()));
 
         this._build();
+    }
+
+    setPanel(actor) {
+        this.panel.child?.destroy();
+        this.panel.child = actor;
+    }
+
+    _clearTimer(name) {
+        if (this[name])
+            GLib.source_remove(this[name]);
+        this[name] = 0;
+    }
+
+    _later(name, ms, fn) {
+        this._clearTimer(name);
+        this[name] = GLib.timeout_add(GLib.PRIORITY_DEFAULT, ms, () => {
+            this[name] = 0;
+            fn();
+            return GLib.SOURCE_REMOVE;
+        });
+    }
+
+    _onPillHover() {
+        if (this._isOpen)
+            return;
+        if (this.pill.hover)
+            this._later('_openTimer', OPEN_DELAY_MS, () => this.open('hover'));
+        else
+            this._clearTimer('_openTimer');
+    }
+
+    _onPanelHover() {
+        if (!this._isOpen)
+            return;
+        if (this.panel.hover)
+            this._clearTimer('_closeTimer');
+        else if (this._openedBy === 'hover')
+            this._later('_closeTimer', CLOSE_DELAY_MS, () => this.close());
+    }
+
+    toggle() {
+        if (this._isOpen)
+            this.close();
+        else
+            this.open('key');
+    }
+
+    _shrinkScale() {
+        const pw = Math.max(1, this.pill.width), ph = Math.max(1, this.pill.height);
+        return {
+            scale_x: Math.min(1, pw / Math.max(1, this.panel.width)),
+            scale_y: Math.min(1, ph / Math.max(1, this.panel.height)),
+        };
+    }
+
+    open(by) {
+        if (this._isOpen)
+            return;
+        this._clearTimer('_openTimer');
+        this._isOpen = true;
+        this._openedBy = by;
+        this._syncMemoryWanted();
+        this._data.refreshClaude(60);
+
+        const panel = this.panel;
+        panel.remove_all_transitions();
+        panel.opacity = 0;
+        panel.show();
+        const [px, py] = this.pill.get_transformed_position();
+        const [, natW] = panel.get_preferred_width(-1);
+        const [, natH] = panel.get_preferred_height(natW);
+        panel.set_size(natW, natH);
+        const m = Main.layoutManager.findMonitorForActor(this.pill) ?? Main.layoutManager.primaryMonitor;
+        panel.set_position(centerClamp(px, this.pill.width, natW, m.x, m.width), Math.round(py));
+        panel.set_pivot_point((px + this.pill.width / 2 - panel.x) / natW, 0);
+        const shrink = this._shrinkScale();
+        panel.scale_x = shrink.scale_x;
+        panel.scale_y = shrink.scale_y;
+        panel.ease({
+            opacity: 255,
+            scale_x: 1,
+            scale_y: 1,
+            duration: ANIM_MS,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+        });
+        this.pill.ease({opacity: 0, duration: ANIM_MS / 2, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+
+        if (by !== 'hover')
+            this._grab.grab({actor: panel, focus: panel, onUngrab: () => this.close()});
+        this.emit('opened');
+    }
+
+    close() {
+        if (!this._isOpen)
+            return;
+        this._isOpen = false;
+        this._clearTimer('_openTimer');
+        this._clearTimer('_closeTimer');
+        if (this._grab.isActorGrabbed(this.panel))
+            this._grab.ungrab({actor: this.panel});
+
+        const panel = this.panel;
+        panel.ease({
+            opacity: 0,
+            ...this._shrinkScale(),
+            duration: ANIM_MS,
+            mode: Clutter.AnimationMode.EASE_IN_QUAD,
+            onComplete: () => {
+                panel.hide();
+                panel.set_size(-1, -1);
+            },
+        });
+        this.pill.ease({opacity: 255, duration: ANIM_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+        this._syncMemoryWanted();
+        this.emit('closed');
     }
 
     get isOpen() {
@@ -216,12 +361,18 @@ export class Island extends EventEmitter {
     }
 
     destroy() {
+        if (this._grab.isActorGrabbed(this.panel))
+            this._grab.ungrab({actor: this.panel});
+        this._isOpen = false;
+        this._clearTimer('_openTimer');
+        this._clearTimer('_closeTimer');
         this._stopRotation();
         this._clock.disconnect(this._clockId);
         this._clock = null;
         this._settingsIds.forEach(id => this._settings.disconnect(id));
         this._dataIds.forEach(id => this._data.disconnect(id));
         this.pill.destroy();
+        this.panel.destroy();
         this.disconnectAll();
     }
 }

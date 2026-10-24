@@ -37,3 +37,13 @@
   width: 16px;
   height: 16px;
 }
+
+.frodo-panel {
+  background-color: #000;
+  color: #fff;
+  border-radius: 22px;
+  padding: 14px;
+  min-width: 460px;
+  font-size: 10pt;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
