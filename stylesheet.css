@@ -109,3 +109,61 @@
   padding: 7px;
   color: #fff;
 }
+
+.frodo-panel-content {
+  spacing: 10px;
+}
+
+.frodo-header {
+  spacing: 8px;
+}
+
+.frodo-big-clock {
+  font-size: 18pt;
+  font-weight: 700;
+  font-feature-settings: "tnum";
+}
+
+.frodo-cols {
+  spacing: 12px;
+}
+
+.frodo-controls {
+  min-width: 220px;
+}
+
+.frodo-right {
+  spacing: 8px;
+  min-width: 200px;
+}
+
+.frodo-section {
+  spacing: 5px;
+}
+
+.frodo-heading {
+  font-size: 8pt;
+  font-weight: 600;
+  color: #9aa0a6;
+  letter-spacing: 1px;
+}
+
+.frodo-stat {
+  spacing: 8px;
+}
+
+.frodo-stat-label {
+  min-width: 92px;
+  color: #ccc;
+}
+
+.frodo-stat-note {
+  font-size: 8pt;
+  color: #9aa0a6;
+  padding-left: 100px;
+}
+
+.frodo-bar {
+  height: 6px;
+  min-width: 80px;
+}
