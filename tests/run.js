@@ -1,6 +1,7 @@
 import System from 'system';
 import GLib from 'gi://GLib';
 import {parseMeminfo, formatGb, readMemory} from '../lib/meminfo.js';
+import {batteryIconName, claudeErrorText, formatDate} from '../lib/format.js';
 import {parseUsage, readToken, errorForStatus, formatReset, ClaudeUsage} from '../lib/claude.js';
 
 let failures = 0;
@@ -47,6 +48,15 @@ const far = new Date(now + 3 * 86400e3);
 assertEq(formatReset(far.toISOString(), now),
     `${['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][far.getDay()]} ${String(far.getHours()).padStart(2, '0')}:${String(far.getMinutes()).padStart(2, '0')}`, 'reset dias');
 assertEq(formatReset(null, now), '', 'reset nulo');
+
+assertEq(batteryIconName({percent: 72, charging: false}), 'battery-level-70-symbolic', 'ícone bateria');
+assertEq(batteryIconName({percent: 100, charging: true}), 'battery-level-100-charging-symbolic', 'ícone bateria carregando');
+assertEq(batteryIconName({percent: 4, charging: false}), 'battery-level-0-symbolic', 'ícone bateria vazia');
+assertEq(claudeErrorText('no-credentials'), 'Faça login no Claude Code', 'erro sem credenciais');
+assertEq(claudeErrorText('expired'), 'Faça login no Claude Code', 'erro expirado');
+assertEq(claudeErrorText('network'), 'Sem conexão', 'erro rede');
+assertEq(claudeErrorText(null), '', 'sem erro');
+assertEq(formatDate(new Date(2026, 9, 24)), 'sáb, 24 out', 'data curta');
 
 const mem = await readMemory();
 assertEq(mem !== null && mem.totalKb > 0 && mem.usedKb > 0 && mem.usedKb < mem.totalKb, true, 'readMemory real');

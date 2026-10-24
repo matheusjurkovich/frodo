@@ -3,6 +3,37 @@
   color: #fff;
   border-radius: 999px;
   padding: 6px 16px;
+  spacing: 10px;
   font-weight: 500;
+  font-size: 10.5pt;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+
+.frodo-clock {
+  font-weight: 600;
+  font-feature-settings: "tnum";
+}
+
+.frodo-dim {
+  color: #9aa0a6;
+}
+
+.frodo-sep {
+  width: 1px;
+  height: 14px;
+  background-color: #333;
+}
+
+.frodo-battery {
+  spacing: 4px;
+}
+
+.frodo-battery-icon {
+  icon-size: 16px;
+  color: #fff;
+}
+
+.frodo-ring {
+  width: 16px;
+  height: 16px;
 }
