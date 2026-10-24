@@ -1,4 +1,3 @@
-import {claudeErrorText, errorForStatus, parseUsage, readToken} from '../src/core/claude.js';
 import {batteryLevel, ellipsize, formatDate, formatReset} from '../src/core/format.js';
 import {centerClamp} from '../src/core/geometry.js';
 import {formatGb, parseMeminfo} from '../src/core/memory.js';
@@ -22,57 +21,6 @@ describe('memory', () => {
 
     it('formata em GB com uma casa', () => {
         expect(formatGb(6501171)).toBe('6.2G');
-    });
-});
-
-describe('claude', () => {
-    it('lê o formato limits[]', () => {
-        expect(
-            parseUsage({
-                limits: [
-                    {kind: 'session', group: 'session', percent: 62, resets_at: '2026-10-24T20:00:00Z'},
-                    {kind: 'weekly_all', group: 'weekly', percent: 31, resets_at: '2026-10-29T12:00:00Z'},
-                    {kind: 'weekly_scoped', group: 'weekly', percent: 80, scope: {model: {display_name: 'Opus'}}},
-                ],
-            }),
-        ).toEqual({
-            session: {percent: 62, resetsAt: '2026-10-24T20:00:00Z'},
-            weekly: {percent: 31, resetsAt: '2026-10-29T12:00:00Z'},
-        });
-    });
-
-    it('lê o formato legado', () => {
-        expect(parseUsage({five_hour: {utilization: 10, resets_at: 'a'}, seven_day: {utilization: 20, resets_at: 'b'}})).toEqual({
-            session: {percent: 10, resetsAt: 'a'},
-            weekly: {percent: 20, resetsAt: 'b'},
-        });
-    });
-
-    it('ignora entradas inválidas', () => {
-        expect(parseUsage(null)).toEqual({session: null, weekly: null});
-        expect(parseUsage({limits: [{kind: 'session', percent: 'x'}]})).toEqual({session: null, weekly: null});
-    });
-
-    it('lê o token das credenciais', () => {
-        expect(readToken(null, 0)).toEqual({token: null, error: 'no-credentials'});
-        expect(readToken('{quebrado', 0)).toEqual({token: null, error: 'no-credentials'});
-        expect(readToken('{"claudeAiOauth":{"accessToken":"t","expiresAt":1000}}', 2000)).toEqual({token: null, error: 'expired'});
-        expect(readToken('{"claudeAiOauth":{"accessToken":"t","expiresAt":3000}}', 2000)).toEqual({token: 't', error: null});
-        expect(readToken('{"claudeAiOauth":{"accessToken":"t"}}', 2000)).toEqual({token: 't', error: null});
-    });
-
-    it('mapeia status HTTP', () => {
-        expect(errorForStatus(200)).toBeNull();
-        expect(errorForStatus(401)).toBe('expired');
-        expect(errorForStatus(403)).toBe('expired');
-        expect(errorForStatus(503)).toBe('http');
-    });
-
-    it('descreve erros', () => {
-        expect(claudeErrorText('no-credentials')).toBe('Faça login no Claude Code');
-        expect(claudeErrorText('expired')).toBe('Faça login no Claude Code');
-        expect(claudeErrorText('network')).toBe('Sem conexão');
-        expect(claudeErrorText(null)).toBe('');
     });
 });
 

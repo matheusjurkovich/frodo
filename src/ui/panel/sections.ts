@@ -3,10 +3,8 @@ import GLib from 'gi://GLib';
 import GnomeDesktop from 'gi://GnomeDesktop';
 import St from 'gi://St';
 
-import {claudeErrorText} from '../../core/claude.js';
-import {formatDate, formatReset} from '../../core/format.js';
+import {formatDate} from '../../core/format.js';
 import {formatGb} from '../../core/memory.js';
-import type {UsageWindow} from '../../core/types.js';
 import type {SystemState} from '../../services/system-state.js';
 import type {Unsubscribe} from '../../util/emitter.js';
 import {frodoIcon} from '../icons.js';
@@ -65,34 +63,6 @@ export function systemSection(state: SystemState): St.BoxLayout {
         if (info) battery.set(`Bat ${info.percent}%${info.charging ? ' ⚡' : ''}`, info.percent / 100);
     };
     unsubscribeOnDestroy(section, [state.on('memory', sync), state.on('battery', sync)]);
-    sync();
-    return section;
-}
-
-function setUsage(row: StatRow, name: string, window: UsageWindow | null, nowMs: number): void {
-    if (window) row.set(`${name} ${Math.round(window.percent)}%`, window.percent / 100, formatReset(window.resetsAt, nowMs));
-    else row.set(`${name} —`, null);
-}
-
-export function claudeSection(state: SystemState): St.BoxLayout {
-    const section = column('frodo-section');
-    const session = new StatRow('Sessão', COLORS.claude);
-    const weekly = new StatRow('Semana', COLORS.claude);
-    const error = new St.Label({style_class: 'frodo-stat-note', visible: false});
-    section.add_child(heading('CLAUDE', frodoIcon('claude')));
-    section.add_child(session.actor);
-    section.add_child(weekly.actor);
-    section.add_child(error);
-
-    const sync = (): void => {
-        const {claude} = state;
-        const now = Date.now();
-        setUsage(session, 'Sessão', claude.session, now);
-        setUsage(weekly, 'Semana', claude.weekly, now);
-        error.text = claudeErrorText(claude.error);
-        error.visible = error.text !== '';
-    };
-    unsubscribeOnDestroy(section, [state.on('claude', sync)]);
     sync();
     return section;
 }

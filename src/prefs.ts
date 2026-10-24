@@ -1,13 +1,18 @@
 import Adw from 'gi://Adw';
 import Gdk from 'gi://Gdk';
 import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk';
 import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
 import {itemsForPreferences, moveItem} from './core/items.js';
 import type {ItemEntry} from './core/items.js';
+import {isActiveProfile} from './core/claude-profiles.js';
+import type {ClaudeProfile} from './core/claude-profiles.js';
 import {isValidShortcut} from './core/shortcut.js';
+import {defaultConfigDir} from './services/claude-client.js';
+import {profileFor} from './services/claude-profiles.js';
 import type {ClosedItem, ClosedMode, MonitorMode} from './core/types.js';
 import {FrodoSettings} from './services/settings.js';
 import type {SettingsKey} from './services/settings.js';
@@ -59,15 +64,99 @@ function spinRow(settings: FrodoSettings, key: SettingsKey, title: string, min: 
     return row;
 }
 
-function shortcutRow(settings: FrodoSettings): Adw.EntryRow {
-    const row = new Adw.EntryRow({title: 'Abrir e fechar a ilha', show_apply_button: true});
-    row.text = settings.toggleShortcut;
+function shortcutRow(settings: FrodoSettings, key: 'toggle-shortcut' | 'claude-shortcut', title: string): Adw.EntryRow {
+    const row = new Adw.EntryRow({title, show_apply_button: true});
+    const current = (): string => settings.gsettings.get_strv(key)[0] ?? '';
+    row.text = current();
     row.connect('apply', () => {
-        const [ok, key, mods] = Gtk.accelerator_parse(row.text);
-        if (isValidShortcut(ok, key, mods ?? 0)) settings.toggleShortcut = row.text;
-        else row.text = settings.toggleShortcut;
+        const [ok, keyval, mods] = Gtk.accelerator_parse(row.text);
+        if (isValidShortcut(ok, keyval, mods ?? 0)) settings.gsettings.set_strv(key, [row.text]);
+        else row.text = current();
     });
     return row;
+}
+
+function switchRow(settings: FrodoSettings, key: SettingsKey, title: string, subtitle = ''): Adw.SwitchRow {
+    const row = new Adw.SwitchRow({title, subtitle});
+    settings.gsettings.bind(key, row, 'active', Gio.SettingsBindFlags.DEFAULT);
+    return row;
+}
+
+class ProfilesGroup {
+    readonly widget = new Adw.PreferencesGroup({
+        title: 'Perfis do Claude Code',
+        description: 'Cada perfil é um diretório de configuração do Claude Code. O Frodo usa o login que já está salvo nele.',
+    });
+    readonly #settings: FrodoSettings;
+    #rows: Gtk.Widget[] = [];
+
+    constructor(settings: FrodoSettings) {
+        this.#settings = settings;
+        const add = new Gtk.Button({
+            icon_name: 'list-add-symbolic',
+            valign: Gtk.Align.CENTER,
+            css_classes: ['flat'],
+            tooltip_text: 'Adicionar perfil',
+        });
+        add.connect('clicked', () => {
+            this.#pickDirectory();
+        });
+        this.widget.header_suffix = add;
+        settings.onChanged('claude-profiles', () => {
+            this.#render();
+        });
+        this.#render();
+    }
+
+    #render(): void {
+        for (const row of this.#rows) this.widget.remove(row);
+        const profiles = this.#settings.claudeProfiles;
+        const defaultDir = defaultConfigDir();
+        this.#rows = profiles.map(profile => this.#row(profile, isActiveProfile(profile, defaultDir)));
+        if (this.#rows.length === 0)
+            this.#rows = [new Adw.ActionRow({title: 'Nenhum perfil', subtitle: 'Abra a ilha uma vez para detectar os perfis'})];
+        for (const row of this.#rows) this.widget.add(row);
+    }
+
+    #row(profile: ClaudeProfile, active: boolean): Adw.EntryRow {
+        const row = new Adw.EntryRow({title: profile.configDir, text: profile.label, show_apply_button: true});
+        if (active) row.add_suffix(new Gtk.Label({label: 'ativo', css_classes: ['caption', 'accent'], valign: Gtk.Align.CENTER}));
+        const remove = new Gtk.Button({
+            icon_name: 'user-trash-symbolic',
+            valign: Gtk.Align.CENTER,
+            css_classes: ['flat'],
+            tooltip_text: 'Remover perfil',
+        });
+        remove.connect('clicked', () => {
+            this.#settings.claudeProfiles = this.#settings.claudeProfiles.filter(other => other.id !== profile.id);
+        });
+        row.add_suffix(remove);
+        row.connect('apply', () => {
+            const label = row.text.trim();
+            if (!label) return;
+            this.#settings.claudeProfiles = this.#settings.claudeProfiles.map(other =>
+                other.id === profile.id ? {...other, label} : other,
+            );
+        });
+        return row;
+    }
+
+    #pickDirectory(): void {
+        const dialog = new Gtk.FileDialog({title: 'Diretório do Claude Code', initial_folder: Gio.File.new_for_path(GLib.get_home_dir())});
+        const root = this.widget.get_root();
+        dialog.select_folder(root instanceof Gtk.Window ? root : null, null, (_dialog, result) => {
+            const folder = ((): Gio.File | null => {
+                try {
+                    return dialog.select_folder_finish(result);
+                } catch {
+                    return null;
+                }
+            })();
+            const path = folder?.get_path();
+            if (!path || this.#settings.claudeProfiles.some(profile => profile.configDir === path)) return;
+            this.#settings.claudeProfiles = [...this.#settings.claudeProfiles, profileFor(path)];
+        });
+    }
 }
 
 function group(title: string, rows: readonly Gtk.Widget[], description = ''): Adw.PreferencesGroup {
@@ -150,8 +239,19 @@ export default class FrodoPreferences extends ExtensionPreferences {
         );
         page.add(new ItemOrderGroup(settings).widget);
         page.add(group('Tela', [comboRow(settings, 'monitors', 'Monitores', MONITORS), hideTopBar]));
-        page.add(group('Claude', [spinRow(settings, 'claude-poll-minutes', 'Atualizar a cada (min)', 2, 60)]));
-        page.add(group('Atalho', [shortcutRow(settings)]));
+        page.add(
+            group('Claude', [
+                spinRow(settings, 'claude-poll-minutes', 'Atualizar a cada (min)', 1, 60),
+                switchRow(settings, 'claude-show-remaining', 'Mostrar uso restante', 'Em vez da porcentagem usada'),
+            ]),
+        );
+        page.add(new ProfilesGroup(settings).widget);
+        page.add(
+            group('Atalhos', [
+                shortcutRow(settings, 'toggle-shortcut', 'Abrir e fechar a ilha'),
+                shortcutRow(settings, 'claude-shortcut', 'Abrir a ilha na aba do Claude'),
+            ]),
+        );
         return page;
     }
 }

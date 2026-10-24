@@ -8,26 +8,6 @@ export interface BatteryInfo {
     readonly charging: boolean;
 }
 
-export interface UsageWindow {
-    readonly percent: number;
-    readonly resetsAt: string | null;
-}
-
-export interface Usage {
-    readonly session: UsageWindow | null;
-    readonly weekly: UsageWindow | null;
-}
-
-export type ClaudeError = 'no-credentials' | 'expired' | 'network' | 'http';
-
-export interface ClaudeUsage extends Usage {
-    readonly error: ClaudeError | null;
-}
-
-export interface ClaudeState extends ClaudeUsage {
-    readonly fetchedAt: number;
-}
-
 export const CLOSED_MODES = ['minimal', 'compact', 'rotating'] as const;
 export type ClosedMode = (typeof CLOSED_MODES)[number];
 

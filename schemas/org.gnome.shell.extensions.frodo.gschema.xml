@@ -28,8 +28,20 @@
       <default>false</default>
     </key>
     <key name="claude-poll-minutes" type="i">
-      <range min="2" max="60"/>
+      <range min="1" max="60"/>
       <default>5</default>
+    </key>
+    <key name="claude-show-remaining" type="b">
+      <default>false</default>
+    </key>
+    <key name="claude-profiles" type="s">
+      <default>'[]'</default>
+    </key>
+    <key name="claude-profiles-initialized" type="b">
+      <default>false</default>
+    </key>
+    <key name="claude-shortcut" type="as">
+      <default>['&lt;Super&gt;&lt;Shift&gt;z']</default>
     </key>
     <key name="toggle-shortcut" type="as">
       <default>['&lt;Super&gt;z']</default>

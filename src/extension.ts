@@ -3,6 +3,7 @@ import Shell from 'gi://Shell';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
+import {ClaudeService} from './services/claude-service.js';
 import {NotificationBridge} from './services/notification-bridge.js';
 import {FrodoSettings} from './services/settings.js';
 import {SystemState} from './services/system-state.js';
@@ -12,6 +13,7 @@ import {TopBarVisibility} from './ui/top-bar-visibility.js';
 import {Disposables} from './util/disposables.js';
 
 const TOGGLE_KEYBINDING = 'toggle-shortcut';
+const CLAUDE_KEYBINDING = 'claude-shortcut';
 
 export default class FrodoExtension extends Extension {
     #disposables: Disposables | null = null;
@@ -25,9 +27,13 @@ export default class FrodoExtension extends Extension {
         });
 
         const settings = new FrodoSettings(this.getSettings());
-        const state = new SystemState(settings);
+        const state = new SystemState();
         disposables.add(() => {
             state.destroy();
+        });
+        const claude = new ClaudeService(settings);
+        disposables.add(() => {
+            claude.destroy();
         });
         const bridge = new NotificationBridge();
         disposables.add(() => {
@@ -41,6 +47,7 @@ export default class FrodoExtension extends Extension {
         const islands = new IslandManager({
             settings,
             state,
+            claude,
             bridge,
             openPreferences: () => {
                 islands.closeAll();
@@ -56,18 +63,31 @@ export default class FrodoExtension extends Extension {
             }),
         );
 
-        Main.wm.addKeybinding(
-            TOGGLE_KEYBINDING,
-            settings.gsettings,
-            Meta.KeyBindingFlags.NONE,
-            Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW | Shell.ActionMode.POPUP,
-            () => {
-                islands.toggle();
-            },
-        );
-        disposables.add(() => {
-            Main.wm.removeKeybinding(TOGGLE_KEYBINDING);
-        });
+        for (const [name, action] of [
+            [
+                TOGGLE_KEYBINDING,
+                (): void => {
+                    islands.toggle();
+                },
+            ],
+            [
+                CLAUDE_KEYBINDING,
+                (): void => {
+                    islands.show('claude');
+                },
+            ],
+        ] as const) {
+            Main.wm.addKeybinding(
+                name,
+                settings.gsettings,
+                Meta.KeyBindingFlags.NONE,
+                Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW | Shell.ActionMode.POPUP,
+                action,
+            );
+            disposables.add(() => {
+                Main.wm.removeKeybinding(name);
+            });
+        }
     }
 
     override disable(): void {

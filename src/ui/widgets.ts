@@ -9,7 +9,13 @@ export const COLORS = {
     ram: [0x7a / 255, 0xa2 / 255, 0xf7 / 255],
     battery: [0x7b / 255, 0xd8 / 255, 0x8f / 255],
     claude: [0xd9 / 255, 0x77 / 255, 0x57 / 255],
+    warn: [0xe5 / 255, 0xa5 / 255, 0x0a / 255],
+    crit: [0xe0 / 255, 0x1b / 255, 0x24 / 255],
 } as const satisfies Record<string, Rgb>;
+
+export function levelColor(level: 'ok' | 'warn' | 'crit'): Rgb {
+    return level === 'ok' ? COLORS.claude : COLORS[level];
+}
 
 function roundedBar(cr: cairo.Context, width: number, height: number): void {
     const r = height / 2;
@@ -49,8 +55,10 @@ export function roundButton(icon: Gio.Icon, accessibleName: string, onClick: () 
 export class ProgressRing {
     readonly actor = new St.DrawingArea({style_class: 'frodo-ring', y_align: Clutter.ActorAlign.CENTER});
     #percent = 0;
+    #color: Rgb;
 
     constructor(color: Rgb) {
+        this.#color = color;
         this.actor.connect('repaint', () => {
             const cr = this.actor.get_context();
             const [w, h] = this.actor.get_surface_size();
@@ -60,7 +68,7 @@ export class ProgressRing {
             cr.arc(w / 2, h / 2, r, 0, 2 * Math.PI);
             cr.stroke();
             if (this.#percent > 0) {
-                cr.setSourceRGB(...color);
+                cr.setSourceRGB(...this.#color);
                 cr.arc(w / 2, h / 2, r, -Math.PI / 2, -Math.PI / 2 + (2 * Math.PI * this.#percent) / 100);
                 cr.stroke();
             }
@@ -72,13 +80,21 @@ export class ProgressRing {
         this.#percent = Math.min(100, Math.max(0, value));
         this.actor.queue_repaint();
     }
+
+    set color(value: Rgb) {
+        this.#color = value;
+        this.actor.queue_repaint();
+    }
 }
 
 export class ProgressBar {
     readonly actor = new St.DrawingArea({style_class: 'frodo-bar', x_expand: true, y_align: Clutter.ActorAlign.CENTER});
     #fraction = 0;
+    #pace: number | null = null;
+    #color: Rgb;
 
     constructor(color: Rgb) {
+        this.#color = color;
         this.actor.connect('repaint', () => {
             const cr = this.actor.get_context();
             const [w, h] = this.actor.get_surface_size();
@@ -86,8 +102,14 @@ export class ProgressBar {
             roundedBar(cr, w, h);
             cr.fill();
             if (this.#fraction > 0) {
-                cr.setSourceRGB(...color);
+                cr.setSourceRGB(...this.#color);
                 roundedBar(cr, Math.max(h, w * this.#fraction), h);
+                cr.fill();
+            }
+            if (this.#pace !== null) {
+                const x = Math.round(Math.min(w - 1, Math.max(1, w * this.#pace)));
+                cr.setSourceRGBA(1, 1, 1, 0.85);
+                cr.rectangle(x - 1, 0, 2, h);
                 cr.fill();
             }
             cr.$dispose();
@@ -96,6 +118,16 @@ export class ProgressBar {
 
     set fraction(value: number) {
         this.#fraction = Math.min(1, Math.max(0, value));
+        this.actor.queue_repaint();
+    }
+
+    set pace(value: number | null) {
+        this.#pace = value === null ? null : Math.min(1, Math.max(0, value));
+        this.actor.queue_repaint();
+    }
+
+    set color(value: Rgb) {
+        this.#color = value;
         this.actor.queue_repaint();
     }
 }

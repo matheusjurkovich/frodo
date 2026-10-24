@@ -8,6 +8,7 @@ import type * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import {centerClamp} from '../core/geometry.js';
 import type {InterceptedNotification} from '../services/notification-bridge.js';
 import type {FrodoSettings} from '../services/settings.js';
+import type {ClaudeService} from '../services/claude-service.js';
 import type {SystemState} from '../services/system-state.js';
 import {dateMenuContainer, hasRealFullscreen, onFullscreenStateChanged, panelCenterBox, sessionPanelHas} from '../shell/internals.js';
 import {Disposables} from '../util/disposables.js';
@@ -37,6 +38,7 @@ export class Island extends Emitter<IslandEvents> {
     readonly monitorIndex: number;
 
     readonly #state: SystemState;
+    readonly #claude: ClaudeService;
     readonly #grab = new GrabHelper(this.panel, {actionMode: Shell.ActionMode.POPUP});
     readonly #openTimer = new Timer();
     readonly #closeTimer = new Timer();
@@ -48,11 +50,12 @@ export class Island extends Emitter<IslandEvents> {
     #openedBy: OpenReason | null = null;
     #holds = 0;
 
-    constructor(settings: FrodoSettings, state: SystemState, monitorIndex: number) {
+    constructor(settings: FrodoSettings, state: SystemState, claude: ClaudeService, monitorIndex: number) {
         super();
         this.#state = state;
+        this.#claude = claude;
         this.monitorIndex = monitorIndex;
-        this.pill = new Pill(settings, state);
+        this.pill = new Pill(settings, state, claude);
         Main.layoutManager.addTopChrome(this.panel, {affectsStruts: false});
 
         const pill = this.pill.actor;
@@ -159,7 +162,7 @@ export class Island extends Emitter<IslandEvents> {
         this.#openedBy = reason;
         this.pill.actor.reactive = false;
         this.#syncMemoryNeed();
-        void this.#state.refreshClaude(CLAUDE_MAX_AGE_SECONDS);
+        this.#claude.refreshIfStale(CLAUDE_MAX_AGE_SECONDS);
 
         this.emit('opening');
         this.#animateOpen();

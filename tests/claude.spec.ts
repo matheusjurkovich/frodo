@@ -1,0 +1,244 @@
+import {
+    accountSummary,
+    claudeErrorMessage,
+    effectiveLevel,
+    humanDuration,
+    normalizeSpend,
+    normalizeWindows,
+    pacePercent,
+    projectionNote,
+    relativeReset,
+    shownPace,
+    shownPercent,
+    tierIcon,
+    tierLabel,
+} from '../src/core/claude-usage.js';
+import type {LevelInput} from '../src/core/claude-usage.js';
+import {needsRefresh, parseCredentials} from '../src/core/claude-credentials.js';
+import {isActiveProfile, labelForDirName, parseProfiles, profileChip} from '../src/core/claude-profiles.js';
+
+const NOW = Date.UTC(2026, 9, 24, 12, 0);
+const iso = (offsetSeconds: number): string => new Date(NOW + offsetSeconds * 1000).toISOString();
+
+describe('normalizeWindows', () => {
+    it('lê limits[] em ordem: sessão, semana e por modelo', () => {
+        const windows = normalizeWindows({
+            limits: [
+                {
+                    kind: 'weekly_scoped',
+                    group: 'weekly',
+                    percent: 80,
+                    severity: 'warning',
+                    resets_at: 'b',
+                    scope: {model: {display_name: 'Opus'}},
+                },
+                {kind: 'session', group: 'session', percent: 62, resets_at: 'a', is_active: true},
+                {kind: 'weekly_all', group: 'weekly', percent: 31, resets_at: 'b'},
+            ],
+        });
+        expect(windows.map(w => [w.role, w.label, w.utilization, w.totalSeconds, w.apiLevel])).toEqual([
+            ['session', '5 horas', 62, 18000, 'ok'],
+            ['weekly', '7 dias', 31, 604800, 'ok'],
+            ['scoped', '7 dias Opus', 80, 604800, 'warn'],
+        ]);
+        expect(windows[0]?.isActive).toBeTrue();
+    });
+
+    it('lê o formato legado com janelas por modelo', () => {
+        const windows = normalizeWindows({
+            five_hour: {utilization: 10, resets_at: 'a'},
+            seven_day: {utilization: 20, resets_at: 'b'},
+            seven_day_opus: {utilization: 5, resets_at: 'b'},
+        });
+        expect(windows.map(w => [w.role, w.label, w.utilization])).toEqual([
+            ['session', '5 horas', 10],
+            ['weekly', '7 dias', 20],
+            ['scoped', '7 dias Opus', 5],
+        ]);
+    });
+
+    it('descarta entradas sem porcentagem numérica', () => {
+        expect(normalizeWindows({limits: [{kind: 'session', percent: 'x'}]})).toEqual([]);
+        expect(normalizeWindows(null)).toEqual([]);
+    });
+});
+
+describe('normalizeSpend', () => {
+    it('lê o bloco spend estruturado', () => {
+        expect(
+            normalizeSpend({
+                spend: {
+                    enabled: true,
+                    used: {amount_minor: 41654, currency: 'USD', exponent: 2},
+                    limit: {amount_minor: 100000, currency: 'USD', exponent: 2},
+                    percent: 41.6,
+                    severity: 'warning',
+                },
+            }),
+        ).toEqual({used: 'USD 416.54', limit: 'USD 1000.00', percent: 41.6, level: 'warn'});
+    });
+
+    it('cai para extra_usage', () => {
+        expect(
+            normalizeSpend({
+                extra_usage: {
+                    is_enabled: true,
+                    used_credits: 1234,
+                    monthly_limit: 5000,
+                    decimal_places: 2,
+                    currency: 'USD',
+                    utilization: 24.68,
+                },
+            }),
+        ).toEqual({used: 'USD 12.34', limit: 'USD 50.00', percent: 25, level: 'ok'});
+    });
+
+    it('retorna null sem uso extra', () => {
+        expect(normalizeSpend({spend: {enabled: false}, extra_usage: {is_enabled: false}})).toBeNull();
+    });
+});
+
+describe('ritmo e porcentagem', () => {
+    it('calcula o ritmo esperado da janela', () => {
+        expect(pacePercent(iso(9000), 18000, NOW)).toBe(50);
+        expect(pacePercent(iso(-10), 18000, NOW)).toBeNull();
+        expect(pacePercent(null, 18000, NOW)).toBeNull();
+    });
+
+    it('mostra usado ou restante', () => {
+        expect(shownPercent(62.4, false)).toBe(62.4);
+        expect(shownPercent(62.4, true)).toBe(38);
+        expect(shownPercent(120, true)).toBe(0);
+        expect(shownPace(30, true)).toBe(70);
+        expect(shownPace(null, true)).toBeNull();
+    });
+});
+
+describe('plano da assinatura', () => {
+    it('monta o rótulo com multiplicador', () => {
+        expect(tierLabel('claude_max', 'default_claude_max_20x')).toBe('MAX 20x');
+        expect(tierLabel('pro', null)).toBe('PRO');
+        expect(tierLabel(null, null)).toBe('CLAUDE');
+    });
+
+    it('escolhe o ícone do plano', () => {
+        expect(tierIcon('MAX 20x')).toBe('max');
+        expect(tierIcon('ENTERPRISE')).toBe('enterprise');
+        expect(tierIcon('CLAUDE')).toBeNull();
+    });
+});
+
+describe('nível e projeção', () => {
+    const window = (utilization: number, remaining: number, apiLevel: 'ok' | 'warn' | 'crit' = 'ok'): LevelInput => ({
+        utilization,
+        resetsAt: iso(remaining),
+        totalSeconds: 18000,
+        apiLevel,
+    });
+
+    it('fica crítico quando vai acabar bem antes do reset', () => {
+        expect(effectiveLevel(window(60, 9000), NOW)).toBe('crit');
+        expect(projectionNote(window(60, 9000), false, NOW)).toBe('ritmo alto: acaba em ~1h 40m');
+    });
+
+    it('avisa quando a projeção passa de 75%', () => {
+        expect(effectiveLevel(window(50, 9000), NOW)).toBe('warn');
+        expect(projectionNote(window(50, 9000), false, NOW)).toBe('tendência de ~100% até o reset');
+        expect(projectionNote(window(50, 9000), true, NOW)).toBe('tendência de ~0% restante até o reset');
+    });
+
+    it('fica calmo com uso baixo e respeita a severidade da API', () => {
+        expect(effectiveLevel(window(20, 9000), NOW)).toBe('ok');
+        expect(projectionNote(window(20, 9000), false, NOW)).toBe('');
+        expect(effectiveLevel(window(10, 9000, 'warn'), NOW)).toBe('warn');
+        expect(effectiveLevel(window(95, 9000), NOW)).toBe('crit');
+    });
+});
+
+describe('tempos', () => {
+    it('formata durações', () => {
+        expect(humanDuration(30)).toBe('30s');
+        expect(humanDuration(600)).toBe('10m');
+        expect(humanDuration(6000)).toBe('1h 40m');
+        expect(humanDuration(200000)).toBe('2d 7h');
+    });
+
+    it('descreve o reset', () => {
+        expect(relativeReset(iso(0), NOW)).toBe('reiniciando…');
+        expect(relativeReset(iso(45), NOW)).toBe('reinicia em 45s');
+        expect(relativeReset(iso(1800), NOW)).toBe('reinicia em 30m');
+        expect(relativeReset(iso(7800), NOW)).toBe('reinicia em 2h 10m');
+        expect(relativeReset(iso(266400), NOW)).toBe('reinicia em 3d 2h');
+        expect(relativeReset(null, NOW)).toBe('');
+    });
+});
+
+describe('perfis', () => {
+    it('nomeia pelo diretório', () => {
+        expect(labelForDirName('.claude')).toBe('Claude');
+        expect(labelForDirName('.claude-work')).toBe('Work');
+        expect(labelForDirName('.claude-my_client')).toBe('My Client');
+    });
+
+    it('gera a sigla do perfil', () => {
+        expect(profileChip('Work Stuff')).toBe('WS');
+        expect(profileChip('Claude')).toBe('CL');
+    });
+
+    it('lê a lista salva ignorando lixo', () => {
+        expect(parseProfiles('[{"id":"a","label":"X","configDir":"/x"},{"bad":1}]')).toEqual([{id: 'a', label: 'X', configDir: '/x'}]);
+        expect(parseProfiles('lixo')).toEqual([]);
+    });
+
+    it('marca como ativo o perfil do diretório padrão', () => {
+        expect(isActiveProfile({id: 'a', label: 'A', configDir: '/home/u/.claude/'}, '/home/u/.claude')).toBeTrue();
+        expect(isActiveProfile({id: 'b', label: 'B', configDir: '/home/u/.claude-work'}, '/home/u/.claude')).toBeFalse();
+    });
+});
+
+describe('credenciais', () => {
+    it('lê o token e o plano do arquivo do Claude Code', () => {
+        expect(
+            parseCredentials(
+                '{"claudeAiOauth":{"accessToken":"a","refreshToken":"r","expiresAt":5,"subscriptionType":"max","rateLimitTier":"x_20x"}}',
+            ),
+        ).toEqual({accessToken: 'a', refreshToken: 'r', expiresAt: 5, subscriptionType: 'max', rateLimitTier: 'x_20x'});
+        expect(parseCredentials('{"claudeAiOauth":{}}')).toBeNull();
+        expect(parseCredentials('{quebrado')).toBeNull();
+        expect(parseCredentials(null)).toBeNull();
+    });
+
+    it('renova cinco minutos antes de expirar', () => {
+        expect(needsRefresh(0, NOW)).toBeFalse();
+        expect(needsRefresh(NOW + 10 * 60e3, NOW)).toBeFalse();
+        expect(needsRefresh(NOW + 2 * 60e3, NOW)).toBeTrue();
+    });
+});
+
+describe('conta e erros', () => {
+    it('resume a conta a partir do perfil da API', () => {
+        expect(
+            accountSummary({
+                account: {display_name: 'Matheus', has_claude_max: true},
+                application: {name: 'Claude Code'},
+                organization: {subscription_status: 'active', rate_limit_tier: 'default_claude_max_20x'},
+            }),
+        ).toEqual({who: 'Matheus', plan: 'max', rateLimitTier: 'default_claude_max_20x', subtitle: 'Matheus · Claude Code · ativo'});
+        expect(accountSummary({account: {full_name: 'Ana', has_claude_pro: true}, organization: {organization_type: 'team'}})).toEqual({
+            who: 'Ana',
+            plan: 'team',
+            rateLimitTier: null,
+            subtitle: 'Ana · Claude',
+        });
+        expect(accountSummary(null)).toBeNull();
+    });
+
+    it('descreve erros em português', () => {
+        expect(claudeErrorMessage(401, null)).toBe('Sessão expirada. Entre de novo no Claude Code.');
+        expect(claudeErrorMessage(403, 'Sem plano')).toBe('Sem plano');
+        expect(claudeErrorMessage(403, null)).toBe('Sem assinatura ativa do Claude nesta conta.');
+        expect(claudeErrorMessage(429, null)).toBe('Limite de requisições do Claude; tentando de novo em breve.');
+        expect(claudeErrorMessage(null, null)).toBe('Não foi possível falar com o Claude.');
+        expect(claudeErrorMessage(500, null)).toBe('Erro do Claude (HTTP 500).');
+    });
+});

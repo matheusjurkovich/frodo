@@ -3,6 +3,7 @@ import System from 'system';
 import './polyfills.js';
 import './setup.js';
 import './core.spec.js';
+import './claude.spec.js';
 import './util.spec.js';
 import './services.spec.js';
 

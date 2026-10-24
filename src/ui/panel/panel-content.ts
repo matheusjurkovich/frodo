@@ -1,7 +1,9 @@
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 
+import type {ClaudeService} from '../../services/claude-service.js';
 import type {NotificationBridge} from '../../services/notification-bridge.js';
+import type {FrodoSettings} from '../../services/settings.js';
 import type {SystemState} from '../../services/system-state.js';
 import {toggleOverview} from '../../shell/internals.js';
 import {Disposables} from '../../util/disposables.js';
@@ -11,16 +13,22 @@ import type {Island} from '../island.js';
 import {NativeDateMenu} from '../native-date-menu.js';
 import {NativeQuickSettings} from '../native-quick-settings.js';
 import {StatusRow} from '../status-row.js';
-import {claudeSection, headerSection, systemSection} from './sections.js';
+import {ClaudeTab} from './claude-tab.js';
+import {headerSection, systemSection} from './sections.js';
+
+export type TabId = 'controls' | 'calendar' | 'notifications' | 'system' | 'claude';
 
 export interface PanelDependencies {
     readonly island: Island;
     readonly state: SystemState;
+    readonly claude: ClaudeService;
+    readonly settings: FrodoSettings;
     readonly bridge: NotificationBridge;
     readonly openPreferences: () => void;
 }
 
 interface Tab {
+    readonly id: TabId;
     readonly icon: FrodoIconName;
     readonly label: string;
     readonly page: St.Widget;
@@ -49,23 +57,31 @@ export class PanelContent {
     readonly #quickSettings: NativeQuickSettings;
     readonly #dateMenu: NativeDateMenu;
     readonly #status: StatusRow;
+    readonly #claudeTab: ClaudeTab;
     readonly #disposables = new Disposables();
+    #nextTab: TabId = 'controls';
 
-    constructor({island, state, bridge, openPreferences}: PanelDependencies) {
+    constructor({island, state, claude, settings, bridge, openPreferences}: PanelDependencies) {
         this.#quickSettings = new NativeQuickSettings(island);
         this.#dateMenu = new NativeDateMenu(island);
         this.#status = new StatusRow(island);
+        this.#claudeTab = new ClaudeTab(claude, settings, {
+            openPreferences,
+            close: () => {
+                island.close();
+            },
+        });
 
         const controls = column('frodo-section');
         controls.add_child(this.#quickSettings.actor);
         controls.add_child(this.#status.actor);
 
         const tabs: readonly Tab[] = [
-            {icon: 'controls', label: 'Controles', page: controls},
-            {icon: 'calendar', label: 'Calendário', page: this.#dateMenu.calendar},
-            {icon: 'bell', label: 'Notificações', page: this.#dateMenu.notifications},
-            {icon: 'system', label: 'Sistema', page: systemSection(state)},
-            {icon: 'claude', label: 'Claude', page: claudeSection(state)},
+            {id: 'controls', icon: 'controls', label: 'Controles', page: controls},
+            {id: 'calendar', icon: 'calendar', label: 'Calendário', page: this.#dateMenu.calendar},
+            {id: 'notifications', icon: 'bell', label: 'Notificações', page: this.#dateMenu.notifications},
+            {id: 'system', icon: 'system', label: 'Sistema', page: systemSection(state)},
+            {id: 'claude', icon: 'claude', label: 'Claude', page: this.#claudeTab.actor},
         ];
 
         const bar = new St.BoxLayout({style_class: 'frodo-tabbar', x_align: Clutter.ActorAlign.CENTER});
@@ -95,7 +111,13 @@ export class PanelContent {
         this.#disposables.add(bridge.on('changed', syncCount));
         this.#disposables.add(
             island.on('opening', () => {
-                select(0);
+                select(
+                    Math.max(
+                        0,
+                        tabs.findIndex(tab => tab.id === this.#nextTab),
+                    ),
+                );
+                this.#nextTab = 'controls';
             }),
         );
         syncCount();
@@ -114,8 +136,13 @@ export class PanelContent {
         this.actor.add_child(stack);
     }
 
+    showOnNextOpen(tab: TabId): void {
+        this.#nextTab = tab;
+    }
+
     destroy(): void {
         this.#disposables.dispose();
+        this.#claudeTab.destroy();
         this.#status.destroy();
         this.#quickSettings.destroy();
         this.#dateMenu.destroy();

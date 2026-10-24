@@ -301,3 +301,99 @@
 .frodo-calendar .datemenu-calendar-column {
     margin: 0;
 }
+
+.frodo-claude-tab {
+    spacing: 14px;
+    min-width: 420px;
+}
+
+.frodo-claude-profiles {
+    spacing: 16px;
+}
+
+.frodo-claude-profile {
+    spacing: 8px;
+    background-color: #111;
+    border-radius: 16px;
+    padding: 12px 14px;
+}
+
+.frodo-claude-header {
+    spacing: 8px;
+}
+
+.frodo-claude-logo {
+    icon-size: 18px;
+    color: #d97757;
+}
+
+.frodo-claude-name {
+    font-weight: 700;
+}
+
+.frodo-chip {
+    font-size: 8pt;
+    font-weight: 600;
+    color: #ccc;
+    background-color: #2a2a2a;
+    border-radius: 999px;
+    padding: 1px 8px;
+}
+
+.frodo-chip-active {
+    color: #fff;
+    background-color: #d97757;
+}
+
+.frodo-tier-icon {
+    icon-size: 14px;
+    color: #d97757;
+}
+
+.frodo-tier {
+    font-size: 9pt;
+    font-weight: 700;
+    color: #d97757;
+}
+
+.frodo-meter {
+    spacing: 4px;
+}
+
+.frodo-meter-name {
+    color: #ddd;
+}
+
+.frodo-meter-value {
+    font-weight: 700;
+    font-feature-settings: 'tnum';
+}
+
+.frodo-meter-note {
+    font-size: 8.5pt;
+    color: #9aa0a6;
+}
+
+.frodo-claude-error {
+    font-size: 9pt;
+    color: #f0883e;
+}
+
+.frodo-claude-footer {
+    spacing: 8px;
+}
+
+.frodo-claude-buttons {
+    spacing: 8px;
+}
+
+.frodo-claude-button {
+    background-color: #1a1a1a;
+    border-radius: 12px;
+    padding: 8px 10px;
+    color: #fff;
+}
+
+.frodo-claude-button:hover {
+    background-color: #262626;
+}

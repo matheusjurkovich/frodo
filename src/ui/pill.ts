@@ -6,6 +6,9 @@ import St from 'gi://St';
 import {batteryLevel, ellipsize} from '../core/format.js';
 import {formatGb} from '../core/memory.js';
 import type {ClosedItem} from '../core/types.js';
+import {effectiveLevel, shownPercent} from '../core/claude-usage.js';
+import type {UsageWindow} from '../core/claude-usage.js';
+import type {ClaudeService} from '../services/claude-service.js';
 import type {InterceptedNotification} from '../services/notification-bridge.js';
 import type {FrodoSettings} from '../services/settings.js';
 import type {SystemState} from '../services/system-state.js';
@@ -14,7 +17,7 @@ import {Disposables} from '../util/disposables.js';
 import {Emitter} from '../util/emitter.js';
 import {Timer} from '../util/timer.js';
 import {frodoIcon} from './icons.js';
-import {COLORS, ProgressRing, dimLabel, separator} from './widgets.js';
+import {COLORS, ProgressRing, dimLabel, levelColor, separator} from './widgets.js';
 
 const FLASH_MS = 3000;
 const FLASH_CHARS = 40;
@@ -44,6 +47,7 @@ export class Pill extends Emitter<{rebuilt: []}> {
 
     readonly #settings: FrodoSettings;
     readonly #state: SystemState;
+    readonly #claude: ClaudeService;
     readonly #content = new St.BoxLayout({style_class: 'frodo-pill-content'});
     readonly #flashBox = new St.BoxLayout({style_class: 'frodo-pill-content', visible: false});
     readonly #flashIcon = new St.Icon({style_class: 'frodo-flash-icon'});
@@ -58,10 +62,11 @@ export class Pill extends Emitter<{rebuilt: []}> {
     #rotateIndex = 0;
     #rotatingSlot: St.Label | null = null;
 
-    constructor(settings: FrodoSettings, state: SystemState) {
+    constructor(settings: FrodoSettings, state: SystemState, claude: ClaudeService) {
         super();
         this.#settings = settings;
         this.#state = state;
+        this.#claude = claude;
         this.#flashBox.add_child(this.#flashIcon);
         this.#flashBox.add_child(this.#flashLabel);
         this.actor.add_child(this.#content);
@@ -78,7 +83,17 @@ export class Pill extends Emitter<{rebuilt: []}> {
                 this.#build();
             }),
         );
-        for (const event of ['memory', 'battery', 'claude'] as const)
+        this.#disposables.add(
+            claude.on('changed', () => {
+                this.#update();
+            }),
+        );
+        this.#disposables.add(
+            settings.onChanged('claude-show-remaining', () => {
+                this.#update();
+            }),
+        );
+        for (const event of ['memory', 'battery'] as const)
             this.#disposables.add(
                 state.on(event, () => {
                     this.#update();
@@ -221,22 +236,33 @@ export class Pill extends Emitter<{rebuilt: []}> {
         };
     }
 
+    #claudeWindow(item: 'claude-session' | 'claude-weekly'): UsageWindow | null {
+        const role = item === 'claude-session' ? 'session' : 'weekly';
+        return this.#claude.active?.windows.find(window => window.role === role) ?? null;
+    }
+
     #claudeSegment(item: 'claude-session' | 'claude-weekly'): Segment {
         const box = new St.BoxLayout({style_class: 'frodo-claude', y_align: Clutter.ActorAlign.CENTER});
         box.add_child(new St.Icon({gicon: frodoIcon('claude'), style_class: 'frodo-claude-icon'}));
         const ring = new ProgressRing(COLORS.claude);
-        const dash = dimLabel('—');
+        const value = dimLabel('—');
         box.add_child(ring.actor);
-        box.add_child(dash);
+        box.add_child(value);
         return {
             actor: box,
             separator: separator(),
             isVisible: () => true,
             update: () => {
-                const window = item === 'claude-session' ? this.#state.claude.session : this.#state.claude.weekly;
+                const window = this.#claudeWindow(item);
                 ring.actor.visible = window !== null;
-                dash.visible = window === null;
-                if (window) ring.percent = window.percent;
+                if (!window) {
+                    value.text = '—';
+                    return;
+                }
+                const shown = shownPercent(window.utilization, this.#settings.claudeShowRemaining);
+                ring.color = levelColor(effectiveLevel(window, Date.now()));
+                ring.percent = shown;
+                value.text = `${Math.round(shown)}%`;
             },
         };
     }
@@ -261,16 +287,20 @@ export class Pill extends Emitter<{rebuilt: []}> {
     }
 
     #itemText(item: TextItem): string {
-        const {battery, memory, claude} = this.#state;
+        const {battery, memory} = this.#state;
         switch (item) {
             case 'battery':
                 return battery ? `Bat ${battery.percent}%` : 'Bat —';
             case 'ram':
                 return memory ? `RAM ${formatGb(memory.usedKb)}` : 'RAM —';
             case 'claude-session':
-                return claude.session ? `Claude ${Math.round(claude.session.percent)}%` : 'Claude —';
-            case 'claude-weekly':
-                return claude.weekly ? `Semana ${Math.round(claude.weekly.percent)}%` : 'Semana —';
+            case 'claude-weekly': {
+                const window = this.#claudeWindow(item);
+                const name = item === 'claude-session' ? 'Claude' : 'Semana';
+                return window
+                    ? `${name} ${Math.round(shownPercent(window.utilization, this.#settings.claudeShowRemaining))}%`
+                    : `${name} —`;
+            }
         }
     }
 

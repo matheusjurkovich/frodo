@@ -2,12 +2,24 @@ import type Gio from 'gi://Gio';
 
 import {CLOSED_ITEMS, CLOSED_MODES, MONITOR_MODES, isOneOf} from '../core/types.js';
 import type {ClosedItem, ClosedMode, MonitorMode} from '../core/types.js';
+import {parseProfiles} from '../core/claude-profiles.js';
+import type {ClaudeProfile} from '../core/claude-profiles.js';
 import type {Disposer} from '../util/disposables.js';
 
 export const SCHEMA_ID = 'org.gnome.shell.extensions.frodo';
 
 export type SettingsKey =
-    'closed-mode' | 'closed-items' | 'rotate-seconds' | 'monitors' | 'hide-top-bar' | 'claude-poll-minutes' | 'toggle-shortcut';
+    | 'closed-mode'
+    | 'closed-items'
+    | 'rotate-seconds'
+    | 'monitors'
+    | 'hide-top-bar'
+    | 'claude-poll-minutes'
+    | 'claude-show-remaining'
+    | 'claude-profiles'
+    | 'claude-profiles-initialized'
+    | 'claude-shortcut'
+    | 'toggle-shortcut';
 
 export class FrodoSettings {
     constructor(readonly gsettings: Gio.Settings) {}
@@ -52,6 +64,34 @@ export class FrodoSettings {
 
     get claudePollMinutes(): number {
         return this.gsettings.get_int('claude-poll-minutes');
+    }
+
+    get claudeShowRemaining(): boolean {
+        return this.gsettings.get_boolean('claude-show-remaining');
+    }
+
+    get claudeProfiles(): ClaudeProfile[] {
+        return parseProfiles(this.gsettings.get_string('claude-profiles'));
+    }
+
+    set claudeProfiles(profiles: readonly ClaudeProfile[]) {
+        this.gsettings.set_string('claude-profiles', JSON.stringify(profiles));
+    }
+
+    get claudeProfilesInitialized(): boolean {
+        return this.gsettings.get_boolean('claude-profiles-initialized');
+    }
+
+    set claudeProfilesInitialized(value: boolean) {
+        this.gsettings.set_boolean('claude-profiles-initialized', value);
+    }
+
+    get claudeShortcut(): string {
+        return this.gsettings.get_strv('claude-shortcut')[0] ?? '';
+    }
+
+    set claudeShortcut(value: string) {
+        this.gsettings.set_strv('claude-shortcut', [value]);
     }
 
     get toggleShortcut(): string {
