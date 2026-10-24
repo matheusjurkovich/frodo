@@ -1,7 +1,7 @@
 import System from 'system';
 import GLib from 'gi://GLib';
 import {parseMeminfo, formatGb, readMemory} from '../lib/meminfo.js';
-import {batteryIconName, claudeErrorText, formatDate, centerClamp, shouldIntercept, latest, ellipsize} from '../lib/format.js';
+import {batteryIconName, claudeErrorText, formatDate, centerClamp, shouldIntercept, latest, ellipsize, isValidShortcut} from '../lib/format.js';
 import {parseUsage, readToken, errorForStatus, formatReset, ClaudeUsage} from '../lib/claude.js';
 
 let failures = 0;
@@ -70,6 +70,10 @@ assertEq(shouldIntercept(null), false, 'não intercepta nulo');
 assertEq(latest([{t: 1}, {t: 5}, {t: 3}], n => n.t, 2).map(n => n.t), [5, 3], 'mais recentes primeiro');
 assertEq(ellipsize('abc', 40), 'abc', 'texto curto');
 assertEq(ellipsize('a'.repeat(45), 40), `${'a'.repeat(39)}…`, 'texto longo');
+
+assertEq(isValidShortcut(true, 122, 64), true, 'atalho Super+z');
+assertEq(isValidShortcut(true, 122, 0), false, 'atalho sem modificador');
+assertEq(isValidShortcut(false, 0, 0), false, 'atalho inválido');
 
 const mem = await readMemory();
 assertEq(mem !== null && mem.totalKb > 0 && mem.usedKb > 0 && mem.usedKb < mem.totalKb, true, 'readMemory real');

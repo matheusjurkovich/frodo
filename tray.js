@@ -35,7 +35,7 @@ export class TrayRow {
     }
 
     giveBack() {
-        for (const {container, parent, index, destroyId, release} of this._borrowed) {
+        for (const {container, parent, index, destroyId, release} of [...this._borrowed].reverse()) {
             container.disconnect(destroyId);
             release?.();
             this.actor.remove_child(container);

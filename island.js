@@ -210,6 +210,7 @@ export class Island extends EventEmitter {
         this._content.show();
         this._isOpen = true;
         this._openedBy = by;
+        this.pill.reactive = false;
         this._syncMemoryWanted();
         this._data.refreshClaude(60);
 
@@ -244,6 +245,7 @@ export class Island extends EventEmitter {
         if (!this._isOpen)
             return;
         this._isOpen = false;
+        this.pill.reactive = true;
         this._clearTimer('_openTimer');
         this._clearTimer('_closeTimer');
         if (this._grab.isActorGrabbed(this.panel))

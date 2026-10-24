@@ -2,6 +2,8 @@ import Adw from 'gi://Adw';
 import Gtk from 'gi://Gtk';
 import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
+import {isValidShortcut} from './lib/format.js';
+
 const MODES = [['minimal', 'Minimalista'], ['compact', 'Compacto'], ['rotating', 'Rotativo']];
 const LAYOUTS = [['single', 'Painel único'], ['tabs', 'Abas']];
 const ITEMS = [['battery', 'Bateria'], ['ram', 'RAM'], ['claude-session', 'Claude sessão'], ['claude-weekly', 'Claude semana']];
@@ -69,8 +71,8 @@ export default class FrodoPrefs extends ExtensionPreferences {
         const entry = new Adw.EntryRow({title: 'Abrir e fechar a ilha', show_apply_button: true});
         entry.text = settings.get_strv('toggle-shortcut')[0] ?? '';
         entry.connect('apply', () => {
-            const [ok, key] = Gtk.accelerator_parse(entry.text);
-            if (ok && key !== 0)
+            const [ok, key, mods] = Gtk.accelerator_parse(entry.text);
+            if (isValidShortcut(ok, key, mods))
                 settings.set_strv('toggle-shortcut', [entry.text]);
             else
                 entry.text = settings.get_strv('toggle-shortcut')[0] ?? '';

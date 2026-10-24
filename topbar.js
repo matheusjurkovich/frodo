@@ -28,7 +28,8 @@ export class TopBar {
         const panelBox = Main.layoutManager.panelBox;
         if (this._mode === 'bar') {
             pill.get_parent()?.remove_child(pill);
-            this._dateMenu?.show();
+            if (Object.values(Main.sessionMode.panel).flat().includes('dateMenu'))
+                this._dateMenu?.show();
         } else if (this._mode === 'float') {
             Main.layoutManager.removeChrome(pill);
             Main.layoutManager.trackChrome(panelBox, {affectsStruts: true, trackFullscreen: true});

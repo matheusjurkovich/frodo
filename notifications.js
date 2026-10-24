@@ -34,7 +34,11 @@ export class NotificationBridge extends EventEmitter {
                 return original.call(this);
             this._notificationQueue.shift();
             this.emit('queue-changed');
+            next.playSound();
+            next.acknowledged = true;
             island.flash({gicon: iconOf(next), title: next.title ?? ''});
+            if (next.isTransient)
+                next.destroy(MessageTray.NotificationDestroyedReason.EXPIRED);
             GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
                 this._updateState();
                 return GLib.SOURCE_REMOVE;
