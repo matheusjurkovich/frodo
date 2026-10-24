@@ -1,0 +1,144 @@
+import {claudeErrorText, errorForStatus, parseUsage, readToken} from '../src/core/claude.js';
+import {batteryIconName, ellipsize, formatDate, formatReset} from '../src/core/format.js';
+import {centerClamp} from '../src/core/geometry.js';
+import {formatGb, parseMeminfo} from '../src/core/memory.js';
+import {latest, shouldIntercept} from '../src/core/notifications.js';
+import {isValidShortcut} from '../src/core/shortcut.js';
+import {CLOSED_MODES, isOneOf} from '../src/core/types.js';
+
+describe('memory', () => {
+    it('calcula usado a partir de MemAvailable', () => {
+        expect(parseMeminfo('MemTotal:       14680064 kB\nMemFree: 1 kB\nMemAvailable:    8178893 kB\n')).toEqual({
+            totalKb: 14680064,
+            usedKb: 6501171,
+        });
+    });
+
+    it('retorna null para texto inválido', () => {
+        expect(parseMeminfo('lixo')).toBeNull();
+    });
+
+    it('formata em GB com uma casa', () => {
+        expect(formatGb(6501171)).toBe('6.2G');
+    });
+});
+
+describe('claude', () => {
+    it('lê o formato limits[]', () => {
+        expect(
+            parseUsage({
+                limits: [
+                    {kind: 'session', group: 'session', percent: 62, resets_at: '2026-10-24T20:00:00Z'},
+                    {kind: 'weekly_all', group: 'weekly', percent: 31, resets_at: '2026-10-29T12:00:00Z'},
+                    {kind: 'weekly_scoped', group: 'weekly', percent: 80, scope: {model: {display_name: 'Opus'}}},
+                ],
+            }),
+        ).toEqual({
+            session: {percent: 62, resetsAt: '2026-10-24T20:00:00Z'},
+            weekly: {percent: 31, resetsAt: '2026-10-29T12:00:00Z'},
+        });
+    });
+
+    it('lê o formato legado', () => {
+        expect(parseUsage({five_hour: {utilization: 10, resets_at: 'a'}, seven_day: {utilization: 20, resets_at: 'b'}})).toEqual({
+            session: {percent: 10, resetsAt: 'a'},
+            weekly: {percent: 20, resetsAt: 'b'},
+        });
+    });
+
+    it('ignora entradas inválidas', () => {
+        expect(parseUsage(null)).toEqual({session: null, weekly: null});
+        expect(parseUsage({limits: [{kind: 'session', percent: 'x'}]})).toEqual({session: null, weekly: null});
+    });
+
+    it('lê o token das credenciais', () => {
+        expect(readToken(null, 0)).toEqual({token: null, error: 'no-credentials'});
+        expect(readToken('{quebrado', 0)).toEqual({token: null, error: 'no-credentials'});
+        expect(readToken('{"claudeAiOauth":{"accessToken":"t","expiresAt":1000}}', 2000)).toEqual({token: null, error: 'expired'});
+        expect(readToken('{"claudeAiOauth":{"accessToken":"t","expiresAt":3000}}', 2000)).toEqual({token: 't', error: null});
+        expect(readToken('{"claudeAiOauth":{"accessToken":"t"}}', 2000)).toEqual({token: 't', error: null});
+    });
+
+    it('mapeia status HTTP', () => {
+        expect(errorForStatus(200)).toBeNull();
+        expect(errorForStatus(401)).toBe('expired');
+        expect(errorForStatus(403)).toBe('expired');
+        expect(errorForStatus(503)).toBe('http');
+    });
+
+    it('descreve erros', () => {
+        expect(claudeErrorText('no-credentials')).toBe('Faça login no Claude Code');
+        expect(claudeErrorText('expired')).toBe('Faça login no Claude Code');
+        expect(claudeErrorText('network')).toBe('Sem conexão');
+        expect(claudeErrorText(null)).toBe('');
+    });
+});
+
+describe('format', () => {
+    const now = Date.UTC(2026, 9, 24, 12, 0);
+
+    it('formata tempo até o reset', () => {
+        expect(formatReset(new Date(now + 130 * 60e3).toISOString(), now)).toBe('em 2h 10m');
+        expect(formatReset(new Date(now + 45 * 60e3).toISOString(), now)).toBe('em 45m');
+        expect(formatReset(null, now)).toBe('');
+    });
+
+    it('usa dia e hora para resets distantes', () => {
+        const far = new Date(now + 3 * 86400e3);
+        const day = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][far.getDay()] ?? '';
+        const time = `${String(far.getHours()).padStart(2, '0')}:${String(far.getMinutes()).padStart(2, '0')}`;
+        expect(formatReset(far.toISOString(), now)).toBe(`${day} ${time}`);
+    });
+
+    it('formata data curta', () => {
+        expect(formatDate(new Date(2026, 9, 24))).toBe('sáb, 24 out');
+    });
+
+    it('escolhe o ícone de bateria', () => {
+        expect(batteryIconName({percent: 72, charging: false})).toBe('battery-level-70-symbolic');
+        expect(batteryIconName({percent: 100, charging: true})).toBe('battery-level-100-charging-symbolic');
+        expect(batteryIconName({percent: 4, charging: false})).toBe('battery-level-0-symbolic');
+    });
+
+    it('corta textos longos', () => {
+        expect(ellipsize('abc', 40)).toBe('abc');
+        expect(ellipsize('a'.repeat(45), 40)).toBe(`${'a'.repeat(39)}…`);
+    });
+});
+
+describe('geometry', () => {
+    it('centraliza o painel na pílula dentro do monitor', () => {
+        expect(centerClamp(900, 120, 600, 0, 1920)).toBe(660);
+        expect(centerClamp(10, 120, 600, 0, 1920)).toBe(8);
+        expect(centerClamp(1850, 60, 600, 0, 1920)).toBe(1312);
+        expect(centerClamp(2800, 120, 600, 1920, 1920)).toBe(2560);
+    });
+});
+
+describe('notifications', () => {
+    it('intercepta só notificações normais sem ações', () => {
+        expect(shouldIntercept({urgency: 1, actions: []})).toBeTrue();
+        expect(shouldIntercept({urgency: 3, actions: []})).toBeFalse();
+        expect(shouldIntercept({urgency: 1, actions: [{}]})).toBeFalse();
+        expect(shouldIntercept(null)).toBeFalse();
+    });
+
+    it('ordena as mais recentes primeiro', () => {
+        expect(latest([{t: 1}, {t: 5}, {t: 3}], n => n.t, 2).map(n => n.t)).toEqual([5, 3]);
+    });
+});
+
+describe('shortcut', () => {
+    it('exige tecla e modificador', () => {
+        expect(isValidShortcut(true, 122, 64)).toBeTrue();
+        expect(isValidShortcut(true, 122, 0)).toBeFalse();
+        expect(isValidShortcut(false, 0, 0)).toBeFalse();
+    });
+});
+
+describe('types', () => {
+    it('valida valores de enum de configuração', () => {
+        expect(isOneOf(CLOSED_MODES, 'compact')).toBeTrue();
+        expect(isOneOf(CLOSED_MODES, 'outro')).toBeFalse();
+    });
+});
