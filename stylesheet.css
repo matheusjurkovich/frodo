@@ -167,3 +167,49 @@
   height: 6px;
   min-width: 80px;
 }
+
+.frodo-pill-content {
+  spacing: 10px;
+}
+
+.frodo-flash-icon {
+  icon-size: 16px;
+}
+
+.frodo-notifs {
+  spacing: 5px;
+}
+
+.frodo-notif {
+  background-color: #1a1a1a;
+  border-radius: 10px;
+}
+
+.frodo-notif-main {
+  padding: 6px 8px;
+  border-radius: 10px;
+  color: #fff;
+}
+
+.frodo-notif-main:hover,
+.frodo-notif-close:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.frodo-notif-icon {
+  icon-size: 18px;
+}
+
+.frodo-notif-title {
+  font-weight: 600;
+}
+
+.frodo-notif-close {
+  padding: 6px 10px;
+  border-radius: 10px;
+  color: #9aa0a6;
+}
+
+.frodo-empty {
+  padding: 4px 0;
+}

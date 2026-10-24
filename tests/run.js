@@ -1,7 +1,7 @@
 import System from 'system';
 import GLib from 'gi://GLib';
 import {parseMeminfo, formatGb, readMemory} from '../lib/meminfo.js';
-import {batteryIconName, claudeErrorText, formatDate, centerClamp} from '../lib/format.js';
+import {batteryIconName, claudeErrorText, formatDate, centerClamp, shouldIntercept, latest, ellipsize} from '../lib/format.js';
 import {parseUsage, readToken, errorForStatus, formatReset, ClaudeUsage} from '../lib/claude.js';
 
 let failures = 0;
@@ -62,6 +62,14 @@ assertEq(centerClamp(900, 120, 600, 0, 1920), 660, 'painel centrado na pílula')
 assertEq(centerClamp(10, 120, 600, 0, 1920), 8, 'painel preso à esquerda');
 assertEq(centerClamp(1850, 60, 600, 0, 1920), 1312, 'painel preso à direita');
 assertEq(centerClamp(2800, 120, 600, 1920, 1920), 2560, 'segundo monitor');
+
+assertEq(shouldIntercept({urgency: 1, actions: []}), true, 'intercepta normal');
+assertEq(shouldIntercept({urgency: 3, actions: []}), false, 'não intercepta crítica');
+assertEq(shouldIntercept({urgency: 1, actions: [{}]}), false, 'não intercepta com ação');
+assertEq(shouldIntercept(null), false, 'não intercepta nulo');
+assertEq(latest([{t: 1}, {t: 5}, {t: 3}], n => n.t, 2).map(n => n.t), [5, 3], 'mais recentes primeiro');
+assertEq(ellipsize('abc', 40), 'abc', 'texto curto');
+assertEq(ellipsize('a'.repeat(45), 40), `${'a'.repeat(39)}…`, 'texto longo');
 
 const mem = await readMemory();
 assertEq(mem !== null && mem.totalKb > 0 && mem.usedKb > 0 && mem.usedKb < mem.totalKb, true, 'readMemory real');

@@ -7,11 +7,13 @@ import {EventEmitter} from 'resource:///org/gnome/shell/misc/signals.js';
 import {GrabHelper} from 'resource:///org/gnome/shell/ui/grabHelper.js';
 
 import {formatGb} from './lib/meminfo.js';
-import {batteryIconName, centerClamp} from './lib/format.js';
+import {batteryIconName, centerClamp, ellipsize} from './lib/format.js';
 
 const OPEN_DELAY_MS = 150;
 const CLOSE_DELAY_MS = 300;
 const ANIM_MS = 250;
+const FLASH_MS = 3000;
+const FLASH_CHARS = 40;
 
 const CLAUDE_COLOR = [0xd9 / 255, 0x77 / 255, 0x57 / 255];
 function sep() {
@@ -79,6 +81,17 @@ export class Island extends EventEmitter {
             return Clutter.EVENT_STOP;
         });
 
+        this._content = new St.BoxLayout({style_class: 'frodo-pill-content'});
+        this._flashIcon = new St.Icon({style_class: 'frodo-flash-icon'});
+        this._flashLabel = new St.Label({y_align: Clutter.ActorAlign.CENTER});
+        this._flashBox = new St.BoxLayout({style_class: 'frodo-pill-content', visible: false});
+        this._flashBox.add_child(this._flashIcon);
+        this._flashBox.add_child(this._flashLabel);
+        this.pill.add_child(this._content);
+        this.pill.add_child(this._flashBox);
+        this._flashQueue = [];
+        this._flashTimer = 0;
+
         this._clock = new GnomeDesktop.WallClock();
         this._clockId = this._clock.connect('notify::clock', () => this._syncClock());
 
@@ -135,6 +148,32 @@ export class Island extends EventEmitter {
             this._later('_closeTimer', CLOSE_DELAY_MS, () => this.close());
     }
 
+    flash(item) {
+        if (this._isOpen)
+            return;
+        this._flashQueue.push(item);
+        if (!this._flashTimer)
+            this._nextFlash();
+    }
+
+    _nextFlash() {
+        const item = this._flashQueue.shift();
+        if (!item || this._isOpen) {
+            this._flashQueue = [];
+            this._flashBox.hide();
+            this._content.show();
+            return;
+        }
+        this._flashIcon.gicon = item.gicon;
+        this._flashIcon.icon_name = item.gicon ? null : 'dialog-information-symbolic';
+        this._flashLabel.text = ellipsize(item.title, FLASH_CHARS);
+        this._content.hide();
+        this._flashBox.opacity = 0;
+        this._flashBox.show();
+        this._flashBox.ease({opacity: 255, duration: 200, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+        this._later('_flashTimer', FLASH_MS, () => this._nextFlash());
+    }
+
     toggle() {
         if (this._isOpen)
             this.close();
@@ -154,6 +193,10 @@ export class Island extends EventEmitter {
         if (this._isOpen)
             return;
         this._clearTimer('_openTimer');
+        this._clearTimer('_flashTimer');
+        this._flashQueue = [];
+        this._flashBox.hide();
+        this._content.show();
         this._isOpen = true;
         this._openedBy = by;
         this._syncMemoryWanted();
@@ -248,7 +291,7 @@ export class Island extends EventEmitter {
 
     _build() {
         this._stopRotation();
-        this.pill.destroy_all_children();
+        this._content.destroy_all_children();
         this._widgets = {};
         this._clockLabel = new St.Label({style_class: 'frodo-clock', y_align: Clutter.ActorAlign.CENTER});
         this._syncClock();
@@ -257,13 +300,13 @@ export class Island extends EventEmitter {
         const items = this._items();
 
         if (mode === 'minimal') {
-            this.pill.add_child(this._clockLabel);
+            this._content.add_child(this._clockLabel);
         } else if (mode === 'rotating') {
-            this.pill.add_child(this._clockLabel);
+            this._content.add_child(this._clockLabel);
             this._rotateSep = sep();
-            this.pill.add_child(this._rotateSep);
+            this._content.add_child(this._rotateSep);
             this._slot = new St.Label({style_class: 'frodo-dim', y_align: Clutter.ActorAlign.CENTER});
-            this.pill.add_child(this._slot);
+            this._content.add_child(this._slot);
             this._rotateIndex = 0;
             this._rotateId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT,
                 this._settings.get_int('rotate-seconds'), () => {
@@ -278,25 +321,25 @@ export class Island extends EventEmitter {
                 box.add_child(icon);
                 box.add_child(label);
                 const s = sep();
-                this.pill.add_child(box);
-                this.pill.add_child(s);
+                this._content.add_child(box);
+                this._content.add_child(s);
                 this._widgets.battery = {box, icon, label, sep: s};
             }
-            this.pill.add_child(this._clockLabel);
+            this._content.add_child(this._clockLabel);
             for (const item of items) {
                 if (item === 'battery')
                     continue;
                 if (item === 'ram') {
-                    this.pill.add_child(sep());
+                    this._content.add_child(sep());
                     const label = new St.Label({style_class: 'frodo-dim', y_align: Clutter.ActorAlign.CENTER});
-                    this.pill.add_child(label);
+                    this._content.add_child(label);
                     this._widgets.ram = {label};
                 } else {
                     const key = item === 'claude-session' ? 'session' : 'weekly';
                     const area = ring(() => this._data.claude[key]?.percent);
                     const dash = new St.Label({text: '—', style_class: 'frodo-dim', y_align: Clutter.ActorAlign.CENTER});
-                    this.pill.add_child(area);
-                    this.pill.add_child(dash);
+                    this._content.add_child(area);
+                    this._content.add_child(dash);
                     this._widgets[item] = {area, dash, key};
                 }
             }
@@ -374,6 +417,7 @@ export class Island extends EventEmitter {
         this._isOpen = false;
         this._clearTimer('_openTimer');
         this._clearTimer('_closeTimer');
+        this._clearTimer('_flashTimer');
         this._stopRotation();
         this._clock.disconnect(this._clockId);
         this._clock = null;

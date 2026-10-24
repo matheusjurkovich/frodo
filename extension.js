@@ -7,6 +7,7 @@ import {Data} from './lib/data.js';
 import {Island} from './island.js';
 import {Controls} from './controls.js';
 import {buildPanel} from './panel.js';
+import {NotificationBridge, NotificationList} from './notifications.js';
 
 export default class FrodoExtension extends Extension {
     enable() {
@@ -15,6 +16,7 @@ export default class FrodoExtension extends Extension {
         this._island = new Island({settings: this._settings, data: this._data});
         Main.layoutManager.addTopChrome(this._island.pill, {trackFullscreen: true, affectsStruts: false});
         Main.layoutManager.addTopChrome(this._island.panel, {affectsStruts: false});
+        this._bridge = new NotificationBridge(this._island);
         this._buildPanel();
         this._layoutId = this._settings.connect('changed::open-layout', () => {
             this._island.close();
@@ -29,6 +31,7 @@ export default class FrodoExtension extends Extension {
 
     _destroyParts() {
         this._parts?.controls.destroy();
+        this._parts?.notifications.destroy();
         this._parts = null;
     }
 
@@ -37,6 +40,7 @@ export default class FrodoExtension extends Extension {
         this._parts = {
             data: this._data,
             controls: new Controls(this._island),
+            notifications: new NotificationList(this._bridge, this._island),
         };
         this._island.setPanel(buildPanel(this._settings.get_string('open-layout'), this._parts));
     }
@@ -54,6 +58,8 @@ export default class FrodoExtension extends Extension {
         this._settings.disconnect(this._layoutId);
         Main.wm.removeKeybinding('toggle-shortcut');
         this._destroyParts();
+        this._bridge.destroy();
+        this._bridge = null;
         Main.layoutManager.removeChrome(this._island.pill);
         Main.layoutManager.removeChrome(this._island.panel);
         this._island.destroy();
