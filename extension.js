@@ -9,6 +9,7 @@ import {TopBar} from './topbar.js';
 import {Controls} from './controls.js';
 import {buildPanel} from './panel.js';
 import {NotificationBridge, NotificationList} from './notifications.js';
+import {TrayRow} from './tray.js';
 
 export default class FrodoExtension extends Extension {
     enable() {
@@ -30,6 +31,7 @@ export default class FrodoExtension extends Extension {
     _destroyParts() {
         this._parts?.controls.destroy();
         this._parts?.notifications.destroy();
+        this._parts?.tray.destroy();
         this._parts = null;
     }
 
@@ -39,6 +41,7 @@ export default class FrodoExtension extends Extension {
             data: this._data,
             controls: new Controls(this._island),
             notifications: new NotificationList(this._bridge, this._island),
+            tray: new TrayRow(this._island),
         };
         this._island.setPanel(buildPanel(this._settings.get_string('open-layout'), this._parts));
     }

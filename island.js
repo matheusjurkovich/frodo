@@ -133,10 +133,19 @@ export class Island extends EventEmitter {
     }
 
     holdWhileOpen(menu) {
-        menu.connect('open-state-changed', (_m, open) => {
-            this._holds = Math.max(0, this._holds + (open ? 1 : -1));
+        let held = false;
+        const id = menu.connect('open-state-changed', (_m, open) => {
+            if (open === held)
+                return;
+            held = open;
+            this._holds += open ? 1 : -1;
             this._onPanelHover();
         });
+        return () => {
+            menu.disconnect(id);
+            if (held)
+                this._holds--;
+        };
     }
 
     _onPanelHover() {
@@ -202,6 +211,7 @@ export class Island extends EventEmitter {
         this._syncMemoryWanted();
         this._data.refreshClaude(60);
 
+        this.emit('opening');
         const panel = this.panel;
         panel.remove_all_transitions();
         panel.opacity = 0;

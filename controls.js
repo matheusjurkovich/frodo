@@ -246,7 +246,7 @@ export class Controls {
         this._powerMenu.actor.hide();
         this._menuManager = new PopupMenu.PopupMenuManager(this.powerButton);
         this._menuManager.addMenu(this._powerMenu);
-        this._island.holdWhileOpen(this._powerMenu);
+        this._releasePower = this._island.holdWhileOpen(this._powerMenu);
         const actions = SystemActions.getDefault();
         const run = fn => () => {
             this._island.close();
@@ -271,6 +271,7 @@ export class Controls {
         if (this._scaleId)
             this._scale.disconnect(this._scaleId);
         Main.brightnessManager.disconnect(this._managerId);
+        this._releasePower();
         this._menuManager.removeMenu(this._powerMenu);
         this._powerMenu.destroy();
         this.powerButton.destroy();

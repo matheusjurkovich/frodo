@@ -213,3 +213,10 @@
 .frodo-empty {
   padding: 4px 0;
 }
+
+.frodo-tray {
+  background-color: #1a1a1a;
+  border-radius: 12px;
+  padding: 2px 6px;
+  spacing: 2px;
+}
