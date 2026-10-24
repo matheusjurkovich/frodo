@@ -1,6 +1,7 @@
 import System from 'system';
-import {parseMeminfo, formatGb} from '../lib/meminfo.js';
-import {parseUsage, readToken, errorForStatus, formatReset} from '../lib/claude.js';
+import GLib from 'gi://GLib';
+import {parseMeminfo, formatGb, readMemory} from '../lib/meminfo.js';
+import {parseUsage, readToken, errorForStatus, formatReset, ClaudeUsage} from '../lib/claude.js';
 
 let failures = 0;
 let total = 0;
@@ -46,6 +47,17 @@ const far = new Date(now + 3 * 86400e3);
 assertEq(formatReset(far.toISOString(), now),
     `${['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][far.getDay()]} ${String(far.getHours()).padStart(2, '0')}:${String(far.getMinutes()).padStart(2, '0')}`, 'reset dias');
 assertEq(formatReset(null, now), '', 'reset nulo');
+
+const mem = await readMemory();
+assertEq(mem !== null && mem.totalKb > 0 && mem.usedKb > 0 && mem.usedKb < mem.totalKb, true, 'readMemory real');
+
+const emptyDir = GLib.dir_make_tmp('frodo-XXXXXX');
+GLib.setenv('CLAUDE_CONFIG_DIR', emptyDir, true);
+const usage = new ClaudeUsage();
+assertEq(await usage.fetch(), {session: null, weekly: null, error: 'no-credentials'}, 'fetch sem credenciais');
+usage.destroy();
+GLib.unsetenv('CLAUDE_CONFIG_DIR');
+GLib.rmdir(emptyDir);
 
 print(`${total - failures}/${total} ok`);
 if (failures)
