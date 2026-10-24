@@ -14,7 +14,7 @@ Gio._promisify(NM.Client, 'new_async');
 function tile({icon, title, onToggle, onArrow}) {
     const box = new St.BoxLayout({style_class: 'frodo-tile', x_expand: true});
     const main = new St.Button({style_class: 'frodo-tile-main', x_expand: true, can_focus: true});
-    const content = new St.BoxLayout({style: 'spacing: 8px;', x_expand: true, x_align: Clutter.ActorAlign.START});
+    const content = new St.BoxLayout({style: 'spacing: 10px;', x_expand: true, x_align: Clutter.ActorAlign.START});
     const iconActor = new St.Icon({icon_name: icon, style_class: 'frodo-tile-icon'});
     const texts = new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL, y_align: Clutter.ActorAlign.CENTER});
     const titleLabel = new St.Label({text: title, style_class: 'frodo-tile-title'});
@@ -77,7 +77,7 @@ export class Controls {
         this.actor = new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL, style_class: 'frodo-controls', x_expand: true});
 
         const grid = new St.Widget({
-            layout_manager: new Clutter.GridLayout({column_spacing: 6, row_spacing: 6, column_homogeneous: true}),
+            layout_manager: new Clutter.GridLayout({column_spacing: 10, row_spacing: 10, column_homogeneous: true}),
             x_expand: true,
         });
         const gl = grid.layout_manager;

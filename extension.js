@@ -40,6 +40,10 @@ export default class FrodoExtension extends Extension {
         this._parts = {
             data: this._data,
             bridge: this._bridge,
+            openPreferences: () => {
+                this._island.close();
+                this.openPreferences();
+            },
             controls: new Controls(this._island),
             notifications: new NotificationList(this._bridge, this._island),
             tray: new TrayRow(this._island),

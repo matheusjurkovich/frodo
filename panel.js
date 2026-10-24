@@ -72,7 +72,8 @@ function heading(text) {
     return new St.Label({text, style_class: 'frodo-heading'});
 }
 
-function header(controls) {
+function header(parts) {
+    const {controls} = parts;
     const box = new St.BoxLayout({style_class: 'frodo-header', x_expand: true});
     const clock = new St.Label({style_class: 'frodo-big-clock', y_align: Clutter.ActorAlign.CENTER});
     const date = new St.Label({style_class: 'frodo-dim', y_align: Clutter.ActorAlign.CENTER});
@@ -80,6 +81,15 @@ function header(controls) {
     box.add_child(clock);
     box.add_child(date);
     box.add_child(spacer);
+    const settings = new St.Button({
+        style_class: 'frodo-round-button',
+        child: new St.Icon({icon_name: 'emblem-system-symbolic', icon_size: 14}),
+        can_focus: true,
+        y_align: Clutter.ActorAlign.CENTER,
+        accessible_name: 'Configurações',
+    });
+    settings.connect('clicked', () => parts.openPreferences());
+    box.add_child(settings);
     box.add_child(controls.powerButton);
     const wall = new GnomeDesktop.WallClock();
     const sync = () => {
@@ -153,7 +163,7 @@ function bottom(parts) {
 
 function single(parts) {
     const root = new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL, style_class: 'frodo-panel-content'});
-    root.add_child(header(parts.controls));
+    root.add_child(header(parts));
     const cols = new St.BoxLayout({style_class: 'frodo-cols', x_expand: true});
     cols.add_child(parts.controls.actor);
     const right = new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL, x_expand: true, style_class: 'frodo-right'});
@@ -167,7 +177,7 @@ function single(parts) {
 
 function tabs(parts) {
     const root = new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL, style_class: 'frodo-panel-content', x_expand: true});
-    root.add_child(header(parts.controls));
+    root.add_child(header(parts));
     const bar = new St.BoxLayout({style_class: 'frodo-tabbar', x_align: Clutter.ActorAlign.CENTER});
     const stack = new St.Widget({layout_manager: new Clutter.BinLayout(), x_expand: true});
 
