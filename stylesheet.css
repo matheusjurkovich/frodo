@@ -47,3 +47,65 @@
   font-size: 10pt;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
 }
+
+.frodo-controls {
+  spacing: 6px;
+}
+
+.frodo-tile {
+  background-color: #1a1a1a;
+  border-radius: 12px;
+}
+
+.frodo-tile-on {
+  background-color: #2b5fd9;
+}
+
+.frodo-tile-main {
+  padding: 8px 10px;
+  border-radius: 12px;
+  color: #fff;
+}
+
+.frodo-tile-main:hover,
+.frodo-tile-arrow:hover,
+.frodo-round-button:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.frodo-tile-arrow {
+  padding: 0 10px;
+  border-radius: 0 12px 12px 0;
+  color: #fff;
+}
+
+.frodo-tile-icon {
+  icon-size: 16px;
+}
+
+.frodo-tile-title {
+  font-weight: 600;
+}
+
+.frodo-tile-sub {
+  font-size: 8.5pt;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.frodo-slider-row {
+  background-color: #1a1a1a;
+  border-radius: 12px;
+  padding: 8px 10px;
+  spacing: 10px;
+}
+
+.frodo-slider-icon {
+  icon-size: 16px;
+}
+
+.frodo-round-button {
+  background-color: #1a1a1a;
+  border-radius: 999px;
+  padding: 7px;
+  color: #fff;
+}

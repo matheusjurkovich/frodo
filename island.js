@@ -47,6 +47,7 @@ export class Island extends EventEmitter {
         this._rotateIndex = 0;
         this._rotateId = 0;
         this._isOpen = false;
+        this._holds = 0;
 
         this.pill = new St.BoxLayout({
             style_class: 'frodo-pill',
@@ -118,10 +119,17 @@ export class Island extends EventEmitter {
             this._clearTimer('_openTimer');
     }
 
+    holdWhileOpen(menu) {
+        menu.connect('open-state-changed', (_m, open) => {
+            this._holds = Math.max(0, this._holds + (open ? 1 : -1));
+            this._onPanelHover();
+        });
+    }
+
     _onPanelHover() {
         if (!this._isOpen)
             return;
-        if (this.panel.hover)
+        if (this.panel.hover || this._holds > 0)
             this._clearTimer('_closeTimer');
         else if (this._openedBy === 'hover')
             this._later('_closeTimer', CLOSE_DELAY_MS, () => this.close());
