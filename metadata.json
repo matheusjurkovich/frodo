@@ -1,0 +1,8 @@
+{
+  "uuid": "frodo@matheusjurkovich",
+  "name": "Frodo",
+  "description": "Dynamic island leve no topo da tela: hora, bateria, RAM, uso do Claude Code, notificações, bandeja e controles rápidos.",
+  "shell-version": ["50"],
+  "settings-schema": "org.gnome.shell.extensions.frodo",
+  "url": "https://github.com/matheusjurkovich/frodo"
+}

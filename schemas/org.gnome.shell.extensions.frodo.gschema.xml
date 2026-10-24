@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.frodo" path="/org/gnome/shell/extensions/frodo/">
+    <key name="closed-mode" type="s">
+      <choices>
+        <choice value="minimal"/>
+        <choice value="compact"/>
+        <choice value="rotating"/>
+      </choices>
+      <default>'compact'</default>
+    </key>
+    <key name="closed-items" type="as">
+      <default>['battery', 'ram', 'claude-session']</default>
+    </key>
+    <key name="rotate-seconds" type="i">
+      <range min="2" max="30"/>
+      <default>4</default>
+    </key>
+    <key name="open-layout" type="s">
+      <choices>
+        <choice value="single"/>
+        <choice value="tabs"/>
+      </choices>
+      <default>'single'</default>
+    </key>
+    <key name="hide-top-bar" type="b">
+      <default>false</default>
+    </key>
+    <key name="claude-poll-minutes" type="i">
+      <range min="2" max="60"/>
+      <default>5</default>
+    </key>
+    <key name="toggle-shortcut" type="as">
+      <default>['&lt;Super&gt;z']</default>
+    </key>
+  </schema>
+</schemalist>
