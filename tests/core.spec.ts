@@ -4,6 +4,8 @@ import {centerClamp} from '../src/core/geometry.js';
 import {formatGb, parseMeminfo} from '../src/core/memory.js';
 import {latest, shouldIntercept} from '../src/core/notifications.js';
 import {isValidShortcut} from '../src/core/shortcut.js';
+import {itemsForPreferences, moveItem} from '../src/core/items.js';
+import {targetMonitors} from '../src/core/monitors.js';
 import {CLOSED_MODES, isOneOf} from '../src/core/types.js';
 
 describe('memory', () => {
@@ -140,5 +142,46 @@ describe('types', () => {
     it('valida valores de enum de configuração', () => {
         expect(isOneOf(CLOSED_MODES, 'compact')).toBeTrue();
         expect(isOneOf(CLOSED_MODES, 'outro')).toBeFalse();
+    });
+});
+
+describe('itens da ilha fechada', () => {
+    it('lista ativos na ordem salva e depois os inativos na ordem canônica', () => {
+        expect(itemsForPreferences(['ram', 'clock'])).toEqual([
+            {item: 'ram', enabled: true},
+            {item: 'clock', enabled: true},
+            {item: 'system', enabled: false},
+            {item: 'battery', enabled: false},
+            {item: 'claude-session', enabled: false},
+            {item: 'claude-weekly', enabled: false},
+        ]);
+    });
+
+    it('move um item e devolve só os ativos na nova ordem', () => {
+        const entries = itemsForPreferences(['clock', 'system', 'ram']);
+        expect(moveItem(entries, 2, 0)).toEqual(['ram', 'clock', 'system']);
+        expect(moveItem(entries, 0, 4)).toEqual(['system', 'ram', 'clock']);
+    });
+
+    it('ignora movimentos fora da lista', () => {
+        const entries = itemsForPreferences(['clock', 'ram']);
+        expect(moveItem(entries, 9, 0)).toEqual(['clock', 'ram']);
+    });
+});
+
+describe('monitores', () => {
+    it('usa só o principal', () => {
+        expect(targetMonitors('primary', 1, 3)).toEqual([1]);
+    });
+
+    it('usa o primeiro secundário e cai para o principal sem segundo monitor', () => {
+        expect(targetMonitors('secondary', 0, 2)).toEqual([1]);
+        expect(targetMonitors('secondary', 1, 3)).toEqual([0]);
+        expect(targetMonitors('secondary', 0, 1)).toEqual([0]);
+    });
+
+    it('usa todos com o principal primeiro', () => {
+        expect(targetMonitors('both', 1, 3)).toEqual([1, 0, 2]);
+        expect(targetMonitors('both', 0, 0)).toEqual([]);
     });
 });

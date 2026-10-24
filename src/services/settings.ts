@@ -1,13 +1,13 @@
 import type Gio from 'gi://Gio';
 
-import {CLOSED_ITEMS, CLOSED_MODES, OPEN_LAYOUTS, isOneOf} from '../core/types.js';
-import type {ClosedItem, ClosedMode, OpenLayout} from '../core/types.js';
+import {CLOSED_ITEMS, CLOSED_MODES, MONITOR_MODES, isOneOf} from '../core/types.js';
+import type {ClosedItem, ClosedMode, MonitorMode} from '../core/types.js';
 import type {Disposer} from '../util/disposables.js';
 
 export const SCHEMA_ID = 'org.gnome.shell.extensions.frodo';
 
 export type SettingsKey =
-    'closed-mode' | 'closed-items' | 'rotate-seconds' | 'open-layout' | 'hide-top-bar' | 'claude-poll-minutes' | 'toggle-shortcut';
+    'closed-mode' | 'closed-items' | 'rotate-seconds' | 'monitors' | 'hide-top-bar' | 'claude-poll-minutes' | 'toggle-shortcut';
 
 export class FrodoSettings {
     constructor(readonly gsettings: Gio.Settings) {}
@@ -22,27 +22,24 @@ export class FrodoSettings {
     }
 
     get closedItems(): ClosedItem[] {
-        return this.gsettings.get_strv('closed-items').filter((item): item is ClosedItem => isOneOf(CLOSED_ITEMS, item));
+        return [...new Set(this.gsettings.get_strv('closed-items'))].filter((item): item is ClosedItem => isOneOf(CLOSED_ITEMS, item));
     }
 
     set closedItems(items: readonly ClosedItem[]) {
-        this.gsettings.set_strv(
-            'closed-items',
-            CLOSED_ITEMS.filter(item => items.includes(item)),
-        );
+        this.gsettings.set_strv('closed-items', [...new Set(items)]);
     }
 
     get rotateSeconds(): number {
         return this.gsettings.get_int('rotate-seconds');
     }
 
-    get openLayout(): OpenLayout {
-        const value = this.gsettings.get_string('open-layout');
-        return isOneOf(OPEN_LAYOUTS, value) ? value : 'single';
+    get monitors(): MonitorMode {
+        const value = this.gsettings.get_string('monitors');
+        return isOneOf(MONITOR_MODES, value) ? value : 'primary';
     }
 
-    set openLayout(value: OpenLayout) {
-        this.gsettings.set_string('open-layout', value);
+    set monitors(value: MonitorMode) {
+        this.gsettings.set_string('monitors', value);
     }
 
     get hideTopBar(): boolean {

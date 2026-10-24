@@ -9,6 +9,7 @@ import {centerClamp} from '../core/geometry.js';
 import type {InterceptedNotification} from '../services/notification-bridge.js';
 import type {FrodoSettings} from '../services/settings.js';
 import type {SystemState} from '../services/system-state.js';
+import {dateMenuContainer, hasRealFullscreen, onFullscreenStateChanged, panelCenterBox, sessionPanelHas} from '../shell/internals.js';
 import {Disposables} from '../util/disposables.js';
 import type {Disposer} from '../util/disposables.js';
 import {Emitter} from '../util/emitter.js';
@@ -19,8 +20,10 @@ const OPEN_DELAY_MS = 150;
 const CLOSE_DELAY_MS = 300;
 const ANIMATION_MS = 250;
 const CLAUDE_MAX_AGE_SECONDS = 60;
+const FLOAT_TOP = 6;
 
 export type OpenReason = 'hover' | 'click' | 'key';
+export type Placement = 'bar' | 'float';
 
 export interface IslandEvents {
     opening: [];
@@ -31,20 +34,26 @@ export interface IslandEvents {
 export class Island extends Emitter<IslandEvents> {
     readonly pill: Pill;
     readonly panel = new St.Bin({style_class: 'frodo-panel', reactive: true, track_hover: true, visible: false});
+    readonly monitorIndex: number;
 
     readonly #state: SystemState;
     readonly #grab = new GrabHelper(this.panel, {actionMode: Shell.ActionMode.POPUP});
     readonly #openTimer = new Timer();
     readonly #closeTimer = new Timer();
     readonly #disposables = new Disposables();
+    #placement: Placement | null = null;
+    #dateMenu: Clutter.Actor | null = null;
+    #fullscreen = false;
     #isOpen = false;
     #openedBy: OpenReason | null = null;
     #holds = 0;
 
-    constructor(settings: FrodoSettings, state: SystemState) {
+    constructor(settings: FrodoSettings, state: SystemState, monitorIndex: number) {
         super();
         this.#state = state;
+        this.monitorIndex = monitorIndex;
         this.pill = new Pill(settings, state);
+        Main.layoutManager.addTopChrome(this.panel, {affectsStruts: false});
 
         const pill = this.pill.actor;
         this.#disposables.add(
@@ -60,11 +69,20 @@ export class Island extends Emitter<IslandEvents> {
         );
         this.#disposables.signal(
             pill,
+            pill.connect('notify::width', () => {
+                this.#positionFloating();
+            }),
+        );
+        this.#disposables.signal(
+            pill,
             pill.connect('button-press-event', (_actor, event) => {
-                if (event.get_button() !== Clutter.BUTTON_PRIMARY) return Clutter.EVENT_PROPAGATE;
-                this.open('click');
+                if (event.get_button() === Clutter.BUTTON_PRIMARY) this.open('click');
                 return Clutter.EVENT_STOP;
             }),
+        );
+        this.#disposables.signal(
+            pill,
+            pill.connect('button-release-event', () => Clutter.EVENT_STOP),
         );
         this.#disposables.signal(
             this.panel,
@@ -80,6 +98,11 @@ export class Island extends Emitter<IslandEvents> {
                 return Clutter.EVENT_STOP;
             }),
         );
+        this.#disposables.add(
+            onFullscreenStateChanged(() => {
+                this.#syncFullscreen();
+            }),
+        );
         this.#syncMemoryNeed();
     }
 
@@ -87,12 +110,20 @@ export class Island extends Emitter<IslandEvents> {
         return this.#isOpen;
     }
 
+    setPlacement(placement: Placement): void {
+        if (placement === this.#placement) return;
+        this.#detach();
+        if (placement === 'bar') this.#attachToBar();
+        else this.#attachFloating();
+        this.#syncFullscreen();
+    }
+
     setContent(content: Clutter.Actor | null): void {
         this.panel.set_child(content);
     }
 
     flash(notification: InterceptedNotification): void {
-        if (!this.#isOpen) this.pill.flash(notification);
+        if (!this.#isOpen && !this.#fullscreen) this.pill.flash(notification);
     }
 
     holdWhileOpen(menu: PopupMenu.PopupMenu): Disposer {
@@ -115,7 +146,7 @@ export class Island extends Emitter<IslandEvents> {
     }
 
     open(reason: OpenReason): void {
-        if (this.#isOpen) return;
+        if (this.#isOpen || this.#fullscreen) return;
         this.#openTimer.stop();
         this.pill.cancelFlash();
         this.#isOpen = true;
@@ -145,6 +176,7 @@ export class Island extends Emitter<IslandEvents> {
         this.#openTimer.stop();
         this.#closeTimer.stop();
         if (this.#grab.isActorGrabbed(this.panel)) this.#grab.ungrab({actor: this.panel});
+        this.emit('closed');
 
         this.panel.ease({
             opacity: 0,
@@ -157,7 +189,69 @@ export class Island extends Emitter<IslandEvents> {
         });
         this.pill.actor.ease({opacity: 255, duration: ANIMATION_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
         this.#syncMemoryNeed();
-        this.emit('closed');
+    }
+
+    #monitor(): {x: number; y: number; width: number} | null {
+        return Main.layoutManager.monitors[this.monitorIndex] ?? null;
+    }
+
+    #attachToBar(): void {
+        const pill = this.pill.actor;
+        const center = panelCenterBox();
+        this.#dateMenu = dateMenuContainer();
+        const index = this.#dateMenu ? center.get_children().indexOf(this.#dateMenu) : -1;
+        this.#dateMenu?.hide();
+        pill.fixed_position_set = false;
+        pill.y_align = Clutter.ActorAlign.CENTER;
+        center.insert_child_at_index(pill, Math.max(0, index));
+        this.#placement = 'bar';
+    }
+
+    #attachFloating(): void {
+        Main.layoutManager.addTopChrome(this.pill.actor, {affectsStruts: false});
+        this.#placement = 'float';
+        this.#positionFloating();
+    }
+
+    #detach(): void {
+        const pill = this.pill.actor;
+        const placement = this.#placement;
+        this.#placement = null;
+        if (placement === 'bar') {
+            pill.get_parent()?.remove_child(pill);
+            if (sessionPanelHas('dateMenu')) this.#dateMenu?.show();
+            this.#dateMenu = null;
+        } else if (placement === 'float') {
+            Main.layoutManager.removeChrome(pill);
+        }
+    }
+
+    #flushPendingRelayout(): void {
+        this.pill.actor.get_allocation_box();
+    }
+
+    #release(): void {
+        const placement = this.#placement;
+        this.#placement = null;
+        if (placement === 'float') Main.layoutManager.untrackChrome(this.pill.actor);
+        if (placement === 'bar' && sessionPanelHas('dateMenu')) this.#dateMenu?.show();
+        this.#dateMenu = null;
+    }
+
+    #positionFloating(): void {
+        const monitor = this.#monitor();
+        if (this.#placement !== 'float' || !monitor) return;
+        const pill = this.pill.actor;
+        pill.set_position(Math.round(monitor.x + (monitor.width - pill.width) / 2), monitor.y + FLOAT_TOP);
+    }
+
+    #syncFullscreen(): void {
+        this.#fullscreen = this.#placement === 'float' && hasRealFullscreen(this.monitorIndex);
+        this.pill.actor.visible = !this.#fullscreen;
+        if (this.#fullscreen) {
+            this.pill.cancelFlash();
+            this.close();
+        }
     }
 
     #animateOpen(): void {
@@ -169,7 +263,7 @@ export class Island extends Emitter<IslandEvents> {
 
         const [pillX, pillY] = pill.get_transformed_position();
         const [, naturalWidth] = panel.get_preferred_width(-1);
-        const monitor = Main.layoutManager.findMonitorForActor(pill) ?? Main.layoutManager.primaryMonitor;
+        const monitor = this.#monitor();
         if (monitor) panel.set_position(centerClamp(pillX, pill.width, naturalWidth, monitor.x, monitor.width), Math.round(pillY));
         panel.set_pivot_point((pillX + pill.width / 2 - panel.x) / Math.max(1, naturalWidth), 0);
 
@@ -214,11 +308,18 @@ export class Island extends Emitter<IslandEvents> {
 
     destroy(): void {
         if (this.#grab.isActorGrabbed(this.panel)) this.#grab.ungrab({actor: this.panel});
-        this.#isOpen = false;
+        if (this.#isOpen) {
+            this.#isOpen = false;
+            this.emit('closed');
+        }
         this.#openTimer.stop();
         this.#closeTimer.stop();
         this.#disposables.dispose();
         this.clearListeners();
+        this.#flushPendingRelayout();
+        this.#release();
+        Main.layoutManager.untrackChrome(this.panel);
+        this.panel.set_child(null);
         this.pill.destroy();
         this.panel.destroy();
     }

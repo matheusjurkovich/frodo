@@ -10,18 +10,19 @@
       <default>'compact'</default>
     </key>
     <key name="closed-items" type="as">
-      <default>['battery', 'ram', 'claude-session']</default>
+      <default>['clock', 'system', 'ram', 'claude-session']</default>
     </key>
     <key name="rotate-seconds" type="i">
       <range min="2" max="30"/>
       <default>4</default>
     </key>
-    <key name="open-layout" type="s">
+    <key name="monitors" type="s">
       <choices>
-        <choice value="single"/>
-        <choice value="tabs"/>
+        <choice value="primary"/>
+        <choice value="secondary"/>
+        <choice value="both"/>
       </choices>
-      <default>'single'</default>
+      <default>'primary'</default>
     </key>
     <key name="hide-top-bar" type="b">
       <default>false</default>

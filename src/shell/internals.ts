@@ -1,14 +1,17 @@
 import type Clutter from 'gi://Clutter';
+import type Meta from 'gi://Meta';
 import type St from 'gi://St';
-import * as SystemActions from 'resource:///org/gnome/shell/misc/systemActions.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import type * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
 import type * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
+
+import type {Disposer} from '../util/disposables.js';
 
 const APP_INDICATOR_PREFIX = 'appindicator-';
 
 interface PanelInternals {
     readonly _centerBox: St.BoxLayout;
+    closeQuickSettings(): void;
 }
 
 interface SessionModeInternals {
@@ -20,14 +23,17 @@ interface StatusItem {
     readonly menu?: PopupMenu.PopupMenu | null;
 }
 
-interface QuickToggle {
-    readonly menu?: {open(): void} | null;
+export interface QuickSettingsMenuInternals {
+    readonly box: St.BoxLayout;
+    readonly actor: St.Widget;
+    readonly _grid: St.Widget;
+    readonly _overlay: Clutter.Actor;
+    readonly _activeMenu?: {close(animate: boolean): void} | null;
 }
 
-interface QuickSettingsInternals {
-    readonly menu: {open(): void};
-    readonly _network?: {readonly quickSettingsItems: readonly QuickToggle[]} | null;
-    readonly _bluetooth?: {readonly quickSettingsItems: readonly QuickToggle[]} | null;
+export interface QuickSettingsInternals {
+    readonly menu: QuickSettingsMenuInternals;
+    readonly _indicators: St.BoxLayout;
 }
 
 export interface MessageTrayInternals {
@@ -37,33 +43,17 @@ export interface MessageTrayInternals {
     emit(signal: 'queue-changed'): void;
 }
 
-export interface BrightnessScale {
-    value: number;
-    connect(signal: 'notify::value', callback: () => void): number;
-    disconnect(id: number): void;
-}
-
-export interface BrightnessManager {
-    readonly globalScale: BrightnessScale | null;
-    connect(signal: 'changed', callback: () => void): number;
-    disconnect(id: number): void;
-}
-
-export interface SystemActionsRuntime {
-    activateLockScreen(): void;
-    activateSuspend(): void;
-    activateLogout(): void;
-    activateRestart(): void;
-    activatePowerOff(): void;
-}
-
 export interface AppIndicator {
     readonly container: Clutter.Actor;
     readonly menu: PopupMenu.PopupMenu | null;
 }
 
+function panelInternals(): PanelInternals {
+    return Main.panel as unknown as PanelInternals;
+}
+
 export function panelCenterBox(): St.BoxLayout {
-    return (Main.panel as unknown as PanelInternals)._centerBox;
+    return panelInternals()._centerBox;
 }
 
 export function sessionPanelHas(role: string): boolean {
@@ -75,8 +65,22 @@ export function dateMenuContainer(): Clutter.Actor | null {
     return Main.panel.statusArea.dateMenu?.container ?? null;
 }
 
-export function toggleDateMenu(): void {
-    Main.panel.statusArea.dateMenu?.menu.toggle();
+export function quickSettings(): QuickSettingsInternals | null {
+    return (Main.panel.statusArea.quickSettings as unknown as QuickSettingsInternals | undefined) ?? null;
+}
+
+export function interceptCloseQuickSettings(onClose: () => void): Disposer {
+    const panel = panelInternals();
+    const descriptor = Object.getOwnPropertyDescriptor(panel, 'closeQuickSettings');
+    const original = panel.closeQuickSettings.bind(panel);
+    panel.closeQuickSettings = (): void => {
+        original();
+        onClose();
+    };
+    return () => {
+        if (descriptor) Object.defineProperty(panel, 'closeQuickSettings', descriptor);
+        else delete (panel as Partial<PanelInternals>).closeQuickSettings;
+    };
 }
 
 export function appIndicators(): AppIndicator[] {
@@ -93,21 +97,28 @@ export function messageTray(): MessageTray.MessageTray & MessageTrayInternals {
     return Main.messageTray as MessageTray.MessageTray & MessageTrayInternals;
 }
 
-export function brightnessManager(): BrightnessManager {
-    return (Main as unknown as {brightnessManager: BrightnessManager}).brightnessManager;
+function isVisibleOnActiveWorkspace(window: Meta.Window): boolean {
+    const active = global.workspace_manager.get_active_workspace();
+    return !window.minimized && (window.is_on_all_workspaces() || window.get_workspace() === active);
 }
 
-export function openQuickSettingsToggle(togglePattern: RegExp): boolean {
-    const quickSettings = Main.panel.statusArea.quickSettings as unknown as QuickSettingsInternals | undefined;
-    if (!quickSettings || !Main.layoutManager.panelBox.visible) return false;
-    const toggles = [...(quickSettings._network?.quickSettingsItems ?? []), ...(quickSettings._bluetooth?.quickSettingsItems ?? [])];
-    const toggle = toggles.find(item => togglePattern.test((item.constructor as {$gtype?: {name: string}}).$gtype?.name ?? ''));
-    if (!toggle?.menu) return false;
-    quickSettings.menu.open();
-    toggle.menu.open();
-    return true;
+export function hasRealFullscreen(monitorIndex: number): boolean {
+    return global
+        .get_window_actors()
+        .map(actor => actor.meta_window)
+        .some(
+            window =>
+                window !== null && window.is_fullscreen() && window.get_monitor() === monitorIndex && isVisibleOnActiveWorkspace(window),
+        );
 }
 
-export function systemActions(): SystemActionsRuntime {
-    return SystemActions.getDefault() as unknown as SystemActionsRuntime;
+export function onFullscreenStateChanged(callback: () => void): Disposer {
+    const display = global.display;
+    const workspaces = global.workspace_manager;
+    const fullscreenId = display.connect('in-fullscreen-changed', callback);
+    const workspaceId = workspaces.connect('active-workspace-changed', callback);
+    return () => {
+        display.disconnect(fullscreenId);
+        workspaces.disconnect(workspaceId);
+    };
 }

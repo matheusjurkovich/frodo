@@ -1,0 +1,90 @@
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+
+import {targetMonitors} from '../core/monitors.js';
+import type {InterceptedNotification} from '../services/notification-bridge.js';
+import type {NotificationBridge} from '../services/notification-bridge.js';
+import type {FrodoSettings} from '../services/settings.js';
+import type {SystemState} from '../services/system-state.js';
+import {Disposables} from '../util/disposables.js';
+import {Island} from './island.js';
+import {PanelContent} from './panel/panel-content.js';
+
+export interface IslandManagerDependencies {
+    readonly settings: FrodoSettings;
+    readonly state: SystemState;
+    readonly bridge: NotificationBridge;
+    readonly openPreferences: () => void;
+}
+
+interface Entry {
+    readonly island: Island;
+    readonly content: PanelContent;
+}
+
+export class IslandManager {
+    readonly #dependencies: IslandManagerDependencies;
+    readonly #disposables = new Disposables();
+    #entries: Entry[] = [];
+
+    constructor(dependencies: IslandManagerDependencies) {
+        this.#dependencies = dependencies;
+        const {settings} = dependencies;
+        this.#disposables.add(
+            settings.onChanged(['monitors', 'hide-top-bar'], () => {
+                this.#rebuild();
+            }),
+        );
+        this.#disposables.signal(
+            Main.layoutManager,
+            Main.layoutManager.connect('monitors-changed', () => {
+                this.#rebuild();
+            }),
+        );
+        this.#rebuild();
+    }
+
+    toggle(): void {
+        const current = global.display.get_current_monitor();
+        const target = this.#entries.find(entry => entry.island.monitorIndex === current) ?? this.#entries[0];
+        target?.island.toggle();
+    }
+
+    flash(notification: InterceptedNotification): void {
+        for (const {island} of this.#entries) island.flash(notification);
+    }
+
+    closeAll(): void {
+        for (const {island} of this.#entries) island.close();
+    }
+
+    #rebuild(): void {
+        this.#clear();
+        const {settings, state, bridge, openPreferences} = this.#dependencies;
+        const primary = Main.layoutManager.primaryIndex;
+        for (const monitorIndex of targetMonitors(settings.monitors, primary, Main.layoutManager.monitors.length)) {
+            const island = new Island(settings, state, monitorIndex);
+            island.setPlacement(monitorIndex === primary && !settings.hideTopBar ? 'bar' : 'float');
+            const content = new PanelContent({island, state, bridge, openPreferences});
+            island.setContent(content.actor);
+            island.on('opening', () => {
+                for (const other of this.#entries) if (other.island !== island) other.island.close();
+            });
+            this.#entries.push({island, content});
+        }
+    }
+
+    #clear(): void {
+        for (const {island, content} of this.#entries) {
+            island.close();
+            island.setContent(null);
+            content.destroy();
+            island.destroy();
+        }
+        this.#entries = [];
+    }
+
+    destroy(): void {
+        this.#disposables.dispose();
+        this.#clear();
+    }
+}

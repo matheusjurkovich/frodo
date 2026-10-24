@@ -43,7 +43,7 @@ src/
   core/               lógica pura, sem GNOME Shell: parsing, formatação, tipos
   services/           fontes de dados: settings, RAM, bateria, Claude, notificações
   shell/internals.ts  único lugar que toca APIs privadas do GNOME Shell
-  ui/                 pílula, ilha, controles, bandeja, barra superior, painel
+  ui/                 pílula, ilha por monitor, Quick Settings nativo, bandeja, painel em abas
   util/               Emitter tipado, Disposables e Timer
   types/              declarações que faltam nos tipos @girs
 tests/                specs Jasmine (core, util e serviços)
@@ -55,3 +55,4 @@ Regras da arquitetura:
 - `services/` não conhece a UI; a UI assina eventos tipados (`Emitter`).
 - Todo `connect`, timer e patch feito no `enable()` é desfeito no `disable()` através de `Disposables`.
 - Acesso a internals privados do shell fica isolado em `src/shell/internals.ts`.
+- Controles do sistema reaproveitam o Quick Settings nativo do GNOME (emprestado enquanto a ilha está aberta), em vez de reimplementá-los.

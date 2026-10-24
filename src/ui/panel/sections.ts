@@ -21,15 +21,14 @@ function unsubscribeOnDestroy(actor: Clutter.Actor, unsubscribes: readonly Unsub
     });
 }
 
-export function headerSection(powerButton: St.Button, openPreferences: () => void): St.BoxLayout {
+export function headerSection(openPreferences: () => void): St.BoxLayout {
     const box = new St.BoxLayout({style_class: 'frodo-header', x_expand: true});
     const clock = new St.Label({style_class: 'frodo-big-clock', y_align: Clutter.ActorAlign.CENTER});
     const date = dimLabel();
     box.add_child(clock);
     box.add_child(date);
     box.add_child(new St.Widget({x_expand: true}));
-    box.add_child(roundButton('emblem-system-symbolic', 'Configurações', openPreferences));
-    box.add_child(powerButton);
+    box.add_child(roundButton('emblem-system-symbolic', 'Configurações do Frodo', openPreferences));
 
     const wallClock = new GnomeDesktop.WallClock();
     const sync = (): void => {
@@ -38,7 +37,6 @@ export function headerSection(powerButton: St.Button, openPreferences: () => voi
     };
     const id = wallClock.connect('notify::clock', sync);
     box.connect('destroy', () => {
-        box.remove_child(powerButton);
         wallClock.disconnect(id);
     });
     sync();

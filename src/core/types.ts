@@ -31,11 +31,11 @@ export interface ClaudeState extends ClaudeUsage {
 export const CLOSED_MODES = ['minimal', 'compact', 'rotating'] as const;
 export type ClosedMode = (typeof CLOSED_MODES)[number];
 
-export const CLOSED_ITEMS = ['battery', 'ram', 'claude-session', 'claude-weekly'] as const;
+export const CLOSED_ITEMS = ['clock', 'system', 'battery', 'ram', 'claude-session', 'claude-weekly'] as const;
 export type ClosedItem = (typeof CLOSED_ITEMS)[number];
 
-export const OPEN_LAYOUTS = ['single', 'tabs'] as const;
-export type OpenLayout = (typeof OPEN_LAYOUTS)[number];
+export const MONITOR_MODES = ['primary', 'secondary', 'both'] as const;
+export type MonitorMode = (typeof MONITOR_MODES)[number];
 
 export function isOneOf<T extends string>(values: readonly T[], value: string): value is T {
     return (values as readonly string[]).includes(value);

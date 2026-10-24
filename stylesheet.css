@@ -6,7 +6,6 @@
     spacing: 12px;
     font-weight: 500;
     font-size: 10.5pt;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
 }
 
 .frodo-clock {
@@ -43,9 +42,8 @@
     color: #fff;
     border-radius: 28px;
     padding: 22px 24px;
-    min-width: 560px;
+    min-width: 480px;
     font-size: 10pt;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
 }
 
 .frodo-controls {
@@ -219,7 +217,27 @@
 .frodo-tray {
     background-color: #1a1a1a;
     border-radius: 16px;
-    padding: 6px 10px;
+    padding: 2px;
+    spacing: 0;
+}
+
+.frodo-tray .panel-button {
+    -natural-hpadding: 8px;
+    -minimum-hpadding: 4px;
+}
+
+.frodo-quick-settings {
+    padding: 0;
+    border-radius: 0;
+    background-color: transparent;
+    min-width: 420px;
+}
+
+.frodo-system-icons {
+    padding: 0 2px;
+}
+
+.frodo-claude {
     spacing: 6px;
 }
 

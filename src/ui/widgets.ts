@@ -1,7 +1,6 @@
 import type cairo from 'cairo';
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
-import {Slider} from 'resource:///org/gnome/shell/ui/slider.js';
 
 export type Rgb = readonly [number, number, number];
 
@@ -119,66 +118,5 @@ export class StatRow {
         if (fraction !== null) this.#bar.fraction = fraction;
         this.#note.text = note;
         this.#note.visible = note !== '';
-    }
-}
-
-export interface TileOptions {
-    readonly icon: string;
-    readonly title: string;
-    readonly onToggle: () => void;
-    readonly onArrow?: () => void;
-}
-
-export class Tile {
-    readonly actor = new St.BoxLayout({style_class: 'frodo-tile', x_expand: true});
-    readonly #subtitle = new St.Label({style_class: 'frodo-tile-sub', visible: false});
-
-    constructor({icon, title, onToggle, onArrow}: TileOptions) {
-        const content = new St.BoxLayout({style_class: 'frodo-tile-content', x_expand: true, x_align: Clutter.ActorAlign.START});
-        const texts = new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL, y_align: Clutter.ActorAlign.CENTER});
-        texts.add_child(new St.Label({text: title, style_class: 'frodo-tile-title'}));
-        texts.add_child(this.#subtitle);
-        content.add_child(new St.Icon({icon_name: icon, style_class: 'frodo-tile-icon'}));
-        content.add_child(texts);
-
-        const main = new St.Button({
-            style_class: 'frodo-tile-main',
-            x_expand: true,
-            can_focus: true,
-            child: content,
-            accessible_name: title,
-        });
-        main.connect('clicked', onToggle);
-        this.actor.add_child(main);
-
-        if (onArrow) {
-            const arrow = new St.Button({
-                style_class: 'frodo-tile-arrow',
-                child: new St.Icon({icon_name: 'go-next-symbolic', icon_size: 12}),
-                can_focus: true,
-                accessible_name: `${title}: opções`,
-            });
-            arrow.connect('clicked', onArrow);
-            this.actor.add_child(arrow);
-        }
-    }
-
-    set(active: boolean, subtitle: string | null = null): void {
-        if (active) this.actor.add_style_class_name('frodo-tile-on');
-        else this.actor.remove_style_class_name('frodo-tile-on');
-        this.#subtitle.text = subtitle ?? '';
-        this.#subtitle.visible = !!subtitle;
-    }
-}
-
-export class SliderRow {
-    readonly actor = new St.BoxLayout({style_class: 'frodo-slider-row', x_expand: true});
-    readonly slider = new Slider(0);
-
-    constructor(iconName: string, accessibleName: string) {
-        this.slider.x_expand = true;
-        this.slider.accessible_name = accessibleName;
-        this.actor.add_child(new St.Icon({icon_name: iconName, style_class: 'frodo-slider-icon'}));
-        this.actor.add_child(this.slider);
     }
 }

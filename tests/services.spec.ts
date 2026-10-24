@@ -40,27 +40,27 @@ describe('FrodoSettings', () => {
     it('expõe os padrões tipados', () => {
         const settings = create();
         expect(settings.closedMode).toBe('compact');
-        expect(settings.closedItems).toEqual(['battery', 'ram', 'claude-session']);
-        expect(settings.openLayout).toBe('single');
+        expect(settings.closedItems).toEqual(['clock', 'system', 'ram', 'claude-session']);
+        expect(settings.monitors).toBe('primary');
         expect(settings.hideTopBar).toBeFalse();
         expect(settings.toggleShortcut).toBe('<Super>z');
     });
 
-    it('ignora itens desconhecidos e mantém a ordem canônica', () => {
+    it('ignora itens desconhecidos e repetidos e preserva a ordem escolhida', () => {
         const settings = create();
-        settings.gsettings.set_strv('closed-items', ['claude-weekly', 'xyz', 'battery']);
+        settings.gsettings.set_strv('closed-items', ['claude-weekly', 'xyz', 'battery', 'battery']);
         expect(settings.closedItems).toEqual(['claude-weekly', 'battery']);
-        settings.closedItems = ['claude-weekly', 'battery'];
-        expect(settings.gsettings.get_strv('closed-items')).toEqual(['battery', 'claude-weekly']);
+        settings.closedItems = ['ram', 'clock', 'ram'];
+        expect(settings.gsettings.get_strv('closed-items')).toEqual(['ram', 'clock']);
     });
 
     it('avisa mudanças e permite parar de ouvir', () => {
         const settings = create();
         const spy = jasmine.createSpy('changed');
-        const off = settings.onChanged(['closed-mode', 'open-layout'], spy);
+        const off = settings.onChanged(['closed-mode', 'monitors'], spy);
         settings.closedMode = 'minimal';
         off();
-        settings.openLayout = 'tabs';
+        settings.monitors = 'both';
         expect(spy).toHaveBeenCalledTimes(1);
     });
 });
