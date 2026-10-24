@@ -8,6 +8,7 @@ import type * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import type {Disposer} from '../util/disposables.js';
 
 const APP_INDICATOR_PREFIX = 'appindicator-';
+const STATUS_MENU_ROLES = ['screenRecording', 'screenSharing', 'dwellClick', 'a11y', 'keyboard'] as const;
 
 interface PanelInternals {
     readonly _centerBox: St.BoxLayout;
@@ -31,9 +32,33 @@ export interface QuickSettingsMenuInternals {
     readonly _activeMenu?: {close(animate: boolean): void} | null;
 }
 
+interface InputSliderInternals {
+    _showInput: boolean;
+    _sync(): void;
+    _maybeShowInput(): void;
+}
+
 export interface QuickSettingsInternals {
     readonly menu: QuickSettingsMenuInternals;
     readonly _indicators: St.BoxLayout;
+    readonly _volumeInput?: {readonly quickSettingsItems: readonly unknown[]} | null;
+}
+
+interface DateSetter {
+    setDate(date: Date): void;
+}
+
+interface DateMenuInternals {
+    readonly _calendar: Clutter.Actor & DateSetter;
+    readonly _date: DateSetter;
+    readonly _eventsItem: DateSetter;
+    readonly _messageList: Clutter.Actor;
+}
+
+export interface DateMenuParts {
+    readonly calendarColumn: Clutter.Actor;
+    readonly messageList: Clutter.Actor;
+    selectToday(): void;
 }
 
 export interface MessageTrayInternals {
@@ -83,14 +108,54 @@ export function interceptCloseQuickSettings(onClose: () => void): Disposer {
     };
 }
 
-export function appIndicators(): AppIndicator[] {
-    const indicators: AppIndicator[] = [];
-    for (const [key, value] of Object.entries(Main.panel.statusArea)) {
-        const item = value as StatusItem | null | undefined;
-        if (!key.startsWith(APP_INDICATOR_PREFIX) || !item?.container) continue;
-        indicators.push({container: item.container, menu: item.menu ?? null});
+export function panelStatusItems(): AppIndicator[] {
+    const items: AppIndicator[] = [];
+    const entries = Object.entries(Main.panel.statusArea);
+    const wanted = [
+        ...STATUS_MENU_ROLES.map(role => entries.find(([key]) => key === role)),
+        ...entries.filter(([key]) => key.startsWith(APP_INDICATOR_PREFIX)),
+    ];
+    for (const entry of wanted) {
+        const item = entry?.[1] as StatusItem | null | undefined;
+        if (item?.container) items.push({container: item.container, menu: item.menu ?? null});
     }
-    return indicators;
+    return items;
+}
+
+export function keepMicrophoneSliderVisible(): Disposer {
+    const slider = quickSettings()?._volumeInput?.quickSettingsItems[0] as InputSliderInternals | undefined;
+    if (!slider) return () => undefined;
+    const descriptor = Object.getOwnPropertyDescriptor(slider, '_maybeShowInput');
+    slider._maybeShowInput = (): void => {
+        slider._showInput = true;
+        slider._sync();
+    };
+    slider._maybeShowInput();
+    return () => {
+        if (descriptor) Object.defineProperty(slider, '_maybeShowInput', descriptor);
+        else delete (slider as Partial<InputSliderInternals>)._maybeShowInput;
+        slider._maybeShowInput();
+    };
+}
+
+export function dateMenuParts(): DateMenuParts | null {
+    const dateMenu = Main.panel.statusArea.dateMenu as unknown as DateMenuInternals | undefined;
+    const calendarColumn = dateMenu?._calendar.get_parent();
+    if (!dateMenu || !calendarColumn) return null;
+    return {
+        calendarColumn,
+        messageList: dateMenu._messageList,
+        selectToday: () => {
+            const now = new Date();
+            dateMenu._calendar.setDate(now);
+            dateMenu._date.setDate(now);
+            dateMenu._eventsItem.setDate(now);
+        },
+    };
+}
+
+export function toggleOverview(): void {
+    Main.overview.toggle();
 }
 
 export function messageTray(): MessageTray.MessageTray & MessageTrayInternals {

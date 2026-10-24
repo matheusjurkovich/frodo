@@ -144,7 +144,6 @@
     font-size: 8pt;
     font-weight: 600;
     color: #9aa0a6;
-    letter-spacing: 1px;
 }
 
 .frodo-stat {
@@ -263,4 +262,42 @@
 .frodo-tile-content,
 .frodo-notif-content {
     spacing: 10px;
+}
+
+.frodo-tab-content {
+    spacing: 6px;
+}
+
+.frodo-tab-icon {
+    icon-size: 16px;
+}
+
+.frodo-heading-box {
+    spacing: 6px;
+}
+
+.frodo-heading-icon {
+    icon-size: 12px;
+    color: #9aa0a6;
+}
+
+.frodo-claude-icon {
+    icon-size: 14px;
+    color: #d97757;
+}
+
+.frodo-calendar,
+.frodo-messages {
+    min-height: 320px;
+}
+
+.frodo-messages .message-list {
+    border-width: 0;
+    margin: 0;
+    padding: 0;
+    width: auto;
+}
+
+.frodo-calendar .datemenu-calendar-column {
+    margin: 0;
 }

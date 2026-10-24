@@ -1,5 +1,6 @@
 import type cairo from 'cairo';
 import Clutter from 'gi://Clutter';
+import type Gio from 'gi://Gio';
 import St from 'gi://St';
 
 export type Rgb = readonly [number, number, number];
@@ -22,18 +23,21 @@ export function separator(): St.Widget {
     return new St.Widget({style_class: 'frodo-sep', y_align: Clutter.ActorAlign.CENTER});
 }
 
-export function heading(text: string): St.Label {
-    return new St.Label({text, style_class: 'frodo-heading'});
+export function heading(text: string, icon: Gio.Icon | null = null): St.BoxLayout {
+    const box = new St.BoxLayout({style_class: 'frodo-heading-box'});
+    if (icon) box.add_child(new St.Icon({gicon: icon, style_class: 'frodo-heading-icon'}));
+    box.add_child(new St.Label({text, style_class: 'frodo-heading', y_align: Clutter.ActorAlign.CENTER}));
+    return box;
 }
 
 export function dimLabel(text = ''): St.Label {
     return new St.Label({text, style_class: 'frodo-dim', y_align: Clutter.ActorAlign.CENTER});
 }
 
-export function roundButton(iconName: string, accessibleName: string, onClick: () => void): St.Button {
+export function roundButton(icon: Gio.Icon, accessibleName: string, onClick: () => void): St.Button {
     const button = new St.Button({
         style_class: 'frodo-round-button',
-        child: new St.Icon({icon_name: iconName, icon_size: 14}),
+        child: new St.Icon({gicon: icon, icon_size: 16}),
         can_focus: true,
         y_align: Clutter.ActorAlign.CENTER,
         accessible_name: accessibleName,

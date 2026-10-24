@@ -5,7 +5,7 @@
   "description": "Dynamic island leve para GNOME Shell 50.",
   "type": "module",
   "scripts": {
-    "build": "rm -rf dist && tsc -p tsconfig.json && cp metadata.json stylesheet.css dist/ && cp -r schemas dist/ && glib-compile-schemas dist/schemas",
+    "build": "rm -rf dist && tsc -p tsconfig.json && cp metadata.json stylesheet.css dist/ && cp -r schemas icons dist/ && glib-compile-schemas dist/schemas",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tests/tsconfig.json --noEmit",
     "lint": "eslint .",
     "format": "prettier --write .",

@@ -3,10 +3,14 @@ import St from 'gi://St';
 
 import type {NotificationBridge} from '../../services/notification-bridge.js';
 import type {SystemState} from '../../services/system-state.js';
+import {toggleOverview} from '../../shell/internals.js';
+import {Disposables} from '../../util/disposables.js';
+import {frodoIcon} from '../icons.js';
+import type {FrodoIconName} from '../icons.js';
 import type {Island} from '../island.js';
+import {NativeDateMenu} from '../native-date-menu.js';
 import {NativeQuickSettings} from '../native-quick-settings.js';
-import {NotificationList} from '../notification-list.js';
-import {TrayRow} from '../tray-row.js';
+import {StatusRow} from '../status-row.js';
 import {claudeSection, headerSection, systemSection} from './sections.js';
 
 export interface PanelDependencies {
@@ -17,77 +21,104 @@ export interface PanelDependencies {
 }
 
 interface Tab {
+    readonly icon: FrodoIconName;
     readonly label: string;
     readonly page: St.Widget;
+}
+
+interface TabButton {
+    readonly button: St.Button;
+    readonly label: St.Label;
 }
 
 function column(styleClass: string): St.BoxLayout {
     return new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL, style_class: styleClass, x_expand: true});
 }
 
+function tabButton(tab: Tab): TabButton {
+    const box = new St.BoxLayout({style_class: 'frodo-tab-content'});
+    const label = new St.Label({text: tab.label, y_align: Clutter.ActorAlign.CENTER});
+    box.add_child(new St.Icon({gicon: frodoIcon(tab.icon), style_class: 'frodo-tab-icon'}));
+    box.add_child(label);
+    const button = new St.Button({style_class: 'frodo-tab', can_focus: true, child: box, accessible_name: tab.label});
+    return {button, label};
+}
+
 export class PanelContent {
     readonly actor = column('frodo-panel-content');
     readonly #quickSettings: NativeQuickSettings;
-    readonly #notifications: NotificationList;
-    readonly #tray: TrayRow;
-    readonly #bell: St.Button;
+    readonly #dateMenu: NativeDateMenu;
+    readonly #status: StatusRow;
+    readonly #disposables = new Disposables();
 
     constructor({island, state, bridge, openPreferences}: PanelDependencies) {
         this.#quickSettings = new NativeQuickSettings(island);
-        this.#notifications = new NotificationList(bridge, island);
-        this.#tray = new TrayRow(island);
+        this.#dateMenu = new NativeDateMenu(island);
+        this.#status = new StatusRow(island);
 
         const controls = column('frodo-section');
         controls.add_child(this.#quickSettings.actor);
-        controls.add_child(this.#tray.actor);
-        const notifications = column('frodo-section');
-        notifications.add_child(this.#notifications.actor);
+        controls.add_child(this.#status.actor);
 
         const tabs: readonly Tab[] = [
-            {label: 'Controles', page: controls},
-            {label: 'Sistema', page: systemSection(state)},
-            {label: 'Claude', page: claudeSection(state)},
-            {label: '🔔', page: notifications},
+            {icon: 'controls', label: 'Controles', page: controls},
+            {icon: 'calendar', label: 'Calendário', page: this.#dateMenu.calendar},
+            {icon: 'bell', label: 'Notificações', page: this.#dateMenu.notifications},
+            {icon: 'system', label: 'Sistema', page: systemSection(state)},
+            {icon: 'claude', label: 'Claude', page: claudeSection(state)},
         ];
 
         const bar = new St.BoxLayout({style_class: 'frodo-tabbar', x_align: Clutter.ActorAlign.CENTER});
         const stack = new St.Widget({layout_manager: new Clutter.BinLayout(), x_expand: true});
-        const buttons = tabs.map(({label, page}, index) => {
-            const button = new St.Button({label, style_class: 'frodo-tab', can_focus: true});
-            button.connect('clicked', () => {
+        const buttons = tabs.map((tab, index) => {
+            const item = tabButton(tab);
+            item.button.connect('clicked', () => {
                 select(index);
             });
-            bar.add_child(button);
-            stack.add_child(page);
-            return button;
+            bar.add_child(item.button);
+            stack.add_child(tab.page);
+            return item;
         });
         const select = (selected: number): void => {
             tabs.forEach(({page}, index) => {
                 page.visible = index === selected;
-                if (index === selected) buttons[index]?.add_style_pseudo_class('checked');
-                else buttons[index]?.remove_style_pseudo_class('checked');
+                if (index === selected) buttons[index]?.button.add_style_pseudo_class('checked');
+                else buttons[index]?.button.remove_style_pseudo_class('checked');
             });
         };
-        this.#bell = buttons[tabs.length - 1] ?? new St.Button();
 
+        const notificationsTab = buttons[2];
         const syncCount = (): void => {
             const count = bridge.list().length;
-            this.#bell.label = count > 0 ? `🔔 ${count}` : '🔔';
+            if (notificationsTab) notificationsTab.label.text = count > 0 ? `Notificações ${count}` : 'Notificações';
         };
-        const unsubscribe = bridge.on('changed', syncCount);
-        this.actor.connect('destroy', unsubscribe);
+        this.#disposables.add(bridge.on('changed', syncCount));
+        this.#disposables.add(
+            island.on('opening', () => {
+                select(0);
+            }),
+        );
         syncCount();
         select(0);
 
-        this.actor.add_child(headerSection(openPreferences));
+        this.actor.add_child(
+            headerSection({
+                openPreferences,
+                openOverview: () => {
+                    island.close();
+                    toggleOverview();
+                },
+            }),
+        );
         this.actor.add_child(bar);
         this.actor.add_child(stack);
     }
 
     destroy(): void {
-        this.#tray.destroy();
+        this.#disposables.dispose();
+        this.#status.destroy();
         this.#quickSettings.destroy();
-        this.#notifications.destroy();
+        this.#dateMenu.destroy();
         this.actor.destroy();
     }
 }

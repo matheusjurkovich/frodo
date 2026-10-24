@@ -3,7 +3,7 @@ import GLib from 'gi://GLib';
 import GnomeDesktop from 'gi://GnomeDesktop';
 import St from 'gi://St';
 
-import {batteryIconName, ellipsize} from '../core/format.js';
+import {batteryLevel, ellipsize} from '../core/format.js';
 import {formatGb} from '../core/memory.js';
 import type {ClosedItem} from '../core/types.js';
 import type {InterceptedNotification} from '../services/notification-bridge.js';
@@ -13,6 +13,7 @@ import {quickSettings} from '../shell/internals.js';
 import {Disposables} from '../util/disposables.js';
 import {Emitter} from '../util/emitter.js';
 import {Timer} from '../util/timer.js';
+import {frodoIcon} from './icons.js';
 import {COLORS, ProgressRing, dimLabel, separator} from './widgets.js';
 
 const FLASH_MS = 3000;
@@ -108,8 +109,7 @@ export class Pill extends Emitter<{rebuilt: []}> {
             this.cancelFlash();
             return;
         }
-        this.#flashIcon.gicon = item.gicon;
-        this.#flashIcon.icon_name = item.gicon ? null : 'dialog-information-symbolic';
+        this.#flashIcon.gicon = item.gicon ?? frodoIcon('info');
         this.#flashLabel.text = ellipsize(item.title, FLASH_CHARS);
         this.#content.hide();
         this.#flashBox.opacity = 0;
@@ -203,7 +203,7 @@ export class Pill extends Emitter<{rebuilt: []}> {
             update: () => {
                 const {battery} = this.#state;
                 if (!battery) return;
-                icon.icon_name = batteryIconName(battery);
+                icon.gicon = frodoIcon(`battery-${batteryLevel(battery)}`);
                 label.text = `${battery.percent}%`;
             },
         };
@@ -223,6 +223,7 @@ export class Pill extends Emitter<{rebuilt: []}> {
 
     #claudeSegment(item: 'claude-session' | 'claude-weekly'): Segment {
         const box = new St.BoxLayout({style_class: 'frodo-claude', y_align: Clutter.ActorAlign.CENTER});
+        box.add_child(new St.Icon({gicon: frodoIcon('claude'), style_class: 'frodo-claude-icon'}));
         const ring = new ProgressRing(COLORS.claude);
         const dash = dimLabel('—');
         box.add_child(ring.actor);

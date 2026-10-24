@@ -1,5 +1,5 @@
 import {claudeErrorText, errorForStatus, parseUsage, readToken} from '../src/core/claude.js';
-import {batteryIconName, ellipsize, formatDate, formatReset} from '../src/core/format.js';
+import {batteryLevel, ellipsize, formatDate, formatReset} from '../src/core/format.js';
 import {centerClamp} from '../src/core/geometry.js';
 import {formatGb, parseMeminfo} from '../src/core/memory.js';
 import {latest, shouldIntercept} from '../src/core/notifications.js';
@@ -96,10 +96,13 @@ describe('format', () => {
         expect(formatDate(new Date(2026, 9, 24))).toBe('sáb, 24 out');
     });
 
-    it('escolhe o ícone de bateria', () => {
-        expect(batteryIconName({percent: 72, charging: false})).toBe('battery-level-70-symbolic');
-        expect(batteryIconName({percent: 100, charging: true})).toBe('battery-level-100-charging-symbolic');
-        expect(batteryIconName({percent: 4, charging: false})).toBe('battery-level-0-symbolic');
+    it('escolhe o nível de bateria para o ícone', () => {
+        expect(batteryLevel({percent: 95, charging: false})).toBe('full');
+        expect(batteryLevel({percent: 72, charging: false})).toBe('high');
+        expect(batteryLevel({percent: 40, charging: false})).toBe('medium');
+        expect(batteryLevel({percent: 15, charging: false})).toBe('low');
+        expect(batteryLevel({percent: 4, charging: false})).toBe('empty');
+        expect(batteryLevel({percent: 50, charging: true})).toBe('charging');
     });
 
     it('corta textos longos', () => {

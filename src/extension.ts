@@ -7,6 +7,7 @@ import {NotificationBridge} from './services/notification-bridge.js';
 import {FrodoSettings} from './services/settings.js';
 import {SystemState} from './services/system-state.js';
 import {IslandManager} from './ui/island-manager.js';
+import {setIconsDirectory} from './ui/icons.js';
 import {TopBarVisibility} from './ui/top-bar-visibility.js';
 import {Disposables} from './util/disposables.js';
 
@@ -18,6 +19,10 @@ export default class FrodoExtension extends Extension {
     override enable(): void {
         const disposables = new Disposables();
         this.#disposables = disposables;
+        setIconsDirectory(`${this.path}/icons`);
+        disposables.add(() => {
+            setIconsDirectory(null);
+        });
 
         const settings = new FrodoSettings(this.getSettings());
         const state = new SystemState(settings);

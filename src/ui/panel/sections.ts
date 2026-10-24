@@ -9,6 +9,7 @@ import {formatGb} from '../../core/memory.js';
 import type {UsageWindow} from '../../core/types.js';
 import type {SystemState} from '../../services/system-state.js';
 import type {Unsubscribe} from '../../util/emitter.js';
+import {frodoIcon} from '../icons.js';
 import {COLORS, StatRow, dimLabel, heading, roundButton} from '../widgets.js';
 
 function column(styleClass: string): St.BoxLayout {
@@ -21,14 +22,20 @@ function unsubscribeOnDestroy(actor: Clutter.Actor, unsubscribes: readonly Unsub
     });
 }
 
-export function headerSection(openPreferences: () => void): St.BoxLayout {
+export interface HeaderActions {
+    readonly openPreferences: () => void;
+    readonly openOverview: () => void;
+}
+
+export function headerSection({openPreferences, openOverview}: HeaderActions): St.BoxLayout {
     const box = new St.BoxLayout({style_class: 'frodo-header', x_expand: true});
     const clock = new St.Label({style_class: 'frodo-big-clock', y_align: Clutter.ActorAlign.CENTER});
     const date = dimLabel();
     box.add_child(clock);
     box.add_child(date);
     box.add_child(new St.Widget({x_expand: true}));
-    box.add_child(roundButton('emblem-system-symbolic', 'Configurações do Frodo', openPreferences));
+    box.add_child(roundButton(frodoIcon('overview'), 'Visão geral', openOverview));
+    box.add_child(roundButton(frodoIcon('gear'), 'Configurações do Frodo', openPreferences));
 
     const wallClock = new GnomeDesktop.WallClock();
     const sync = (): void => {
@@ -47,7 +54,7 @@ export function systemSection(state: SystemState): St.BoxLayout {
     const section = column('frodo-section');
     const ram = new StatRow('RAM', COLORS.ram);
     const battery = new StatRow('Bat', COLORS.battery);
-    section.add_child(heading('SISTEMA'));
+    section.add_child(heading('SISTEMA', frodoIcon('system')));
     section.add_child(ram.actor);
     section.add_child(battery.actor);
 
@@ -72,7 +79,7 @@ export function claudeSection(state: SystemState): St.BoxLayout {
     const session = new StatRow('Sessão', COLORS.claude);
     const weekly = new StatRow('Semana', COLORS.claude);
     const error = new St.Label({style_class: 'frodo-stat-note', visible: false});
-    section.add_child(heading('CLAUDE'));
+    section.add_child(heading('CLAUDE', frodoIcon('claude')));
     section.add_child(session.actor);
     section.add_child(weekly.actor);
     section.add_child(error);

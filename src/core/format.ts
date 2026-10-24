@@ -19,9 +19,15 @@ export function formatDate(date: Date): string {
     return `${WEEKDAYS[date.getDay()] ?? ''}, ${date.getDate()} ${MONTHS[date.getMonth()] ?? ''}`;
 }
 
-export function batteryIconName(battery: BatteryInfo): string {
-    const level = Math.min(100, Math.max(0, Math.floor(battery.percent / 10) * 10));
-    return `battery-level-${level}${battery.charging ? '-charging' : ''}-symbolic`;
+export type BatteryLevel = 'empty' | 'low' | 'medium' | 'high' | 'full' | 'charging';
+
+export function batteryLevel(battery: BatteryInfo): BatteryLevel {
+    if (battery.charging) return 'charging';
+    if (battery.percent >= 90) return 'full';
+    if (battery.percent >= 60) return 'high';
+    if (battery.percent >= 35) return 'medium';
+    if (battery.percent >= 10) return 'low';
+    return 'empty';
 }
 
 export function ellipsize(text: string, max: number): string {

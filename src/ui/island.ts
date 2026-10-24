@@ -86,6 +86,12 @@ export class Island extends Emitter<IslandEvents> {
         );
         this.#disposables.signal(
             this.panel,
+            this.panel.connect('notify::width', () => {
+                this.#recenterPanel();
+            }),
+        );
+        this.#disposables.signal(
+            this.panel,
             this.panel.connect('notify::hover', () => {
                 this.#onPanelHover();
             }),
@@ -272,6 +278,14 @@ export class Island extends Emitter<IslandEvents> {
         panel.scale_y = collapsed.scaleY;
         panel.ease({opacity: 255, scaleX: 1, scaleY: 1, duration: ANIMATION_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
         pill.ease({opacity: 0, duration: ANIMATION_MS / 2, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+    }
+
+    #recenterPanel(): void {
+        const monitor = this.#monitor();
+        if (!this.#isOpen || !monitor) return;
+        const pill = this.pill.actor;
+        const [pillX] = pill.get_transformed_position();
+        this.panel.x = centerClamp(pillX, pill.width, this.panel.width, monitor.x, monitor.width);
     }
 
     #collapsedScale(): {scaleX: number; scaleY: number} {

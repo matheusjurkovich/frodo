@@ -1,0 +1,32 @@
+import Gio from 'gi://Gio';
+
+export type FrodoIconName =
+    | 'controls'
+    | 'system'
+    | 'bell'
+    | 'calendar'
+    | 'gear'
+    | 'overview'
+    | 'close'
+    | 'info'
+    | 'memory'
+    | 'external'
+    | 'user'
+    | 'claude'
+    | 'battery-empty'
+    | 'battery-low'
+    | 'battery-medium'
+    | 'battery-high'
+    | 'battery-full'
+    | 'battery-charging';
+
+let directory: Gio.File | null = null;
+
+export function setIconsDirectory(path: string | null): void {
+    directory = path === null ? null : Gio.File.new_for_path(path);
+}
+
+export function frodoIcon(name: FrodoIconName): Gio.Icon {
+    if (!directory) return Gio.ThemedIcon.new('image-missing-symbolic');
+    return Gio.FileIcon.new(directory.get_child(`frodo-${name}-symbolic.svg`));
+}
