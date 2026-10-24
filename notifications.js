@@ -93,7 +93,7 @@ export class NotificationList {
     _row(n) {
         const row = new St.BoxLayout({style_class: 'frodo-notif', x_expand: true});
         const main = new St.Button({style_class: 'frodo-notif-main', x_expand: true, can_focus: true});
-        const content = new St.BoxLayout({style: 'spacing: 8px;'});
+        const content = new St.BoxLayout({style: 'spacing: 8px;', x_expand: true, x_align: Clutter.ActorAlign.START});
         const gicon = iconOf(n);
         content.add_child(new St.Icon({gicon, icon_name: gicon ? null : 'dialog-information-symbolic', style_class: 'frodo-notif-icon'}));
         const texts = new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL, y_align: Clutter.ActorAlign.CENTER, x_expand: true});

@@ -166,7 +166,7 @@ function single(parts) {
 }
 
 function tabs(parts) {
-    const root = new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL, style_class: 'frodo-panel-content frodo-tabs-root'});
+    const root = new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL, style_class: 'frodo-panel-content', x_expand: true});
     root.add_child(header(parts.controls));
     const bar = new St.BoxLayout({style_class: 'frodo-tabbar', x_align: Clutter.ActorAlign.CENTER});
     const stack = new St.Widget({layout_manager: new Clutter.BinLayout(), x_expand: true});

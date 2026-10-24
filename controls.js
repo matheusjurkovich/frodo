@@ -14,7 +14,7 @@ Gio._promisify(NM.Client, 'new_async');
 function tile({icon, title, onToggle, onArrow}) {
     const box = new St.BoxLayout({style_class: 'frodo-tile', x_expand: true});
     const main = new St.Button({style_class: 'frodo-tile-main', x_expand: true, can_focus: true});
-    const content = new St.BoxLayout({style: 'spacing: 8px;'});
+    const content = new St.BoxLayout({style: 'spacing: 8px;', x_expand: true, x_align: Clutter.ActorAlign.START});
     const iconActor = new St.Icon({icon_name: icon, style_class: 'frodo-tile-icon'});
     const texts = new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL, y_align: Clutter.ActorAlign.CENTER});
     const titleLabel = new St.Label({text: title, style_class: 'frodo-tile-title'});
