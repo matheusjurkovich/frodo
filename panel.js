@@ -165,6 +165,56 @@ function single(parts) {
     return root;
 }
 
+function tabs(parts) {
+    const root = new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL, style_class: 'frodo-panel-content frodo-tabs-root'});
+    root.add_child(header(parts.controls));
+    const bar = new St.BoxLayout({style_class: 'frodo-tabbar', x_align: Clutter.ActorAlign.CENTER});
+    const stack = new St.Widget({layout_manager: new Clutter.BinLayout(), x_expand: true});
+
+    const controlsPage = new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL, style_class: 'frodo-section', x_expand: true});
+    controlsPage.add_child(parts.controls.actor);
+    if (parts.tray)
+        controlsPage.add_child(parts.tray.actor);
+    const notifPage = new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL, x_expand: true});
+    notifPage.add_child(parts.notifications.actor);
+
+    const pages = [
+        ['Controles', controlsPage],
+        ['Sistema', systemSection(parts.data)],
+        ['Claude', claudeSection(parts.data)],
+        ['🔔', notifPage],
+    ];
+    const buttons = pages.map(([name, page], i) => {
+        const button = new St.Button({label: name, style_class: 'frodo-tab', can_focus: true});
+        button.connect('clicked', () => select(i));
+        bar.add_child(button);
+        stack.add_child(page);
+        return button;
+    });
+    const bell = buttons[3];
+    function select(index) {
+        pages.forEach(([, page], i) => {
+            page.visible = i === index;
+            if (i === index)
+                buttons[i].add_style_pseudo_class('checked');
+            else
+                buttons[i].remove_style_pseudo_class('checked');
+        });
+    }
+    const syncCount = () => {
+        const n = parts.bridge.list().length;
+        bell.label = n ? `🔔 ${n}` : '🔔';
+    };
+    const id = parts.bridge.connect('changed', syncCount);
+    root.connect('destroy', () => parts.bridge.disconnect(id));
+    syncCount();
+    select(0);
+
+    root.add_child(bar);
+    root.add_child(stack);
+    return root;
+}
+
 export function buildPanel(layout, parts) {
-    return single(parts);
+    return layout === 'tabs' ? tabs(parts) : single(parts);
 }

@@ -192,9 +192,11 @@ export class Island extends EventEmitter {
 
     _shrinkScale() {
         const pw = Math.max(1, this.pill.width), ph = Math.max(1, this.pill.height);
+        const [, natW] = this.panel.get_preferred_width(-1);
+        const [, natH] = this.panel.get_preferred_height(natW);
         return {
-            scale_x: Math.min(1, pw / Math.max(1, this.panel.width)),
-            scale_y: Math.min(1, ph / Math.max(1, this.panel.height)),
+            scale_x: Math.min(1, pw / Math.max(1, natW)),
+            scale_y: Math.min(1, ph / Math.max(1, natH)),
         };
     }
 
@@ -218,8 +220,6 @@ export class Island extends EventEmitter {
         panel.show();
         const [px, py] = this.pill.get_transformed_position();
         const [, natW] = panel.get_preferred_width(-1);
-        const [, natH] = panel.get_preferred_height(natW);
-        panel.set_size(natW, natH);
         const m = Main.layoutManager.findMonitorForActor(this.pill) ?? Main.layoutManager.primaryMonitor;
         panel.set_position(centerClamp(px, this.pill.width, natW, m.x, m.width), Math.round(py));
         panel.set_pivot_point((px + this.pill.width / 2 - panel.x) / natW, 0);
@@ -255,10 +255,7 @@ export class Island extends EventEmitter {
             ...this._shrinkScale(),
             duration: ANIM_MS,
             mode: Clutter.AnimationMode.EASE_IN_QUAD,
-            onComplete: () => {
-                panel.hide();
-                panel.set_size(-1, -1);
-            },
+            onComplete: () => panel.hide(),
         });
         this.pill.ease({opacity: 255, duration: ANIM_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
         this._syncMemoryWanted();

@@ -220,3 +220,26 @@
   padding: 2px 6px;
   spacing: 2px;
 }
+
+.frodo-tabs-root {
+  min-width: 340px;
+}
+
+.frodo-tabbar {
+  spacing: 4px;
+}
+
+.frodo-tab {
+  padding: 4px 12px;
+  border-radius: 999px;
+  color: #9aa0a6;
+}
+
+.frodo-tab:hover {
+  color: #fff;
+}
+
+.frodo-tab:checked {
+  background-color: #222;
+  color: #fff;
+}

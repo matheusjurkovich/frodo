@@ -39,6 +39,7 @@ export default class FrodoExtension extends Extension {
         this._destroyParts();
         this._parts = {
             data: this._data,
+            bridge: this._bridge,
             controls: new Controls(this._island),
             notifications: new NotificationList(this._bridge, this._island),
             tray: new TrayRow(this._island),
