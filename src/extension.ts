@@ -21,6 +21,16 @@ export default class FrodoExtension extends Extension {
     override enable(): void {
         const disposables = new Disposables();
         this.#disposables = disposables;
+        try {
+            this.#start(disposables);
+        } catch (error) {
+            disposables.dispose();
+            this.#disposables = null;
+            throw error;
+        }
+    }
+
+    #start(disposables: Disposables): void {
         setIconsDirectory(`${this.path}/icons`);
         disposables.add(() => {
             setIconsDirectory(null);
