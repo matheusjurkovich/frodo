@@ -74,13 +74,17 @@ interface DateSetter {
 interface DateMenuInternals {
     readonly _calendar: Clutter.Actor & DateSetter;
     readonly _date: DateSetter;
-    readonly _eventsItem: DateSetter;
+    readonly _eventsItem: Clutter.Actor & DateSetter;
     readonly _messageList: Clutter.Actor;
 }
 
 export interface DateMenuParts {
-    readonly calendarColumn: Clutter.Actor;
     readonly messageList: Clutter.Actor;
+}
+
+export interface CalendarParts {
+    readonly month: Clutter.Actor;
+    readonly events: Clutter.Actor;
     selectToday(): void;
 }
 
@@ -187,13 +191,21 @@ export function keepMicrophoneSliderVisible(): Disposer {
     };
 }
 
+function dateMenuInternals(): DateMenuInternals | null {
+    return (Main.panel.statusArea.dateMenu as unknown as DateMenuInternals | undefined) ?? null;
+}
+
 export function dateMenuParts(): DateMenuParts | null {
-    const dateMenu = Main.panel.statusArea.dateMenu as unknown as DateMenuInternals | undefined;
-    const calendarColumn = dateMenu?._calendar.get_parent();
-    if (!dateMenu || !calendarColumn) return null;
+    const dateMenu = dateMenuInternals();
+    return dateMenu ? {messageList: dateMenu._messageList} : null;
+}
+
+export function calendarParts(): CalendarParts | null {
+    const dateMenu = dateMenuInternals();
+    if (!dateMenu) return null;
     return {
-        calendarColumn,
-        messageList: dateMenu._messageList,
+        month: dateMenu._calendar,
+        events: dateMenu._eventsItem,
         selectToday: () => {
             const now = new Date();
             dateMenu._calendar.setDate(now);

@@ -19,11 +19,14 @@
     font-feature-settings: 'tnum';
 }
 
-.frodo-dim {
+.frodo-dim,
+.frodo-calendar .event-time,
+.frodo-calendar .event-placeholder {
     color: #a1a1aa;
 }
 
-.frodo-mono {
+.frodo-mono,
+.frodo-calendar .event-time {
     font-family: 'Ubuntu Mono', monospace;
 }
 
@@ -260,7 +263,6 @@
     color: #d97757;
 }
 
-.frodo-calendar,
 .frodo-messages {
     min-height: 320px;
 }
@@ -270,10 +272,6 @@
     margin: 0;
     padding: 0;
     width: auto;
-}
-
-.frodo-calendar .datemenu-calendar-column {
-    margin: 0;
 }
 
 .frodo-claude-tab {
@@ -359,7 +357,9 @@
 }
 
 .frodo-card,
-.frodo-general .quick-toggle-menu {
+.frodo-general .quick-toggle-menu,
+.frodo-calendar-month,
+.frodo-calendar-events {
     background-color: #17171a;
     border-radius: 18px;
 }
@@ -859,4 +859,128 @@
 .frodo-app-icon {
     width: 34px;
     height: 34px;
+}
+
+.frodo-calendar {
+    spacing: 10px;
+}
+
+.frodo-calendar-month {
+    width: 280px;
+    padding: 14px 20px;
+}
+
+.frodo-calendar-events {
+    padding: 14px 16px;
+}
+
+.frodo-calendar .calendar {
+    margin: 0;
+    padding: 0;
+    border-width: 0;
+    background-color: transparent;
+}
+
+.frodo-calendar .calendar-month-label {
+    padding: 6px 0;
+    background-color: transparent;
+    color: #f4f4f5;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.frodo-calendar .pager-button {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 999px;
+    background-color: transparent;
+    color: #e4e4e7;
+}
+
+.frodo-calendar .pager-button:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.frodo-calendar .calendar-day-heading {
+    height: 24px;
+    margin: 0 1px;
+    padding: 0;
+    background-color: transparent;
+    color: #a1a1aa;
+    font-size: 12px;
+    font-weight: 400;
+}
+
+.frodo-calendar .calendar-day {
+    width: 36px;
+    height: 36px;
+    margin: 1px;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    background-color: transparent;
+    color: #f4f4f5;
+    font-size: 13px;
+    font-weight: 400;
+}
+
+.frodo-calendar .calendar-day.calendar-other-month {
+    color: #8b8b94;
+}
+
+.frodo-calendar .calendar-day.calendar-day-with-events {
+    color: st-mix(-st-accent-color, #ffffff, 70%);
+}
+
+.frodo-calendar .calendar-day:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.frodo-calendar .calendar-day.calendar-today {
+    border: 1px solid st-mix(-st-accent-color, #ffffff, 70%);
+    color: #f4f4f5;
+    font-weight: 700;
+}
+
+.frodo-calendar .calendar-day:selected {
+    background-color: -st-accent-color;
+    color: -st-accent-fg-color;
+}
+
+.frodo-calendar .events-button {
+    margin: 0;
+    padding: 0;
+    border-width: 0;
+    background-color: transparent;
+}
+
+.frodo-calendar .events-title {
+    padding-bottom: 8px;
+    color: #f4f4f5;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.frodo-calendar .event-box {
+    padding: 10px 12px;
+    spacing: 2px;
+    border-radius: 12px;
+    background-color: #1f1f23;
+}
+
+.frodo-calendar .event-summary {
+    color: #f4f4f5;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.frodo-calendar .event-time {
+    font-size: 12px;
+}
+
+.frodo-calendar .event-placeholder {
+    padding: 24px 0;
+    font-size: 14px;
+    font-style: normal;
+    text-align: center;
 }

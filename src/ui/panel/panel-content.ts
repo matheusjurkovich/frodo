@@ -13,6 +13,7 @@ import {column} from '../components/layout.js';
 import type {Component} from '../components/lifecycle.js';
 import type {Island} from '../island.js';
 import {NativeDateMenu} from '../native-date-menu.js';
+import {CalendarPage} from './calendar/calendar-page.js';
 import {ClaudeTab} from './claude-tab.js';
 import {GeneralPage} from './general/general-page.js';
 import {Header} from './header.js';
@@ -56,7 +57,7 @@ export class PanelContent {
 
         const specs: readonly TabSpec[] = [
             {id: 'general', icon: 'general', label: TAB_LABELS.general, create: () => new GeneralPage({island, settings, bridge, media})},
-            {id: 'calendar', icon: 'calendar', label: TAB_LABELS.calendar, create: () => borrowed(this.#dateMenu.calendar)},
+            {id: 'calendar', icon: 'calendar', label: TAB_LABELS.calendar, create: () => new CalendarPage(island)},
             {
                 id: 'claude',
                 icon: 'claude',
