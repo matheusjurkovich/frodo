@@ -15,7 +15,7 @@ Gio._promisify(Gio.File.prototype, 'read_async', 'read_finish');
 Gio._promisify(Gio.InputStream.prototype, 'read_bytes_async', 'read_bytes_finish');
 Gio._promisify(Gio.File.prototype, 'replace_contents_bytes_async', 'replace_contents_finish');
 
-const VERSION = 1;
+const VERSION = 2;
 const CHUNK_BYTES = 1024 * 1024;
 const KEPT_MS = 30 * 24 * 60 * 60 * 1000;
 const SCAN_SECONDS = 30;
@@ -224,7 +224,7 @@ export class ClaudeTranscripts extends Emitter<{changed: []}> {
                 for (const entry of text.split('\n').map(parseAssistantLine)) {
                     if (!entry) continue;
                     if (!state.recent.seen(entry.usage.id)) index.add(entry);
-                    else if (entry.todos) index.setTodos(entry.usage.sessionId, entry.usage.timestamp, entry.todos);
+                    else if (entry.todos && !entry.sidechain) index.setTodos(entry.usage.sessionId, entry.usage.timestamp, entry.todos);
                 }
                 if (consumed > 0) this.#dirty = true;
                 state.offset += consumed;

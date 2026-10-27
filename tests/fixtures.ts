@@ -14,6 +14,7 @@ export interface LineOptions {
     cacheWrite?: number;
     branch?: string;
     todos?: string[];
+    sidechain?: boolean;
 }
 
 export function line(o: LineOptions): string {
@@ -26,6 +27,7 @@ export function line(o: LineOptions): string {
         sessionId: o.session ?? 's1',
         cwd: o.cwd ?? '/home/u/frodo',
         gitBranch: o.branch ?? 'main',
+        isSidechain: o.sidechain ?? false,
         message: {
             id: o.id,
             model: o.model ?? 'claude-opus-5-5',

@@ -28,7 +28,7 @@ function feed(index: ClaudeIndex, recent: RecentIds, text: string): void {
     const entry = parseAssistantLine(text);
     if (!entry) return;
     if (!recent.seen(entry.usage.id)) index.add(entry);
-    else if (entry.todos) index.setTodos(entry.usage.sessionId, entry.usage.timestamp, entry.todos);
+    else if (entry.todos && !entry.sidechain) index.setTodos(entry.usage.sessionId, entry.usage.timestamp, entry.todos);
 }
 
 function build(): ClaudeIndex {
@@ -101,6 +101,61 @@ describe('ClaudeIndex', () => {
         index.setTodos('desconhecida', at(27, 10).getTime(), {done: 1, total: 1});
         expect(index.session('sd')?.todos).toEqual({done: 1, total: 2});
         expect(index.session('desconhecida')).toBeNull();
+    });
+
+    it('conta o subagente na sessão sem trocar o modelo nem o contexto dela', () => {
+        const index = new ClaudeIndex();
+        const recent = new RecentIds();
+        feed(index, recent, line({id: 'p1', at: at(27, 9), session: 'sc', input: 100, output: 10, cacheRead: 1000, branch: 'main'}));
+        feed(
+            index,
+            recent,
+            line({
+                id: 'c1',
+                at: at(27, 10),
+                model: 'claude-haiku-5-5',
+                session: 'sc',
+                input: 50,
+                output: 5,
+                cacheRead: 9,
+                branch: 'outra',
+                sidechain: true,
+                todos: ['completed'],
+            }),
+        );
+        expect(index.session('sc')).toEqual({
+            tokens: 165,
+            model: 'claude-opus-5-5',
+            contextTokens: 1100,
+            branch: 'main',
+            startedAt: at(27, 9).getTime(),
+            lastAt: at(27, 10).getTime(),
+            todos: null,
+        });
+        expect(index.summary('today', now).input).toBe(150);
+        feed(
+            index,
+            recent,
+            line({id: 'p2', at: new Date(2026, 9, 27, 9, 30), model: 'claude-sonnet-5-5', session: 'sc', input: 1, cacheRead: 2000}),
+        );
+        expect(index.session('sc')?.model).toBe('claude-sonnet-5-5');
+        expect(index.session('sc')?.contextTokens).toBe(2001);
+        expect(index.session('sc')?.lastAt).toBe(at(27, 10).getTime());
+    });
+
+    it('deixa vazios o modelo e o contexto da sessão só com subagente', () => {
+        const index = new ClaudeIndex();
+        feed(index, new RecentIds(), line({id: 'c', at: at(27, 9), session: 'so', input: 5, output: 1, sidechain: true}));
+        const copy = ClaudeIndex.fromJSON(JSON.parse(JSON.stringify(index.toJSON())));
+        expect(copy.session('so')).toEqual({
+            tokens: 6,
+            model: '',
+            contextTokens: 0,
+            branch: null,
+            startedAt: at(27, 9).getTime(),
+            lastAt: at(27, 9).getTime(),
+            todos: null,
+        });
     });
 
     it('volta do JSON igual e ignora lixo', () => {

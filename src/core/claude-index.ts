@@ -51,6 +51,7 @@ interface Cell {
 
 interface Session extends Mutable<SessionStats> {
     todosAt: number;
+    mainAt: number;
 }
 
 interface Latest {
@@ -61,7 +62,7 @@ interface Latest {
 
 type Mutable<T> = {-readonly [K in keyof T]: T[K]};
 
-const VERSION = 1;
+const VERSION = 2;
 const KEPT_DAYS = 30;
 const PERIOD_DAYS: Record<Period, number> = {today: 1, '7d': 7, '30d': KEPT_DAYS};
 const FAMILIES: readonly ModelFamily[] = ['Opus', 'Sonnet', 'Haiku', 'Outro'];
@@ -122,7 +123,8 @@ function isSession(value: unknown): value is Session & {id: string} {
         isCount(value.startedAt) &&
         isCount(value.lastAt) &&
         (value.todos === null || isTodos(value.todos)) &&
-        isCount(value.todosAt)
+        isCount(value.todosAt) &&
+        isCount(value.mainAt)
     );
 }
 
@@ -160,7 +162,7 @@ export class ClaudeIndex {
     private readonly cells = new Map<string, Cell>();
     private readonly sessions = new Map<string, Session>();
 
-    add({usage, branch, todos}: TranscriptEntry): void {
+    add({usage, branch, todos, sidechain}: TranscriptEntry): void {
         const cell: Cell = {
             hour: hourStart(usage.timestamp),
             model: usage.model,
@@ -179,22 +181,25 @@ export class ClaudeIndex {
 
         const session: Session = this.sessions.get(usage.sessionId) ?? {
             tokens: 0,
-            model: usage.model,
+            model: '',
             contextTokens: 0,
             branch: null,
             startedAt: usage.timestamp,
-            lastAt: 0,
+            lastAt: usage.timestamp,
             todos: null,
             todosAt: 0,
+            mainAt: 0,
         };
         this.sessions.set(usage.sessionId, session);
         session.tokens += usage.input + usage.output;
         session.startedAt = Math.min(session.startedAt, usage.timestamp);
-        if (usage.timestamp >= session.lastAt) {
+        session.lastAt = Math.max(session.lastAt, usage.timestamp);
+        if (sidechain) return;
+        if (usage.timestamp >= session.mainAt) {
             session.model = usage.model;
             session.contextTokens = usage.input + usage.cacheRead + usage.cacheWrite;
             session.branch = branch;
-            session.lastAt = usage.timestamp;
+            session.mainAt = usage.timestamp;
         }
         if (todos) this.setTodos(usage.sessionId, usage.timestamp, todos);
     }

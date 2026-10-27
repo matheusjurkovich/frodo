@@ -14,6 +14,7 @@ export interface TranscriptEntry {
     readonly usage: UsageRecord;
     readonly branch: string | null;
     readonly todos: {done: number; total: number} | null;
+    readonly sidechain: boolean;
 }
 
 export type ModelFamily = 'Opus' | 'Sonnet' | 'Haiku' | 'Outro';
@@ -82,6 +83,7 @@ export function parseAssistantLine(line: string): TranscriptEntry | null {
         },
         branch: text(data.gitBranch),
         todos: todosOf(message.content),
+        sidechain: data.isSidechain === true,
     };
 }
 
