@@ -7,12 +7,16 @@ import {ClaudeService} from './services/claude-service.js';
 import {ClaudeSessions} from './services/claude-sessions.js';
 import {ClaudeTranscripts} from './services/claude-transcripts.js';
 import {MediaService} from './services/media.js';
+import {UpcomingMeeting} from './services/meetings.js';
 import {NotificationBridge} from './services/notification-bridge.js';
+import {Recording} from './services/recording.js';
 import {FrodoSettings} from './services/settings.js';
 import {SystemState} from './services/system-state.js';
+import {VolumeWatch} from './services/volume.js';
 import {Workspaces} from './services/workspaces.js';
 import {IslandManager} from './ui/island-manager.js';
 import {setIconsDirectory} from './ui/icons.js';
+import {ActivityFeed} from './ui/pill/activity-feed.js';
 import {TopBarVisibility} from './ui/top-bar-visibility.js';
 import {Disposables} from './util/disposables.js';
 
@@ -71,6 +75,22 @@ export default class FrodoExtension extends Extension {
         disposables.add(() => {
             bridge.destroy();
         });
+        const recording = new Recording();
+        disposables.add(() => {
+            recording.destroy();
+        });
+        const volume = new VolumeWatch();
+        disposables.add(() => {
+            volume.destroy();
+        });
+        const meetings = new UpcomingMeeting();
+        disposables.add(() => {
+            meetings.destroy();
+        });
+        const feed = new ActivityFeed({recording, sessions, meetings, bridge, volume, media});
+        disposables.add(() => {
+            feed.destroy();
+        });
         const topBar = new TopBarVisibility(settings);
         disposables.add(() => {
             topBar.destroy();
@@ -85,6 +105,8 @@ export default class FrodoExtension extends Extension {
             bridge,
             media,
             workspaces,
+            feed,
+            recording,
             openPreferences: () => {
                 islands.closeAll();
                 this.openPreferences();

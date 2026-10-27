@@ -9,12 +9,14 @@ import type {ClaudeSessions} from '../services/claude-sessions.js';
 import type {ClaudeTranscripts} from '../services/claude-transcripts.js';
 import type {MediaService} from '../services/media.js';
 import type {NotificationBridge} from '../services/notification-bridge.js';
+import type {Recording} from '../services/recording.js';
 import type {FrodoSettings} from '../services/settings.js';
 import type {SystemState} from '../services/system-state.js';
 import type {Workspaces} from '../services/workspaces.js';
 import {Disposables} from '../util/disposables.js';
 import {Island} from './island.js';
 import {PanelContent} from './panel/panel-content.js';
+import type {ActivityFeed} from './pill/activity-feed.js';
 
 export interface IslandManagerDependencies {
     readonly settings: FrodoSettings;
@@ -25,6 +27,8 @@ export interface IslandManagerDependencies {
     readonly bridge: NotificationBridge;
     readonly media: MediaService;
     readonly workspaces: Workspaces;
+    readonly feed: ActivityFeed;
+    readonly recording: Recording;
     readonly openPreferences: () => void;
 }
 

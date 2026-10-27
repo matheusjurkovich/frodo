@@ -71,10 +71,23 @@ interface DateSetter {
     setDate(date: Date): void;
 }
 
+export interface CalendarEvent {
+    readonly summary: string;
+    readonly date: Date;
+    readonly end: Date;
+}
+
+export interface CalendarEventSource {
+    getEvents(begin: Date, end: Date): readonly CalendarEvent[];
+    connect(signal: 'changed', callback: () => void): number;
+    disconnect(id: number): void;
+}
+
 interface DateMenuInternals {
     readonly _calendar: Clutter.Actor & DateSetter;
     readonly _date: DateSetter;
     readonly _eventsItem: Clutter.Actor & DateSetter;
+    readonly _eventSource?: CalendarEventSource | null;
 }
 
 export interface CalendarParts {
@@ -203,6 +216,10 @@ export function calendarParts(): CalendarParts | null {
             dateMenu._eventsItem.setDate(now);
         },
     };
+}
+
+export function calendarEventSource(): CalendarEventSource | null {
+    return dateMenuInternals()?._eventSource ?? null;
 }
 
 export type PowerActions = ReturnType<typeof SystemActions.getDefault> & {

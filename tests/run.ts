@@ -10,6 +10,7 @@ import './workspaces.spec.js';
 import './claude-index.spec.js';
 import './transcripts.spec.js';
 import './sessions.spec.js';
+import './pill.spec.js';
 
 let failed = 0;
 let total = 0;
