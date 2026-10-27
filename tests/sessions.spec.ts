@@ -96,6 +96,27 @@ describe('sessões do Claude', () => {
         expect(nextState(done, event('Notification', {notification_type: 'idle_prompt'}), at + 60e3)?.updatedAt).toBe(at);
     });
 
+    it('since guarda o início do status e só muda quando o status muda', () => {
+        const bash = {tool_name: 'Bash', tool_input: {command: 'npm test'}};
+        const started = nextState(null, event('UserPromptSubmit', {prompt: 'oi'}), at);
+        const working = nextState(started, event('PreToolUse', bash), at + 5000);
+        const again = nextState(working, event('PostToolUse', bash), at + 9000);
+        const waiting = nextState(again, event('PermissionRequest', bash), at + 12_000);
+        const resumed = nextState(waiting, event('PostToolUse', bash), at + 20_000);
+        const done = nextState(resumed, event('Stop'), at + 30_000);
+        const idlePrompt = nextState(done, event('Notification', {notification_type: 'idle_prompt'}), at + 90_000);
+        expect([started, working, again, waiting, resumed, done, idlePrompt].map(state => state?.since)).toEqual([
+            at,
+            at,
+            at,
+            at + 12_000,
+            at + 20_000,
+            at + 30_000,
+            at + 30_000,
+        ]);
+        expect(again?.updatedAt).toBe(at + 9000);
+    });
+
     it('descreve o passo por ferramenta', () => {
         expect(stepFor('Edit', {file_path: '/r/src/Main.ts'})).toBe('Edit Main.ts');
         expect(stepFor('Grep', {pattern: 'TODO'})).toBe('Grep TODO');

@@ -115,7 +115,18 @@ class FakeMedia extends Emitter<{changed: []}> {
 }
 
 function session(id: string, status: SessionStatus, step = ''): SessionState {
-    return {sessionId: id, cwd: '/r', repo: 'r', transcriptPath: '', status, tool: null, step, pid: null, updatedAt: Date.now()};
+    return {
+        sessionId: id,
+        cwd: '/r',
+        repo: 'r',
+        transcriptPath: '',
+        status,
+        tool: null,
+        step,
+        pid: null,
+        since: Date.now(),
+        updatedAt: Date.now(),
+    };
 }
 
 function track(playing: boolean): MediaTrack {

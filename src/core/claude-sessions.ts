@@ -24,6 +24,7 @@ export interface SessionState {
     readonly tool: string | null;
     readonly step: string;
     readonly pid: number | null;
+    readonly since: number;
     readonly updatedAt: number;
 }
 
@@ -89,6 +90,12 @@ export function stepFor(tool: string, input: Record<string, unknown>): string {
 }
 
 export function nextState(previous: SessionState | null, event: HookEvent, atMs: number): SessionState | null {
+    const next = transition(previous, event, atMs);
+    if (!next) return null;
+    return {...next, since: previous?.status === next.status ? previous.since : atMs};
+}
+
+function transition(previous: SessionState | null, event: HookEvent, atMs: number): Omit<SessionState, 'since'> | null {
     if (event.name === 'SessionEnd') return null;
     const base = {
         sessionId: event.sessionId,

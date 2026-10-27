@@ -185,13 +185,13 @@ export class ActivityView implements Component {
 
     #volume({percent}: Of<'volume'>): void {
         const bar = new SegmentBar('frodo-pill-volume');
-        bar.segments = [{fraction: Math.min(1, Math.max(0, percent / 100)), styleClass: 'frodo-fill-light'}];
+        bar.segments = [{fraction: Math.min(1, Math.max(0, percent / 100)), styleClass: ''}];
         this.#add(icon(volumeIcon(percent)), bar.actor, label(`${percent}%`, 'frodo-pill-percent frodo-mono'));
     }
 
     #working({session}: Of<'claude-working'>): void {
         this.#clickTab = 'claude';
-        const span = label('', 'frodo-pill-detail frodo-mono');
+        const span = label('', 'frodo-pill-span frodo-mono');
         this.#add(
             icon(frodoIcon('claude'), 'frodo-pill-icon-claude'),
             label(ellipsize(session.repo, REPO_CHARS), 'frodo-pill-title frodo-mono'),
@@ -199,7 +199,7 @@ export class ActivityView implements Component {
         if (session.step !== '') this.#add(label(ellipsize(session.step, STEP_CHARS), 'frodo-pill-detail frodo-mono'));
         this.#add(span);
         this.#tick(() => {
-            span.text = formatSpan(secondsSince(session.updatedAt, Date.now()));
+            span.text = formatSpan(secondsSince(session.since, Date.now()));
         });
     }
 

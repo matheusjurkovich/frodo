@@ -213,6 +213,7 @@ export class Island extends Emitter<IslandEvents> {
         this.#isOpen = false;
         this.#openedBy = null;
         this.pill.actor.reactive = true;
+        this.#feed.cancelTransient();
         this.#openTimer.stop();
         this.#closeTimer.stop();
         if (this.#grab.isActorGrabbed(this.panel)) this.#grab.ungrab({actor: this.panel});
