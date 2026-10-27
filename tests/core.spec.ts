@@ -9,7 +9,7 @@ import {
     formatTokens,
     formatUntil,
 } from '../src/core/format.js';
-import {centerClamp, segmentWidths} from '../src/core/geometry.js';
+import {barHeight, centerClamp, segmentWidths} from '../src/core/geometry.js';
 import {formatGb, parseMeminfo} from '../src/core/memory.js';
 import {latest, shouldIntercept} from '../src/core/notifications.js';
 import {parseMetadata, trackFraction} from '../src/core/media.js';
@@ -88,6 +88,19 @@ describe('segmentWidths', () => {
     it('não passa da largura total', () => {
         expect(segmentWidths([0.8, 0.5], 100)).toEqual([80, 20]);
         expect(segmentWidths([-1, 2], 50)).toEqual([0, 50]);
+    });
+});
+
+describe('barHeight', () => {
+    it('escala pela maior barra com piso de 3px', () => {
+        expect(barHeight(900, 900, false)).toBe(64);
+        expect(barHeight(450, 900, false)).toBe(32);
+        expect(barHeight(1, 900, false)).toBe(3);
+        expect(barHeight(0, 0, false)).toBe(3);
+    });
+
+    it('barra futura fica no piso', () => {
+        expect(barHeight(900, 900, true)).toBe(3);
     });
 });
 
