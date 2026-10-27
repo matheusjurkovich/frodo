@@ -1,6 +1,7 @@
 import GLib from 'gi://GLib';
 
 import {ClaudeTranscripts} from '../src/services/claude-transcripts.js';
+import {Timer} from '../src/util/timer.js';
 import type {FrodoSettings} from '../src/services/settings.js';
 import {createSettings, line} from './fixtures.js';
 
@@ -122,6 +123,36 @@ describe('ClaudeTranscripts', () => {
         const again = new ClaudeTranscripts(settings, cachePath);
         await again.scan();
         expect(again.index.summary('today', new Date()).input).toBe(10);
+    });
+
+    it('conta a maior saída do id repetido entre arquivos e passadas', async () => {
+        write([line({id: 'm', at: today, input: 1, output: 5})]);
+        await service.scan();
+        GLib.file_set_contents(`${tmp}/projects/p/b.jsonl`, `${line({id: 'm', at: today, input: 1, output: 12})}\n`);
+        const again = new ClaudeTranscripts(settings, cachePath);
+        await again.scan();
+        append(`${line({id: 'm', at: today, input: 1, output: 7})}\n`);
+        await again.scan();
+        const summary = again.index.summary('today', new Date());
+        expect([summary.input, summary.output]).toEqual([1, 12]);
+        expect(again.index.session('s1')?.tokens).toBe(13);
+    });
+
+    it('conta quem quer a releitura e só para quando ninguém quer', async () => {
+        const every = spyOn(Timer.prototype, 'every').and.callThrough();
+        service.setWanted(true);
+        service.setWanted(true);
+        expect(every).toHaveBeenCalledTimes(1);
+        const timer = every.calls.mostRecent().object as Timer;
+        service.setWanted(false);
+        expect(timer.active).toBeTrue();
+        service.setWanted(false);
+        expect(timer.active).toBeFalse();
+        service.setWanted(false);
+        service.setWanted(true);
+        expect(timer.active).toBeTrue();
+        expect(every).toHaveBeenCalledTimes(2);
+        await service.scan();
     });
 
     it('conta as transcrições dos subagentes', async () => {

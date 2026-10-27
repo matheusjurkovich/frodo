@@ -1,5 +1,5 @@
 import {modelDisplayName, modelFamily} from './claude-transcript.js';
-import type {ModelFamily, TranscriptEntry} from './claude-transcript.js';
+import type {ModelFamily, TranscriptEntry, UsageRecord} from './claude-transcript.js';
 import {weekdayLabel} from './format.js';
 
 export type Period = 'today' | '7d' | '30d';
@@ -54,6 +54,11 @@ interface Session extends Mutable<SessionStats> {
     mainAt: number;
 }
 
+interface Seen {
+    at: number;
+    output: number;
+}
+
 interface Latest {
     tokens: number;
     hour: number;
@@ -62,7 +67,7 @@ interface Latest {
 
 type Mutable<T> = {-readonly [K in keyof T]: T[K]};
 
-const VERSION = 3;
+const VERSION = 4;
 const KEPT_DAYS = 30;
 const PERIOD_DAYS: Record<Period, number> = {today: 1, '7d': 7, '30d': KEPT_DAYS};
 const FAMILIES: readonly ModelFamily[] = ['Opus', 'Sonnet', 'Haiku', 'Outro'];
@@ -128,6 +133,10 @@ function isSession(value: unknown): value is Session & {id: string} {
     );
 }
 
+function isSeen(value: unknown): value is Seen {
+    return isRecord(value) && isCount(value.at) && isCount(value.output);
+}
+
 function share(name: string, label: string, tokens: number, total: number): Share {
     return {name, label, tokens, fraction: total > 0 ? tokens / total : 0};
 }
@@ -161,14 +170,36 @@ function dayBars(slots: ReadonlyMap<number, number>, nowMs: number, period: '7d'
 export class ClaudeIndex {
     private readonly cells = new Map<string, Cell>();
     private readonly sessions = new Map<string, Session>();
-    private readonly ids = new Map<string, number>();
+    private readonly ids = new Map<string, Seen>();
 
     has(id: string): boolean {
         return this.ids.has(id);
     }
 
     add({usage, branch, todos, sidechain}: TranscriptEntry): void {
-        this.ids.set(usage.id, usage.timestamp);
+        const seen = this.ids.get(usage.id);
+        if (seen) {
+            const extra = usage.output - seen.output;
+            if (extra > 0) {
+                seen.output = usage.output;
+                this.count({...usage, input: 0, output: extra, cacheRead: 0, cacheWrite: 0});
+            }
+            if (todos && !sidechain) this.setTodos(usage.sessionId, usage.timestamp, todos);
+            return;
+        }
+        this.ids.set(usage.id, {at: usage.timestamp, output: usage.output});
+        const session = this.count(usage);
+        if (sidechain) return;
+        if (usage.timestamp >= session.mainAt) {
+            session.model = usage.model;
+            session.contextTokens = usage.input + usage.cacheRead + usage.cacheWrite;
+            session.branch = branch;
+            session.mainAt = usage.timestamp;
+        }
+        if (todos) this.setTodos(usage.sessionId, usage.timestamp, todos);
+    }
+
+    private count(usage: UsageRecord): Session {
         const cell: Cell = {
             hour: hourStart(usage.timestamp),
             model: usage.model,
@@ -200,14 +231,7 @@ export class ClaudeIndex {
         session.tokens += usage.input + usage.output;
         session.startedAt = Math.min(session.startedAt, usage.timestamp);
         session.lastAt = Math.max(session.lastAt, usage.timestamp);
-        if (sidechain) return;
-        if (usage.timestamp >= session.mainAt) {
-            session.model = usage.model;
-            session.contextTokens = usage.input + usage.cacheRead + usage.cacheWrite;
-            session.branch = branch;
-            session.mainAt = usage.timestamp;
-        }
-        if (todos) this.setTodos(usage.sessionId, usage.timestamp, todos);
+        return session;
     }
 
     setTodos(sessionId: string, timestamp: number, todos: {done: number; total: number}): void {
@@ -221,7 +245,7 @@ export class ClaudeIndex {
         const cutoff = dayStart(nowMs, KEPT_DAYS - 1);
         for (const [key, cell] of this.cells) if (cell.hour < cutoff) this.cells.delete(key);
         for (const [id, session] of this.sessions) if (session.lastAt < cutoff) this.sessions.delete(id);
-        for (const [id, at] of this.ids) if (at < cutoff) this.ids.delete(id);
+        for (const [id, {at}] of this.ids) if (at < cutoff) this.ids.delete(id);
     }
 
     summary(period: Period, now: Date): ConsumptionSummary {
@@ -289,7 +313,7 @@ export class ClaudeIndex {
             version: VERSION,
             cells: [...this.cells.values()].map(cell => ({...cell})),
             sessions: [...this.sessions].map(([id, session]) => ({id, ...session, todos: session.todos && {...session.todos}})),
-            ids: Object.fromEntries(this.ids),
+            ids: Object.fromEntries([...this.ids].map(([id, seen]) => [id, {...seen}])),
         };
     }
 
@@ -306,11 +330,11 @@ export class ClaudeIndex {
         const cells = data.cells as unknown[];
         const sessions = data.sessions as unknown[];
         const ids = Object.entries(data.ids);
-        if (!cells.every(isCell) || !sessions.every(isSession) || !ids.every((entry): entry is [string, number] => isCount(entry[1])))
+        if (!cells.every(isCell) || !sessions.every(isSession) || !ids.every((entry): entry is [string, Seen] => isSeen(entry[1])))
             return index;
         for (const cell of cells) index.cells.set(cellKey(cell), {...cell});
         for (const {id, ...session} of sessions) index.sessions.set(id, session);
-        for (const [id, at] of ids) index.ids.set(id, at);
+        for (const [id, {at, output}] of ids) index.ids.set(id, {at, output});
         return index;
     }
 }

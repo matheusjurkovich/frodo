@@ -26,9 +26,7 @@ const lines = [
 
 function feed(index: ClaudeIndex, text: string): void {
     const entry = parseAssistantLine(text);
-    if (!entry) return;
-    if (!index.has(entry.usage.id)) index.add(entry);
-    else if (entry.todos && !entry.sidechain) index.setTodos(entry.usage.sessionId, entry.usage.timestamp, entry.todos);
+    if (entry) index.add(entry);
 }
 
 function build(): ClaudeIndex {
@@ -167,6 +165,31 @@ describe('ClaudeIndex', () => {
         feed(index, old);
         index.prune(now.getTime());
         expect(index.summary('30d', now).input).toBe(40);
+    });
+
+    it('conta a maior saída de um id repetido, só pela diferença', () => {
+        const grows = new ClaudeIndex();
+        feed(grows, line({id: 'o', at: at(27, 9), session: 'so', input: 3, output: 5, cacheRead: 100}));
+        feed(grows, line({id: 'o', at: at(27, 9), session: 'so', input: 3, output: 12, cacheRead: 100}));
+        const shrinks = new ClaudeIndex();
+        feed(shrinks, line({id: 'o', at: at(27, 9), session: 'so', input: 3, output: 12, cacheRead: 100}));
+        feed(shrinks, line({id: 'o', at: at(27, 9), session: 'so', input: 3, output: 5, cacheRead: 100}));
+        for (const index of [grows, shrinks]) {
+            const today = index.summary('today', now);
+            expect([today.input, today.output, today.cacheRead]).toEqual([3, 12, 100]);
+            expect(index.session('so')?.tokens).toBe(15);
+            expect(index.session('so')?.contextTokens).toBe(103);
+        }
+        const copy = ClaudeIndex.fromJSON(JSON.parse(JSON.stringify(grows.toJSON())));
+        feed(copy, line({id: 'o', at: at(27, 10), session: 'so', input: 3, output: 20, cacheRead: 100, sidechain: true}));
+        expect(copy.summary('today', now).output).toBe(20);
+        expect(
+            copy
+                .summary('today', now)
+                .bars.slice(1, 3)
+                .map(bar => bar.value),
+        ).toEqual([15, 8]);
+        expect(copy.session('so')?.tokens).toBe(23);
     });
 
     it('volta do JSON igual e ignora lixo', () => {

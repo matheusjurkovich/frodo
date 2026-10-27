@@ -15,7 +15,7 @@ Gio._promisify(Gio.File.prototype, 'read_async', 'read_finish');
 Gio._promisify(Gio.InputStream.prototype, 'read_bytes_async', 'read_bytes_finish');
 Gio._promisify(Gio.File.prototype, 'replace_contents_bytes_async', 'replace_contents_finish');
 
-const VERSION = 3;
+const VERSION = 4;
 const CHUNK_BYTES = 1024 * 1024;
 const KEPT_MS = 30 * 24 * 60 * 60 * 1000;
 const SCAN_SECONDS = 30;
@@ -118,6 +118,7 @@ export class ClaudeTranscripts extends Emitter<{changed: []}> {
     #dirty = false;
     #destroyed = false;
     #sinceGc = 0;
+    #wanted = 0;
 
     constructor(settings: FrodoSettings, cachePath = GLib.build_filenamev([GLib.get_user_cache_dir(), 'frodo', 'claude-index.json'])) {
         super();
@@ -134,11 +135,14 @@ export class ClaudeTranscripts extends Emitter<{changed: []}> {
     }
 
     setWanted(wanted: boolean): void {
-        if (wanted === this.#timer.active || this.#destroyed) return;
-        if (!wanted) {
+        if (this.#destroyed) return;
+        const before = this.#wanted;
+        this.#wanted = Math.max(0, before + (wanted ? 1 : -1));
+        if (this.#wanted === 0) {
             this.#timer.stop();
             return;
         }
+        if (before > 0) return;
         this.#timer.every(SCAN_SECONDS, () => {
             void this.scan();
         });
@@ -223,11 +227,7 @@ export class ClaudeTranscripts extends Emitter<{changed: []}> {
                 if (chunk.length === 0 || this.#destroyed) return;
                 const bytes = concat(rest, chunk);
                 const {text, consumed} = completeLines(bytes);
-                for (const entry of text.split('\n').map(parseAssistantLine)) {
-                    if (!entry) continue;
-                    if (!index.has(entry.usage.id)) index.add(entry);
-                    else if (entry.todos && !entry.sidechain) index.setTodos(entry.usage.sessionId, entry.usage.timestamp, entry.todos);
-                }
+                for (const entry of text.split('\n').map(parseAssistantLine)) if (entry) index.add(entry);
                 if (consumed > 0) this.#dirty = true;
                 offset += consumed;
                 offsets.set(path, offset);
