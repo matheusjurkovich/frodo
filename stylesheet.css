@@ -723,3 +723,56 @@
     font-size: 13px;
     color: #a1a1aa;
 }
+
+.frodo-media {
+    padding: 12px;
+}
+
+.frodo-media-row {
+    spacing: 12px;
+}
+
+.frodo-media-cover {
+    icon-size: 60px;
+    border-radius: 12px;
+}
+
+.frodo-media-cover-empty {
+    icon-size: 24px;
+    padding: 18px;
+    background-color: #1e7a45;
+    color: #ffffff;
+}
+
+.frodo-media-text {
+    spacing: 3px;
+}
+
+.frodo-media-heading,
+.frodo-media-artist,
+.frodo-media-time {
+    font-size: 12px;
+    color: #a1a1aa;
+}
+
+.frodo-media-title {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.frodo-media-progress {
+    spacing: 8px;
+    margin-top: 2px;
+}
+
+.frodo-media .frodo-track {
+    height: 4px;
+}
+
+.frodo-media-fill {
+    background-color: #f4f4f5;
+}
+
+.frodo-media-controls {
+    spacing: 4px;
+}

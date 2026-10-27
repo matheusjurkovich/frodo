@@ -12,6 +12,7 @@ import {
 import {centerClamp, segmentWidths} from '../src/core/geometry.js';
 import {formatGb, parseMeminfo} from '../src/core/memory.js';
 import {latest, shouldIntercept} from '../src/core/notifications.js';
+import {parseMetadata, trackFraction} from '../src/core/media.js';
 import {isValidShortcut, shortcutLabel} from '../src/core/shortcut.js';
 import {tabToOpen, visibleTabs} from '../src/core/tabs.js';
 import {itemsForPreferences, moveItem} from '../src/core/items.js';
@@ -225,5 +226,21 @@ describe('abas', () => {
     it('abre a primeira visível quando a pedida está oculta', () => {
         expect(tabToOpen('claude', ['general', 'claude'])).toBe('claude');
         expect(tabToOpen('claude', ['calendar', 'notifications'])).toBe('calendar');
+    });
+});
+
+describe('mídia', () => {
+    it('lê os metadados do MPRIS', () => {
+        expect(
+            parseMetadata({'xesam:title': 'Faixa', 'xesam:artist': ['A', 'B'], 'mpris:artUrl': 'file:///c.png', 'mpris:length': 232000000}),
+        ).toEqual({title: 'Faixa', artist: 'A, B', coverUrl: 'file:///c.png', lengthUs: 232000000});
+        expect(parseMetadata({})).toEqual({title: '', artist: '', coverUrl: '', lengthUs: null});
+    });
+
+    it('calcula o progresso só com duração conhecida', () => {
+        expect(trackFraction(84e6, 232e6)).toBeCloseTo(0.362, 3);
+        expect(trackFraction(10, null)).toBeNull();
+        expect(trackFraction(null, 100)).toBeNull();
+        expect(trackFraction(300, 100)).toBe(1);
     });
 });

@@ -5,6 +5,7 @@ import {TAB_LABELS, tabToOpen, visibleTabs} from '../../core/tabs.js';
 import {TAB_IDS} from '../../core/types.js';
 import type {TabId} from '../../core/types.js';
 import type {ClaudeService} from '../../services/claude-service.js';
+import type {MediaService} from '../../services/media.js';
 import type {NotificationBridge} from '../../services/notification-bridge.js';
 import type {FrodoSettings} from '../../services/settings.js';
 import {Disposables} from '../../util/disposables.js';
@@ -27,6 +28,7 @@ export interface PanelDependencies {
     readonly claude: ClaudeService;
     readonly settings: FrodoSettings;
     readonly bridge: NotificationBridge;
+    readonly media: MediaService;
     readonly openPreferences: () => void;
 }
 
@@ -48,12 +50,12 @@ export class PanelContent {
     #lastTab: TabId = TAB_IDS[0];
     #nextTab: TabId = TAB_IDS[0];
 
-    constructor({island, claude, settings, bridge, openPreferences}: PanelDependencies) {
+    constructor({island, claude, settings, bridge, media, openPreferences}: PanelDependencies) {
         this.#settings = settings;
         this.#dateMenu = new NativeDateMenu(island);
 
         const specs: readonly TabSpec[] = [
-            {id: 'general', icon: 'general', label: TAB_LABELS.general, create: () => new GeneralPage({island, settings, bridge})},
+            {id: 'general', icon: 'general', label: TAB_LABELS.general, create: () => new GeneralPage({island, settings, bridge, media})},
             {id: 'calendar', icon: 'calendar', label: TAB_LABELS.calendar, create: () => borrowed(this.#dateMenu.calendar)},
             {
                 id: 'claude',
