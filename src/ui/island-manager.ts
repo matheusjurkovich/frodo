@@ -5,6 +5,7 @@ import {tabToOpen, visibleTabs} from '../core/tabs.js';
 import type {TabId} from '../core/types.js';
 import type {InterceptedNotification} from '../services/notification-bridge.js';
 import type {ClaudeService} from '../services/claude-service.js';
+import type {ClaudeTranscripts} from '../services/claude-transcripts.js';
 import type {MediaService} from '../services/media.js';
 import type {NotificationBridge} from '../services/notification-bridge.js';
 import type {FrodoSettings} from '../services/settings.js';
@@ -18,6 +19,7 @@ export interface IslandManagerDependencies {
     readonly settings: FrodoSettings;
     readonly state: SystemState;
     readonly claude: ClaudeService;
+    readonly transcripts: ClaudeTranscripts;
     readonly bridge: NotificationBridge;
     readonly media: MediaService;
     readonly workspaces: Workspaces;

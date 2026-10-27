@@ -1,3 +1,7 @@
+import Gio from 'gi://Gio';
+
+import {FrodoSettings, SCHEMA_ID} from '../src/services/settings.js';
+
 export interface LineOptions {
     id: string;
     at: Date;
@@ -34,4 +38,11 @@ export function line(o: LineOptions): string {
             },
         },
     });
+}
+
+export function createSettings(): FrodoSettings {
+    const source = Gio.SettingsSchemaSource.new_from_directory('.build', Gio.SettingsSchemaSource.get_default(), false);
+    const schema = source.lookup(SCHEMA_ID, false);
+    if (!schema) throw new Error('schema não compilado em .build');
+    return new FrodoSettings(new Gio.Settings({settings_schema: schema, backend: Gio.memory_settings_backend_new()}));
 }

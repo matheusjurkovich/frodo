@@ -1,0 +1,125 @@
+import GLib from 'gi://GLib';
+
+import {ClaudeTranscripts} from '../src/services/claude-transcripts.js';
+import type {FrodoSettings} from '../src/services/settings.js';
+import {createSettings, line} from './fixtures.js';
+
+describe('ClaudeTranscripts', () => {
+    const today = new Date();
+    let tmp: string;
+    let file: string;
+    let cachePath: string;
+    let settings: FrodoSettings;
+    let service: ClaudeTranscripts;
+
+    function write(lines: string[]): void {
+        GLib.file_set_contents(file, lines.map(text => `${text}\n`).join(''));
+    }
+
+    function append(text: string): void {
+        const [, bytes] = GLib.file_get_contents(file);
+        GLib.file_set_contents(file, new TextDecoder().decode(bytes) + text);
+    }
+
+    beforeEach(() => {
+        tmp = GLib.dir_make_tmp('frodo-transcripts-XXXXXX');
+        GLib.mkdir_with_parents(`${tmp}/projects/p`, 0o700);
+        file = `${tmp}/projects/p/a.jsonl`;
+        cachePath = `${tmp}/claude-index.json`;
+        settings = createSettings();
+        settings.claudeProfiles = [{id: 'p', label: 'P', configDir: tmp}];
+        service = new ClaudeTranscripts(settings, cachePath);
+    });
+
+    afterEach(() => {
+        service.destroy();
+        GLib.spawn_command_line_sync(`rm -rf ${GLib.shell_quote(tmp)}`);
+    });
+
+    it('conta o que já existe', async () => {
+        write([line({id: 'a', at: today, input: 10})]);
+        await service.scan();
+        expect(service.index.summary('today', new Date()).input).toBe(10);
+    });
+
+    it('lê a linha parcial só quando ela termina', async () => {
+        write([line({id: 'a', at: today, input: 10})]);
+        await service.scan();
+        append(line({id: 'b', at: today, input: 5}).slice(0, 20));
+        await service.scan();
+        expect(service.index.summary('today', new Date()).input).toBe(10);
+        append(`${line({id: 'b', at: today, input: 5}).slice(20)}\n`);
+        await service.scan();
+        expect(service.index.summary('today', new Date()).input).toBe(15);
+    });
+
+    it('não conta duas vezes a linha repetida entre passadas', async () => {
+        write([line({id: 'a', at: today, input: 10})]);
+        await service.scan();
+        append(`${line({id: 'a', at: today, input: 10})}\n`);
+        await service.scan();
+        expect(service.index.summary('today', new Date()).input).toBe(10);
+    });
+
+    it('pula o arquivo que encolheu sem contar de novo', async () => {
+        write([line({id: 'a', at: today, input: 10}), line({id: 'b', at: today, input: 5})]);
+        await service.scan();
+        write([line({id: 'c', at: today, input: 1})]);
+        await service.scan();
+        expect(service.index.summary('today', new Date()).input).toBe(15);
+    });
+
+    it('continua do cache em outra instância e refaz cache inválido', async () => {
+        write([line({id: 'a', at: today, input: 10})]);
+        await service.scan();
+        const again = new ClaudeTranscripts(settings, cachePath);
+        await again.scan();
+        expect(again.index.summary('today', new Date()).input).toBe(10);
+        GLib.file_set_contents(cachePath, '{lixo');
+        const fresh = new ClaudeTranscripts(settings, cachePath);
+        await fresh.scan();
+        expect(fresh.index.summary('today', new Date()).input).toBe(10);
+    });
+
+    it('refaz o cache cujo índice não volta inteiro', async () => {
+        write([line({id: 'a', at: today, input: 10})]);
+        await service.scan();
+        const [, bytes] = GLib.file_get_contents(cachePath);
+        const cache = JSON.parse(new TextDecoder().decode(bytes)) as {index: unknown};
+        cache.index = {version: 99};
+        GLib.file_set_contents(cachePath, JSON.stringify(cache));
+        const fresh = new ClaudeTranscripts(settings, cachePath);
+        await fresh.scan();
+        expect(fresh.index.summary('today', new Date()).input).toBe(10);
+    });
+
+    it('lembra os ids recentes no cache e guarda as tarefas da linha repetida', async () => {
+        write([line({id: 'a', at: today, input: 10})]);
+        await service.scan();
+        const again = new ClaudeTranscripts(settings, cachePath);
+        append(`${line({id: 'a', at: today, input: 10, todos: ['completed', 'pending']})}\n`);
+        await again.scan();
+        expect(again.index.summary('today', new Date()).input).toBe(10);
+        expect(again.index.session('s1')?.todos).toEqual({done: 1, total: 2});
+    });
+
+    it('não conta de novo o perfil removido e devolvido', async () => {
+        write([line({id: 'a', at: today, input: 10})]);
+        await service.scan();
+        settings.claudeProfiles = [];
+        await service.scan();
+        settings.claudeProfiles = [{id: 'p', label: 'P', configDir: tmp}];
+        await service.scan();
+        expect(service.index.summary('today', new Date()).input).toBe(10);
+    });
+
+    it('reaproveita a passada em curso', async () => {
+        write([line({id: 'a', at: today, input: 10})]);
+        const first = service.scan();
+        expect(service.scanning).toBeTrue();
+        expect(service.scan()).toBe(first);
+        await first;
+        expect(service.scanning).toBeFalse();
+        expect(service.index.summary('today', new Date()).input).toBe(10);
+    });
+});

@@ -1,10 +1,9 @@
-import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 
 import {CLIENT_ID, ClaudeApiError, ClaudeClient, PROFILE_URL, SignedOutError, TOKEN_URL, USAGE_URL} from '../src/services/claude-client.js';
 import type {HttpRequest, HttpResponse, Transport} from '../src/services/claude-client.js';
 import {readMemory} from '../src/services/memory.js';
-import {FrodoSettings, SCHEMA_ID} from '../src/services/settings.js';
+import {createSettings} from './fixtures.js';
 
 describe('readMemory', () => {
     it('lê /proc/meminfo', async () => {
@@ -120,15 +119,8 @@ describe('ClaudeClient', () => {
 });
 
 describe('FrodoSettings', () => {
-    function create(): FrodoSettings {
-        const source = Gio.SettingsSchemaSource.new_from_directory('.build', Gio.SettingsSchemaSource.get_default(), false);
-        const schema = source.lookup(SCHEMA_ID, false);
-        if (!schema) throw new Error('schema não compilado em .build');
-        return new FrodoSettings(new Gio.Settings({settings_schema: schema, backend: Gio.memory_settings_backend_new()}));
-    }
-
     it('expõe os padrões tipados', () => {
-        const settings = create();
+        const settings = createSettings();
         expect(settings.closedMode).toBe('compact');
         expect(settings.closedItems).toEqual(['clock', 'system', 'ram', 'claude-session']);
         expect(settings.monitors).toBe('primary');
@@ -137,7 +129,7 @@ describe('FrodoSettings', () => {
     });
 
     it('ignora itens desconhecidos e repetidos e preserva a ordem escolhida', () => {
-        const settings = create();
+        const settings = createSettings();
         settings.gsettings.set_strv('closed-items', ['claude-weekly', 'xyz', 'battery', 'battery']);
         expect(settings.closedItems).toEqual(['claude-weekly', 'battery']);
         settings.closedItems = ['ram', 'clock', 'ram'];
@@ -145,7 +137,7 @@ describe('FrodoSettings', () => {
     });
 
     it('avisa mudanças e permite parar de ouvir', () => {
-        const settings = create();
+        const settings = createSettings();
         const spy = jasmine.createSpy('changed');
         const off = settings.onChanged(['closed-mode', 'monitors'], spy);
         settings.closedMode = 'minimal';
@@ -155,7 +147,7 @@ describe('FrodoSettings', () => {
     });
 
     it('lê e grava as chaves do redesign', () => {
-        const settings = create();
+        const settings = createSettings();
         expect(settings.openOnHover).toBeTrue();
         expect(settings.autoClose).toBeFalse();
         expect(settings.hiddenTabs).toEqual([]);
@@ -166,7 +158,7 @@ describe('FrodoSettings', () => {
     });
 
     it('grava expandir ao passar o mouse e recolher sozinha', () => {
-        const settings = create();
+        const settings = createSettings();
         settings.openOnHover = false;
         settings.autoClose = true;
         expect(settings.gsettings.get_boolean('open-on-hover')).toBeFalse();
