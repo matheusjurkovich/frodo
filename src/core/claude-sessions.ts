@@ -96,12 +96,14 @@ export function nextState(previous: SessionState | null, event: HookEvent, atMs:
             return {...base, status: 'working', tool: null, step: 'Pensando'};
         case 'PreToolUse':
         case 'PostToolUse':
+        case 'PostToolUseFailure':
             return {...base, status: 'working', tool: event.tool, step: stepFor(tool, event.input)};
         case 'PermissionRequest':
             return {...base, status: 'waiting', tool: event.tool, step: stepFor(tool, event.input)};
         case 'Notification':
             if (event.notificationType === 'permission_prompt') return {...base, ...kept, status: 'waiting'};
-            if (event.notificationType === 'idle_prompt') return {...base, ...kept, status: 'idle'};
+            if (event.notificationType === 'idle_prompt')
+                return previous?.status === 'done' ? previous : {...base, ...kept, status: 'idle'};
             return previous ?? {...base, ...kept};
         case 'PreCompact':
             return {...base, status: 'working', tool: null, step: 'Compactando contexto'};

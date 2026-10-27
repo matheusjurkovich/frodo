@@ -72,6 +72,16 @@ Acrescente o bloco abaixo ao `~/.claude/settings.json`, junto com o que já houv
         ]
       }
     ],
+    "PostToolUseFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich/hooks/claude-session.sh"
+          }
+        ]
+      }
+    ],
     "PermissionRequest": [
       {
         "hooks": [

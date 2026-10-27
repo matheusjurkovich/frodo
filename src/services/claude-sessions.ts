@@ -174,9 +174,13 @@ export class ClaudeSessions extends Emitter<{changed: []}> {
     }
 
     #enqueue(work: () => Promise<boolean>): void {
-        this.#queue = this.#queue.then(async () => {
-            if (!this.#destroyed && (await work())) this.#changed();
-        });
+        this.#queue = this.#queue
+            .then(async () => {
+                if (!this.#destroyed && (await work())) this.#changed();
+            })
+            .catch((error: unknown) => {
+                logError(error as object);
+            });
     }
 
     async #load(directory: Gio.File): Promise<boolean> {
@@ -224,7 +228,11 @@ export class ClaudeSessions extends Emitter<{changed: []}> {
             this.#timer.every(SWEEP_SECONDS, () => {
                 this.#sweep();
             });
-        this.emit('changed');
+        try {
+            this.emit('changed');
+        } catch (error) {
+            logError(error as object);
+        }
     }
 
     destroy(): void {

@@ -1,7 +1,7 @@
 import GLib from 'gi://GLib';
 
 import {countByStatus, displayStatus, nextState, parentPid, parseHookEvent, parseShortstat, stepFor} from '../src/core/claude-sessions.js';
-import type {HookEvent} from '../src/core/claude-sessions.js';
+import type {HookEvent, SessionState, SessionStatus} from '../src/core/claude-sessions.js';
 import {ClaudeSessions} from '../src/services/claude-sessions.js';
 import {Timer} from '../src/util/timer.js';
 import {createSettings} from './fixtures.js';
@@ -54,6 +54,35 @@ describe('sessões do Claude', () => {
         expect(displayStatus(done, at + 29 * 60e3)).toBe('done');
         expect(displayStatus(done, at + 31 * 60e3)).toBe('idle');
         expect(nextState(done, event('SessionEnd'), at)).toBeNull();
+    });
+
+    it('mapeia cada evento', () => {
+        const working = nextState(null, event('PreToolUse', {tool_name: 'Bash', tool_input: {command: 'npm test'}}), at);
+        const waiting = nextState(working, event('PermissionRequest', {tool_name: 'Bash', tool_input: {command: 'rm -rf x'}}), at);
+        const done = nextState(working, event('Stop'), at);
+        const bash = {tool_name: 'Bash', tool_input: {command: 'npm run lint'}};
+        const cases: [string, SessionState | null, string, Record<string, unknown>, [SessionStatus, string | null, string]][] = [
+            ['SessionStart', null, 'SessionStart', {source: 'startup'}, ['idle', null, '']],
+            ['UserPromptSubmit', null, 'UserPromptSubmit', {prompt: 'oi'}, ['working', null, 'Pensando']],
+            [
+                'PermissionRequest',
+                working,
+                'PermissionRequest',
+                {tool_name: 'Bash', tool_input: {command: 'rm -rf x'}},
+                ['waiting', 'Bash', 'Bash rm -rf x'],
+            ],
+            ['PreCompact', working, 'PreCompact', {}, ['working', null, 'Compactando contexto']],
+            ['idle_prompt trabalhando', working, 'Notification', {notification_type: 'idle_prompt'}, ['idle', 'Bash', 'Bash npm test']],
+            ['idle_prompt concluída', done, 'Notification', {notification_type: 'idle_prompt'}, ['done', 'Bash', 'Bash npm test']],
+            ['outra notificação', working, 'Notification', {notification_type: 'auth_success'}, ['working', 'Bash', 'Bash npm test']],
+            ['PostToolUseFailure', waiting, 'PostToolUseFailure', bash, ['working', 'Bash', 'Bash npm run lint']],
+            ['evento desconhecido', working, 'SubagentStop', {}, ['working', 'Bash', 'Bash npm test']],
+        ];
+        for (const [label, previous, name, extra, expected] of cases) {
+            const state = nextState(previous, event(name, extra), at + 1000);
+            expect([state?.status, state?.tool, state?.step]).withContext(label).toEqual(expected);
+        }
+        expect(nextState(done, event('Notification', {notification_type: 'idle_prompt'}), at + 60e3)?.updatedAt).toBe(at);
     });
 
     it('descreve o passo por ferramenta', () => {
@@ -143,6 +172,33 @@ describe('ClaudeSessions', () => {
         write('SessionEnd');
         await changed(sessions);
         expect(sessions.sessions).toEqual([]);
+        sessions.destroy();
+    });
+
+    it('listener que falha uma vez não para as atualizações', async () => {
+        const dir = tmp();
+        const log = spyOn(globalThis, 'logError');
+        const sessions = new ClaudeSessions(settings, dir);
+        await changed(sessions);
+        const first = changed(sessions);
+        let failed = false;
+        sessions.on('changed', () => {
+            if (failed) return;
+            failed = true;
+            throw new Error('listener quebrado');
+        });
+        const write = (name: string): void => {
+            GLib.file_set_contents(
+                `${dir}/e.json`,
+                JSON.stringify({pid: self, event: {session_id: 'e', cwd: '/r/e', transcript_path: '/t', hook_event_name: name}}),
+            );
+        };
+        write('UserPromptSubmit');
+        await first;
+        write('SessionEnd');
+        await changed(sessions);
+        expect(sessions.sessions).toEqual([]);
+        expect(log).toHaveBeenCalledTimes(1);
         sessions.destroy();
     });
 });
