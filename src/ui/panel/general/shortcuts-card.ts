@@ -1,5 +1,7 @@
 import Clutter from 'gi://Clutter';
+import GLib from 'gi://GLib';
 import type Gvc from 'gi://Gvc';
+import Meta from 'gi://Meta';
 import Shell from 'gi://Shell';
 import St from 'gi://St';
 import {showScreenRecordingUI, showScreenshotUI} from 'resource:///org/gnome/shell/ui/screenshot.js';
@@ -62,14 +64,21 @@ export class ShortcutsCard implements Component {
             island.close();
             action();
         };
+        const closeThenCapture = (action: () => void) => () => {
+            island.close(false);
+            global.compositor.get_laters().add(Meta.LaterType.BEFORE_REDRAW, () => {
+                action();
+                return GLib.SOURCE_REMOVE;
+            });
+        };
 
         this.#microphone = shortcutButton('mic-off', 'Silenciar microfone', () => {
             const source = this.#source;
             source?.change_is_muted(!source.is_muted);
         });
         const buttons = [
-            shortcutButton('screenshot', 'Captura de tela', closeThen(showScreenshotUI)),
-            shortcutButton('record', 'Gravar tela', closeThen(showScreenRecordingUI)),
+            shortcutButton('screenshot', 'Captura de tela', closeThenCapture(showScreenshotUI)),
+            shortcutButton('record', 'Gravar tela', closeThenCapture(showScreenRecordingUI)),
             this.#microphone,
             shortcutButton(
                 'terminal',

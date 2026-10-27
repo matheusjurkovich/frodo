@@ -14,7 +14,7 @@ export class CollapsibleCard implements Component {
     readonly body = column('frodo-collapsible-body');
     readonly #id: CardId;
     readonly #settings: FrodoSettings;
-    readonly #summary = new St.Bin({x_expand: true, x_align: Clutter.ActorAlign.START, y_align: Clutter.ActorAlign.CENTER, visible: false});
+    readonly #summary = new St.Bin({x_expand: true, x_align: Clutter.ActorAlign.START, y_align: Clutter.ActorAlign.CENTER});
     readonly #count = label('', 'frodo-collapsible-count');
     readonly #caret = new St.Icon({
         gicon: frodoIcon('expand'),
@@ -74,7 +74,8 @@ export class CollapsibleCard implements Component {
         const collapsed = this.#settings.collapsedCards.includes(this.#id);
         this.body.visible = !collapsed;
         this.#caret.rotation_angle_z = collapsed ? 0 : 180;
-        this.#summary.visible = collapsed && this.#summary.get_child() !== null;
+        const summary = this.#summary.get_child();
+        if (summary) summary.visible = collapsed;
     }
 
     destroy(): void {

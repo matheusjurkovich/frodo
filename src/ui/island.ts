@@ -188,7 +188,7 @@ export class Island extends Emitter<IslandEvents> {
         this.open('key');
     }
 
-    close(): void {
+    close(animate = true): void {
         if (!this.#isOpen) return;
         this.#isOpen = false;
         this.#openedBy = null;
@@ -198,6 +198,11 @@ export class Island extends Emitter<IslandEvents> {
         if (this.#grab.isActorGrabbed(this.panel)) this.#grab.ungrab({actor: this.panel});
         this.emit('closed');
 
+        if (animate) this.#animateClose();
+        else this.#snapClosed();
+    }
+
+    #animateClose(): void {
         this.panel.ease({
             opacity: 0,
             ...this.#collapsedScale(),
@@ -208,6 +213,17 @@ export class Island extends Emitter<IslandEvents> {
             },
         });
         this.pill.actor.ease({opacity: 255, duration: ANIMATION_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+    }
+
+    #snapClosed(): void {
+        const {panel} = this;
+        const pill = this.pill.actor;
+        const {scaleX, scaleY} = this.#collapsedScale();
+        panel.remove_all_transitions();
+        pill.remove_all_transitions();
+        panel.set({opacity: 0, scale_x: scaleX, scale_y: scaleY});
+        panel.hide();
+        pill.opacity = 255;
     }
 
     #monitor(): {x: number; y: number; width: number} | null {
