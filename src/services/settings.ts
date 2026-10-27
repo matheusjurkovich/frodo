@@ -113,8 +113,16 @@ export class FrodoSettings {
         return this.gsettings.get_boolean('open-on-hover');
     }
 
+    set openOnHover(value: boolean) {
+        this.gsettings.set_boolean('open-on-hover', value);
+    }
+
     get autoClose(): boolean {
         return this.gsettings.get_boolean('auto-close');
+    }
+
+    set autoClose(value: boolean) {
+        this.gsettings.set_boolean('auto-close', value);
     }
 
     get hiddenTabs(): TabId[] {

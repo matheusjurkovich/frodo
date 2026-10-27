@@ -164,4 +164,12 @@ describe('FrodoSettings', () => {
         settings.collapsedCards = ['apps', 'apps'];
         expect(settings.gsettings.get_strv('collapsed-cards')).toEqual(['apps']);
     });
+
+    it('grava expandir ao passar o mouse e recolher sozinha', () => {
+        const settings = create();
+        settings.openOnHover = false;
+        settings.autoClose = true;
+        expect(settings.gsettings.get_boolean('open-on-hover')).toBeFalse();
+        expect(settings.gsettings.get_boolean('auto-close')).toBeTrue();
+    });
 });

@@ -1,6 +1,8 @@
 import type Clutter from 'gi://Clutter';
 import type Meta from 'gi://Meta';
 import type St from 'gi://St';
+import * as SystemActions from 'resource:///org/gnome/shell/misc/systemActions.js';
+import * as Util from 'resource:///org/gnome/shell/misc/util.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import type * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
 import type * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
@@ -152,6 +154,20 @@ export function dateMenuParts(): DateMenuParts | null {
             dateMenu._eventsItem.setDate(now);
         },
     };
+}
+
+export type PowerActions = ReturnType<typeof SystemActions.getDefault> & {
+    activateSuspend(): void;
+    activateRestart(): void;
+    activatePowerOff(): void;
+};
+
+export function powerActions(): PowerActions {
+    return SystemActions.getDefault() as PowerActions;
+}
+
+export function spawn(argv: readonly string[]): void {
+    (Util as unknown as {spawn(argv: string[]): void}).spawn([...argv]);
 }
 
 export function toggleOverview(): void {

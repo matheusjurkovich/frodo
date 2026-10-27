@@ -1,5 +1,6 @@
 .frodo-pill,
-.frodo-panel {
+.frodo-panel,
+.frodo-power-menu {
     font-family: 'Ubuntu', sans-serif;
     color: #f4f4f5;
 }
@@ -53,7 +54,7 @@
     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
     border-radius: 28px;
     padding: 10px;
-    width: 900px;
+    width: 878px;
     font-size: 10pt;
 }
 
@@ -390,6 +391,115 @@
 .frodo-back-title {
     font-size: 15px;
     font-weight: 500;
+}
+
+.frodo-power-menu {
+    width: 218px;
+    padding: 6px;
+    spacing: 2px;
+    background-color: #1a1a1d;
+    border: 1px solid #2e2e33;
+    border-radius: 18px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+    font-size: 14px;
+}
+
+.frodo-power-item {
+    height: 44px;
+    padding: 0 12px;
+    spacing: 12px;
+    border-radius: 12px;
+    color: #f4f4f5;
+}
+
+.frodo-power-item:hover,
+.frodo-power-item:focus,
+.frodo-power-item:active {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.frodo-power-item.frodo-danger {
+    background-color: #2a1414;
+    color: #fca5a5;
+}
+
+.frodo-power-item.frodo-danger:hover,
+.frodo-power-item.frodo-danger:focus,
+.frodo-power-item.frodo-danger:active {
+    background-color: #351a1a !important;
+}
+
+.frodo-power-icon {
+    icon-size: 18px;
+}
+
+.frodo-power-note {
+    padding: 6px 12px 4px;
+}
+
+.frodo-power-note-text {
+    font-size: 12px;
+    color: #a1a1aa;
+}
+
+.frodo-settings-columns {
+    spacing: 10px;
+}
+
+.frodo-settings-row {
+    spacing: 10px;
+}
+
+.frodo-settings-text,
+.frodo-check {
+    font-size: 14px;
+}
+
+.frodo-kbd {
+    padding: 4px 8px;
+    border-radius: 6px;
+    background-color: #232327;
+    color: #e4e4e7;
+    font-size: 13px;
+}
+
+.frodo-integration {
+    spacing: 12px;
+}
+
+.frodo-integration-text {
+    spacing: 2px;
+}
+
+.frodo-integration-title {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.frodo-integration-subtitle {
+    font-size: 12px;
+    color: #a1a1aa;
+}
+
+.frodo-integration-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+}
+
+.frodo-integration-google {
+    background-color: #1f5fa8;
+    color: #ffffff;
+}
+
+.frodo-integration-initials {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.frodo-integration-claude {
+    background-color: #2a1a14;
+    color: #d97757;
 }
 
 .frodo-button {
