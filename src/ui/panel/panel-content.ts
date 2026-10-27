@@ -12,11 +12,11 @@ import {Disposables} from '../../util/disposables.js';
 import {column} from '../components/layout.js';
 import type {Component} from '../components/lifecycle.js';
 import type {Island} from '../island.js';
-import {NativeDateMenu} from '../native-date-menu.js';
 import {CalendarPage} from './calendar/calendar-page.js';
 import {ClaudeTab} from './claude-tab.js';
 import {GeneralPage} from './general/general-page.js';
 import {Header} from './header.js';
+import {NotificationsPage} from './notifications/notifications-page.js';
 import {PowerMenu} from './power-menu.js';
 import {SettingsPage} from './settings/settings-page.js';
 import {TabBar} from './tab-bar.js';
@@ -33,14 +33,9 @@ export interface PanelDependencies {
     readonly openPreferences: () => void;
 }
 
-function borrowed(actor: Clutter.Actor): Component {
-    return {actor, destroy: () => undefined};
-}
-
 export class PanelContent {
     readonly actor = column('frodo-panel-content');
     readonly #settings: FrodoSettings;
-    readonly #dateMenu: NativeDateMenu;
     readonly #tabBar: TabBar;
     readonly #header: Header;
     readonly #pages = new Map<TabId, Component>();
@@ -53,7 +48,6 @@ export class PanelContent {
 
     constructor({island, claude, settings, bridge, media, openPreferences}: PanelDependencies) {
         this.#settings = settings;
-        this.#dateMenu = new NativeDateMenu(island);
 
         const specs: readonly TabSpec[] = [
             {id: 'general', icon: 'general', label: TAB_LABELS.general, create: () => new GeneralPage({island, settings, bridge, media})},
@@ -70,7 +64,7 @@ export class PanelContent {
                         },
                     }),
             },
-            {id: 'notifications', icon: 'bell', label: TAB_LABELS.notifications, create: () => borrowed(this.#dateMenu.notifications)},
+            {id: 'notifications', icon: 'bell', label: TAB_LABELS.notifications, create: () => new NotificationsPage(bridge, island)},
         ];
 
         this.#tabBar = new TabBar(specs);
@@ -123,7 +117,7 @@ export class PanelContent {
         );
         this.#disposables.add(
             bridge.on('changed', () => {
-                this.#tabBar.setBadge('notifications', bridge.list().length);
+                this.#tabBar.setBadge('notifications', bridge.count);
             }),
         );
         this.#disposables.add(
@@ -132,7 +126,7 @@ export class PanelContent {
                 this.#nextTab = TAB_IDS[0];
             }),
         );
-        this.#tabBar.setBadge('notifications', bridge.list().length);
+        this.#tabBar.setBadge('notifications', bridge.count);
         this.#syncTabs();
     }
 
@@ -167,7 +161,6 @@ export class PanelContent {
         this.#header.destroy();
         this.#settingsPage.destroy();
         for (const page of this.#pages.values()) page.destroy();
-        this.#dateMenu.destroy();
         this.actor.destroy();
     }
 }

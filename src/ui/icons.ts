@@ -4,6 +4,7 @@ export type FrodoIconName =
     | 'general'
     | 'workspaces'
     | 'bell'
+    | 'bell-off'
     | 'calendar'
     | 'gear'
     | 'back'

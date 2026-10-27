@@ -14,6 +14,7 @@ import '@girs/gtk-4.0/ambient';
 import '@girs/gvc-1.0/ambient';
 import '@girs/meta-18/ambient';
 import '@girs/nm-1.0/ambient';
+import '@girs/pango-1.0/ambient';
 import '@girs/shell-18/ambient';
 import '@girs/soup-3.0/ambient';
 import '@girs/st-18/ambient';

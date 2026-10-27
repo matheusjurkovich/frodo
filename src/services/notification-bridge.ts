@@ -1,5 +1,5 @@
+import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
-import type Gio from 'gi://Gio';
 import * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
 
 import {latest, shouldIntercept} from '../core/notifications.js';
@@ -7,11 +7,15 @@ import {messageTray} from '../shell/internals.js';
 import {Disposables} from '../util/disposables.js';
 import {Emitter} from '../util/emitter.js';
 
-const MAX_ITEMS = 6;
+const MAX_ITEMS = 50;
+const NOTIFICATIONS_SCHEMA = 'org.gnome.desktop.notifications';
+const SHOW_BANNERS_KEY = 'show-banners';
 
 export interface InterceptedNotification {
     readonly gicon: Gio.Icon | null;
+    readonly app: string;
     readonly title: string;
+    readonly body: string;
 }
 
 export interface NotificationBridgeEvents {
@@ -25,10 +29,18 @@ export function notificationIcon(notification: MessageTray.Notification): Gio.Ic
 
 export class NotificationBridge extends Emitter<NotificationBridgeEvents> {
     readonly #sources = new Map<MessageTray.Source, Disposables>();
+    readonly #settings = new Gio.Settings({schema_id: NOTIFICATIONS_SCHEMA});
     readonly #disposables = new Disposables();
+    #clearing = false;
 
     constructor() {
         super();
+        this.#disposables.signal(
+            this.#settings,
+            this.#settings.connect(`changed::${SHOW_BANNERS_KEY}`, () => {
+                this.#emitChanged();
+            }),
+        );
         const tray = messageTray();
         this.#disposables.signal(
             tray,
@@ -47,8 +59,41 @@ export class NotificationBridge extends Emitter<NotificationBridgeEvents> {
     }
 
     list(): MessageTray.Notification[] {
-        const all = [...this.#sources.keys()].flatMap(source => source.notifications);
-        return latest(all, notification => notification.datetime.to_unix(), MAX_ITEMS);
+        return latest(this.#all(), notification => notification.datetime.to_unix(), MAX_ITEMS);
+    }
+
+    get count(): number {
+        return this.#all().length;
+    }
+
+    get doNotDisturb(): boolean {
+        return !this.#settings.get_boolean(SHOW_BANNERS_KEY);
+    }
+
+    set doNotDisturb(value: boolean) {
+        this.#settings.set_boolean(SHOW_BANNERS_KEY, !value);
+    }
+
+    dismiss(notification: MessageTray.Notification): void {
+        notification.destroy(MessageTray.NotificationDestroyedReason.DISMISSED);
+    }
+
+    clear(): void {
+        this.#clearing = true;
+        try {
+            for (const notification of this.#all()) this.dismiss(notification);
+        } finally {
+            this.#clearing = false;
+            this.#emitChanged();
+        }
+    }
+
+    #all(): MessageTray.Notification[] {
+        return [...this.#sources.keys()].flatMap(source => source.notifications);
+    }
+
+    #emitChanged(): void {
+        if (!this.#clearing) this.emit('changed');
     }
 
     #interceptBanners(): void {
@@ -69,7 +114,12 @@ export class NotificationBridge extends Emitter<NotificationBridgeEvents> {
             this.emit('queue-changed');
             next.playSound();
             next.acknowledged = true;
-            emitIntercepted({gicon: notificationIcon(next), title: next.title ?? ''});
+            emitIntercepted({
+                gicon: notificationIcon(next),
+                app: next.source?.title ?? '',
+                title: next.title ?? '',
+                body: next.body ?? '',
+            });
             if (next.isTransient) next.destroy(MessageTray.NotificationDestroyedReason.EXPIRED);
             GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
                 this._updateState();
@@ -87,7 +137,7 @@ export class NotificationBridge extends Emitter<NotificationBridgeEvents> {
         if (this.#sources.has(source)) return;
         const signals = new Disposables();
         const changed = (): void => {
-            this.emit('changed');
+            this.#emitChanged();
         };
         signals.signal(source, source.connect('notification-added', changed));
         signals.signal(source, source.connect('notification-removed', changed));
@@ -100,7 +150,7 @@ export class NotificationBridge extends Emitter<NotificationBridgeEvents> {
         if (!signals) return;
         signals.dispose();
         this.#sources.delete(source);
-        this.emit('changed');
+        this.#emitChanged();
     }
 
     destroy(): void {

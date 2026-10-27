@@ -75,11 +75,6 @@ interface DateMenuInternals {
     readonly _calendar: Clutter.Actor & DateSetter;
     readonly _date: DateSetter;
     readonly _eventsItem: Clutter.Actor & DateSetter;
-    readonly _messageList: Clutter.Actor;
-}
-
-export interface DateMenuParts {
-    readonly messageList: Clutter.Actor;
 }
 
 export interface CalendarParts {
@@ -193,11 +188,6 @@ export function keepMicrophoneSliderVisible(): Disposer {
 
 function dateMenuInternals(): DateMenuInternals | null {
     return (Main.panel.statusArea.dateMenu as unknown as DateMenuInternals | undefined) ?? null;
-}
-
-export function dateMenuParts(): DateMenuParts | null {
-    const dateMenu = dateMenuInternals();
-    return dateMenu ? {messageList: dateMenu._messageList} : null;
 }
 
 export function calendarParts(): CalendarParts | null {
