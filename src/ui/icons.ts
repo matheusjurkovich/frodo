@@ -6,6 +6,7 @@ export type FrodoIconName =
     | 'bell'
     | 'calendar'
     | 'gear'
+    | 'back'
     | 'overview'
     | 'close'
     | 'info'

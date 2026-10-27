@@ -1,5 +1,5 @@
 import {batteryLevel, ellipsize, formatDate, formatReset} from '../src/core/format.js';
-import {centerClamp} from '../src/core/geometry.js';
+import {centerClamp, segmentWidths} from '../src/core/geometry.js';
 import {formatGb, parseMeminfo} from '../src/core/memory.js';
 import {latest, shouldIntercept} from '../src/core/notifications.js';
 import {isValidShortcut} from '../src/core/shortcut.js';
@@ -65,6 +65,17 @@ describe('geometry', () => {
         expect(centerClamp(10, 120, 600, 0, 1920)).toBe(8);
         expect(centerClamp(1850, 60, 600, 0, 1920)).toBe(1312);
         expect(centerClamp(2800, 120, 600, 1920, 1920)).toBe(2560);
+    });
+});
+
+describe('segmentWidths', () => {
+    it('divide a largura pelas frações', () => {
+        expect(segmentWidths([0.58, 0.36, 0.06], 200)).toEqual([116, 72, 12]);
+    });
+
+    it('não passa da largura total', () => {
+        expect(segmentWidths([0.8, 0.5], 100)).toEqual([80, 20]);
+        expect(segmentWidths([-1, 2], 50)).toEqual([0, 50]);
     });
 });
 

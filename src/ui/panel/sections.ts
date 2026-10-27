@@ -7,12 +7,11 @@ import {formatDate} from '../../core/format.js';
 import {formatGb} from '../../core/memory.js';
 import type {SystemState} from '../../services/system-state.js';
 import type {Unsubscribe} from '../../util/emitter.js';
+import {iconButton} from '../components/buttons.js';
+import {cardTitle} from '../components/card.js';
+import {column, dimLabel, row, spacer} from '../components/layout.js';
+import {SegmentBar} from '../components/segment-bar.js';
 import {frodoIcon} from '../icons.js';
-import {COLORS, StatRow, dimLabel, heading, roundButton} from '../widgets.js';
-
-function column(styleClass: string): St.BoxLayout {
-    return new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL, style_class: styleClass, x_expand: true});
-}
 
 function unsubscribeOnDestroy(actor: Clutter.Actor, unsubscribes: readonly Unsubscribe[]): void {
     actor.connect('destroy', () => {
@@ -26,14 +25,14 @@ export interface HeaderActions {
 }
 
 export function headerSection({openPreferences, openOverview}: HeaderActions): St.BoxLayout {
-    const box = new St.BoxLayout({style_class: 'frodo-header', x_expand: true});
+    const box = row('frodo-header');
     const clock = new St.Label({style_class: 'frodo-big-clock', y_align: Clutter.ActorAlign.CENTER});
     const date = dimLabel();
     box.add_child(clock);
     box.add_child(date);
-    box.add_child(new St.Widget({x_expand: true}));
-    box.add_child(roundButton(frodoIcon('overview'), 'Visão geral', openOverview));
-    box.add_child(roundButton(frodoIcon('gear'), 'Configurações do Frodo', openPreferences));
+    box.add_child(spacer());
+    box.add_child(iconButton(frodoIcon('overview'), 'Visão geral', openOverview));
+    box.add_child(iconButton(frodoIcon('gear'), 'Configurações do Frodo', openPreferences));
 
     const wallClock = new GnomeDesktop.WallClock();
     const sync = (): void => {
@@ -48,19 +47,39 @@ export function headerSection({openPreferences, openOverview}: HeaderActions): S
     return box;
 }
 
+interface Stat {
+    readonly actor: St.BoxLayout;
+    readonly label: St.Label;
+    readonly bar: SegmentBar;
+}
+
+function stat(): Stat {
+    const actor = row('frodo-stat');
+    const label = new St.Label({style_class: 'frodo-stat-label', y_align: Clutter.ActorAlign.CENTER});
+    const bar = new SegmentBar();
+    actor.add_child(label);
+    actor.add_child(bar.actor);
+    return {actor, label, bar};
+}
+
 export function systemSection(state: SystemState): St.BoxLayout {
     const section = column('frodo-section');
-    const ram = new StatRow('RAM', COLORS.ram);
-    const battery = new StatRow('Bat', COLORS.battery);
-    section.add_child(heading('SISTEMA', frodoIcon('system')));
+    const ram = stat();
+    const battery = stat();
+    section.add_child(cardTitle('SISTEMA'));
     section.add_child(ram.actor);
     section.add_child(battery.actor);
 
     const sync = (): void => {
         const {memory, battery: info} = state;
-        ram.set(memory ? `RAM ${formatGb(memory.usedKb)}` : 'RAM —', memory ? memory.usedKb / memory.totalKb : null);
+        ram.label.text = memory ? `RAM ${formatGb(memory.usedKb)}` : 'RAM —';
+        ram.bar.actor.visible = memory !== null;
+        ram.bar.segments = [{fraction: memory ? memory.usedKb / memory.totalKb : 0, styleClass: 'frodo-fill-ram'}];
         battery.actor.visible = info !== null;
-        if (info) battery.set(`Bat ${info.percent}%${info.charging ? ' ⚡' : ''}`, info.percent / 100);
+        if (info) {
+            battery.label.text = `Bat ${info.percent}%${info.charging ? ' ⚡' : ''}`;
+            battery.bar.segments = [{fraction: info.percent / 100, styleClass: 'frodo-fill-battery'}];
+        }
     };
     unsubscribeOnDestroy(section, [state.on('memory', sync), state.on('battery', sync)]);
     sync();

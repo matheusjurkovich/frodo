@@ -10,10 +10,12 @@ import type {ClaudeService, ProfileUsage} from '../../services/claude-service.js
 import type {FrodoSettings} from '../../services/settings.js';
 import {Disposables} from '../../util/disposables.js';
 import {Timer} from '../../util/timer.js';
+import {chip} from '../components/buttons.js';
+import {column, dimLabel, label, spacer} from '../components/layout.js';
+import {whileMapped} from '../components/lifecycle.js';
+import {SegmentBar, levelClass} from '../components/segment-bar.js';
 import {frodoIcon} from '../icons.js';
 import type {FrodoIconName} from '../icons.js';
-import {ProgressBar, dimLabel, levelColor} from '../widgets.js';
-import type {Rgb} from '../widgets.js';
 
 const USAGE_PAGE = 'https://claude.ai/settings/usage';
 const TICK_SECONDS = 30;
@@ -23,14 +25,6 @@ export interface ClaudeTabActions {
     readonly close: () => void;
 }
 
-function column(styleClass: string): St.BoxLayout {
-    return new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL, style_class: styleClass, x_expand: true});
-}
-
-function label(text: string, styleClass: string): St.Label {
-    return new St.Label({text, style_class: styleClass, y_align: Clutter.ActorAlign.CENTER});
-}
-
 function percentText(value: number): string {
     return `${Math.round(value)}%`;
 }
@@ -38,22 +32,22 @@ function percentText(value: number): string {
 interface MeterOptions {
     readonly name: string;
     readonly percent: number | null;
-    readonly color: Rgb;
+    readonly fillClass: string;
     readonly details: readonly string[];
     readonly pace?: number | null;
 }
 
-function meter({name, percent, color, details, pace = null}: MeterOptions): St.BoxLayout {
+function meter({name, percent, fillClass, details, pace = null}: MeterOptions): St.BoxLayout {
     const root = column('frodo-meter');
     const top = new St.BoxLayout({x_expand: true});
     top.add_child(label(name, 'frodo-meter-name'));
-    top.add_child(new St.Widget({x_expand: true}));
+    top.add_child(spacer());
     if (percent !== null) top.add_child(label(percentText(percent), 'frodo-meter-value'));
     root.add_child(top);
     if (percent !== null) {
-        const bar = new ProgressBar(color);
-        bar.fraction = percent / 100;
-        bar.pace = pace === null ? null : pace / 100;
+        const bar = new SegmentBar();
+        bar.segments = [{fraction: percent / 100, styleClass: fillClass}];
+        bar.marker = pace === null ? null : pace / 100;
         root.add_child(bar.actor);
     }
     const visibleDetails = details.filter(detail => detail !== '');
@@ -88,21 +82,20 @@ export class ClaudeTab {
                 this.#render();
             }),
         );
-        this.#disposables.signal(
-            this.actor,
-            this.actor.connect('notify::mapped', () => {
-                this.#syncTick();
-            }),
+        this.#disposables.add(
+            whileMapped(
+                this.actor,
+                () => {
+                    this.#tick.every(TICK_SECONDS, () => {
+                        this.#render();
+                    });
+                },
+                () => {
+                    this.#tick.stop();
+                },
+            ),
         );
         this.#render();
-    }
-
-    #syncTick(): void {
-        if (this.actor.mapped)
-            this.#tick.every(TICK_SECONDS, () => {
-                this.#render();
-            });
-        else this.#tick.stop();
     }
 
     #footer(): St.BoxLayout {
@@ -165,9 +158,9 @@ export class ClaudeTab {
         const header = new St.BoxLayout({style_class: 'frodo-claude-header', x_expand: true});
         header.add_child(new St.Icon({gicon: frodoIcon('claude'), style_class: 'frodo-claude-logo'}));
         header.add_child(label(usage.profile.label, 'frodo-claude-name'));
-        if (multiple) header.add_child(label(profileChip(usage.profile.label), 'frodo-chip'));
-        if (multiple && usage.active) header.add_child(label('ativo', 'frodo-chip frodo-chip-active'));
-        header.add_child(new St.Widget({x_expand: true}));
+        if (multiple) header.add_child(chip(profileChip(usage.profile.label)));
+        if (multiple && usage.active) header.add_child(chip('ativo', 'accent'));
+        header.add_child(spacer());
         if (usage.tier) {
             const icon = tierIcon(usage.tier);
             if (icon) header.add_child(new St.Icon({gicon: frodoIcon(`tier-${icon}`), style_class: 'frodo-tier-icon'}));
@@ -188,7 +181,7 @@ export class ClaudeTab {
         return meter({
             name: `${window.label}${remaining ? ' · restante' : ''}`,
             percent: shownPercent(window.utilization, remaining),
-            color: levelColor(effectiveLevel(window, now)),
+            fillClass: levelClass(effectiveLevel(window, now)),
             details: [relativeReset(window.resetsAt, now), projectionNote(window, remaining, now)],
             pace: shownPace(pacePercent(window.resetsAt, window.totalSeconds, now), remaining),
         });
@@ -199,7 +192,7 @@ export class ClaudeTab {
         return meter({
             name: 'Uso extra',
             percent: spend.percent === null ? null : shownPercent(spend.percent, remaining),
-            color: levelColor(spend.level),
+            fillClass: levelClass(spend.level),
             details: [amounts],
         });
     }

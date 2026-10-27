@@ -1,6 +1,11 @@
+.frodo-pill,
+.frodo-panel {
+    font-family: 'Ubuntu', sans-serif;
+    color: #f4f4f5;
+}
+
 .frodo-pill {
     background-color: #000;
-    color: #fff;
     border-radius: 999px;
     padding: 7px 18px;
     spacing: 12px;
@@ -14,7 +19,11 @@
 }
 
 .frodo-dim {
-    color: #9aa0a6;
+    color: #a1a1aa;
+}
+
+.frodo-mono {
+    font-family: 'Ubuntu Mono', monospace;
 }
 
 .frodo-sep {
@@ -35,13 +44,15 @@
 .frodo-ring {
     width: 16px;
     height: 16px;
+    -frodo-track-color: #2a2a2f;
 }
 
 .frodo-panel {
-    background-color: #000;
-    color: #fff;
+    background-color: #0a0a0b;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
     border-radius: 28px;
-    padding: 22px 24px;
+    padding: 10px;
     min-width: 480px;
     font-size: 10pt;
 }
@@ -66,8 +77,7 @@
 }
 
 .frodo-tile-main:hover,
-.frodo-tile-arrow:hover,
-.frodo-round-button:hover {
+.frodo-tile-arrow:hover {
     background-color: rgba(255, 255, 255, 0.08);
 }
 
@@ -101,13 +111,6 @@
     icon-size: 18px;
 }
 
-.frodo-round-button {
-    background-color: #1a1a1a;
-    border-radius: 999px;
-    padding: 9px;
-    color: #fff;
-}
-
 .frodo-panel-content {
     spacing: 18px;
 }
@@ -139,13 +142,6 @@
     spacing: 10px;
 }
 
-.frodo-heading {
-    margin-bottom: 2px;
-    font-size: 8pt;
-    font-weight: 600;
-    color: #9aa0a6;
-}
-
 .frodo-stat {
     spacing: 12px;
 }
@@ -153,18 +149,6 @@
 .frodo-stat-label {
     min-width: 96px;
     color: #ccc;
-}
-
-.frodo-stat-note {
-    font-size: 8pt;
-    color: #9aa0a6;
-    padding-left: 108px;
-    padding-top: 3px;
-}
-
-.frodo-bar {
-    height: 8px;
-    min-width: 80px;
 }
 
 .frodo-pill-content {
@@ -206,7 +190,7 @@
 .frodo-notif-close {
     padding: 8px 14px;
     border-radius: 14px;
-    color: #9aa0a6;
+    color: #a1a1aa;
 }
 
 .frodo-empty {
@@ -247,7 +231,7 @@
 .frodo-tab {
     padding: 6px 16px;
     border-radius: 999px;
-    color: #9aa0a6;
+    color: #a1a1aa;
 }
 
 .frodo-tab:hover {
@@ -270,15 +254,6 @@
 
 .frodo-tab-icon {
     icon-size: 16px;
-}
-
-.frodo-heading-box {
-    spacing: 6px;
-}
-
-.frodo-heading-icon {
-    icon-size: 12px;
-    color: #9aa0a6;
 }
 
 .frodo-claude-icon {
@@ -331,20 +306,6 @@
     font-weight: 700;
 }
 
-.frodo-chip {
-    font-size: 8pt;
-    font-weight: 600;
-    color: #ccc;
-    background-color: #2a2a2a;
-    border-radius: 999px;
-    padding: 1px 8px;
-}
-
-.frodo-chip-active {
-    color: #fff;
-    background-color: #d97757;
-}
-
 .frodo-tier-icon {
     icon-size: 14px;
     color: #d97757;
@@ -371,7 +332,7 @@
 
 .frodo-meter-note {
     font-size: 8.5pt;
-    color: #9aa0a6;
+    color: #a1a1aa;
 }
 
 .frodo-claude-error {
@@ -396,4 +357,180 @@
 
 .frodo-claude-button:hover {
     background-color: #262626;
+}
+
+.frodo-card {
+    background-color: #17171a;
+    border-radius: 18px;
+    padding: 14px 16px;
+    spacing: 10px;
+}
+
+.frodo-card-title {
+    font-size: 12px;
+    font-weight: 500;
+    color: #a1a1aa;
+}
+
+.frodo-empty-state {
+    padding: 14px 0;
+    font-size: 13px;
+    color: #a1a1aa;
+}
+
+.frodo-back-header {
+    spacing: 10px;
+}
+
+.frodo-back-title {
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.frodo-button {
+    border-radius: 999px;
+}
+
+.frodo-button:focus {
+    box-shadow: inset 0 0 0 2px st-transparentize(st-mix(-st-accent-color, #ffffff, 60%), 0.2);
+}
+
+.frodo-button-ghost {
+    background-color: transparent;
+    color: #e4e4e7;
+}
+
+.frodo-button-ghost:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.frodo-button-control {
+    background-color: #232327;
+    color: #e4e4e7;
+}
+
+.frodo-button-control:hover {
+    background-color: #26262b;
+}
+
+.frodo-button-primary {
+    background-color: -st-accent-color;
+    color: -st-accent-fg-color;
+}
+
+.frodo-button-primary:hover {
+    background-color: st-mix(-st-accent-color, #ffffff, 90%);
+}
+
+.frodo-button-danger {
+    background-color: #2a1414;
+    color: #fca5a5;
+}
+
+.frodo-button-danger:hover {
+    background-color: #351a1a;
+}
+
+.frodo-button-light {
+    background-color: #f4f4f5;
+    color: #0a0a0b;
+}
+
+.frodo-button-light:hover {
+    background-color: #e4e4e7;
+}
+
+.frodo-icon-button-32 {
+    width: 32px;
+    height: 32px;
+}
+
+.frodo-icon-button-36 {
+    width: 36px;
+    height: 36px;
+}
+
+.frodo-icon-button-44 {
+    width: 44px;
+    height: 44px;
+}
+
+.frodo-text-button {
+    height: 36px;
+    padding: 0 14px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.frodo-button-content {
+    spacing: 6px;
+}
+
+.frodo-button-icon {
+    icon-size: 16px;
+}
+
+.frodo-chip {
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.frodo-chip-neutral {
+    background-color: #232327;
+    color: #a1a1aa;
+}
+
+.frodo-chip-accent {
+    background-color: -st-accent-color;
+    color: -st-accent-fg-color;
+}
+
+.frodo-track {
+    height: 6px;
+    border-radius: 999px;
+    background-color: #2a2a2f;
+}
+
+.frodo-segment {
+    border-radius: 999px;
+}
+
+.frodo-marker {
+    width: 2px;
+    background-color: rgba(255, 255, 255, 0.85);
+}
+
+.frodo-level-ok {
+    color: #d97757;
+}
+
+.frodo-level-warn {
+    color: #f59e0b;
+}
+
+.frodo-level-crit {
+    color: #fca5a5;
+}
+
+.frodo-fill-claude,
+.frodo-segment.frodo-level-ok {
+    background-color: #d97757;
+}
+
+.frodo-segment.frodo-level-warn {
+    background-color: #f59e0b;
+}
+
+.frodo-segment.frodo-level-crit {
+    background-color: #fca5a5;
+}
+
+.frodo-fill-ram {
+    background-color: #7aa2f7;
+}
+
+.frodo-fill-battery {
+    background-color: #7bd88f;
 }

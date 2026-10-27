@@ -7,6 +7,7 @@ import type {FrodoSettings} from '../../services/settings.js';
 import type {SystemState} from '../../services/system-state.js';
 import {toggleOverview} from '../../shell/internals.js';
 import {Disposables} from '../../util/disposables.js';
+import {column} from '../components/layout.js';
 import {frodoIcon} from '../icons.js';
 import type {FrodoIconName} from '../icons.js';
 import type {Island} from '../island.js';
@@ -37,10 +38,6 @@ interface Tab {
 interface TabButton {
     readonly button: St.Button;
     readonly label: St.Label;
-}
-
-function column(styleClass: string): St.BoxLayout {
-    return new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL, style_class: styleClass, x_expand: true});
 }
 
 function tabButton(tab: Tab): TabButton {

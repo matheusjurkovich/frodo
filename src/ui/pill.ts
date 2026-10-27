@@ -16,8 +16,9 @@ import {quickSettings} from '../shell/internals.js';
 import {Disposables} from '../util/disposables.js';
 import {Emitter} from '../util/emitter.js';
 import {Timer} from '../util/timer.js';
+import {dimLabel, separator} from './components/layout.js';
+import {ProgressRing} from './components/progress-ring.js';
 import {frodoIcon} from './icons.js';
-import {COLORS, ProgressRing, dimLabel, levelColor, separator} from './widgets.js';
 
 const FLASH_MS = 3000;
 const FLASH_CHARS = 40;
@@ -244,7 +245,7 @@ export class Pill extends Emitter<{rebuilt: []}> {
     #claudeSegment(item: 'claude-session' | 'claude-weekly'): Segment {
         const box = new St.BoxLayout({style_class: 'frodo-claude', y_align: Clutter.ActorAlign.CENTER});
         box.add_child(new St.Icon({gicon: frodoIcon('claude'), style_class: 'frodo-claude-icon'}));
-        const ring = new ProgressRing(COLORS.claude);
+        const ring = new ProgressRing();
         const value = dimLabel('—');
         box.add_child(ring.actor);
         box.add_child(value);
@@ -260,7 +261,7 @@ export class Pill extends Emitter<{rebuilt: []}> {
                     return;
                 }
                 const shown = shownPercent(window.utilization, this.#settings.claudeShowRemaining);
-                ring.color = levelColor(effectiveLevel(window, Date.now()));
+                ring.level = effectiveLevel(window, Date.now());
                 ring.percent = shown;
                 value.text = `${Math.round(shown)}%`;
             },
