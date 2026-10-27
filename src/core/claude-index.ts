@@ -196,10 +196,14 @@ export class ClaudeIndex {
             session.branch = branch;
             session.lastAt = usage.timestamp;
         }
-        if (todos && usage.timestamp >= session.todosAt) {
-            session.todos = todos;
-            session.todosAt = usage.timestamp;
-        }
+        if (todos) this.setTodos(usage.sessionId, usage.timestamp, todos);
+    }
+
+    setTodos(sessionId: string, timestamp: number, todos: {done: number; total: number}): void {
+        const session = this.sessions.get(sessionId);
+        if (!session || timestamp < session.todosAt) return;
+        session.todos = {...todos};
+        session.todosAt = timestamp;
     }
 
     prune(nowMs: number): void {
@@ -271,8 +275,8 @@ export class ClaudeIndex {
     toJSON(): unknown {
         return {
             version: VERSION,
-            cells: [...this.cells.values()],
-            sessions: [...this.sessions].map(([id, session]) => ({id, ...session})),
+            cells: [...this.cells.values()].map(cell => ({...cell})),
+            sessions: [...this.sessions].map(([id, session]) => ({id, ...session, todos: session.todos && {...session.todos}})),
         };
     }
 

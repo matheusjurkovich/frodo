@@ -24,13 +24,17 @@ const lines = [
     line({id: 'm6', at: at(27, 9), model: '<synthetic>', session: 's1', input: 999}),
 ];
 
+function feed(index: ClaudeIndex, recent: RecentIds, text: string): void {
+    const entry = parseAssistantLine(text);
+    if (!entry) return;
+    if (!recent.seen(entry.usage.id)) index.add(entry);
+    else if (entry.todos) index.setTodos(entry.usage.sessionId, entry.usage.timestamp, entry.todos);
+}
+
 function build(): ClaudeIndex {
     const index = new ClaudeIndex();
     const recent = new RecentIds();
-    for (const text of lines) {
-        const entry = parseAssistantLine(text);
-        if (entry && !recent.seen(entry.usage.id)) index.add(entry);
-    }
+    for (const text of lines) feed(index, recent, text);
     index.prune(now.getTime());
     return index;
 }
@@ -86,11 +90,41 @@ describe('ClaudeIndex', () => {
         expect(index.session('sx')?.todos).toEqual({done: 1, total: 3});
     });
 
+    it('guarda as tarefas de uma linha repetida sem contar de novo', () => {
+        const index = new ClaudeIndex();
+        const recent = new RecentIds();
+        feed(index, recent, line({id: 'd', at: at(27, 9), session: 'sd', input: 10, output: 5}));
+        feed(index, recent, line({id: 'd', at: at(27, 9), session: 'sd', input: 10, output: 5, todos: ['completed', 'pending']}));
+        expect(index.session('sd')?.tokens).toBe(15);
+        expect(index.session('sd')?.todos).toEqual({done: 1, total: 2});
+        index.setTodos('sd', at(27, 8).getTime(), {done: 0, total: 9});
+        index.setTodos('desconhecida', at(27, 10).getTime(), {done: 1, total: 1});
+        expect(index.session('sd')?.todos).toEqual({done: 1, total: 2});
+        expect(index.session('desconhecida')).toBeNull();
+    });
+
     it('volta do JSON igual e ignora lixo', () => {
-        const copy = ClaudeIndex.fromJSON(JSON.parse(JSON.stringify(build().toJSON())));
-        expect(copy.summary('7d', now)).toEqual(build().summary('7d', now));
+        const index = build();
+        const entry = parseAssistantLine(line({id: 't', at: at(27, 9), session: 'sx', todos: ['completed', 'pending']}));
+        if (entry) index.add(entry);
+        const copy = ClaudeIndex.fromJSON(JSON.parse(JSON.stringify(index.toJSON())));
+        expect(copy.summary('7d', now)).toEqual(index.summary('7d', now));
+        expect(copy.session('sx')).toEqual(index.session('sx'));
+        expect(copy.session('sx')?.todos).toEqual({done: 1, total: 2});
         expect(ClaudeIndex.fromJSON('lixo').summary('today', now).total).toBe(0);
         expect(ClaudeIndex.fromJSON({version: 99}).summary('today', now).total).toBe(0);
+    });
+
+    it('serializa uma cópia que não muda com o índice', () => {
+        const index = build();
+        const snapshot = JSON.stringify(index.toJSON());
+        const live = index.toJSON();
+        const entry = parseAssistantLine(
+            line({id: 'n', at: at(27, 9), cwd: '/home/u/dynamic-island', session: 's1', input: 7, todos: ['pending']}),
+        );
+        if (entry) index.add(entry);
+        expect(JSON.stringify(live)).toBe(snapshot);
+        expect(JSON.stringify(index.toJSON())).not.toBe(snapshot);
     });
 });
 
