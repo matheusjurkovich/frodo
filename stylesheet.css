@@ -53,7 +53,7 @@
     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
     border-radius: 28px;
     padding: 10px;
-    min-width: 480px;
+    width: 900px;
     font-size: 10pt;
 }
 
@@ -111,18 +111,30 @@
     icon-size: 18px;
 }
 
-.frodo-panel-content {
-    spacing: 18px;
-}
-
 .frodo-header {
-    spacing: 10px;
+    height: 44px;
+    padding: 0 4px 0 12px;
+    spacing: 8px;
 }
 
-.frodo-big-clock {
-    font-size: 22pt;
-    font-weight: 700;
+.frodo-header-time {
+    min-width: 92px;
+    spacing: 2px;
+}
+
+.frodo-header-clock {
+    font-size: 15px;
+    font-weight: 500;
     font-feature-settings: 'tnum';
+}
+
+.frodo-header-date {
+    font-size: 12px;
+    color: #a1a1aa;
+}
+
+.frodo-pages {
+    padding: 8px 6px 6px;
 }
 
 .frodo-cols {
@@ -140,15 +152,6 @@
 
 .frodo-section {
     spacing: 10px;
-}
-
-.frodo-stat {
-    spacing: 12px;
-}
-
-.frodo-stat-label {
-    min-width: 96px;
-    color: #ccc;
 }
 
 .frodo-pill-content {
@@ -225,22 +228,24 @@
 }
 
 .frodo-tabbar {
-    spacing: 6px;
+    spacing: 2px;
 }
 
 .frodo-tab {
-    padding: 6px 16px;
+    height: 36px;
+    padding: 0 12px;
     border-radius: 999px;
+    font-size: 13px;
     color: #a1a1aa;
 }
 
 .frodo-tab:hover {
-    color: #fff;
+    color: #fafafa;
 }
 
 .frodo-tab:checked {
-    background-color: #222;
-    color: #fff;
+    background-color: #26262b;
+    color: #fafafa;
 }
 
 .frodo-tile-content,
@@ -404,6 +409,14 @@
     background-color: rgba(255, 255, 255, 0.08);
 }
 
+.frodo-button-ghost:checked {
+    background-color: #26262b;
+}
+
+.frodo-button-ghost.frodo-header-power {
+    color: #fca5a5;
+}
+
 .frodo-button-control {
     background-color: #232327;
     color: #e4e4e7;
@@ -534,12 +547,4 @@
 
 .frodo-segment.frodo-level-crit {
     background-color: #fca5a5;
-}
-
-.frodo-fill-ram {
-    background-color: #7aa2f7;
-}
-
-.frodo-fill-battery {
-    background-color: #7bd88f;
 }

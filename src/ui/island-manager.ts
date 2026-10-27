@@ -1,6 +1,8 @@
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import {targetMonitors} from '../core/monitors.js';
+import {tabToOpen, visibleTabs} from '../core/tabs.js';
+import type {TabId} from '../core/types.js';
 import type {InterceptedNotification} from '../services/notification-bridge.js';
 import type {ClaudeService} from '../services/claude-service.js';
 import type {NotificationBridge} from '../services/notification-bridge.js';
@@ -9,7 +11,6 @@ import type {SystemState} from '../services/system-state.js';
 import {Disposables} from '../util/disposables.js';
 import {Island} from './island.js';
 import {PanelContent} from './panel/panel-content.js';
-import type {TabId} from './panel/panel-content.js';
 
 export interface IslandManagerDependencies {
     readonly settings: FrodoSettings;
@@ -51,11 +52,7 @@ export class IslandManager {
     }
 
     show(tab: TabId): void {
-        const entry = this.#currentEntry();
-        if (!entry) return;
-        if (entry.island.isOpen) entry.island.close();
-        entry.content.showOnNextOpen(tab);
-        entry.island.open('key');
+        this.#currentEntry()?.island.openTab(tabToOpen(tab, visibleTabs(this.#dependencies.settings.hiddenTabs)));
     }
 
     #currentEntry(): Entry | undefined {
@@ -78,8 +75,11 @@ export class IslandManager {
         for (const monitorIndex of targetMonitors(settings.monitors, primary, Main.layoutManager.monitors.length)) {
             const island = new Island(settings, state, claude, monitorIndex);
             island.setPlacement(monitorIndex === primary && !settings.hideTopBar ? 'bar' : 'float');
-            const content = new PanelContent({island, state, claude, settings, bridge, openPreferences});
+            const content = new PanelContent({island, claude, settings, bridge, openPreferences});
             island.setContent(content.actor);
+            island.on('tabRequested', tab => {
+                content.showOnNextOpen(tab);
+            });
             island.on('opening', () => {
                 for (const other of this.#entries) if (other.island !== island) other.island.close();
             });

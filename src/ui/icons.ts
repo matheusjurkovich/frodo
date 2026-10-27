@@ -1,16 +1,16 @@
 import Gio from 'gi://Gio';
 
 export type FrodoIconName =
-    | 'controls'
-    | 'system'
+    | 'general'
+    | 'workspaces'
     | 'bell'
     | 'calendar'
     | 'gear'
     | 'back'
-    | 'overview'
+    | 'power'
+    | 'collapse'
     | 'close'
     | 'info'
-    | 'memory'
     | 'external'
     | 'user'
     | 'claude'

@@ -6,6 +6,7 @@ import {GrabHelper} from 'resource:///org/gnome/shell/ui/grabHelper.js';
 import type * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import {centerClamp} from '../core/geometry.js';
+import type {TabId} from '../core/types.js';
 import type {InterceptedNotification} from '../services/notification-bridge.js';
 import type {FrodoSettings} from '../services/settings.js';
 import type {ClaudeService} from '../services/claude-service.js';
@@ -19,6 +20,7 @@ import {Pill} from './pill.js';
 
 const OPEN_DELAY_MS = 150;
 const CLOSE_DELAY_MS = 300;
+const AUTO_CLOSE_MS = 5000;
 const ANIMATION_MS = 250;
 const CLAUDE_MAX_AGE_SECONDS = 60;
 const FLOAT_TOP = 6;
@@ -30,6 +32,7 @@ export interface IslandEvents {
     opening: [];
     opened: [];
     closed: [];
+    tabRequested: [TabId];
 }
 
 export class Island extends Emitter<IslandEvents> {
@@ -37,6 +40,7 @@ export class Island extends Emitter<IslandEvents> {
     readonly panel = new St.Bin({style_class: 'frodo-panel', reactive: true, track_hover: true, visible: false});
     readonly monitorIndex: number;
 
+    readonly #settings: FrodoSettings;
     readonly #state: SystemState;
     readonly #claude: ClaudeService;
     readonly #grab = new GrabHelper(this.panel, {actionMode: Shell.ActionMode.POPUP});
@@ -52,6 +56,7 @@ export class Island extends Emitter<IslandEvents> {
 
     constructor(settings: FrodoSettings, state: SystemState, claude: ClaudeService, monitorIndex: number) {
         super();
+        this.#settings = settings;
         this.#state = state;
         this.#claude = claude;
         this.monitorIndex = monitorIndex;
@@ -161,7 +166,6 @@ export class Island extends Emitter<IslandEvents> {
         this.#isOpen = true;
         this.#openedBy = reason;
         this.pill.actor.reactive = false;
-        this.#syncMemoryNeed();
         this.#claude.refreshIfStale(CLAUDE_MAX_AGE_SECONDS);
 
         this.emit('opening');
@@ -174,7 +178,14 @@ export class Island extends Emitter<IslandEvents> {
                     this.close();
                 },
             });
+        if (reason !== 'hover') this.#onPanelHover();
         this.emit('opened');
+    }
+
+    openTab(tab: TabId): void {
+        this.close();
+        this.emit('tabRequested', tab);
+        this.open('key');
     }
 
     close(): void {
@@ -197,7 +208,6 @@ export class Island extends Emitter<IslandEvents> {
             },
         });
         this.pill.actor.ease({opacity: 255, duration: ANIMATION_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
-        this.#syncMemoryNeed();
     }
 
     #monitor(): {x: number; y: number; width: number} | null {
@@ -302,12 +312,12 @@ export class Island extends Emitter<IslandEvents> {
     }
 
     #syncMemoryNeed(): void {
-        this.#state.setMemoryWanted(this.#isOpen || this.pill.wantsMemory);
+        this.#state.setMemoryWanted(this.pill.wantsMemory);
     }
 
     #onPillHover(): void {
         if (this.#isOpen) return;
-        if (this.pill.actor.hover)
+        if (this.pill.actor.hover && this.#settings.openOnHover)
             this.#openTimer.once(OPEN_DELAY_MS, () => {
                 this.open('hover');
             });
@@ -319,6 +329,10 @@ export class Island extends Emitter<IslandEvents> {
         if (this.panel.hover || this.#holds > 0) this.#closeTimer.stop();
         else if (this.#openedBy === 'hover')
             this.#closeTimer.once(CLOSE_DELAY_MS, () => {
+                this.close();
+            });
+        else if (this.#settings.autoClose)
+            this.#closeTimer.once(AUTO_CLOSE_MS, () => {
                 this.close();
             });
     }
