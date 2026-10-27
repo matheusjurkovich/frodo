@@ -483,6 +483,15 @@
 }
 
 .frodo-chip-accent {
+    background-color: st-transparentize(-st-accent-color, 0.85);
+    color: st-mix(-st-accent-color, #ffffff, 70%);
+}
+
+.frodo-chip-counter {
+    min-width: 8px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
     background-color: -st-accent-color;
     color: -st-accent-fg-color;
 }

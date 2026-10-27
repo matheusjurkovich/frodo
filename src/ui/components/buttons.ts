@@ -3,7 +3,7 @@ import type Gio from 'gi://Gio';
 import St from 'gi://St';
 
 export type ButtonVariant = 'ghost' | 'control' | 'primary' | 'danger' | 'light';
-export type ChipVariant = 'neutral' | 'accent';
+export type ChipVariant = 'neutral' | 'accent' | 'counter';
 type IconButtonSize = 32 | 36 | 44;
 
 const ICON_SIZES: Record<IconButtonSize, number> = {32: 16, 36: 18, 44: 20};
