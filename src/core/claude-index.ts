@@ -62,7 +62,7 @@ interface Latest {
 
 type Mutable<T> = {-readonly [K in keyof T]: T[K]};
 
-const VERSION = 2;
+const VERSION = 3;
 const KEPT_DAYS = 30;
 const PERIOD_DAYS: Record<Period, number> = {today: 1, '7d': 7, '30d': KEPT_DAYS};
 const FAMILIES: readonly ModelFamily[] = ['Opus', 'Sonnet', 'Haiku', 'Outro'];
@@ -161,8 +161,14 @@ function dayBars(slots: ReadonlyMap<number, number>, nowMs: number, period: '7d'
 export class ClaudeIndex {
     private readonly cells = new Map<string, Cell>();
     private readonly sessions = new Map<string, Session>();
+    private readonly ids = new Map<string, number>();
+
+    has(id: string): boolean {
+        return this.ids.has(id);
+    }
 
     add({usage, branch, todos, sidechain}: TranscriptEntry): void {
+        this.ids.set(usage.id, usage.timestamp);
         const cell: Cell = {
             hour: hourStart(usage.timestamp),
             model: usage.model,
@@ -215,6 +221,7 @@ export class ClaudeIndex {
         const cutoff = dayStart(nowMs, KEPT_DAYS - 1);
         for (const [key, cell] of this.cells) if (cell.hour < cutoff) this.cells.delete(key);
         for (const [id, session] of this.sessions) if (session.lastAt < cutoff) this.sessions.delete(id);
+        for (const [id, at] of this.ids) if (at < cutoff) this.ids.delete(id);
     }
 
     summary(period: Period, now: Date): ConsumptionSummary {
@@ -282,17 +289,28 @@ export class ClaudeIndex {
             version: VERSION,
             cells: [...this.cells.values()].map(cell => ({...cell})),
             sessions: [...this.sessions].map(([id, session]) => ({id, ...session, todos: session.todos && {...session.todos}})),
+            ids: Object.fromEntries(this.ids),
         };
     }
 
     static fromJSON(data: unknown): ClaudeIndex {
         const index = new ClaudeIndex();
-        if (!isRecord(data) || data.version !== VERSION || !Array.isArray(data.cells) || !Array.isArray(data.sessions)) return index;
+        if (
+            !isRecord(data) ||
+            data.version !== VERSION ||
+            !Array.isArray(data.cells) ||
+            !Array.isArray(data.sessions) ||
+            !isRecord(data.ids)
+        )
+            return index;
         const cells = data.cells as unknown[];
         const sessions = data.sessions as unknown[];
-        if (!cells.every(isCell) || !sessions.every(isSession)) return index;
+        const ids = Object.entries(data.ids);
+        if (!cells.every(isCell) || !sessions.every(isSession) || !ids.every((entry): entry is [string, number] => isCount(entry[1])))
+            return index;
         for (const cell of cells) index.cells.set(cellKey(cell), {...cell});
         for (const {id, ...session} of sessions) index.sessions.set(id, session);
+        for (const [id, at] of ids) index.ids.set(id, at);
         return index;
     }
 }

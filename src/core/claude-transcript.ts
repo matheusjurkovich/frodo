@@ -24,7 +24,6 @@ type Json = Record<string, unknown>;
 const SYNTHETIC_MODEL = '<synthetic>';
 const ASSISTANT_MARK = '"type":"assistant"';
 const NEWLINE = 0x0a;
-const RECENT_IDS = 16;
 const SMALL_WINDOW = 200_000;
 const LARGE_WINDOW = 1_000_000;
 
@@ -90,28 +89,6 @@ export function parseAssistantLine(line: string): TranscriptEntry | null {
 export function completeLines(bytes: Uint8Array): {text: string; consumed: number} {
     const consumed = bytes.lastIndexOf(NEWLINE) + 1;
     return {text: new TextDecoder().decode(bytes.subarray(0, consumed)), consumed};
-}
-
-export class RecentIds {
-    private ids: string[] = [];
-
-    constructor(private readonly size = RECENT_IDS) {}
-
-    seen(id: string): boolean {
-        if (this.ids.includes(id)) return true;
-        this.ids = [...this.ids, id].slice(-this.size);
-        return false;
-    }
-
-    toJSON(): string[] {
-        return [...this.ids];
-    }
-
-    static from(ids: unknown, size = RECENT_IDS): RecentIds {
-        const recent = new RecentIds(size);
-        if (Array.isArray(ids)) recent.ids = (ids as unknown[]).filter((id): id is string => typeof id === 'string').slice(-size);
-        return recent;
-    }
 }
 
 export function modelFamily(model: string): ModelFamily {

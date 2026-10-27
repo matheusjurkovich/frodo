@@ -1,5 +1,5 @@
 import {ClaudeIndex} from '../src/core/claude-index.js';
-import {RecentIds, completeLines, contextWindow, modelDisplayName, modelFamily, parseAssistantLine} from '../src/core/claude-transcript.js';
+import {completeLines, contextWindow, modelDisplayName, modelFamily, parseAssistantLine} from '../src/core/claude-transcript.js';
 import {line} from './fixtures.js';
 
 const now = new Date(2026, 9, 27, 10, 30);
@@ -24,17 +24,16 @@ const lines = [
     line({id: 'm6', at: at(27, 9), model: '<synthetic>', session: 's1', input: 999}),
 ];
 
-function feed(index: ClaudeIndex, recent: RecentIds, text: string): void {
+function feed(index: ClaudeIndex, text: string): void {
     const entry = parseAssistantLine(text);
     if (!entry) return;
-    if (!recent.seen(entry.usage.id)) index.add(entry);
+    if (!index.has(entry.usage.id)) index.add(entry);
     else if (entry.todos && !entry.sidechain) index.setTodos(entry.usage.sessionId, entry.usage.timestamp, entry.todos);
 }
 
 function build(): ClaudeIndex {
     const index = new ClaudeIndex();
-    const recent = new RecentIds();
-    for (const text of lines) feed(index, recent, text);
+    for (const text of lines) feed(index, text);
     index.prune(now.getTime());
     return index;
 }
@@ -92,9 +91,8 @@ describe('ClaudeIndex', () => {
 
     it('guarda as tarefas de uma linha repetida sem contar de novo', () => {
         const index = new ClaudeIndex();
-        const recent = new RecentIds();
-        feed(index, recent, line({id: 'd', at: at(27, 9), session: 'sd', input: 10, output: 5}));
-        feed(index, recent, line({id: 'd', at: at(27, 9), session: 'sd', input: 10, output: 5, todos: ['completed', 'pending']}));
+        feed(index, line({id: 'd', at: at(27, 9), session: 'sd', input: 10, output: 5}));
+        feed(index, line({id: 'd', at: at(27, 9), session: 'sd', input: 10, output: 5, todos: ['completed', 'pending']}));
         expect(index.session('sd')?.tokens).toBe(15);
         expect(index.session('sd')?.todos).toEqual({done: 1, total: 2});
         index.setTodos('sd', at(27, 8).getTime(), {done: 0, total: 9});
@@ -105,11 +103,9 @@ describe('ClaudeIndex', () => {
 
     it('conta o subagente na sessão sem trocar o modelo nem o contexto dela', () => {
         const index = new ClaudeIndex();
-        const recent = new RecentIds();
-        feed(index, recent, line({id: 'p1', at: at(27, 9), session: 'sc', input: 100, output: 10, cacheRead: 1000, branch: 'main'}));
+        feed(index, line({id: 'p1', at: at(27, 9), session: 'sc', input: 100, output: 10, cacheRead: 1000, branch: 'main'}));
         feed(
             index,
-            recent,
             line({
                 id: 'c1',
                 at: at(27, 10),
@@ -135,7 +131,6 @@ describe('ClaudeIndex', () => {
         expect(index.summary('today', now).input).toBe(150);
         feed(
             index,
-            recent,
             line({id: 'p2', at: new Date(2026, 9, 27, 9, 30), model: 'claude-sonnet-5-5', session: 'sc', input: 1, cacheRead: 2000}),
         );
         expect(index.session('sc')?.model).toBe('claude-sonnet-5-5');
@@ -145,7 +140,7 @@ describe('ClaudeIndex', () => {
 
     it('deixa vazios o modelo e o contexto da sessão só com subagente', () => {
         const index = new ClaudeIndex();
-        feed(index, new RecentIds(), line({id: 'c', at: at(27, 9), session: 'so', input: 5, output: 1, sidechain: true}));
+        feed(index, line({id: 'c', at: at(27, 9), session: 'so', input: 5, output: 1, sidechain: true}));
         const copy = ClaudeIndex.fromJSON(JSON.parse(JSON.stringify(index.toJSON())));
         expect(copy.session('so')).toEqual({
             tokens: 6,
@@ -158,6 +153,22 @@ describe('ClaudeIndex', () => {
         });
     });
 
+    it('conta uma vez o mesmo id em sessões diferentes e esquece o id junto com a célula', () => {
+        const index = new ClaudeIndex();
+        feed(index, line({id: 'h', at: at(27, 9), session: 'original', input: 40}));
+        feed(index, line({id: 'h', at: at(27, 9), session: 'retomada', input: 40}));
+        expect(index.summary('today', now).input).toBe(40);
+        expect(index.session('retomada')).toBeNull();
+        const old = line({id: 'velho', at: at(20, 12, 8), session: 'sv', input: 7});
+        feed(index, old);
+        index.prune(now.getTime());
+        expect(index.has('velho')).toBeFalse();
+        expect(index.has('h')).toBeTrue();
+        feed(index, old);
+        index.prune(now.getTime());
+        expect(index.summary('30d', now).input).toBe(40);
+    });
+
     it('volta do JSON igual e ignora lixo', () => {
         const index = build();
         const entry = parseAssistantLine(line({id: 't', at: at(27, 9), session: 'sx', todos: ['completed', 'pending']}));
@@ -166,6 +177,7 @@ describe('ClaudeIndex', () => {
         expect(copy.summary('7d', now)).toEqual(index.summary('7d', now));
         expect(copy.session('sx')).toEqual(index.session('sx'));
         expect(copy.session('sx')?.todos).toEqual({done: 1, total: 2});
+        expect(['m1', 'm4', 'm5'].map(id => copy.has(id))).toEqual([true, true, false]);
         expect(ClaudeIndex.fromJSON('lixo').summary('today', now).total).toBe(0);
         expect(ClaudeIndex.fromJSON({version: 99}).summary('today', now).total).toBe(0);
     });
@@ -187,11 +199,6 @@ describe('transcrição', () => {
     it('separa só linhas completas em bytes', () => {
         const result = completeLines(new TextEncoder().encode('a\nbé\npar'));
         expect(result).toEqual({text: 'a\nbé\n', consumed: 6});
-    });
-
-    it('lembra os ids recentes', () => {
-        const recent = new RecentIds(2);
-        expect(['a', 'a', 'b', 'c', 'a'].map(id => recent.seen(id))).toEqual([false, true, false, false, false]);
     });
 
     it('ignora linhas que não são de uso', () => {

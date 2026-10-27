@@ -93,7 +93,7 @@ describe('ClaudeTranscripts', () => {
         expect(fresh.index.summary('today', new Date()).input).toBe(10);
     });
 
-    it('lembra os ids recentes no cache e guarda as tarefas da linha repetida', async () => {
+    it('lembra os ids no cache e guarda as tarefas da linha repetida', async () => {
         write([line({id: 'a', at: today, input: 10})]);
         await service.scan();
         const again = new ClaudeTranscripts(settings, cachePath);
@@ -111,6 +111,17 @@ describe('ClaudeTranscripts', () => {
         settings.claudeProfiles = [{id: 'p', label: 'P', configDir: tmp}];
         await service.scan();
         expect(service.index.summary('today', new Date()).input).toBe(10);
+    });
+
+    it('conta uma vez o id copiado para outra sessão, na mesma passada e entre passadas', async () => {
+        write([line({id: 'm', at: today, session: 's1', input: 10})]);
+        GLib.file_set_contents(`${tmp}/projects/p/b.jsonl`, `${line({id: 'm', at: today, session: 's2', input: 10})}\n`);
+        await service.scan();
+        expect(service.index.summary('today', new Date()).input).toBe(10);
+        GLib.file_set_contents(`${tmp}/projects/p/c.jsonl`, `${line({id: 'm', at: today, session: 's3', input: 10})}\n`);
+        const again = new ClaudeTranscripts(settings, cachePath);
+        await again.scan();
+        expect(again.index.summary('today', new Date()).input).toBe(10);
     });
 
     it('conta as transcrições dos subagentes', async () => {

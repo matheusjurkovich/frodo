@@ -3,7 +3,7 @@ import Gio from 'gi://Gio';
 import System from 'system';
 
 import {ClaudeIndex} from '../core/claude-index.js';
-import {RecentIds, completeLines, parseAssistantLine} from '../core/claude-transcript.js';
+import {completeLines, parseAssistantLine} from '../core/claude-transcript.js';
 import {Emitter} from '../util/emitter.js';
 import {Timer} from '../util/timer.js';
 import {readTextFile} from './memory.js';
@@ -15,7 +15,7 @@ Gio._promisify(Gio.File.prototype, 'read_async', 'read_finish');
 Gio._promisify(Gio.InputStream.prototype, 'read_bytes_async', 'read_bytes_finish');
 Gio._promisify(Gio.File.prototype, 'replace_contents_bytes_async', 'replace_contents_finish');
 
-const VERSION = 2;
+const VERSION = 3;
 const CHUNK_BYTES = 1024 * 1024;
 const KEPT_MS = 30 * 24 * 60 * 60 * 1000;
 const SCAN_SECONDS = 30;
@@ -23,18 +23,18 @@ const BATCH = 256;
 const GC_EVERY_BYTES = 4 * 1024 * 1024;
 const ATTRIBUTES = 'standard::name,standard::type,standard::size,time::modified';
 
-interface FileState {
-    offset: number;
-    recent: RecentIds;
-}
-
 interface Cache {
     index: ClaudeIndex;
-    files: Map<string, FileState>;
+    offsets: Map<string, number>;
+}
+
+interface Found {
+    size: number;
+    modified: number;
 }
 
 interface Listing {
-    sizes: Map<string, number>;
+    found: Map<string, Found>;
     roots: string[];
 }
 
@@ -43,7 +43,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function emptyCache(): Cache {
-    return {index: new ClaudeIndex(), files: new Map()};
+    return {index: new ClaudeIndex(), offsets: new Map()};
 }
 
 function parseCache(text: string | null): Cache {
@@ -56,13 +56,12 @@ function parseCache(text: string | null): Cache {
     if (!isRecord(data) || data.version !== VERSION || !isRecord(data.files)) return emptyCache();
     const index = ClaudeIndex.fromJSON(data.index);
     if (JSON.stringify(index) !== JSON.stringify(data.index)) return emptyCache();
-    const files = new Map<string, FileState>();
-    for (const [path, entry] of Object.entries(data.files)) {
-        if (!isRecord(entry) || typeof entry.offset !== 'number' || !Number.isSafeInteger(entry.offset) || entry.offset < 0)
-            return emptyCache();
-        files.set(path, {offset: entry.offset, recent: RecentIds.from(entry.recent)});
+    const offsets = new Map<string, number>();
+    for (const [path, offset] of Object.entries(data.files)) {
+        if (typeof offset !== 'number' || !Number.isSafeInteger(offset) || offset < 0) return emptyCache();
+        offsets.set(path, offset);
     }
-    return {index, files};
+    return {index, offsets};
 }
 
 function concat(head: Uint8Array, tail: Uint8Array): Uint8Array {
@@ -73,9 +72,12 @@ function concat(head: Uint8Array, tail: Uint8Array): Uint8Array {
     return bytes;
 }
 
+function modifiedMs(info: Gio.FileInfo): number {
+    return (info.get_modification_date_time()?.to_unix() ?? 0) * 1000;
+}
+
 function isTranscript(info: Gio.FileInfo, since: number): boolean {
-    const modified = info.get_modification_date_time()?.to_unix() ?? 0;
-    return info.get_file_type() === Gio.FileType.REGULAR && info.get_name().endsWith('.jsonl') && modified * 1000 >= since;
+    return info.get_file_type() === Gio.FileType.REGULAR && info.get_name().endsWith('.jsonl') && modifiedMs(info) >= since;
 }
 
 function subagentsDir(session: string): string {
@@ -111,7 +113,7 @@ export class ClaudeTranscripts extends Emitter<{changed: []}> {
     readonly #timer = new Timer();
     readonly #cancellable = new Gio.Cancellable();
     #index = new ClaudeIndex();
-    #files: Map<string, FileState> | null = null;
+    #offsets: Map<string, number> | null = null;
     #running: Promise<void> | null = null;
     #dirty = false;
     #destroyed = false;
@@ -155,20 +157,18 @@ export class ClaudeTranscripts extends Emitter<{changed: []}> {
     }
 
     async #run(): Promise<void> {
-        if (!this.#files) ({index: this.#index, files: this.#files} = parseCache(await readTextFile(this.#cachePath)));
-        const files = this.#files;
+        if (!this.#offsets) ({index: this.#index, offsets: this.#offsets} = parseCache(await readTextFile(this.#cachePath)));
+        const offsets = this.#offsets;
         const index = this.#index;
-        const {sizes, roots} = await this.#list();
-        for (const [path, size] of sizes) {
+        const {found, roots} = await this.#list();
+        for (const [path, {size}] of [...found].sort((a, b) => a[1].modified - b[1].modified)) {
             if (this.#destroyed) return;
-            const state = files.get(path) ?? {offset: 0, recent: new RecentIds()};
-            files.set(path, state);
-            await this.#read(path, size, state, index).catch(() => undefined);
+            await this.#read(path, size, offsets, index).catch(() => undefined);
         }
         if (this.#destroyed) return;
-        for (const path of files.keys()) {
-            if (sizes.has(path) || !roots.some(root => path.startsWith(root))) continue;
-            files.delete(path);
+        for (const path of offsets.keys()) {
+            if (found.has(path) || !roots.some(root => path.startsWith(root))) continue;
+            offsets.delete(path);
             this.#dirty = true;
         }
         index.prune(Date.now());
@@ -177,7 +177,7 @@ export class ClaudeTranscripts extends Emitter<{changed: []}> {
 
     async #list(): Promise<Listing> {
         const since = Date.now() - KEPT_MS;
-        const sizes = new Map<string, number>();
+        const found = new Map<string, Found>();
         const roots: string[] = [];
         for (const {configDir} of this.#settings.claudeProfiles) {
             const root = GLib.build_filenamev([configDir, 'projects']);
@@ -186,35 +186,37 @@ export class ClaudeTranscripts extends Emitter<{changed: []}> {
             for (const project of projects ?? []) {
                 if (project.get_file_type() !== Gio.FileType.DIRECTORY) continue;
                 const dir = GLib.build_filenamev([root, project.get_name()]);
-                complete = (await this.#collect(dir, since, sizes, subagentsDir)) && complete;
+                complete = (await this.#collect(dir, since, found, subagentsDir)) && complete;
             }
             if (complete) roots.push(`${root}/`);
         }
-        return {sizes, roots};
+        return {found, roots};
     }
 
-    async #collect(dir: string, since: number, sizes: Map<string, number>, subdir: (path: string) => string): Promise<boolean> {
+    async #collect(dir: string, since: number, found: Map<string, Found>, subdir: (path: string) => string): Promise<boolean> {
         const infos = await children(dir, this.#cancellable);
         if (!infos) return false;
         let complete = true;
         for (const info of infos) {
             const path = GLib.build_filenamev([dir, info.get_name()]);
             if (info.get_file_type() === Gio.FileType.DIRECTORY)
-                complete = (await this.#collect(subdir(path), since, sizes, nested => nested)) && complete;
-            else if (isTranscript(info, since)) sizes.set(path, info.get_size());
+                complete = (await this.#collect(subdir(path), since, found, nested => nested)) && complete;
+            else if (isTranscript(info, since)) found.set(path, {size: info.get_size(), modified: modifiedMs(info)});
         }
         return complete;
     }
 
-    async #read(path: string, size: number, state: FileState, index: ClaudeIndex): Promise<void> {
-        if (size < state.offset) {
-            state.offset = size;
+    async #read(path: string, size: number, offsets: Map<string, number>, index: ClaudeIndex): Promise<void> {
+        let offset = offsets.get(path) ?? 0;
+        if (size < offset) {
+            offset = size;
+            offsets.set(path, offset);
             this.#dirty = true;
         }
-        if (size === state.offset) return;
+        if (size === offset) return;
         const stream = await Gio.File.new_for_path(path).read_async(GLib.PRIORITY_LOW, this.#cancellable);
         try {
-            stream.seek(state.offset, GLib.SeekType.SET, this.#cancellable);
+            stream.seek(offset, GLib.SeekType.SET, this.#cancellable);
             let rest: Uint8Array = new Uint8Array(0);
             for (;;) {
                 const chunk = (await stream.read_bytes_async(CHUNK_BYTES, GLib.PRIORITY_LOW, this.#cancellable)).toArray();
@@ -223,11 +225,12 @@ export class ClaudeTranscripts extends Emitter<{changed: []}> {
                 const {text, consumed} = completeLines(bytes);
                 for (const entry of text.split('\n').map(parseAssistantLine)) {
                     if (!entry) continue;
-                    if (!state.recent.seen(entry.usage.id)) index.add(entry);
+                    if (!index.has(entry.usage.id)) index.add(entry);
                     else if (entry.todos && !entry.sidechain) index.setTodos(entry.usage.sessionId, entry.usage.timestamp, entry.todos);
                 }
                 if (consumed > 0) this.#dirty = true;
-                state.offset += consumed;
+                offset += consumed;
+                offsets.set(path, offset);
                 rest = bytes.subarray(consumed);
                 this.#sweep(chunk.length);
             }
@@ -244,7 +247,7 @@ export class ClaudeTranscripts extends Emitter<{changed: []}> {
     }
 
     async #save(): Promise<void> {
-        const text = JSON.stringify({version: VERSION, index: this.#index, files: Object.fromEntries(this.#files ?? [])});
+        const text = JSON.stringify({version: VERSION, index: this.#index, files: Object.fromEntries(this.#offsets ?? [])});
         this.#dirty = false;
         try {
             GLib.mkdir_with_parents(GLib.path_get_dirname(this.#cachePath), 0o700);
