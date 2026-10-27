@@ -139,7 +139,7 @@
 }
 
 .frodo-cols {
-    spacing: 24px;
+    spacing: 10px;
 }
 
 .frodo-controls {
@@ -211,13 +211,6 @@
 .frodo-tray .panel-button {
     -natural-hpadding: 8px;
     -minimum-hpadding: 4px;
-}
-
-.frodo-quick-settings {
-    padding: 0;
-    border-radius: 0;
-    background-color: transparent;
-    min-width: 420px;
 }
 
 .frodo-system-icons {
@@ -365,9 +358,13 @@
     background-color: #262626;
 }
 
-.frodo-card {
+.frodo-card,
+.frodo-general .quick-toggle-menu {
     background-color: #17171a;
     border-radius: 18px;
+}
+
+.frodo-card {
     padding: 14px 16px;
     spacing: 10px;
 }
@@ -471,12 +468,15 @@
     spacing: 2px;
 }
 
-.frodo-integration-title {
+.frodo-integration-title,
+.frodo-general .quick-toggle-title,
+.frodo-general .frodo-sound-title {
     font-size: 14px;
     font-weight: 500;
 }
 
-.frodo-integration-subtitle {
+.frodo-integration-subtitle,
+.frodo-general .frodo-sound-sink {
     font-size: 12px;
     color: #a1a1aa;
 }
@@ -657,4 +657,69 @@
 
 .frodo-segment.frodo-level-crit {
     background-color: #fca5a5;
+}
+
+.frodo-general .quick-toggle,
+.frodo-general .quick-toggle-has-menu {
+    min-width: auto;
+    max-width: auto;
+    min-height: 64px;
+    border-radius: 18px;
+    background-color: #232327;
+    color: #f4f4f5;
+}
+
+.frodo-general .quick-toggle:checked,
+.frodo-general .quick-toggle-has-menu:checked {
+    background-color: -st-accent-color;
+    color: -st-accent-fg-color;
+}
+
+.frodo-general .quick-toggle-has-menu .quick-toggle {
+    border-radius: 18px 0 0 18px;
+}
+
+.frodo-general .quick-toggle-subtitle {
+    font-size: 12px;
+}
+
+.frodo-general .quick-toggle-separator {
+    width: 0;
+}
+
+.frodo-general .quick-toggle-has-menu .quick-toggle-menu-button {
+    width: 40px;
+    border-radius: 0 18px 18px 0;
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #f4f4f5;
+}
+
+.frodo-general .quick-toggle-has-menu .quick-toggle-menu-button:checked {
+    background-color: rgba(0, 0, 0, 0.2);
+    color: -st-accent-fg-color;
+}
+
+.frodo-general .quick-slider {
+    background-color: transparent;
+}
+
+.frodo-general .quick-toggle-menu {
+    margin: 0;
+}
+
+.frodo-general .frodo-sound {
+    spacing: 14px;
+}
+
+.frodo-general .frodo-sound-group {
+    spacing: 6px;
+}
+
+.frodo-general .frodo-sound-header {
+    spacing: 8px;
+}
+
+.frodo-general .frodo-sound-value {
+    font-size: 13px;
+    color: #a1a1aa;
 }

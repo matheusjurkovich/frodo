@@ -75,13 +75,13 @@ export class IslandManager {
         for (const monitorIndex of targetMonitors(settings.monitors, primary, Main.layoutManager.monitors.length)) {
             const island = new Island(settings, state, claude, monitorIndex);
             island.setPlacement(monitorIndex === primary && !settings.hideTopBar ? 'bar' : 'float');
+            island.on('opening', () => {
+                for (const other of this.#entries) if (other.island !== island) other.island.close();
+            });
             const content = new PanelContent({island, claude, settings, bridge, openPreferences});
             island.setContent(content.actor);
             island.on('tabRequested', tab => {
                 content.showOnNextOpen(tab);
-            });
-            island.on('opening', () => {
-                for (const other of this.#entries) if (other.island !== island) other.island.close();
             });
             this.#entries.push({island, content});
         }

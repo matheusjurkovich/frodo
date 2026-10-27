@@ -6,6 +6,7 @@ import * as Util from 'resource:///org/gnome/shell/misc/util.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import type * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
 import type * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
+import type {QuickSlider, QuickToggleMenu} from 'resource:///org/gnome/shell/ui/quickSettings.js';
 
 import type {Disposer} from '../util/disposables.js';
 
@@ -31,19 +32,39 @@ export interface QuickSettingsMenuInternals {
     readonly actor: St.Widget;
     readonly _grid: St.Widget;
     readonly _overlay: Clutter.Actor;
-    readonly _activeMenu?: {close(animate: boolean): void} | null;
+    readonly _activeMenu?: QuickToggleMenu | null;
 }
 
-interface InputSliderInternals {
+interface InputSliderInternals extends QuickSlider {
     _showInput: boolean;
     _sync(): void;
     _maybeShowInput(): void;
 }
 
+interface QuickSettingsIndicator<Item extends Clutter.Actor = Clutter.Actor> {
+    readonly quickSettingsItems: readonly Item[];
+}
+
 export interface QuickSettingsInternals {
     readonly menu: QuickSettingsMenuInternals;
     readonly _indicators: St.BoxLayout;
-    readonly _volumeInput?: {readonly quickSettingsItems: readonly unknown[]} | null;
+    readonly _network?: {readonly _wirelessToggle: Clutter.Actor} | null;
+    readonly _bluetooth?: QuickSettingsIndicator | null;
+    readonly _rfkill?: QuickSettingsIndicator;
+    readonly _powerProfiles?: QuickSettingsIndicator;
+    readonly _doNotDisturb?: QuickSettingsIndicator;
+    readonly _nightLight?: QuickSettingsIndicator;
+    readonly _volumeOutput?: QuickSettingsIndicator<QuickSlider>;
+    readonly _volumeInput?: QuickSettingsIndicator<QuickSlider>;
+    readonly _brightness?: QuickSettingsIndicator<QuickSlider>;
+}
+
+export interface QuickSettingsParts {
+    readonly menu: QuickSettingsMenuInternals;
+    readonly tiles: readonly Clutter.Actor[];
+    readonly output: QuickSlider | null;
+    readonly input: QuickSlider | null;
+    readonly brightness: QuickSlider | null;
 }
 
 interface DateSetter {
@@ -94,6 +115,32 @@ export function dateMenuContainer(): Clutter.Actor | null {
 
 export function quickSettings(): QuickSettingsInternals | null {
     return (Main.panel.statusArea.quickSettings as unknown as QuickSettingsInternals | undefined) ?? null;
+}
+
+export function quickSettingsParts(): QuickSettingsParts | null {
+    const quick = quickSettings();
+    if (!quick) return null;
+    const first = <Item extends Clutter.Actor>(indicator?: QuickSettingsIndicator<Item> | null): Item | null =>
+        indicator?.quickSettingsItems[0] ?? null;
+    const tiles = [
+        quick._network?._wirelessToggle ?? null,
+        first(quick._bluetooth),
+        first(quick._rfkill),
+        first(quick._powerProfiles),
+        first(quick._doNotDisturb),
+        first(quick._nightLight),
+    ].filter(tile => tile !== null);
+    return {
+        menu: quick.menu,
+        tiles,
+        output: first(quick._volumeOutput),
+        input: first(quick._volumeInput),
+        brightness: first(quick._brightness),
+    };
+}
+
+export function quickSettingsItemMenu(item: Clutter.Actor): QuickToggleMenu | null {
+    return (item as {readonly menu?: QuickToggleMenu | null}).menu ?? null;
 }
 
 export function interceptCloseQuickSettings(onClose: () => void): Disposer {

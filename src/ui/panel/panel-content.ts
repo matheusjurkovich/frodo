@@ -12,9 +12,8 @@ import {column} from '../components/layout.js';
 import type {Component} from '../components/lifecycle.js';
 import type {Island} from '../island.js';
 import {NativeDateMenu} from '../native-date-menu.js';
-import {NativeQuickSettings} from '../native-quick-settings.js';
-import {StatusRow} from '../status-row.js';
 import {ClaudeTab} from './claude-tab.js';
+import {GeneralPage} from './general/general-page.js';
 import {Header} from './header.js';
 import {PowerMenu} from './power-menu.js';
 import {SettingsPage} from './settings/settings-page.js';
@@ -29,22 +28,6 @@ export interface PanelDependencies {
     readonly settings: FrodoSettings;
     readonly bridge: NotificationBridge;
     readonly openPreferences: () => void;
-}
-
-function general(island: Island): Component {
-    const quickSettings = new NativeQuickSettings(island);
-    const status = new StatusRow(island);
-    const actor = column('frodo-section');
-    actor.add_child(quickSettings.actor);
-    actor.add_child(status.actor);
-    return {
-        actor,
-        destroy: () => {
-            status.destroy();
-            quickSettings.destroy();
-            actor.destroy();
-        },
-    };
 }
 
 function borrowed(actor: Clutter.Actor): Component {
@@ -70,7 +53,7 @@ export class PanelContent {
         this.#dateMenu = new NativeDateMenu(island);
 
         const specs: readonly TabSpec[] = [
-            {id: 'general', icon: 'general', label: TAB_LABELS.general, create: () => general(island)},
+            {id: 'general', icon: 'general', label: TAB_LABELS.general, create: () => new GeneralPage({island, settings, bridge})},
             {id: 'calendar', icon: 'calendar', label: TAB_LABELS.calendar, create: () => borrowed(this.#dateMenu.calendar)},
             {
                 id: 'claude',
