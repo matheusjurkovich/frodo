@@ -1,11 +1,22 @@
-import {batteryLevel, ellipsize, formatDate, formatReset} from '../src/core/format.js';
+import {
+    batteryLevel,
+    ellipsize,
+    formatAgo,
+    formatDate,
+    formatReset,
+    formatSpan,
+    formatTimer,
+    formatTokens,
+    formatUntil,
+} from '../src/core/format.js';
 import {centerClamp, segmentWidths} from '../src/core/geometry.js';
 import {formatGb, parseMeminfo} from '../src/core/memory.js';
 import {latest, shouldIntercept} from '../src/core/notifications.js';
-import {isValidShortcut} from '../src/core/shortcut.js';
+import {isValidShortcut, shortcutLabel} from '../src/core/shortcut.js';
+import {tabToOpen, visibleTabs} from '../src/core/tabs.js';
 import {itemsForPreferences, moveItem} from '../src/core/items.js';
 import {targetMonitors} from '../src/core/monitors.js';
-import {CLOSED_MODES, isOneOf} from '../src/core/types.js';
+import {CLOSED_MODES, TAB_IDS, isOneOf} from '../src/core/types.js';
 
 describe('memory', () => {
     it('calcula usado a partir de MemAvailable', () => {
@@ -41,7 +52,7 @@ describe('format', () => {
     });
 
     it('formata data curta', () => {
-        expect(formatDate(new Date(2026, 9, 24))).toBe('sáb, 24 out');
+        expect(formatDate(new Date(2026, 9, 24))).toBe('Sáb, 24 out');
     });
 
     it('escolhe o nível de bateria para o ícone', () => {
@@ -145,5 +156,74 @@ describe('monitores', () => {
     it('usa todos com o principal primeiro', () => {
         expect(targetMonitors('both', 1, 3)).toEqual([1, 0, 2]);
         expect(targetMonitors('both', 0, 0)).toEqual([]);
+    });
+});
+
+describe('formatos do redesign', () => {
+    const now = Date.UTC(2026, 9, 27, 12);
+
+    it('data do cabeçalho', () => {
+        expect(formatDate(new Date(2026, 9, 27))).toBe('Ter, 27 out');
+    });
+
+    it('tokens em pt-BR compacto', () => {
+        expect([940, 612_000, 148_400, 999_600, 4_100_000, 27_000_000, 1_240_000_000].map(formatTokens)).toEqual([
+            '940',
+            '612 mil',
+            '148 mil',
+            '1 mi',
+            '4,1 mi',
+            '27 mi',
+            '1,2 bi',
+        ]);
+    });
+
+    it('cronômetro de faixa e gravação', () => {
+        expect([0, 84, 232, 3725].map(formatTimer)).toEqual(['0:00', '1:24', '3:52', '1:02:05']);
+    });
+
+    it('há quanto tempo', () => {
+        expect([now - 30e3, now - 9 * 60e3, now - 2 * 3600e3, now - 3 * 86400e3].map(at => formatAgo(at, now))).toEqual([
+            'agora',
+            '9 min',
+            '2 h',
+            '3 d',
+        ]);
+    });
+
+    it('quanto falta', () => {
+        expect([now + 5 * 60e3, now + 4 * 60e3 + 10e3, now, now - 60e3].map(at => formatUntil(at, now))).toEqual([
+            'Em 5 min',
+            'Em 5 min',
+            'Agora',
+            'Agora',
+        ]);
+    });
+
+    it('duração de sessão', () => {
+        expect([30, 240, 3840].map(formatSpan)).toEqual(['1 min', '4 min', '1 h 04 min']);
+    });
+
+    it('rótulo do atalho', () => {
+        expect(shortcutLabel('<Super>z')).toBe('Super + Z');
+        expect(shortcutLabel('<Super><Shift>z')).toBe('Super + Shift + Z');
+        expect(shortcutLabel('<Control><Alt>Delete')).toBe('Ctrl + Alt + Delete');
+        expect(shortcutLabel('')).toBe('');
+    });
+});
+
+describe('abas', () => {
+    it('mostra as não ocultas na ordem fixa', () => {
+        expect(visibleTabs([])).toEqual(['general', 'calendar', 'workspaces', 'claude', 'notifications']);
+        expect(visibleTabs(['calendar', 'claude'])).toEqual(['general', 'workspaces', 'notifications']);
+    });
+
+    it('nunca fica sem aba', () => {
+        expect(visibleTabs([...TAB_IDS])).toEqual(['general']);
+    });
+
+    it('abre a primeira visível quando a pedida está oculta', () => {
+        expect(tabToOpen('claude', ['general', 'claude'])).toBe('claude');
+        expect(tabToOpen('claude', ['calendar', 'notifications'])).toBe('calendar');
     });
 });

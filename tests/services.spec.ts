@@ -153,4 +153,15 @@ describe('FrodoSettings', () => {
         settings.monitors = 'both';
         expect(spy).toHaveBeenCalledTimes(1);
     });
+
+    it('lê e grava as chaves do redesign', () => {
+        const settings = create();
+        expect(settings.openOnHover).toBeTrue();
+        expect(settings.autoClose).toBeFalse();
+        expect(settings.hiddenTabs).toEqual([]);
+        settings.gsettings.set_strv('hidden-tabs', ['claude', 'xyz', 'claude']);
+        expect(settings.hiddenTabs).toEqual(['claude']);
+        settings.collapsedCards = ['apps', 'apps'];
+        expect(settings.gsettings.get_strv('collapsed-cards')).toEqual(['apps']);
+    });
 });

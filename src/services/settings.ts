@@ -1,7 +1,7 @@
 import type Gio from 'gi://Gio';
 
-import {CLOSED_ITEMS, CLOSED_MODES, MONITOR_MODES, isOneOf} from '../core/types.js';
-import type {ClosedItem, ClosedMode, MonitorMode} from '../core/types.js';
+import {CARD_IDS, CLOSED_ITEMS, CLOSED_MODES, MONITOR_MODES, TAB_IDS, isOneOf} from '../core/types.js';
+import type {CardId, ClosedItem, ClosedMode, MonitorMode, TabId} from '../core/types.js';
 import {parseProfiles} from '../core/claude-profiles.js';
 import type {ClaudeProfile} from '../core/claude-profiles.js';
 import type {Disposer} from '../util/disposables.js';
@@ -19,7 +19,14 @@ export type SettingsKey =
     | 'claude-profiles'
     | 'claude-profiles-initialized'
     | 'claude-shortcut'
-    | 'toggle-shortcut';
+    | 'toggle-shortcut'
+    | 'open-on-hover'
+    | 'auto-close'
+    | 'hidden-tabs'
+    | 'collapsed-cards';
+
+const known = <T extends string>(values: readonly T[], list: readonly string[]): T[] =>
+    [...new Set(list)].filter((item): item is T => isOneOf(values, item));
 
 export class FrodoSettings {
     constructor(readonly gsettings: Gio.Settings) {}
@@ -34,7 +41,7 @@ export class FrodoSettings {
     }
 
     get closedItems(): ClosedItem[] {
-        return [...new Set(this.gsettings.get_strv('closed-items'))].filter((item): item is ClosedItem => isOneOf(CLOSED_ITEMS, item));
+        return known(CLOSED_ITEMS, this.gsettings.get_strv('closed-items'));
     }
 
     set closedItems(items: readonly ClosedItem[]) {
@@ -100,6 +107,30 @@ export class FrodoSettings {
 
     set toggleShortcut(value: string) {
         this.gsettings.set_strv('toggle-shortcut', [value]);
+    }
+
+    get openOnHover(): boolean {
+        return this.gsettings.get_boolean('open-on-hover');
+    }
+
+    get autoClose(): boolean {
+        return this.gsettings.get_boolean('auto-close');
+    }
+
+    get hiddenTabs(): TabId[] {
+        return known(TAB_IDS, this.gsettings.get_strv('hidden-tabs'));
+    }
+
+    set hiddenTabs(tabs: readonly TabId[]) {
+        this.gsettings.set_strv('hidden-tabs', [...new Set(tabs)]);
+    }
+
+    get collapsedCards(): CardId[] {
+        return known(CARD_IDS, this.gsettings.get_strv('collapsed-cards'));
+    }
+
+    set collapsedCards(cards: readonly CardId[]) {
+        this.gsettings.set_strv('collapsed-cards', [...new Set(cards)]);
     }
 
     onChanged(keys: SettingsKey | readonly SettingsKey[], callback: () => void): Disposer {

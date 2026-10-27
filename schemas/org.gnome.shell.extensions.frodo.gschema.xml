@@ -46,5 +46,17 @@
     <key name="toggle-shortcut" type="as">
       <default>['&lt;Super&gt;z']</default>
     </key>
+    <key name="open-on-hover" type="b">
+      <default>true</default>
+    </key>
+    <key name="auto-close" type="b">
+      <default>false</default>
+    </key>
+    <key name="hidden-tabs" type="as">
+      <default>[]</default>
+    </key>
+    <key name="collapsed-cards" type="as">
+      <default>[]</default>
+    </key>
   </schema>
 </schemalist>

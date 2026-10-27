@@ -16,7 +16,43 @@ export function formatReset(iso: string | null, nowMs: number): string {
 }
 
 export function formatDate(date: Date): string {
-    return `${WEEKDAYS[date.getDay()] ?? ''}, ${date.getDate()} ${MONTHS[date.getMonth()] ?? ''}`;
+    const weekday = WEEKDAYS[date.getDay()] ?? '';
+    return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}, ${date.getDate()} ${MONTHS[date.getMonth()] ?? ''}`;
+}
+
+const decimal = (value: number): string => String(Math.round(value * 10) / 10).replace('.', ',');
+
+export function formatTokens(n: number): string {
+    if (n < 1e3) return String(n);
+    if (Math.round(n / 1e3) < 1e3) return `${Math.round(n / 1e3)} mil`;
+    if (Math.round(n / 1e5) / 10 < 1e3) return `${decimal(n / 1e6)} mi`;
+    return `${decimal(n / 1e9)} bi`;
+}
+
+export function formatTimer(seconds: number): string {
+    const total = Math.floor(seconds);
+    const hours = Math.floor(total / 3600);
+    const minutes = Math.floor(total / 60) % 60;
+    const rest = pad(total % 60);
+    return hours > 0 ? `${hours}:${pad(minutes)}:${rest}` : `${minutes}:${rest}`;
+}
+
+export function formatAgo(thenMs: number, nowMs: number): string {
+    const minutes = Math.floor((nowMs - thenMs) / 60e3);
+    if (minutes < 1) return 'agora';
+    if (minutes < 60) return `${minutes} min`;
+    if (minutes < 24 * 60) return `${Math.floor(minutes / 60)} h`;
+    return `${Math.floor(minutes / (24 * 60))} d`;
+}
+
+export function formatUntil(startMs: number, nowMs: number): string {
+    const minutes = Math.ceil((startMs - nowMs) / 60e3);
+    return minutes > 0 ? `Em ${minutes} min` : 'Agora';
+}
+
+export function formatSpan(seconds: number): string {
+    const minutes = Math.max(1, Math.floor(seconds / 60));
+    return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${pad(minutes % 60)} min`;
 }
 
 export type BatteryLevel = 'empty' | 'low' | 'medium' | 'high' | 'full' | 'charging';
