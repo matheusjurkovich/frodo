@@ -27,6 +27,13 @@ export function separator(): St.Widget {
     return new St.Widget({style_class: 'frodo-sep', y_align: Clutter.ActorAlign.CENTER});
 }
 
+export function grid(spacing: number): St.Widget {
+    return new St.Widget({
+        layout_manager: new Clutter.GridLayout({column_spacing: spacing, row_spacing: spacing, column_homogeneous: true}),
+        x_expand: true,
+    });
+}
+
 export function packGrid(container: St.Widget, children: readonly Clutter.Actor[], columns: number): Disposer {
     const layout = container.layout_manager;
     if (!(layout instanceof Clutter.GridLayout)) throw new TypeError('packGrid exige um container com Clutter.GridLayout');

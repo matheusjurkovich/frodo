@@ -207,6 +207,7 @@ export type PowerActions = ReturnType<typeof SystemActions.getDefault> & {
     activateSuspend(): void;
     activateRestart(): void;
     activatePowerOff(): void;
+    activateLockScreen(): void;
 };
 
 export function powerActions(): PowerActions {

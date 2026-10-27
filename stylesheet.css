@@ -506,7 +506,9 @@
     border-radius: 999px;
 }
 
-.frodo-button:focus {
+.frodo-button:focus,
+.frodo-collapsible-header:focus,
+.frodo-app:focus {
     box-shadow: inset 0 0 0 2px st-transparentize(st-mix(-st-accent-color, #ffffff, 60%), 0.2);
 }
 
@@ -775,4 +777,86 @@
 
 .frodo-media-controls {
     spacing: 4px;
+}
+
+.frodo-collapsible {
+    padding: 6px;
+    spacing: 4px;
+}
+
+.frodo-collapsible-header {
+    height: 40px;
+    padding: 0 10px;
+    border-radius: 12px;
+    color: #a1a1aa;
+}
+
+.frodo-collapsible-header:hover {
+    background-color: #1f1f23;
+}
+
+.frodo-collapsible-header-content {
+    spacing: 8px;
+}
+
+.frodo-collapsible-count {
+    font-size: 12px;
+    font-weight: 400;
+    color: #a1a1aa;
+}
+
+.frodo-collapsible-caret {
+    icon-size: 16px;
+}
+
+.frodo-collapsible-body {
+    padding: 0 4px 4px;
+    spacing: 6px;
+}
+
+.frodo-apps-summary {
+    spacing: 4px;
+}
+
+.frodo-shortcut {
+    height: 64px;
+    border-radius: 14px;
+    font-size: 12px;
+}
+
+.frodo-shortcut:checked {
+    background-color: -st-accent-color;
+    color: -st-accent-fg-color;
+}
+
+.frodo-shortcut-content {
+    spacing: 6px;
+}
+
+.frodo-shortcut-icon {
+    icon-size: 18px;
+}
+
+.frodo-shortcut-label,
+.frodo-app-label {
+    font-size: 12px;
+}
+
+.frodo-app {
+    height: 64px;
+    border-radius: 14px;
+    color: #e4e4e7;
+}
+
+.frodo-app:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.frodo-app-content {
+    spacing: 4px;
+}
+
+.frodo-app-icon {
+    width: 34px;
+    height: 34px;
 }

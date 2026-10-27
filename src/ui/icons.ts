@@ -32,7 +32,14 @@ export type FrodoIconName =
     | 'battery-medium'
     | 'battery-high'
     | 'battery-full'
-    | 'battery-charging';
+    | 'battery-charging'
+    | 'screenshot'
+    | 'record'
+    | 'mic-off'
+    | 'terminal'
+    | 'folder'
+    | 'lock'
+    | 'expand';
 
 let directory: Gio.File | null = null;
 

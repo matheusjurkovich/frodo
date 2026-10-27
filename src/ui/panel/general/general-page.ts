@@ -7,9 +7,10 @@ import type {FrodoSettings} from '../../../services/settings.js';
 import {column, row} from '../../components/layout.js';
 import type {Component} from '../../components/lifecycle.js';
 import type {Island} from '../../island.js';
-import {StatusRow} from '../../status-row.js';
+import {AppsCard} from './apps-card.js';
 import {MediaCard} from './media-card.js';
 import {NativeControls} from './native-controls.js';
+import {ShortcutsCard} from './shortcuts-card.js';
 import {SoundCard} from './sound-card.js';
 
 export interface GeneralDependencies {
@@ -24,15 +25,17 @@ export class GeneralPage implements Component {
     readonly #controls: NativeControls;
     readonly #sound: SoundCard;
     readonly #media: MediaCard;
-    readonly #status: StatusRow;
+    readonly #shortcuts: ShortcutsCard;
+    readonly #apps: AppsCard;
 
-    constructor({island, media}: GeneralDependencies) {
+    constructor({island, settings, media}: GeneralDependencies) {
         const content = column('frodo-section');
         const overlayHost = new St.Widget({x_expand: true, y_expand: true});
         this.#controls = new NativeControls(island, overlayHost, content);
         this.#sound = new SoundCard(this.#controls);
         this.#media = new MediaCard(media);
-        this.#status = new StatusRow(island);
+        this.#shortcuts = new ShortcutsCard(island, settings);
+        this.#apps = new AppsCard(island, settings);
 
         const right = column('frodo-section');
         right.add_child(this.#sound.actor);
@@ -45,14 +48,16 @@ export class GeneralPage implements Component {
             columns.add_child(side);
         }
         content.add_child(columns);
-        content.add_child(this.#status.actor);
+        content.add_child(this.#shortcuts.actor);
+        content.add_child(this.#apps.actor);
         this.actor.add_child(content);
         this.actor.add_child(overlayHost);
     }
 
     destroy(): void {
         this.#controls.destroy();
-        this.#status.destroy();
+        this.#shortcuts.destroy();
+        this.#apps.destroy();
         this.#sound.destroy();
         this.#media.destroy();
         this.actor.destroy();
