@@ -7,6 +7,7 @@ import './claude.spec.js';
 import './util.spec.js';
 import './services.spec.js';
 import './workspaces.spec.js';
+import './claude-index.spec.js';
 
 let failed = 0;
 let total = 0;

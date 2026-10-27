@@ -15,9 +15,13 @@ export function formatReset(iso: string | null, nowMs: number): string {
     return `${WEEKDAYS[at.getDay()] ?? ''} ${pad(at.getHours())}:${pad(at.getMinutes())}`;
 }
 
+export function weekdayLabel(day: number): string {
+    const weekday = WEEKDAYS[day] ?? '';
+    return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}`;
+}
+
 export function formatDate(date: Date): string {
-    const weekday = WEEKDAYS[date.getDay()] ?? '';
-    return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}, ${date.getDate()} ${MONTHS[date.getMonth()] ?? ''}`;
+    return `${weekdayLabel(date.getDay())}, ${date.getDate()} ${MONTHS[date.getMonth()] ?? ''}`;
 }
 
 const decimal = (value: number): string => String(Math.round(value * 10) / 10).replace('.', ',');
