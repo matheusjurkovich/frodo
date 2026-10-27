@@ -1,23 +1,11 @@
-import type {CalendarEvent} from '../shell/internals.js';
+import {nextMeeting} from '../core/meetings.js';
+import type {Meeting} from '../core/meetings.js';
 import {calendarEventSource} from '../shell/internals.js';
 import {Emitter} from '../util/emitter.js';
 import {Timer} from '../util/timer.js';
 
 export const MEETING_LEAD_MS = 10 * 60e3;
 const CHECK_SECONDS = 30;
-
-export interface Meeting {
-    readonly title: string;
-    readonly startsAt: number;
-}
-
-function atMidnight(date: Date): boolean {
-    return date.getHours() === 0 && date.getMinutes() === 0 && date.getSeconds() === 0;
-}
-
-function isAllDay(event: CalendarEvent): boolean {
-    return event.end > event.date && atMidnight(event.date) && atMidnight(event.end);
-}
 
 export class UpcomingMeeting extends Emitter<{changed: []}> {
     readonly #source = calendarEventSource();
@@ -31,6 +19,7 @@ export class UpcomingMeeting extends Emitter<{changed: []}> {
             this.#source?.connect('changed', () => {
                 this.#refresh();
             }) ?? null;
+        if (!this.#source) return;
         this.#next = this.#find();
         this.#timer.every(CHECK_SECONDS, () => {
             this.#refresh();
@@ -44,13 +33,7 @@ export class UpcomingMeeting extends Emitter<{changed: []}> {
     #find(): Meeting | null {
         if (!this.#source) return null;
         const now = Date.now();
-        let next: Meeting | null = null;
-        for (const event of this.#source.getEvents(new Date(now), new Date(now + MEETING_LEAD_MS))) {
-            const startsAt = event.date.getTime();
-            if (startsAt <= now || isAllDay(event) || (next !== null && startsAt >= next.startsAt)) continue;
-            next = {title: event.summary, startsAt};
-        }
-        return next;
+        return nextMeeting(this.#source.getEvents(new Date(now), new Date(now + MEETING_LEAD_MS)), now, MEETING_LEAD_MS);
     }
 
     #refresh(): void {

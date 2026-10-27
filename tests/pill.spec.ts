@@ -1,10 +1,12 @@
 import type {SessionState, SessionStatus} from '../src/core/claude-sessions.js';
+import {nextMeeting} from '../src/core/meetings.js';
 import {pickActivity} from '../src/core/pill-activity.js';
 import type {MediaTrack} from '../src/services/media.js';
 import type {NotificationBridgeEvents} from '../src/services/notification-bridge.js';
 import {ActivityFeed} from '../src/ui/pill/activity-feed.js';
 import type {FeedSources} from '../src/ui/pill/activity-feed.js';
 import {Emitter} from '../src/util/emitter.js';
+import {Timer} from '../src/util/timer.js';
 
 describe('prioridade da pílula', () => {
     it('mostra o estado mais alto', () => {
@@ -24,6 +26,43 @@ describe('prioridade da pílula', () => {
 
     it('sem atividade fica no repouso', () => {
         expect(pickActivity([])).toBeNull();
+    });
+});
+
+const NOW = new Date(2026, 9, 28, 10, 0, 0).getTime();
+const LEAD = 10 * 60e3;
+
+function at(offsetMs: number, durationMs = 3600e3): {summary: string; date: Date; end: Date} {
+    return {summary: `em ${offsetMs}`, date: new Date(NOW + offsetMs), end: new Date(NOW + offsetMs + durationMs)};
+}
+
+describe('próxima reunião', () => {
+    it('sem eventos não há reunião', () => {
+        expect(nextMeeting([], NOW, LEAD)).toBeNull();
+    });
+
+    it('escolhe a que começa primeiro dentro da janela', () => {
+        const events = [at(8 * 60e3), at(3 * 60e3), at(5 * 60e3)];
+        expect(nextMeeting(events, NOW, LEAD)).toEqual({title: 'em 180000', startsAt: NOW + 3 * 60e3});
+    });
+
+    it('ignora a que já começou, inclusive no instante exato', () => {
+        expect(nextMeeting([at(-60e3), at(0)], NOW, LEAD)).toBeNull();
+        expect(nextMeeting([at(-60e3), at(60e3)], NOW, LEAD)?.startsAt).toBe(NOW + 60e3);
+    });
+
+    it('ignora a que começa depois da janela e aceita a do limite', () => {
+        expect(nextMeeting([at(LEAD + 1)], NOW, LEAD)).toBeNull();
+        expect(nextMeeting([at(LEAD)], NOW, LEAD)?.startsAt).toBe(NOW + LEAD);
+    });
+
+    it('ignora evento de dia inteiro e aceita reunião que começa à meia-noite', () => {
+        const midnight = new Date(2026, 9, 29, 0, 0, 0).getTime();
+        const now = midnight - 5 * 60e3;
+        const allDay = {summary: 'Feriado', date: new Date(2026, 9, 29), end: new Date(2026, 9, 30)};
+        const late = {summary: 'Plantão', date: new Date(2026, 9, 29, 0, 0), end: new Date(2026, 9, 29, 1, 0)};
+        expect(nextMeeting([allDay], now, LEAD)).toBeNull();
+        expect(nextMeeting([allDay, late], now, LEAD)).toEqual({title: 'Plantão', startsAt: midnight});
     });
 });
 
@@ -83,7 +122,42 @@ function track(playing: boolean): MediaTrack {
     return {title: 't', artist: 'a', coverUrl: '', lengthUs: null, app: 'p', playing, canPrevious: false, canNext: false};
 }
 
+interface Armed {
+    readonly ms: number;
+    readonly callback: () => void;
+}
+
+interface FakeTimers {
+    readonly armed: Map<Timer, Armed>;
+    onceMs(): number[];
+    fire(ms: number): void;
+}
+
+function fakeTimers(): FakeTimers {
+    const armed = new Map<Timer, Armed>();
+    const once = spyOn(Timer.prototype, 'once').and.callFake(function (this: Timer, ms: number, callback: () => void): void {
+        armed.set(this, {ms, callback});
+    });
+    spyOnProperty(Timer.prototype, 'active', 'get').and.callFake(function (this: Timer): boolean {
+        return armed.has(this);
+    });
+    spyOn(Timer.prototype, 'stop').and.callFake(function (this: Timer): void {
+        armed.delete(this);
+    });
+    return {
+        armed,
+        onceMs: (): number[] => once.calls.allArgs().map(([ms]) => ms),
+        fire: (ms: number): void => {
+            const entry = [...armed].find(([, candidate]) => candidate.ms === ms);
+            if (!entry) throw new Error(`nenhum timer de ${ms} ms armado`);
+            armed.delete(entry[0]);
+            entry[1].callback();
+        },
+    };
+}
+
 describe('ActivityFeed', () => {
+    let timers: FakeTimers;
     let recording: FakeRecording;
     let sessions: FakeSessions;
     let meetings: FakeMeetings;
@@ -93,7 +167,13 @@ describe('ActivityFeed', () => {
     let feed: ActivityFeed;
     let changes: number;
 
+    function notificationTitle(): string | null {
+        const {current} = feed;
+        return current?.kind === 'notification' ? current.item.title : null;
+    }
+
     beforeEach(() => {
+        timers = fakeTimers();
         recording = new FakeRecording();
         sessions = new FakeSessions();
         meetings = new FakeMeetings();
@@ -156,13 +236,57 @@ describe('ActivityFeed', () => {
         expect(feed.current).toEqual({kind: 'meeting', title: 'Daily', startsAt: 5000});
     });
 
-    it('notificações esperam na fila e cancelTransient limpa a fila e o volume', () => {
+    it('a fila de notificações avança de 3 s em 3 s e recomeça depois de esvaziar', () => {
+        bridge.push('a');
+        expect(timers.onceMs()).toEqual([3000]);
+        bridge.push('b');
+        expect(timers.onceMs()).toEqual([3000]);
+        expect(notificationTitle()).toBe('a');
+        timers.fire(3000);
+        expect(notificationTitle()).toBe('b');
+        expect(timers.onceMs()).toEqual([3000, 3000]);
+        timers.fire(3000);
+        expect(feed.current).toBeNull();
+        expect(timers.armed.size).toBe(0);
+        bridge.push('c');
+        expect(notificationTitle()).toBe('c');
+        expect(timers.onceMs()).toEqual([3000, 3000, 3000]);
+        expect(changes).toBe(4);
+    });
+
+    it('o volume some em 1,5 s e rearma a cada mudança', () => {
+        volume.set(40);
+        volume.set(55);
+        expect(timers.onceMs()).toEqual([1500, 1500]);
+        timers.fire(1500);
+        expect(feed.current).toBeNull();
+        volume.set(55);
+        expect(feed.current).toEqual({kind: 'volume', percent: 55});
+        expect(timers.onceMs()).toEqual([1500, 1500, 1500]);
+    });
+
+    it('notificação e volume têm relógios independentes', () => {
+        bridge.push('a');
+        volume.set(40);
+        expect(timers.onceMs()).toEqual([3000, 1500]);
+        expect(feed.current?.kind).toBe('notification');
+        timers.fire(3000);
+        expect(feed.current).toEqual({kind: 'volume', percent: 40});
+        timers.fire(1500);
+        expect(feed.current).toBeNull();
+    });
+
+    it('cancelTransient para os relógios e descarta a fila', () => {
         bridge.push('a');
         bridge.push('b');
-        expect(feed.current).toEqual(jasmine.objectContaining({kind: 'notification', item: jasmine.objectContaining({title: 'a'})}));
         volume.set(40);
         expect(feed.current?.kind).toBe('notification');
         feed.cancelTransient();
+        expect(feed.current).toBeNull();
+        expect(timers.armed.size).toBe(0);
+        bridge.push('c');
+        expect(notificationTitle()).toBe('c');
+        timers.fire(3000);
         expect(feed.current).toBeNull();
     });
 
@@ -174,9 +298,24 @@ describe('ActivityFeed', () => {
         expect(changes).toBe(2);
     });
 
-    it('destroy cala o feed', () => {
+    it('destroy para os relógios armados', () => {
+        bridge.push('a');
+        volume.set(40);
+        expect(timers.armed.size).toBe(2);
+        feed.destroy();
+        expect(timers.armed.size).toBe(0);
+    });
+
+    it('destroy desfaz as assinaturas de todas as fontes', () => {
         feed.destroy();
         recording.set(1);
+        sessions.set([session('a', 'working')]);
+        meetings.set({title: 'Daily', startsAt: 5000});
+        media.set(track(true));
+        bridge.push('b');
+        volume.set(10);
+        expect(feed.current).toBeNull();
+        expect(timers.onceMs()).toEqual([]);
         expect(changes).toBe(0);
     });
 });
