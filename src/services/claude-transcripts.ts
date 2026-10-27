@@ -1,5 +1,6 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
+import System from 'system';
 
 import {ClaudeIndex} from '../core/claude-index.js';
 import {RecentIds, completeLines, parseAssistantLine} from '../core/claude-transcript.js';
@@ -19,8 +20,8 @@ const CHUNK_BYTES = 1024 * 1024;
 const KEPT_MS = 30 * 24 * 60 * 60 * 1000;
 const SCAN_SECONDS = 30;
 const BATCH = 256;
-const DIR_ATTRIBUTES = 'standard::name,standard::type';
-const FILE_ATTRIBUTES = 'standard::name,standard::type,standard::size,time::modified';
+const GC_EVERY_BYTES = 4 * 1024 * 1024;
+const ATTRIBUTES = 'standard::name,standard::type,standard::size,time::modified';
 
 interface FileState {
     offset: number;
@@ -72,10 +73,19 @@ function concat(head: Uint8Array, tail: Uint8Array): Uint8Array {
     return bytes;
 }
 
-async function children(dir: string, attributes: string, cancellable: Gio.Cancellable): Promise<Gio.FileInfo[] | null> {
+function isTranscript(info: Gio.FileInfo, since: number): boolean {
+    const modified = info.get_modification_date_time()?.to_unix() ?? 0;
+    return info.get_file_type() === Gio.FileType.REGULAR && info.get_name().endsWith('.jsonl') && modified * 1000 >= since;
+}
+
+function subagentsDir(session: string): string {
+    return GLib.build_filenamev([session, 'subagents']);
+}
+
+async function children(dir: string, cancellable: Gio.Cancellable): Promise<Gio.FileInfo[] | null> {
     try {
         const enumerator = await Gio.File.new_for_path(dir).enumerate_children_async(
-            attributes,
+            ATTRIBUTES,
             Gio.FileQueryInfoFlags.NONE,
             GLib.PRIORITY_LOW,
             cancellable,
@@ -105,6 +115,7 @@ export class ClaudeTranscripts extends Emitter<{changed: []}> {
     #running: Promise<void> | null = null;
     #dirty = false;
     #destroyed = false;
+    #sinceGc = 0;
 
     constructor(settings: FrodoSettings, cachePath = GLib.build_filenamev([GLib.get_user_cache_dir(), 'frodo', 'claude-index.json'])) {
         super();
@@ -170,23 +181,29 @@ export class ClaudeTranscripts extends Emitter<{changed: []}> {
         const roots: string[] = [];
         for (const {configDir} of this.#settings.claudeProfiles) {
             const root = GLib.build_filenamev([configDir, 'projects']);
-            const projects = await children(root, DIR_ATTRIBUTES, this.#cancellable);
+            const projects = await children(root, this.#cancellable);
             let complete = projects !== null;
             for (const project of projects ?? []) {
                 if (project.get_file_type() !== Gio.FileType.DIRECTORY) continue;
                 const dir = GLib.build_filenamev([root, project.get_name()]);
-                const infos = await children(dir, FILE_ATTRIBUTES, this.#cancellable);
-                complete &&= infos !== null;
-                for (const info of infos ?? []) {
-                    const modified = info.get_modification_date_time()?.to_unix() ?? 0;
-                    if (info.get_file_type() !== Gio.FileType.REGULAR || !info.get_name().endsWith('.jsonl') || modified * 1000 < since)
-                        continue;
-                    sizes.set(GLib.build_filenamev([dir, info.get_name()]), info.get_size());
-                }
+                complete = (await this.#collect(dir, since, sizes, subagentsDir)) && complete;
             }
             if (complete) roots.push(`${root}/`);
         }
         return {sizes, roots};
+    }
+
+    async #collect(dir: string, since: number, sizes: Map<string, number>, subdir: (path: string) => string): Promise<boolean> {
+        const infos = await children(dir, this.#cancellable);
+        if (!infos) return false;
+        let complete = true;
+        for (const info of infos) {
+            const path = GLib.build_filenamev([dir, info.get_name()]);
+            if (info.get_file_type() === Gio.FileType.DIRECTORY)
+                complete = (await this.#collect(subdir(path), since, sizes, nested => nested)) && complete;
+            else if (isTranscript(info, since)) sizes.set(path, info.get_size());
+        }
+        return complete;
     }
 
     async #read(path: string, size: number, state: FileState, index: ClaudeIndex): Promise<void> {
@@ -212,10 +229,18 @@ export class ClaudeTranscripts extends Emitter<{changed: []}> {
                 if (consumed > 0) this.#dirty = true;
                 state.offset += consumed;
                 rest = bytes.subarray(consumed);
+                this.#sweep(chunk.length);
             }
         } finally {
             stream.close(null);
         }
+    }
+
+    #sweep(bytes: number): void {
+        this.#sinceGc += bytes;
+        if (this.#sinceGc < GC_EVERY_BYTES) return;
+        this.#sinceGc = 0;
+        System.gc();
     }
 
     async #save(): Promise<void> {

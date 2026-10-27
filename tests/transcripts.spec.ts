@@ -113,6 +113,16 @@ describe('ClaudeTranscripts', () => {
         expect(service.index.summary('today', new Date()).input).toBe(10);
     });
 
+    it('conta as transcrições dos subagentes', async () => {
+        write([line({id: 'a', at: today, input: 10})]);
+        GLib.mkdir_with_parents(`${tmp}/projects/p/sid/subagents/workflows/w`, 0o700);
+        GLib.file_set_contents(`${tmp}/projects/p/sid/subagents/agent-x.jsonl`, `${line({id: 'x', at: today, input: 7})}\n`);
+        GLib.file_set_contents(`${tmp}/projects/p/sid/subagents/workflows/w/agent-y.jsonl`, `${line({id: 'y', at: today, input: 3})}\n`);
+        GLib.file_set_contents(`${tmp}/projects/p/sid/fora.jsonl`, `${line({id: 'z', at: today, input: 100})}\n`);
+        await service.scan();
+        expect(service.index.summary('today', new Date()).input).toBe(20);
+    });
+
     it('reaproveita a passada em curso', async () => {
         write([line({id: 'a', at: today, input: 10})]);
         const first = service.scan();
