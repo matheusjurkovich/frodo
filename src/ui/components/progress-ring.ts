@@ -9,7 +9,7 @@ type ThemeColor = ReturnType<St.ThemeNode['get_color']>;
 
 const LINE_WIDTH = 3;
 
-function setSourceColor(cr: cairo.Context, color: ThemeColor): void {
+export function setSourceColor(cr: cairo.Context, color: ThemeColor): void {
     cr.setSourceRGBA(color.red / 255, color.green / 255, color.blue / 255, color.alpha / 255);
 }
 

@@ -8,6 +8,7 @@ import type {ClaudeService} from '../../services/claude-service.js';
 import type {MediaService} from '../../services/media.js';
 import type {NotificationBridge} from '../../services/notification-bridge.js';
 import type {FrodoSettings} from '../../services/settings.js';
+import type {Workspaces} from '../../services/workspaces.js';
 import {Disposables} from '../../util/disposables.js';
 import {column} from '../components/layout.js';
 import type {Component} from '../components/lifecycle.js';
@@ -21,6 +22,7 @@ import {PowerMenu} from './power-menu.js';
 import {SettingsPage} from './settings/settings-page.js';
 import {TabBar} from './tab-bar.js';
 import type {TabSpec} from './tab-bar.js';
+import {WorkspacesPage} from './workspaces/workspaces-page.js';
 
 export type PanelView = {readonly kind: 'tab'; readonly tab: TabId} | {readonly kind: 'settings'};
 
@@ -30,6 +32,7 @@ export interface PanelDependencies {
     readonly settings: FrodoSettings;
     readonly bridge: NotificationBridge;
     readonly media: MediaService;
+    readonly workspaces: Workspaces;
     readonly openPreferences: () => void;
 }
 
@@ -46,12 +49,13 @@ export class PanelContent {
     #lastTab: TabId = TAB_IDS[0];
     #nextTab: TabId = TAB_IDS[0];
 
-    constructor({island, claude, settings, bridge, media, openPreferences}: PanelDependencies) {
+    constructor({island, claude, settings, bridge, media, workspaces, openPreferences}: PanelDependencies) {
         this.#settings = settings;
 
         const specs: readonly TabSpec[] = [
             {id: 'general', icon: 'general', label: TAB_LABELS.general, create: () => new GeneralPage({island, settings, bridge, media})},
             {id: 'calendar', icon: 'calendar', label: TAB_LABELS.calendar, create: () => new CalendarPage(island)},
+            {id: 'workspaces', icon: 'workspaces', label: TAB_LABELS.workspaces, create: () => new WorkspacesPage(workspaces, island)},
             {
                 id: 'claude',
                 icon: 'claude',

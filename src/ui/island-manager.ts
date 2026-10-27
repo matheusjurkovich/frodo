@@ -9,6 +9,7 @@ import type {MediaService} from '../services/media.js';
 import type {NotificationBridge} from '../services/notification-bridge.js';
 import type {FrodoSettings} from '../services/settings.js';
 import type {SystemState} from '../services/system-state.js';
+import type {Workspaces} from '../services/workspaces.js';
 import {Disposables} from '../util/disposables.js';
 import {Island} from './island.js';
 import {PanelContent} from './panel/panel-content.js';
@@ -19,6 +20,7 @@ export interface IslandManagerDependencies {
     readonly claude: ClaudeService;
     readonly bridge: NotificationBridge;
     readonly media: MediaService;
+    readonly workspaces: Workspaces;
     readonly openPreferences: () => void;
 }
 
@@ -72,7 +74,7 @@ export class IslandManager {
 
     #rebuild(): void {
         this.#clear();
-        const {settings, state, claude, bridge, media, openPreferences} = this.#dependencies;
+        const {settings, state, claude, bridge, media, workspaces, openPreferences} = this.#dependencies;
         const primary = Main.layoutManager.primaryIndex;
         for (const monitorIndex of targetMonitors(settings.monitors, primary, Main.layoutManager.monitors.length)) {
             const island = new Island(settings, state, claude, monitorIndex);
@@ -80,7 +82,7 @@ export class IslandManager {
             island.on('opening', () => {
                 for (const other of this.#entries) if (other.island !== island) other.island.close();
             });
-            const content = new PanelContent({island, claude, settings, bridge, media, openPreferences});
+            const content = new PanelContent({island, claude, settings, bridge, media, workspaces, openPreferences});
             island.setContent(content.actor);
             island.on('tabRequested', tab => {
                 content.showOnNextOpen(tab);

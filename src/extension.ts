@@ -8,6 +8,7 @@ import {MediaService} from './services/media.js';
 import {NotificationBridge} from './services/notification-bridge.js';
 import {FrodoSettings} from './services/settings.js';
 import {SystemState} from './services/system-state.js';
+import {Workspaces} from './services/workspaces.js';
 import {IslandManager} from './ui/island-manager.js';
 import {setIconsDirectory} from './ui/icons.js';
 import {TopBarVisibility} from './ui/top-bar-visibility.js';
@@ -50,6 +51,10 @@ export default class FrodoExtension extends Extension {
         disposables.add(() => {
             media.destroy();
         });
+        const workspaces = new Workspaces();
+        disposables.add(() => {
+            workspaces.destroy();
+        });
         const bridge = new NotificationBridge();
         disposables.add(() => {
             bridge.destroy();
@@ -65,6 +70,7 @@ export default class FrodoExtension extends Extension {
             claude,
             bridge,
             media,
+            workspaces,
             openPreferences: () => {
                 islands.closeAll();
                 this.openPreferences();

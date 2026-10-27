@@ -6,6 +6,7 @@ import './core.spec.js';
 import './claude.spec.js';
 import './util.spec.js';
 import './services.spec.js';
+import './workspaces.spec.js';
 
 let failed = 0;
 let total = 0;

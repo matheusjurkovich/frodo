@@ -40,7 +40,8 @@ export type FrodoIconName =
     | 'terminal'
     | 'folder'
     | 'lock'
-    | 'expand';
+    | 'expand'
+    | 'plus';
 
 let directory: Gio.File | null = null;
 

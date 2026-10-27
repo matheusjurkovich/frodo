@@ -22,6 +22,8 @@
 .frodo-dim,
 .frodo-notification-meta,
 .frodo-notification-body,
+.frodo-workspace-apps,
+.frodo-workspace-new,
 .frodo-calendar .event-time,
 .frodo-calendar .event-placeholder {
     color: #a1a1aa;
@@ -309,6 +311,7 @@
 }
 
 .frodo-card,
+.frodo-workspace,
 .frodo-general .quick-toggle-menu,
 .frodo-calendar-month,
 .frodo-calendar-events {
@@ -462,7 +465,9 @@
 .frodo-button:focus,
 .frodo-collapsible-header:focus,
 .frodo-notification:focus,
-.frodo-app:focus {
+.frodo-app:focus,
+.frodo-workspace:focus,
+.frodo-workspace-new:focus {
     box-shadow: inset 0 0 0 2px st-transparentize(st-mix(-st-accent-color, #ffffff, 60%), 0.2);
 }
 
@@ -750,7 +755,8 @@
     color: #a1a1aa;
 }
 
-.frodo-collapsible-header:hover {
+.frodo-collapsible-header:hover,
+.frodo-workspace:hover {
     background-color: #1f1f23;
 }
 
@@ -993,4 +999,118 @@
 
 .frodo-notification .frodo-button {
     color: #a1a1aa;
+}
+
+.frodo-workspaces {
+    spacing: 10px;
+}
+
+.frodo-workspace {
+    padding: 8px;
+    border: 2px solid transparent;
+}
+
+.frodo-workspace:checked {
+    border: 2px solid -st-accent-color;
+}
+
+.frodo-workspace-content {
+    spacing: 8px;
+}
+
+.frodo-workspace-thumb {
+    border-radius: 12px;
+    background-color: #2b0b23;
+}
+
+.frodo-win {
+    border-radius: 4px;
+}
+
+.frodo-win-slot-0 {
+    background-color: #1f6fb2;
+}
+
+.frodo-win-slot-1 {
+    background-color: #b4441e;
+}
+
+.frodo-win-slot-2 {
+    background-color: #5b2a6e;
+}
+
+.frodo-win-slot-3 {
+    background-color: #2f6b4f;
+}
+
+.frodo-win-slot-4 {
+    background-color: #1e7a45;
+}
+
+.frodo-win-slot-5 {
+    background-color: #3a3a40;
+}
+
+.frodo-workspace-heading {
+    padding: 0 4px;
+    spacing: 8px;
+}
+
+.frodo-workspace-badge {
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    background-color: #2a2a2f;
+    color: #d4d4d8;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.frodo-workspace-badge-active {
+    background-color: -st-accent-color;
+    color: -st-accent-fg-color;
+}
+
+.frodo-workspace-title {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.frodo-workspace-apps {
+    padding: 0 4px 2px;
+    font-size: 12px;
+}
+
+.frodo-workspace-new {
+    min-height: 148px;
+    padding: 8px;
+    border-radius: 18px;
+    font-size: 13px;
+}
+
+.frodo-workspace-new:hover {
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+.frodo-workspace-dash {
+    color: #3f3f46;
+}
+
+.frodo-workspace-new-content {
+    spacing: 8px;
+}
+
+.frodo-workspace-new-icon {
+    icon-size: 22px;
+}
+
+.frodo-workspaces-hint {
+    padding: 0 6px;
+    spacing: 8px;
+    font-size: 12px;
+}
+
+.frodo-workspaces-hint .frodo-kbd {
+    padding: 2px 6px;
+    font-size: 12px;
 }
