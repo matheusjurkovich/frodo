@@ -928,10 +928,6 @@
     color: #8b8b94;
 }
 
-.frodo-calendar .calendar-day.calendar-day-with-events {
-    color: st-mix(-st-accent-color, #ffffff, 70%);
-}
-
 .frodo-calendar .calendar-day:hover {
     background-color: rgba(255, 255, 255, 0.08);
 }
