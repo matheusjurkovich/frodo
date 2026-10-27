@@ -1,3 +1,7 @@
+import type {SessionStats} from './claude-index.js';
+import {contextWindow, modelDisplayName} from './claude-transcript.js';
+import {formatSpan, formatTokens} from './format.js';
+
 export type SessionStatus = 'working' | 'waiting' | 'done' | 'idle';
 
 export interface HookEvent {
@@ -29,7 +33,14 @@ export interface DiffStat {
     readonly removed: number;
 }
 
+export interface ContextUsage {
+    readonly fraction: number;
+    readonly warn: boolean;
+    readonly text: string;
+}
+
 const IDLE_AFTER_MS = 30 * 60 * 1000;
+const CONTEXT_WARN_FRACTION = 0.85;
 const STEP_KEYS = ['command', 'file_path', 'notebook_path', 'pattern', 'description', 'url', 'query'] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -122,6 +133,22 @@ export function countByStatus(states: readonly SessionState[], nowMs: number): R
     const counts = {all: states.length, working: 0, waiting: 0, done: 0, idle: 0};
     for (const state of states) counts[displayStatus(state, nowMs)]++;
     return counts;
+}
+
+export function sessionMeta(state: SessionState, stats: SessionStats | null, status: SessionStatus, nowMs: number): string {
+    const parts: string[] = [];
+    if (stats?.model) parts.push(modelDisplayName(stats.model));
+    if (stats?.branch) parts.push(stats.branch);
+    if (status === 'idle') parts.push(`parada há ${formatSpan((nowMs - (stats?.lastAt ?? state.updatedAt)) / 1000)}`);
+    else if (stats) parts.push(formatSpan((nowMs - stats.startedAt) / 1000));
+    return parts.join(' · ');
+}
+
+export function contextUsage(contextTokens: number): ContextUsage | null {
+    if (contextTokens <= 0) return null;
+    const window = contextWindow(contextTokens);
+    const fraction = Math.min(1, contextTokens / window);
+    return {fraction, warn: fraction >= CONTEXT_WARN_FRACTION, text: `${formatTokens(contextTokens)} de ${formatTokens(window)} tokens`};
 }
 
 export function parentPid(stat: string): number | null {

@@ -1,6 +1,17 @@
 import GLib from 'gi://GLib';
 
-import {countByStatus, displayStatus, nextState, parentPid, parseHookEvent, parseShortstat, stepFor} from '../src/core/claude-sessions.js';
+import {
+    contextUsage,
+    countByStatus,
+    displayStatus,
+    nextState,
+    parentPid,
+    parseHookEvent,
+    parseShortstat,
+    sessionMeta,
+    stepFor,
+} from '../src/core/claude-sessions.js';
+import type {SessionStats} from '../src/core/claude-index.js';
 import type {HookEvent, SessionState, SessionStatus} from '../src/core/claude-sessions.js';
 import {ClaudeSessions} from '../src/services/claude-sessions.js';
 import {Timer} from '../src/util/timer.js';
@@ -102,6 +113,34 @@ describe('sessões do Claude', () => {
         const done = nextState(null, event('Stop'), at);
         if (!working || !done) throw new Error('sem estado');
         expect(countByStatus([working, done], at)).toEqual({all: 2, working: 1, waiting: 0, done: 1, idle: 0});
+    });
+
+    it('monta a meta sem lacunas', () => {
+        const state = nextState(null, event('PreToolUse', {tool_name: 'Read', tool_input: {file_path: '/a'}}), at);
+        if (!state) throw new Error('sem estado');
+        const stats: SessionStats = {
+            tokens: 86_000,
+            model: 'claude-opus-4-5',
+            contextTokens: 62_000,
+            branch: 'main',
+            startedAt: at - 4 * 60e3,
+            lastAt: at - 60e3,
+            todos: null,
+        };
+        expect(sessionMeta(state, stats, 'working', at)).toBe('Opus 4.5 · main · 4 min');
+        expect(sessionMeta(state, {...stats, model: ''}, 'working', at)).toBe('main · 4 min');
+        expect(sessionMeta(state, {...stats, branch: null}, 'waiting', at)).toBe('Opus 4.5 · 4 min');
+        expect(sessionMeta(state, null, 'working', at)).toBe('');
+        expect(sessionMeta(state, stats, 'idle', at + 2 * 3600e3)).toBe('Opus 4.5 · main · parada há 2 h 01 min');
+        expect(sessionMeta(state, null, 'idle', at + 30 * 60e3)).toBe('parada há 30 min');
+    });
+
+    it('mede o contexto e avisa a partir de 85%', () => {
+        expect(contextUsage(0)).toBeNull();
+        expect(contextUsage(62_000)).toEqual({fraction: 0.31, warn: false, text: '62 mil de 200 mil tokens'});
+        expect(contextUsage(169_000)?.warn).toBeFalse();
+        expect(contextUsage(170_000)?.warn).toBeTrue();
+        expect(contextUsage(300_000)).toEqual({fraction: 0.3, warn: false, text: '300 mil de 1 mi tokens'});
     });
 
     it('lê o pai do processo e o diff', () => {

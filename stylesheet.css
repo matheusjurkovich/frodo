@@ -453,6 +453,208 @@
     text-align: right;
 }
 
+.frodo-sessions-header {
+    spacing: 8px;
+}
+
+.frodo-sessions-summary {
+    font-size: 12px;
+    color: #a1a1aa;
+}
+
+.frodo-segmented.frodo-filters {
+    padding: 0;
+    background-color: transparent;
+}
+
+.frodo-filters .frodo-segmented-item {
+    height: 30px;
+    padding: 0 10px;
+    background-color: #232327;
+    color: #d4d4d8;
+}
+
+.frodo-filters .frodo-segmented-item:checked {
+    background-color: #f4f4f5;
+    color: #0a0a0b;
+}
+
+.frodo-sessions-list {
+    spacing: 6px;
+}
+
+.frodo-empty-state.frodo-sessions-hint {
+    padding: 0 0 14px;
+    text-align: center;
+}
+
+.frodo-session {
+    border-radius: 14px;
+    background-color: #1f1f23;
+}
+
+.frodo-session.frodo-session-open {
+    background-color: #232327;
+}
+
+.frodo-session-header {
+    padding: 12px;
+    border-radius: 14px;
+}
+
+.frodo-session-header:hover {
+    background-color: #26262b;
+}
+
+.frodo-session-content {
+    spacing: 12px;
+}
+
+.frodo-session-dot {
+    width: 8px;
+    height: 8px;
+    margin-top: 6px;
+    border-radius: 4px;
+}
+
+.frodo-session-text {
+    spacing: 3px;
+}
+
+.frodo-session-top {
+    spacing: 8px;
+}
+
+.frodo-session-repo {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.frodo-session-status {
+    font-size: 12px;
+}
+
+.frodo-session-meta {
+    font-size: 12px;
+    color: #a1a1aa;
+}
+
+.frodo-session-step {
+    font-size: 13px;
+    color: #d4d4d8;
+}
+
+.frodo-session-caret {
+    margin-top: 2px;
+    icon-size: 16px;
+    color: #a1a1aa;
+}
+
+.frodo-status-working {
+    color: st-mix(-st-accent-color, #ffffff, 70%);
+}
+
+.frodo-status-waiting {
+    color: #fbbf24;
+}
+
+.frodo-status-done {
+    color: #86efac;
+}
+
+.frodo-status-idle {
+    color: #a1a1aa;
+}
+
+.frodo-session-dot.frodo-status-working {
+    background-color: st-mix(-st-accent-color, #ffffff, 70%);
+}
+
+.frodo-session-dot.frodo-status-waiting {
+    background-color: #fbbf24;
+}
+
+.frodo-session-dot.frodo-status-done {
+    background-color: #86efac;
+}
+
+.frodo-session-dot.frodo-status-idle {
+    background-color: #a1a1aa;
+}
+
+.frodo-session-body {
+    padding: 0 12px 12px 32px;
+    spacing: 12px;
+}
+
+.frodo-gauge {
+    spacing: 5px;
+}
+
+.frodo-gauge-top {
+    spacing: 6px;
+}
+
+.frodo-gauge-name,
+.frodo-gauge-note,
+.frodo-session-field-name {
+    font-size: 12px;
+    color: #a1a1aa;
+}
+
+.frodo-gauge-value {
+    font-size: 12px;
+    color: #e4e4e7;
+}
+
+.frodo-session-warning {
+    font-size: 12px;
+    color: #fbbf24;
+}
+
+.frodo-session-field {
+    spacing: 2px;
+}
+
+.frodo-session-field-value {
+    font-size: 13px;
+}
+
+.frodo-session-diff {
+    spacing: 6px;
+}
+
+.frodo-diff-added {
+    color: #86efac;
+}
+
+.frodo-diff-removed {
+    color: #fca5a5;
+}
+
+.frodo-session-last {
+    padding: 8px 10px;
+    border-radius: 10px;
+    background-color: #0a0a0b;
+    font-size: 12px;
+    color: #d4d4d8;
+}
+
+.frodo-session-actions {
+    spacing: 6px;
+}
+
+.frodo-session-actions .frodo-text-button {
+    height: 32px;
+    padding: 0 12px;
+    font-size: 12px;
+    font-weight: 400;
+}
+
+.frodo-session-actions .frodo-button-primary {
+    font-weight: 500;
+}
+
 .frodo-card,
 .frodo-workspace,
 .frodo-general .quick-toggle-menu,
@@ -607,6 +809,7 @@
 
 .frodo-button:focus,
 .frodo-collapsible-header:focus,
+.frodo-session-header:focus,
 .frodo-notification:focus,
 .frodo-app:focus,
 .frodo-workspace:focus,
@@ -785,6 +988,10 @@
 .frodo-fill-claude,
 .frodo-segment.frodo-level-ok {
     background-color: #d97757;
+}
+
+.frodo-fill-light {
+    background-color: #e4e4e7;
 }
 
 .frodo-segment.frodo-level-warn {

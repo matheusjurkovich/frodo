@@ -78,7 +78,7 @@ export class IslandManager {
 
     #rebuild(): void {
         this.#clear();
-        const {settings, state, claude, transcripts, bridge, media, workspaces, openPreferences} = this.#dependencies;
+        const {settings, state, claude, transcripts, sessions, bridge, media, workspaces, openPreferences} = this.#dependencies;
         const primary = Main.layoutManager.primaryIndex;
         for (const monitorIndex of targetMonitors(settings.monitors, primary, Main.layoutManager.monitors.length)) {
             const island = new Island(settings, state, claude, monitorIndex);
@@ -86,7 +86,7 @@ export class IslandManager {
             island.on('opening', () => {
                 for (const other of this.#entries) if (other.island !== island) other.island.close();
             });
-            const content = new PanelContent({island, claude, transcripts, settings, bridge, media, workspaces, openPreferences});
+            const content = new PanelContent({island, claude, transcripts, sessions, settings, bridge, media, workspaces, openPreferences});
             island.setContent(content.actor);
             island.on('tabRequested', tab => {
                 content.showOnNextOpen(tab);

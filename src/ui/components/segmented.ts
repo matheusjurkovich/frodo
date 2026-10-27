@@ -4,20 +4,29 @@ import St from 'gi://St';
 import {Emitter} from '../../util/emitter.js';
 import {label} from './layout.js';
 
+const WRAP_SPACING = 6;
+
 interface Item {
     readonly button: St.Button;
     readonly count: St.Label;
 }
 
 export class Segmented<T extends string> extends Emitter<{changed: [T]}> {
-    readonly actor: St.BoxLayout;
+    readonly actor: St.Widget;
     readonly #items = new Map<T, Item>();
     #selected: T;
 
-    constructor(options: readonly {id: T; label: string}[], selected: T, styleClass: string) {
+    constructor(options: readonly {id: T; label: string}[], selected: T, styleClass: string, wrap = false) {
         super();
         this.#selected = selected;
-        this.actor = new St.BoxLayout({style_class: `frodo-segmented ${styleClass}`.trim(), y_align: Clutter.ActorAlign.CENTER});
+        const actorClass = `frodo-segmented ${styleClass}`.trim();
+        this.actor = wrap
+            ? new St.Widget({
+                  style_class: actorClass,
+                  layout_manager: new Clutter.FlowLayout({column_spacing: WRAP_SPACING, row_spacing: WRAP_SPACING}),
+                  x_expand: true,
+              })
+            : new St.BoxLayout({style_class: actorClass, y_align: Clutter.ActorAlign.CENTER});
         for (const {id, label: text} of options) {
             const count = label('', 'frodo-segmented-count frodo-mono');
             count.visible = false;

@@ -5,6 +5,7 @@ import {TAB_LABELS, tabToOpen, visibleTabs} from '../../core/tabs.js';
 import {TAB_IDS} from '../../core/types.js';
 import type {TabId} from '../../core/types.js';
 import type {ClaudeService} from '../../services/claude-service.js';
+import type {ClaudeSessions} from '../../services/claude-sessions.js';
 import type {ClaudeTranscripts} from '../../services/claude-transcripts.js';
 import type {MediaService} from '../../services/media.js';
 import type {NotificationBridge} from '../../services/notification-bridge.js';
@@ -31,6 +32,7 @@ export interface PanelDependencies {
     readonly island: Island;
     readonly claude: ClaudeService;
     readonly transcripts: ClaudeTranscripts;
+    readonly sessions: ClaudeSessions;
     readonly settings: FrodoSettings;
     readonly bridge: NotificationBridge;
     readonly media: MediaService;
@@ -51,7 +53,7 @@ export class PanelContent {
     #lastTab: TabId = TAB_IDS[0];
     #nextTab: TabId = TAB_IDS[0];
 
-    constructor({island, claude, transcripts, settings, bridge, media, workspaces, openPreferences}: PanelDependencies) {
+    constructor({island, claude, transcripts, sessions, settings, bridge, media, workspaces, openPreferences}: PanelDependencies) {
         this.#settings = settings;
 
         const specs: readonly TabSpec[] = [
@@ -66,6 +68,7 @@ export class PanelContent {
                     new ClaudePage({
                         claude,
                         transcripts,
+                        sessions,
                         settings,
                         actions: {
                             openPreferences,
