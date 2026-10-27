@@ -4,6 +4,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
 import {ClaudeService} from './services/claude-service.js';
+import {ClaudeSessions} from './services/claude-sessions.js';
 import {ClaudeTranscripts} from './services/claude-transcripts.js';
 import {MediaService} from './services/media.js';
 import {NotificationBridge} from './services/notification-bridge.js';
@@ -52,6 +53,12 @@ export default class FrodoExtension extends Extension {
         disposables.add(() => {
             transcripts.destroy();
         });
+        const sessions = new ClaudeSessions(settings, undefined, window => {
+            Main.activateWindow(window);
+        });
+        disposables.add(() => {
+            sessions.destroy();
+        });
         const media = new MediaService();
         disposables.add(() => {
             media.destroy();
@@ -74,6 +81,7 @@ export default class FrodoExtension extends Extension {
             state,
             claude,
             transcripts,
+            sessions,
             bridge,
             media,
             workspaces,

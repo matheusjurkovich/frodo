@@ -23,16 +23,121 @@ O `install.sh` compila para `dist/` e liga `dist/` em `~/.local/share/gnome-shel
 gnome-extensions enable frodo@matheusjurkovich
 ```
 
+## Sessões do Claude Code
+
+A aba Claude mostra as sessões abertas do Claude Code a partir de um hook. A cada evento, `hooks/claude-session.sh` grava o último evento da sessão em `$XDG_RUNTIME_DIR/frodo/sessions/<session_id>.json`, junto com o pid do Claude (`$CLAUDE_PID`). A extensão acompanha essa pasta com `Gio.FileMonitor` e tira da lista a sessão que acabou (`SessionEnd`) ou cujo processo morreu.
+
+Acrescente o bloco abaixo ao `~/.claude/settings.json`, junto com o que já houver em `hooks`:
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich/hooks/claude-session.sh"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich/hooks/claude-session.sh"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich/hooks/claude-session.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich/hooks/claude-session.sh"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich/hooks/claude-session.sh"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich/hooks/claude-session.sh"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich/hooks/claude-session.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich/hooks/claude-session.sh"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich/hooks/claude-session.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Cada perfil do Claude Code (`CLAUDE_CONFIG_DIR`, como `~/.claude-trabalho`) tem o próprio `settings.json` e precisa do mesmo bloco. Sem ele, as sessões daquele perfil não aparecem.
+
 ## Scripts
 
-| Comando             | O que faz                                                   |
-| ------------------- | ----------------------------------------------------------- |
-| `npm run build`     | Compila `src/` para `dist/` e copia metadata, CSS e schemas |
-| `npm run typecheck` | `tsc` em modo strict no código e nos testes                 |
-| `npm run lint`      | ESLint (typescript-eslint strict + stylistic)               |
-| `npm run format`    | Prettier                                                    |
-| `npm test`          | Jasmine rodando no `gjs`                                    |
-| `npm run check`     | Tudo acima, menos o build                                   |
+| Comando             | O que faz                                                          |
+| ------------------- | ------------------------------------------------------------------ |
+| `npm run build`     | Compila `src/` para `dist/` e copia metadata, CSS, schemas e hooks |
+| `npm run typecheck` | `tsc` em modo strict no código e nos testes                        |
+| `npm run lint`      | ESLint (typescript-eslint strict + stylistic)                      |
+| `npm run format`    | Prettier                                                           |
+| `npm test`          | Jasmine rodando no `gjs`                                           |
+| `npm run check`     | Tudo acima, menos o build                                          |
 
 ## Estrutura
 
@@ -47,6 +152,7 @@ src/
   util/               Emitter tipado, Disposables e Timer
   types/              declarações que faltam nos tipos @girs
 tests/                specs Jasmine (core, util e serviços)
+hooks/                hook do Claude Code que grava o estado de cada sessão
 ```
 
 Regras da arquitetura:
