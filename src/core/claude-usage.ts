@@ -288,9 +288,8 @@ export function effectiveLevel(window: LevelInput, now: number): Level {
 }
 
 export function displayLevel(window: LevelInput, now: number): Level {
-    const level = effectiveLevel(window, now);
-    if (level === 'crit') return 'crit';
-    return window.utilization >= DISPLAY_WARN_UTILIZATION ? 'warn' : level;
+    if (effectiveLevel(window, now) === 'crit') return 'crit';
+    return window.utilization >= DISPLAY_WARN_UTILIZATION || window.apiLevel === 'warn' ? 'warn' : 'ok';
 }
 
 export function humanDuration(seconds: number): string {

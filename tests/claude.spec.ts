@@ -165,6 +165,16 @@ describe('displayLevel', () => {
         expect(displayLevel({...base, utilization: 62}, now)).toBe('ok');
     });
 
+    it('fica calmo abaixo de 80% e avisa em 80%', () => {
+        expect(displayLevel({...base, utilization: 78}, now)).toBe('ok');
+        expect(displayLevel({...base, utilization: 79}, now)).toBe('ok');
+        expect(displayLevel({...base, utilization: 80}, now)).toBe('warn');
+    });
+
+    it('respeita o aviso da API', () => {
+        expect(displayLevel({...base, utilization: 50, apiLevel: 'warn'}, now)).toBe('warn');
+    });
+
     it('mantém o crítico da API', () => {
         expect(displayLevel({...base, utilization: 62, apiLevel: 'crit'}, now)).toBe('crit');
     });
