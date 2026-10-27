@@ -3,25 +3,23 @@ import GLib from 'gi://GLib';
 import GnomeDesktop from 'gi://GnomeDesktop';
 import St from 'gi://St';
 
-import {batteryLevel, ellipsize} from '../core/format.js';
-import {formatGb} from '../core/memory.js';
-import type {ClosedItem} from '../core/types.js';
-import {effectiveLevel, shownPercent} from '../core/claude-usage.js';
-import type {UsageWindow} from '../core/claude-usage.js';
-import type {ClaudeService} from '../services/claude-service.js';
-import type {InterceptedNotification} from '../services/notification-bridge.js';
-import type {FrodoSettings} from '../services/settings.js';
-import type {SystemState} from '../services/system-state.js';
-import {quickSettings} from '../shell/internals.js';
-import {Disposables} from '../util/disposables.js';
-import {Emitter} from '../util/emitter.js';
-import {Timer} from '../util/timer.js';
-import {dimLabel, separator} from './components/layout.js';
-import {ProgressRing} from './components/progress-ring.js';
-import {frodoIcon} from './icons.js';
+import {batteryLevel} from '../../core/format.js';
+import {formatGb} from '../../core/memory.js';
+import type {ClosedItem} from '../../core/types.js';
+import {displayLevel, shownPercent} from '../../core/claude-usage.js';
+import type {UsageWindow} from '../../core/claude-usage.js';
+import type {ClaudeService} from '../../services/claude-service.js';
+import type {FrodoSettings} from '../../services/settings.js';
+import type {SystemState} from '../../services/system-state.js';
+import {quickSettings} from '../../shell/internals.js';
+import {Disposables} from '../../util/disposables.js';
+import {Emitter} from '../../util/emitter.js';
+import {Timer} from '../../util/timer.js';
+import {dimLabel, separator} from '../components/layout.js';
+import type {Component} from '../components/lifecycle.js';
+import {ProgressRing} from '../components/progress-ring.js';
+import {frodoIcon} from '../icons.js';
 
-const FLASH_MS = 3000;
-const FLASH_CHARS = 40;
 const FADE_MS = 150;
 
 type TextItem = Exclude<ClosedItem, 'clock' | 'system'>;
@@ -43,23 +41,17 @@ function clockText(): string {
     return GLib.DateTime.new_now_local().format('%H:%M') ?? '';
 }
 
-export class Pill extends Emitter<{rebuilt: []}> {
-    readonly actor = new St.BoxLayout({style_class: 'frodo-pill', reactive: true, track_hover: true});
+export class IdleView extends Emitter<{rebuilt: []}> implements Component {
+    readonly actor = new St.BoxLayout({style_class: 'frodo-pill-content'});
 
     readonly #settings: FrodoSettings;
     readonly #state: SystemState;
     readonly #claude: ClaudeService;
-    readonly #content = new St.BoxLayout({style_class: 'frodo-pill-content'});
-    readonly #flashBox = new St.BoxLayout({style_class: 'frodo-pill-content', visible: false});
-    readonly #flashIcon = new St.Icon({style_class: 'frodo-flash-icon'});
-    readonly #flashLabel = new St.Label({y_align: Clutter.ActorAlign.CENTER});
     readonly #clock = new GnomeDesktop.WallClock();
     readonly #rotateTimer = new Timer();
-    readonly #flashTimer = new Timer();
     readonly #disposables = new Disposables();
     #segments: Segment[] = [];
     #clockLabels: St.Label[] = [];
-    #flashQueue: InterceptedNotification[] = [];
     #rotateIndex = 0;
     #rotatingSlot: St.Label | null = null;
 
@@ -68,10 +60,6 @@ export class Pill extends Emitter<{rebuilt: []}> {
         this.#settings = settings;
         this.#state = state;
         this.#claude = claude;
-        this.#flashBox.add_child(this.#flashIcon);
-        this.#flashBox.add_child(this.#flashLabel);
-        this.actor.add_child(this.#content);
-        this.actor.add_child(this.#flashBox);
 
         this.#disposables.signal(
             this.#clock,
@@ -107,35 +95,6 @@ export class Pill extends Emitter<{rebuilt: []}> {
         return this.#settings.closedMode !== 'minimal' && this.#settings.closedItems.includes('ram');
     }
 
-    flash(item: InterceptedNotification): void {
-        this.#flashQueue.push(item);
-        if (!this.#flashTimer.active) this.#nextFlash();
-    }
-
-    cancelFlash(): void {
-        this.#flashTimer.stop();
-        this.#flashQueue = [];
-        this.#flashBox.hide();
-        this.#content.show();
-    }
-
-    #nextFlash(): void {
-        const item = this.#flashQueue.shift();
-        if (!item) {
-            this.cancelFlash();
-            return;
-        }
-        this.#flashIcon.gicon = item.gicon ?? frodoIcon('info');
-        this.#flashLabel.text = ellipsize(item.title, FLASH_CHARS);
-        this.#content.hide();
-        this.#flashBox.opacity = 0;
-        this.#flashBox.show();
-        this.#flashBox.ease({opacity: 255, duration: 200, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
-        this.#flashTimer.once(FLASH_MS, () => {
-            this.#nextFlash();
-        });
-    }
-
     #syncClock(): void {
         const text = clockText();
         for (const label of this.#clockLabels) label.text = text;
@@ -152,7 +111,7 @@ export class Pill extends Emitter<{rebuilt: []}> {
 
     #build(): void {
         this.#rotateTimer.stop();
-        this.#content.destroy_all_children();
+        this.actor.destroy_all_children();
         this.#segments = [];
         this.#clockLabels = [];
         this.#rotateIndex = 0;
@@ -162,8 +121,8 @@ export class Pill extends Emitter<{rebuilt: []}> {
         for (const item of this.#items()) {
             const segment = rotating && isTextItem(item) ? this.#rotatingSegment() : this.#segment(item);
             if (!segment) continue;
-            this.#content.add_child(segment.separator);
-            this.#content.add_child(segment.actor);
+            this.actor.add_child(segment.separator);
+            this.actor.add_child(segment.actor);
             this.#segments.push(segment);
         }
         if (rotating)
@@ -261,7 +220,7 @@ export class Pill extends Emitter<{rebuilt: []}> {
                     return;
                 }
                 const shown = shownPercent(window.utilization, this.#settings.claudeShowRemaining);
-                ring.level = effectiveLevel(window, Date.now());
+                ring.level = displayLevel(window, Date.now());
                 ring.percent = shown;
                 value.text = `${Math.round(shown)}%`;
             },
@@ -336,7 +295,6 @@ export class Pill extends Emitter<{rebuilt: []}> {
 
     destroy(): void {
         this.#rotateTimer.stop();
-        this.#flashTimer.stop();
         this.#disposables.dispose();
         this.clearListeners();
         this.actor.destroy();

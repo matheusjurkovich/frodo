@@ -115,11 +115,6 @@ export default class FrodoExtension extends Extension {
         disposables.add(() => {
             islands.destroy();
         });
-        disposables.add(
-            bridge.on('intercepted', notification => {
-                islands.flash(notification);
-            }),
-        );
 
         for (const [name, action] of [
             [

@@ -8,6 +8,7 @@ import {
     formatTimer,
     formatTokens,
     formatUntil,
+    secondsSince,
 } from '../src/core/format.js';
 import {barHeight, centerClamp, segmentWidths} from '../src/core/geometry.js';
 import {formatGb, parseMeminfo} from '../src/core/memory.js';
@@ -216,6 +217,14 @@ describe('formatos do redesign', () => {
 
     it('duração de sessão', () => {
         expect([30, 240, 3840].map(formatSpan)).toEqual(['1 min', '4 min', '1 h 04 min']);
+    });
+
+    it('segundos desde o início, nunca negativos nem NaN', () => {
+        expect([now - 84e3, now, now + 5e3, Number.NaN, Number.POSITIVE_INFINITY].map(at => secondsSince(at, now))).toEqual([
+            84, 0, 0, 0, 0,
+        ]);
+        expect(formatTimer(secondsSince(now + 5e3, now))).toBe('0:00');
+        expect(formatTimer(secondsSince(Number.NaN, now))).toBe('0:00');
     });
 
     it('rótulo do atalho', () => {

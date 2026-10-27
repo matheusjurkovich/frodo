@@ -3,32 +3,18 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {targetMonitors} from '../core/monitors.js';
 import {tabToOpen, visibleTabs} from '../core/tabs.js';
 import type {TabId} from '../core/types.js';
-import type {InterceptedNotification} from '../services/notification-bridge.js';
-import type {ClaudeService} from '../services/claude-service.js';
-import type {ClaudeSessions} from '../services/claude-sessions.js';
 import type {ClaudeTranscripts} from '../services/claude-transcripts.js';
-import type {MediaService} from '../services/media.js';
 import type {NotificationBridge} from '../services/notification-bridge.js';
-import type {Recording} from '../services/recording.js';
-import type {FrodoSettings} from '../services/settings.js';
-import type {SystemState} from '../services/system-state.js';
 import type {Workspaces} from '../services/workspaces.js';
 import {Disposables} from '../util/disposables.js';
 import {Island} from './island.js';
+import type {IslandDependencies} from './island.js';
 import {PanelContent} from './panel/panel-content.js';
-import type {ActivityFeed} from './pill/activity-feed.js';
 
-export interface IslandManagerDependencies {
-    readonly settings: FrodoSettings;
-    readonly state: SystemState;
-    readonly claude: ClaudeService;
+export interface IslandManagerDependencies extends IslandDependencies {
     readonly transcripts: ClaudeTranscripts;
-    readonly sessions: ClaudeSessions;
     readonly bridge: NotificationBridge;
-    readonly media: MediaService;
     readonly workspaces: Workspaces;
-    readonly feed: ActivityFeed;
-    readonly recording: Recording;
     readonly openPreferences: () => void;
 }
 
@@ -72,20 +58,16 @@ export class IslandManager {
         return this.#entries.find(entry => entry.island.monitorIndex === current) ?? this.#entries[0];
     }
 
-    flash(notification: InterceptedNotification): void {
-        for (const {island} of this.#entries) island.flash(notification);
-    }
-
     closeAll(): void {
         for (const {island} of this.#entries) island.close();
     }
 
     #rebuild(): void {
         this.#clear();
-        const {settings, state, claude, transcripts, sessions, bridge, media, workspaces, openPreferences} = this.#dependencies;
+        const {settings, claude, transcripts, sessions, bridge, media, workspaces, openPreferences} = this.#dependencies;
         const primary = Main.layoutManager.primaryIndex;
         for (const monitorIndex of targetMonitors(settings.monitors, primary, Main.layoutManager.monitors.length)) {
-            const island = new Island(settings, state, claude, monitorIndex);
+            const island = new Island(this.#dependencies, monitorIndex);
             island.setPlacement(monitorIndex === primary && !settings.hideTopBar ? 'bar' : 'float');
             island.on('opening', () => {
                 for (const other of this.#entries) if (other.island !== island) other.island.close();

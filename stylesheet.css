@@ -6,12 +6,39 @@
 }
 
 .frodo-pill {
-    background-color: #000;
+    background-color: #0a0a0b;
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 999px;
-    padding: 7px 18px;
+    min-height: 38px;
+    padding: 0 18px;
     spacing: 12px;
     font-weight: 500;
     font-size: 10.5pt;
+}
+
+.frodo-pill-action {
+    min-height: 46px;
+    padding-right: 7px;
+}
+
+.frodo-pill-bar {
+    min-height: 0;
+}
+
+.frodo-pill-bar.frodo-pill-action {
+    padding-right: 4px;
+}
+
+.frodo-pill-recording {
+    border: 1px solid #fca5a5;
+}
+
+.frodo-pill-waiting {
+    border: 1px solid #fbbf24;
+}
+
+.frodo-pill-meeting {
+    border: 1px solid -st-accent-color;
 }
 
 .frodo-clock {
@@ -166,8 +193,66 @@
     spacing: 12px;
 }
 
-.frodo-flash-icon {
+.frodo-pill-icon {
     icon-size: 16px;
+}
+
+.frodo-pill-icon-waiting {
+    color: #fbbf24;
+}
+
+.frodo-pill-icon-claude {
+    color: #d97757;
+}
+
+.frodo-pill-icon-wave {
+    color: #a1a1aa;
+}
+
+.frodo-pill-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 4px;
+    background-color: #fca5a5;
+}
+
+.frodo-pill-title {
+    font-size: 13px;
+}
+
+.frodo-pill-detail,
+.frodo-pill-percent {
+    font-size: 12px;
+    color: #a1a1aa;
+}
+
+.frodo-pill-cover {
+    icon-size: 24px;
+    border-radius: 6px;
+}
+
+.frodo-pill-volume {
+    width: 96px;
+}
+
+.frodo-pill-percent {
+    min-width: 32px;
+    text-align: right;
+}
+
+.frodo-pill .frodo-text-button {
+    height: 32px;
+}
+
+.frodo-pill-bar .frodo-text-button {
+    height: 24px;
+    padding: 0 10px;
+    font-size: 12px;
+}
+
+.frodo-pill-bar .frodo-icon-button-32 {
+    width: 24px;
+    height: 24px;
 }
 
 .frodo-tray {

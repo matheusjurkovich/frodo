@@ -41,6 +41,11 @@ export function formatTimer(seconds: number): string {
     return hours > 0 ? `${hours}:${pad(minutes)}:${rest}` : `${minutes}:${rest}`;
 }
 
+export function secondsSince(thenMs: number, nowMs: number): number {
+    const seconds = (nowMs - thenMs) / 1000;
+    return Number.isFinite(seconds) ? Math.max(0, seconds) : 0;
+}
+
 export function formatAgo(thenMs: number, nowMs: number): string {
     const minutes = Math.floor((nowMs - thenMs) / 60e3);
     if (minutes < 1) return 'agora';

@@ -7,16 +7,19 @@ import type * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import {centerClamp} from '../core/geometry.js';
 import type {TabId} from '../core/types.js';
-import type {InterceptedNotification} from '../services/notification-bridge.js';
-import type {FrodoSettings} from '../services/settings.js';
 import type {ClaudeService} from '../services/claude-service.js';
+import type {ClaudeSessions} from '../services/claude-sessions.js';
+import type {MediaService} from '../services/media.js';
+import type {Recording} from '../services/recording.js';
+import type {FrodoSettings} from '../services/settings.js';
 import type {SystemState} from '../services/system-state.js';
 import {dateMenuContainer, hasRealFullscreen, onFullscreenStateChanged, panelCenterBox, sessionPanelHas} from '../shell/internals.js';
 import {Disposables} from '../util/disposables.js';
 import type {Disposer} from '../util/disposables.js';
 import {Emitter} from '../util/emitter.js';
 import {Timer} from '../util/timer.js';
-import {Pill} from './pill.js';
+import type {ActivityFeed} from './pill/activity-feed.js';
+import {Pill} from './pill/pill.js';
 
 const OPEN_DELAY_MS = 150;
 const CLOSE_DELAY_MS = 300;
@@ -27,6 +30,16 @@ const FLOAT_TOP = 6;
 
 export type OpenReason = 'hover' | 'click' | 'key';
 export type Placement = 'bar' | 'float';
+
+export interface IslandDependencies {
+    readonly settings: FrodoSettings;
+    readonly state: SystemState;
+    readonly claude: ClaudeService;
+    readonly feed: ActivityFeed;
+    readonly recording: Recording;
+    readonly sessions: ClaudeSessions;
+    readonly media: MediaService;
+}
 
 export interface IslandEvents {
     opening: [];
@@ -43,6 +56,7 @@ export class Island extends Emitter<IslandEvents> {
     readonly #settings: FrodoSettings;
     readonly #state: SystemState;
     readonly #claude: ClaudeService;
+    readonly #feed: ActivityFeed;
     readonly #grab = new GrabHelper(this.panel, {actionMode: Shell.ActionMode.POPUP});
     readonly #openTimer = new Timer();
     readonly #closeTimer = new Timer();
@@ -54,13 +68,22 @@ export class Island extends Emitter<IslandEvents> {
     #openedBy: OpenReason | null = null;
     #holds = 0;
 
-    constructor(settings: FrodoSettings, state: SystemState, claude: ClaudeService, monitorIndex: number) {
+    constructor(dependencies: IslandDependencies, monitorIndex: number) {
         super();
+        const {settings, state, claude, feed} = dependencies;
         this.#settings = settings;
         this.#state = state;
         this.#claude = claude;
+        this.#feed = feed;
         this.monitorIndex = monitorIndex;
-        this.pill = new Pill(settings, state, claude);
+        this.pill = new Pill({
+            ...dependencies,
+            actions: {
+                openTab: tab => {
+                    this.openTab(tab);
+                },
+            },
+        });
         Main.layoutManager.addTopChrome(this.panel, {affectsStruts: false});
 
         const pill = this.pill.actor;
@@ -84,7 +107,7 @@ export class Island extends Emitter<IslandEvents> {
         this.#disposables.signal(
             pill,
             pill.connect('button-press-event', (_actor, event) => {
-                if (event.get_button() === Clutter.BUTTON_PRIMARY) this.open('click');
+                if (event.get_button() === Clutter.BUTTON_PRIMARY && !this.pill.activate()) this.open('click');
                 return Clutter.EVENT_STOP;
             }),
         );
@@ -127,6 +150,7 @@ export class Island extends Emitter<IslandEvents> {
     setPlacement(placement: Placement): void {
         if (placement === this.#placement) return;
         this.#detach();
+        this.pill.setBar(placement === 'bar');
         if (placement === 'bar') this.#attachToBar();
         else this.#attachFloating();
         this.#syncFullscreen();
@@ -134,10 +158,6 @@ export class Island extends Emitter<IslandEvents> {
 
     setContent(content: Clutter.Actor | null): void {
         this.panel.set_child(content);
-    }
-
-    flash(notification: InterceptedNotification): void {
-        if (!this.#isOpen && !this.#fullscreen) this.pill.flash(notification);
     }
 
     holdWhileOpen(menu: PopupMenu.PopupMenu): Disposer {
@@ -162,7 +182,7 @@ export class Island extends Emitter<IslandEvents> {
     open(reason: OpenReason): void {
         if (this.#isOpen || this.#fullscreen) return;
         this.#openTimer.stop();
-        this.pill.cancelFlash();
+        this.#feed.cancelTransient();
         this.#isOpen = true;
         this.#openedBy = reason;
         this.pill.actor.reactive = false;
@@ -237,7 +257,7 @@ export class Island extends Emitter<IslandEvents> {
         const index = this.#dateMenu ? center.get_children().indexOf(this.#dateMenu) : -1;
         this.#dateMenu?.hide();
         pill.fixed_position_set = false;
-        pill.y_align = Clutter.ActorAlign.CENTER;
+        pill.y_align = Clutter.ActorAlign.FILL;
         center.insert_child_at_index(pill, Math.max(0, index));
         this.#placement = 'bar';
     }
@@ -284,7 +304,7 @@ export class Island extends Emitter<IslandEvents> {
         this.#fullscreen = this.#placement === 'float' && hasRealFullscreen(this.monitorIndex);
         this.pill.actor.visible = !this.#fullscreen;
         if (this.#fullscreen) {
-            this.pill.cancelFlash();
+            this.#feed.cancelTransient();
             this.close();
         }
     }
@@ -333,7 +353,7 @@ export class Island extends Emitter<IslandEvents> {
 
     #onPillHover(): void {
         if (this.#isOpen) return;
-        if (this.pill.actor.hover && this.#settings.openOnHover)
+        if (this.pill.actor.hover && this.#settings.openOnHover && !this.pill.hasAction)
             this.#openTimer.once(OPEN_DELAY_MS, () => {
                 this.open('hover');
             });

@@ -36,6 +36,8 @@ export type FrodoIconName =
     | 'battery-charging'
     | 'screenshot'
     | 'record'
+    | 'stop'
+    | 'wave'
     | 'mic-off'
     | 'terminal'
     | 'folder'
