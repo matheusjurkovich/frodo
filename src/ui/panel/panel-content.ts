@@ -14,7 +14,7 @@ import {column} from '../components/layout.js';
 import type {Component} from '../components/lifecycle.js';
 import type {Island} from '../island.js';
 import {CalendarPage} from './calendar/calendar-page.js';
-import {ClaudeTab} from './claude-tab.js';
+import {ClaudePage} from './claude/claude-page.js';
 import {GeneralPage} from './general/general-page.js';
 import {Header} from './header.js';
 import {NotificationsPage} from './notifications/notifications-page.js';
@@ -61,10 +61,14 @@ export class PanelContent {
                 icon: 'claude',
                 label: TAB_LABELS.claude,
                 create: () =>
-                    new ClaudeTab(claude, settings, {
-                        openPreferences,
-                        close: () => {
-                            island.close();
+                    new ClaudePage({
+                        claude,
+                        settings,
+                        actions: {
+                            openPreferences,
+                            close: () => {
+                                island.close();
+                            },
                         },
                     }),
             },

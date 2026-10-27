@@ -37,6 +37,7 @@ const LEVEL_RANK: Record<Level, number> = {ok: 0, warn: 1, crit: 2};
 const KNOWN_MODEL: Record<string, string> = {opus: 'Opus', sonnet: 'Sonnet', haiku: 'Haiku', oauth_apps: 'OAuth Apps'};
 const TIER_ICONS: readonly TierIcon[] = ['free', 'pro', 'max', 'team', 'enterprise'];
 const LOCKOUT_CRIT_FRACTION = 0.1;
+const DISPLAY_WARN_UTILIZATION = 80;
 
 function isJson(value: unknown): value is Json {
     return typeof value === 'object' && value !== null;
@@ -284,6 +285,12 @@ export function effectiveLevel(window: LevelInput, now: number): Level {
         level = maxLevel(level, 'warn');
     }
     return maxLevel(level, window.apiLevel);
+}
+
+export function displayLevel(window: LevelInput, now: number): Level {
+    const level = effectiveLevel(window, now);
+    if (level === 'crit') return 'crit';
+    return window.utilization >= DISPLAY_WARN_UTILIZATION ? 'warn' : level;
 }
 
 export function humanDuration(seconds: number): string {

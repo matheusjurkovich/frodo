@@ -1,21 +1,21 @@
-import Clutter from 'gi://Clutter';
-import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
 import St from 'gi://St';
 
-import {profileChip} from '../../core/claude-profiles.js';
-import {effectiveLevel, pacePercent, projectionNote, relativeReset, shownPace, shownPercent, tierIcon} from '../../core/claude-usage.js';
-import type {Spend, UsageWindow} from '../../core/claude-usage.js';
-import type {ClaudeService, ProfileUsage} from '../../services/claude-service.js';
-import type {FrodoSettings} from '../../services/settings.js';
-import {Disposables} from '../../util/disposables.js';
-import {Timer} from '../../util/timer.js';
-import {chip} from '../components/buttons.js';
-import {column, dimLabel, label, spacer} from '../components/layout.js';
-import {whileMapped} from '../components/lifecycle.js';
-import {SegmentBar, levelClass} from '../components/segment-bar.js';
-import {frodoIcon} from '../icons.js';
-import type {FrodoIconName} from '../icons.js';
+import {profileChip} from '../../../core/claude-profiles.js';
+import {displayLevel, pacePercent, projectionNote, relativeReset, shownPace, shownPercent, tierIcon} from '../../../core/claude-usage.js';
+import type {Level, Spend, UsageWindow} from '../../../core/claude-usage.js';
+import type {ClaudeService, ProfileUsage} from '../../../services/claude-service.js';
+import type {FrodoSettings} from '../../../services/settings.js';
+import {Disposables} from '../../../util/disposables.js';
+import {Timer} from '../../../util/timer.js';
+import {chip, iconButton} from '../../components/buttons.js';
+import {card, cardTitle} from '../../components/card.js';
+import {column, dimLabel, label, row, spacer} from '../../components/layout.js';
+import {whileMapped} from '../../components/lifecycle.js';
+import type {Component} from '../../components/lifecycle.js';
+import {SegmentBar, levelClass} from '../../components/segment-bar.js';
+import {frodoIcon} from '../../icons.js';
 
 const USAGE_PAGE = 'https://claude.ai/settings/usage';
 const TICK_SECONDS = 30;
@@ -29,24 +29,28 @@ function percentText(value: number): string {
     return `${Math.round(value)}%`;
 }
 
+function capitalize(text: string): string {
+    return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 interface MeterOptions {
     readonly name: string;
     readonly percent: number | null;
-    readonly fillClass: string;
+    readonly level: Level;
     readonly details: readonly string[];
     readonly pace?: number | null;
 }
 
-function meter({name, percent, fillClass, details, pace = null}: MeterOptions): St.BoxLayout {
+function meter({name, percent, level, details, pace = null}: MeterOptions): St.BoxLayout {
     const root = column('frodo-meter');
-    const top = new St.BoxLayout({x_expand: true});
+    const top = row('frodo-meter-top');
     top.add_child(label(name, 'frodo-meter-name'));
     top.add_child(spacer());
-    if (percent !== null) top.add_child(label(percentText(percent), 'frodo-meter-value'));
+    if (percent !== null) top.add_child(label(percentText(percent), 'frodo-meter-value frodo-mono'));
     root.add_child(top);
     if (percent !== null) {
         const bar = new SegmentBar();
-        bar.segments = [{fraction: percent / 100, styleClass: fillClass}];
+        bar.segments = [{fraction: percent / 100, styleClass: `frodo-fill-claude ${levelClass(level)}`}];
         bar.marker = pace === null ? null : pace / 100;
         root.add_child(bar.actor);
     }
@@ -55,14 +59,14 @@ function meter({name, percent, fillClass, details, pace = null}: MeterOptions): 
     return root;
 }
 
-export class ClaudeTab {
-    readonly actor = column('frodo-claude-tab');
+export class LimitsCard implements Component {
+    readonly actor = card('frodo-limits');
     readonly #service: ClaudeService;
     readonly #settings: FrodoSettings;
     readonly #actions: ClaudeTabActions;
     readonly #profiles = column('frodo-claude-profiles');
-    readonly #updated = dimLabel();
-    readonly #refreshLabel = label('Atualizar', 'frodo-button-label');
+    readonly #updated = label('', 'frodo-dim frodo-limits-updated');
+    readonly #refresh: St.Button;
     readonly #tick = new Timer();
     readonly #disposables = new Disposables();
 
@@ -70,8 +74,17 @@ export class ClaudeTab {
         this.#service = service;
         this.#settings = settings;
         this.#actions = actions;
+        this.#refresh = iconButton(
+            frodoIcon('refresh'),
+            'Atualizar',
+            () => {
+                void this.#service.refresh(true);
+            },
+            'control',
+            32,
+        );
+        this.actor.add_child(this.#header());
         this.actor.add_child(this.#profiles);
-        this.actor.add_child(this.#footer());
         this.#disposables.add(
             service.on('changed', () => {
                 this.#render();
@@ -98,44 +111,37 @@ export class ClaudeTab {
         this.#render();
     }
 
-    #footer(): St.BoxLayout {
-        const footer = column('frodo-claude-footer');
-        const buttons = new St.BoxLayout({style_class: 'frodo-claude-buttons', x_expand: true});
-        buttons.add_child(
-            this.#button('external', 'Página de uso', () => {
-                this.#actions.close();
-                Gio.AppInfo.launch_default_for_uri(USAGE_PAGE, null);
-            }),
+    #header(): St.BoxLayout {
+        const title = cardTitle('Limites de uso');
+        title.x_expand = true;
+        const header = row('frodo-limits-header');
+        header.add_child(title);
+        header.add_child(this.#updated);
+        header.add_child(
+            iconButton(
+                frodoIcon('external'),
+                'Página de uso',
+                () => {
+                    this.#actions.close();
+                    Gio.AppInfo.launch_default_for_uri(USAGE_PAGE, null);
+                },
+                'control',
+                32,
+            ),
         );
-        buttons.add_child(
-            this.#button('refresh', this.#refreshLabel, () => {
-                void this.#service.refresh(true);
-            }),
+        header.add_child(this.#refresh);
+        header.add_child(
+            iconButton(
+                frodoIcon('gear'),
+                'Configurações',
+                () => {
+                    this.#actions.openPreferences();
+                },
+                'control',
+                32,
+            ),
         );
-        buttons.add_child(
-            this.#button('gear', 'Configurações', () => {
-                this.#actions.openPreferences();
-            }),
-        );
-        footer.add_child(buttons);
-        footer.add_child(this.#updated);
-        return footer;
-    }
-
-    #button(icon: FrodoIconName, text: string | St.Label, onClick: () => void): St.Button {
-        const content = new St.BoxLayout({style_class: 'frodo-tab-content', x_align: Clutter.ActorAlign.CENTER});
-        const caption = typeof text === 'string' ? label(text, 'frodo-button-label') : text;
-        content.add_child(new St.Icon({gicon: frodoIcon(icon), style_class: 'frodo-tab-icon'}));
-        content.add_child(caption);
-        const button = new St.Button({
-            style_class: 'frodo-claude-button',
-            child: content,
-            x_expand: true,
-            can_focus: true,
-            accessible_name: caption.text,
-        });
-        button.connect('clicked', onClick);
-        return button;
+        return header;
     }
 
     #render(): void {
@@ -145,7 +151,7 @@ export class ClaudeTab {
         for (const usage of profiles) this.#profiles.add_child(this.#profileBlock(usage, profiles.length > 1, now));
         if (profiles.length === 0) this.#profiles.add_child(dimLabel('Procurando perfis do Claude Code…'));
 
-        this.#refreshLabel.text = profiles.length > 1 ? 'Atualizar todos' : 'Atualizar';
+        this.#refresh.accessible_name = profiles.length > 1 ? 'Atualizar todos' : 'Atualizar';
         const last = this.#service.lastRefresh;
         if (this.#service.lastFailed) this.#updated.text = 'Falha ao atualizar';
         else if (last > 0)
@@ -155,7 +161,7 @@ export class ClaudeTab {
 
     #profileBlock(usage: ProfileUsage, multiple: boolean, now: number): St.BoxLayout {
         const block = column('frodo-claude-profile');
-        const header = new St.BoxLayout({style_class: 'frodo-claude-header', x_expand: true});
+        const header = row('frodo-claude-header');
         header.add_child(new St.Icon({gicon: frodoIcon('claude'), style_class: 'frodo-claude-logo'}));
         header.add_child(label(usage.profile.label, 'frodo-claude-name'));
         if (multiple) header.add_child(chip(profileChip(usage.profile.label)));
@@ -181,8 +187,8 @@ export class ClaudeTab {
         return meter({
             name: `${window.label}${remaining ? ' · restante' : ''}`,
             percent: shownPercent(window.utilization, remaining),
-            fillClass: levelClass(effectiveLevel(window, now)),
-            details: [relativeReset(window.resetsAt, now), projectionNote(window, remaining, now)],
+            level: displayLevel(window, now),
+            details: [capitalize(relativeReset(window.resetsAt, now)), projectionNote(window, remaining, now)],
             pace: shownPace(pacePercent(window.resetsAt, window.totalSeconds, now), remaining),
         });
     }
@@ -192,7 +198,7 @@ export class ClaudeTab {
         return meter({
             name: 'Uso extra',
             percent: spend.percent === null ? null : shownPercent(spend.percent, remaining),
-            fillClass: levelClass(spend.level),
+            level: spend.level,
             details: [amounts],
         });
     }

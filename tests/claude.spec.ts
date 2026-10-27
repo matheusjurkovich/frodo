@@ -1,6 +1,7 @@
 import {
     accountSummary,
     claudeErrorMessage,
+    displayLevel,
     effectiveLevel,
     humanDuration,
     normalizeSpend,
@@ -152,6 +153,20 @@ describe('nível e projeção', () => {
         expect(projectionNote(window(20, 9000), false, NOW)).toBe('');
         expect(effectiveLevel(window(10, 9000, 'warn'), NOW)).toBe('warn');
         expect(effectiveLevel(window(95, 9000), NOW)).toBe('crit');
+    });
+});
+
+describe('displayLevel', () => {
+    const now = Date.UTC(2026, 9, 27, 12);
+    const base = {utilization: 0, resetsAt: null, totalSeconds: null, apiLevel: 'ok' as const};
+
+    it('avisa a partir de 80%', () => {
+        expect(displayLevel({...base, utilization: 86}, now)).toBe('warn');
+        expect(displayLevel({...base, utilization: 62}, now)).toBe('ok');
+    });
+
+    it('mantém o crítico da API', () => {
+        expect(displayLevel({...base, utilization: 62, apiLevel: 'crit'}, now)).toBe('crit');
     });
 });
 
