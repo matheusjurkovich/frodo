@@ -1,0 +1,58 @@
+name: release-macos
+
+on:
+  push:
+    tags:
+      - 'macos-v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: macos
+    env:
+      APPLE_CERTIFICATE_P12: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      APPLE_SIGN_IDENTITY: ${{ secrets.APPLE_SIGN_IDENTITY }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Testes
+        run: |
+          sh ../shared/hooks/claude-session.test.sh
+          swift test
+      - name: Importa o certificado
+        if: env.APPLE_CERTIFICATE_P12 != ''
+        run: |
+          keychain="$RUNNER_TEMP/frodo.keychain-db"
+          security create-keychain -p "ci" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "ci" "$keychain"
+          printf '%s' "$APPLE_CERTIFICATE_P12" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
+          security import "$RUNNER_TEMP/certificate.p12" -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$keychain"
+          security set-key-partition-list -S apple-tool:,apple: -k "ci" "$keychain"
+          security list-keychains -d user -s "$keychain" login.keychain-db
+      - name: Empacota
+        run: |
+          version="${GITHUB_REF_NAME#macos-v}"
+          if [ -n "$APPLE_SIGN_IDENTITY" ]; then export FRODO_SIGN_IDENTITY="$APPLE_SIGN_IDENTITY"; fi
+          FRODO_VERSION="$version" sh scripts/bundle.sh
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+      - name: Notariza
+        if: env.APPLE_ID != '' && env.APPLE_APP_PASSWORD != ''
+        run: |
+          xcrun notarytool submit "dist/Frodo-$VERSION.dmg" --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_PASSWORD" --wait
+          xcrun stapler staple "dist/Frodo-$VERSION.dmg"
+      - name: Cria a release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          notes="App macOS. Compilação universal (Apple Silicon e Intel), macOS 14 ou mais novo."
+          if [ -z "$APPLE_SIGN_IDENTITY" ]; then notes="$notes Esta versão não está notarizada: na primeira vez, abra com clique direito, Abrir."; fi
+          gh release create "$GITHUB_REF_NAME" "dist/Frodo-$VERSION.dmg" --verify-tag --title "Frodo macOS $VERSION" --notes "$notes"

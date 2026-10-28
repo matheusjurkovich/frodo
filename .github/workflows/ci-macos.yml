@@ -1,0 +1,40 @@
+name: ci-macos
+
+on:
+  pull_request:
+    paths:
+      - 'macos/**'
+      - 'shared/**'
+      - '.github/workflows/ci-macos.yml'
+  push:
+    branches: [master]
+    paths:
+      - 'macos/**'
+      - 'shared/**'
+      - '.github/workflows/ci-macos.yml'
+
+concurrency:
+  group: ci-macos-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: macos
+    steps:
+      - uses: actions/checkout@v4
+      - name: Testa o protocolo do hook
+        run: sh ../shared/hooks/claude-session.test.sh
+      - name: Testes
+        run: swift test
+      - name: Empacota o app
+        env:
+          FRODO_VERSION: 0.0.0-ci
+        run: sh scripts/bundle.sh
+      - name: Sobe o app empacotado
+        run: dist/Frodo.app/Contents/MacOS/Frodo --smoke
