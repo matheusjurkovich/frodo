@@ -222,8 +222,8 @@ src/
 tests/                    runner Jasmine (entry.js acha todo *.spec.ts), polyfills e fixtures
 tools/smoke.sh            gnome-shell headless isolado: liga, desliga e religa a extensão
 tools/devkit.sh           gnome-shell aninhado numa janela, isolado, para conferir ao vivo
-hooks/                    hook do Claude Code que grava o estado de cada sessão
-icons/                    ícones SVG simbólicos (créditos em icons/README.md)
+../shared/hooks/          hook do Claude Code que grava o estado de cada sessão (o build copia para dist/hooks/)
+../shared/icons/          ícones SVG simbólicos (créditos em ../shared/icons/README.md)
 ```
 
 Fontes de dados em `src/features/`:
@@ -257,4 +257,4 @@ Frodo é distribuído sob a **GPL-2.0** (`LICENSE`).
 
 A lógica da aba do Claude (leitura das credenciais do Claude Code, renovação do token, janelas de uso, uso extra, ritmo e projeção, plano da assinatura e perfis) foi portada para TypeScript a partir do [Claude Code Usage Monitor](https://github.com/dvdstelt/ClaudeCodeUsage), de Dennis van der Stelt, também GPL-2.0.
 
-Ícones: [Phosphor Icons](https://phosphoricons.com) (MIT) e logo do Claude do [Simple Icons](https://simpleicons.org) (CC0). Detalhes em `icons/README.md`.
+Ícones: [Phosphor Icons](https://phosphoricons.com) (MIT) e logo do Claude do [Simple Icons](https://simpleicons.org) (CC0). Detalhes em `../shared/icons/README.md`.

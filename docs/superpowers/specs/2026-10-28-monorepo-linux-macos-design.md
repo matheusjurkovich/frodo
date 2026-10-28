@@ -17,7 +17,8 @@ frodo/
   LICENSE                GPL-2.0
   docs/superpowers/      specs e planos
   linux/                 extensão do GNOME Shell (conteúdo anterior da raiz)
-  macos/                 app macOS em Swift (próxima etapa)
+  macos/                 app macOS em Swift (spec em 2026-10-28-frodo-macos-design.md)
+  shared/                hook do Claude Code portátil e ícones
   .github/workflows/     ci-linux, release-linux (e os do macOS depois)
 ```
 

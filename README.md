@@ -4,12 +4,12 @@ Dynamic island para o desktop: uma pílula no topo da tela com hora, bateria, RA
 
 ## Plataformas
 
-| Plataforma                      | Pasta             | Tecnologia                                     | Download                                                                                                                                          |
-| ------------------------------- | ----------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Linux (GNOME Shell 50, Wayland) | [`linux/`](linux) | TypeScript, roda dentro do próprio gnome-shell | [Releases](https://github.com/matheusjurkovich/frodo/releases) com tag `linux-v*`                                                                 |
-| macOS                           | `macos/`          | Swift (SwiftUI + AppKit)                       | Planejado: [`docs/superpowers/specs/2026-10-28-monorepo-linux-macos-design.md`](docs/superpowers/specs/2026-10-28-monorepo-linux-macos-design.md) |
+| Plataforma                      | Pasta             | Tecnologia                                     | Download                                                                          |
+| ------------------------------- | ----------------- | ---------------------------------------------- | --------------------------------------------------------------------------------- |
+| Linux (GNOME Shell 50, Wayland) | [`linux/`](linux) | TypeScript, roda dentro do próprio gnome-shell | [Releases](https://github.com/matheusjurkovich/frodo/releases) com tag `linux-v*` |
+| macOS 14+                       | [`macos/`](macos) | Swift (SwiftUI + AppKit)                       | [Releases](https://github.com/matheusjurkovich/frodo/releases) com tag `macos-v*` |
 
-O guia de cada plataforma (requisitos, instalação, comandos, arquitetura) fica na própria pasta: [`linux/README.md`](linux/README.md).
+O guia de cada plataforma (requisitos, instalação, comandos, arquitetura) fica na própria pasta: [`linux/README.md`](linux/README.md) e [`macos/README.md`](macos/README.md).
 
 ## Releases
 
@@ -18,12 +18,14 @@ Cada plataforma tem versão e tag próprias, para um ajuste de uma não mexer na
 | Tag            | Gera                                                             |
 | -------------- | ---------------------------------------------------------------- |
 | `linux-vX.Y.Z` | `frodo-linux-X.Y.Z.zip` (instala com `gnome-extensions install`) |
-| `macos-vX.Y.Z` | App macOS (quando existir)                                       |
+| `macos-vX.Y.Z` | `Frodo-X.Y.Z.dmg` (app universal, macOS 14 ou mais novo)         |
 
 ## Estrutura
 
 ```
 linux/                  extensão do GNOME Shell (TypeScript)
+macos/                  app macOS (Swift)
+shared/                 hook do Claude Code e ícones, comuns às duas
 docs/superpowers/       specs e planos de mudanças grandes
 .github/workflows/      CI e release de cada plataforma
 ```
@@ -32,7 +34,7 @@ docs/superpowers/       specs e planos de mudanças grandes
 
 - Conventional Commits em pt-BR, minúsculos (`feat: ...`, `fix: ...`), verificados pelo commitlint no hook `commit-msg`. Rode `npm ci` em `linux/` uma vez para instalar o hook.
 - Mudança grande começa por spec e plano em `docs/superpowers/`.
-- Regras de código e de arquitetura de cada plataforma: [`linux/CLAUDE.md`](linux/CLAUDE.md).
+- Regras de código e de arquitetura de cada plataforma: [`linux/CLAUDE.md`](linux/CLAUDE.md) e [`macos/CLAUDE.md`](macos/CLAUDE.md).
 
 ## Licença e créditos
 
