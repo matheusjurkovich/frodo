@@ -1,4 +1,6 @@
 import Clutter from 'gi://Clutter';
+import GLib from 'gi://GLib';
+import Meta from 'gi://Meta';
 import Shell from 'gi://Shell';
 import St from 'gi://St';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
@@ -72,6 +74,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
     #isOpen = false;
     #openedBy: OpenReason | null = null;
     #holds = 0;
+    #recenterLater = 0;
 
     constructor(dependencies: FrodoServices, monitorIndex: number) {
         super();
@@ -110,6 +113,16 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
                 this.#positionFloating();
             }),
         );
+        this.#disposables.signal(
+            pill,
+            pill.connect('notify::allocation', () => {
+                this.#queueRecenter();
+            }),
+        );
+        this.#disposables.add(() => {
+            if (this.#recenterLater !== 0) global.compositor.get_laters().remove(this.#recenterLater);
+            this.#recenterLater = 0;
+        });
         this.#disposables.signal(
             pill,
             pill.connect('button-press-event', (_actor, event) => {
@@ -418,6 +431,15 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         const scale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
         const height = Math.floor(content / scale);
         if (Number.isFinite(height)) this.panel.style = `max-height: ${Math.max(0, height)}px;`;
+    }
+
+    #queueRecenter(): void {
+        if (!this.#isOpen || this.#recenterLater !== 0) return;
+        this.#recenterLater = global.compositor.get_laters().add(Meta.LaterType.BEFORE_REDRAW, () => {
+            this.#recenterLater = 0;
+            this.#recenterPanel();
+            return GLib.SOURCE_REMOVE;
+        });
     }
 
     #recenterPanel(): void {
