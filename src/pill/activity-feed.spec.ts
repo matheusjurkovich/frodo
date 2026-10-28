@@ -354,4 +354,47 @@ describe('ActivityFeed', () => {
         expect(timers.onceMs()).toEqual([]);
         expect(changes).toBe(0);
     });
+
+    it('gravação aparece por 5 s e some até começar outra', () => {
+        recording.set(1000);
+        expect(timers.onceMs()).toEqual([5000]);
+        timers.fire(5000);
+        expect(feed.current).toBeNull();
+        recording.set(null);
+        recording.set(2000);
+        expect(feed.current).toEqual({kind: 'recording', startedAt: 2000});
+    });
+
+    it('reunião aparece por 5 s e não volta', () => {
+        meetings.set({title: 'Daily', startsAt: 5000});
+        timers.fire(5000);
+        expect(feed.current).toBeNull();
+        meetings.set({title: 'Daily', startsAt: 5000});
+        expect(feed.current).toBeNull();
+    });
+
+    it('pedido de permissão aparece por 5 s e cede a vez ao próximo', () => {
+        const waiting = session('b', 'waiting');
+        sessions.set([session('a', 'waiting'), waiting], [request('a', 'r1', 10)]);
+        expect(feed.current?.kind).toBe('claude-permission');
+        timers.fire(5000);
+        expect(feed.current).toEqual({kind: 'claude-waiting', session: waiting});
+        timers.fire(5000);
+        expect(feed.current).toBeNull();
+    });
+
+    it('atividade interrompida volta com 5 s inteiros', () => {
+        recording.set(1000);
+        bridge.push('Oi');
+        timers.fire(3000);
+        expect(feed.current?.kind).toBe('recording');
+        expect(timers.onceMs()).toEqual([5000, 3000, 5000]);
+    });
+
+    it('abrir a ilha dá como vista a gravação em andamento', () => {
+        recording.set(1000);
+        feed.cancelTransient();
+        expect(feed.current).toBeNull();
+        expect(timers.armed.size).toBe(0);
+    });
 });

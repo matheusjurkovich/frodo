@@ -56,6 +56,9 @@ export class ActivityView implements Component {
 
     constructor(services: ActivityServices) {
         this.#services = services;
+        this.actor.connect('destroy', () => {
+            this.#ticker.stop();
+        });
     }
 
     get hasAction(): boolean {

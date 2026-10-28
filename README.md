@@ -18,16 +18,16 @@ A engrenagem do cabeçalho abre as configurações, todas dentro da ilha (compor
 
 ## Estados da pílula
 
-Fechada, a pílula mostra hora, data, notificações, rede e bateria. Quando algo acontece, ela troca para uma atividade. Com mais de uma ao mesmo tempo, vale esta ordem de prioridade:
+Fechada, a pílula mostra hora, data, notificações, rede e bateria. Quando algo acontece, ela troca para uma atividade por no máximo 5 segundos e volta ao repouso; a mesma atividade só reaparece quando muda (gravação nova, outro passo do Claude, outra faixa, música retomada). Abrir a ilha dá como vistas as atividades em andamento. Com mais de uma ao mesmo tempo, vale esta ordem de prioridade, e a que foi interrompida volta depois com os 5 segundos inteiros:
 
-1. Notificação recebida (qualquer uma que não seja crítica), por 3 segundos.
-2. Gravação de tela, com o tempo e o botão Parar.
+1. Notificação recebida (qualquer uma que não seja crítica), por 3 segundos cada.
+2. Gravação de tela, com o tempo e o botão Parar (o cabeçalho da ilha também tem Parar gravação).
 3. Pedido de permissão do Claude, com a ferramenta e os botões Negar e Aprovar (o mais antigo, se houver vários).
 4. Sessão do Claude esperando permissão sem pedido aberto pela ilha, com o botão Abrir.
 5. Reunião em breve, com a contagem regressiva e o botão Abrir.
 6. Volume alterado, por 1,5 segundo.
-7. Sessão do Claude trabalhando, com o passo atual e o tempo.
-8. Música que começou a tocar, por 5 segundos, com capa redonda, título e botão de pausa.
+7. Sessão do Claude trabalhando, a cada ferramenta nova, com o passo atual e o tempo.
+8. Música tocando, com capa redonda, título e botão de pausa.
 
 Em tela cheia a pílula some e fica só a lingueta no topo. Em tela cheia, e sempre que a barra superior está oculta (a pílula flutua sobre janelas maximizadas que cobrem o monitor inteiro), a ilha desliga o scanout direto do compositor, como o GNOME faz com banners e OSD, para a pílula e a dock não piscarem sobre o app.
 
