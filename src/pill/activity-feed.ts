@@ -14,6 +14,7 @@ import {Timer} from '../shared/timer.js';
 const FLASH_MS = 3000;
 const VOLUME_MS = 1500;
 const CLAUDE_STEP_MS = 5000;
+const MEDIA_MS = 5000;
 
 export type PillActivity =
     | {kind: 'recording'; startedAt: number}
@@ -67,8 +68,11 @@ export class ActivityFeed extends Emitter<{changed: []}> {
     readonly #notificationTimer = new Timer();
     readonly #volumeTimer = new Timer();
     readonly #claudeTimer = new Timer();
+    readonly #mediaTimer = new Timer();
     readonly #steps = new Map<string, string>();
     #claude: string | null = null;
+    #playing: string | null = null;
+    #mediaFlash = false;
     #queue: InterceptedNotification[] = [];
     #notification: InterceptedNotification | null = null;
     #volume: number | null = null;
@@ -88,7 +92,12 @@ export class ActivityFeed extends Emitter<{changed: []}> {
             }),
         );
         this.#disposables.add(sources.meetings.on('changed', refresh));
-        this.#disposables.add(sources.media.on('changed', refresh));
+        this.#disposables.add(
+            sources.media.on('changed', () => {
+                this.#trackMedia(true);
+                this.#refresh();
+            }),
+        );
         this.#disposables.add(
             sources.bridge.on('intercepted', item => {
                 this.#queue.push(item);
@@ -106,6 +115,7 @@ export class ActivityFeed extends Emitter<{changed: []}> {
             }),
         );
         this.#trackSteps(false);
+        this.#trackMedia(false);
         this.#current = pickActivity(this.#candidates());
     }
 
@@ -117,11 +127,26 @@ export class ActivityFeed extends Emitter<{changed: []}> {
         this.#notificationTimer.stop();
         this.#volumeTimer.stop();
         this.#claudeTimer.stop();
+        this.#mediaTimer.stop();
         this.#queue = [];
         this.#notification = null;
         this.#volume = null;
         this.#claude = null;
+        this.#mediaFlash = false;
         this.#refresh();
+    }
+
+    #trackMedia(flash: boolean): void {
+        const track = this.#sources.media.current;
+        const playing = track?.playing ? `${track.app}\u0000${track.title}\u0000${track.artist}` : null;
+        if (playing === this.#playing) return;
+        this.#playing = playing;
+        if (playing === null || !flash) return;
+        this.#mediaFlash = true;
+        this.#mediaTimer.once(MEDIA_MS, () => {
+            this.#mediaFlash = false;
+            this.#refresh();
+        });
     }
 
     #trackSteps(flash: boolean): void {
@@ -173,7 +198,7 @@ export class ActivityFeed extends Emitter<{changed: []}> {
         if (this.#notification) candidates.push({kind: 'notification', item: this.#notification});
         if (this.#volume !== null) candidates.push({kind: 'volume', percent: this.#volume});
         const track = media.current;
-        if (track?.playing) candidates.push({kind: 'media', track});
+        if (track?.playing && this.#mediaFlash) candidates.push({kind: 'media', track});
         return candidates;
     }
 
@@ -187,6 +212,7 @@ export class ActivityFeed extends Emitter<{changed: []}> {
         this.#notificationTimer.stop();
         this.#volumeTimer.stop();
         this.#claudeTimer.stop();
+        this.#mediaTimer.stop();
         this.#disposables.dispose();
         this.clearListeners();
     }

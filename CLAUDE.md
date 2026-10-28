@@ -16,12 +16,11 @@ Código agrupado por camada e domínio. Import só desce: `app → pill, tabs �
 | Caminho                   | Papel                                                                                                                                                                             |
 | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/extension.ts`        | `enable`/`disable`: ícones, `createServices`, barra do topo, ilhas e atalhos                                                                                                      |
-| `src/prefs.ts`            | Janela de preferências (Adwaita). Roda no processo GTK, fora do shell                                                                                                             |
 | `src/app/`                | A ilha: `services.ts` (`FrodoServices`, `createServices`), `island.ts`, `island-manager.ts`, cabeçalho, barra de abas, menu de energia, barra do topo, monitores                  |
 | `src/pill/`               | Pílula: visão ociosa, visão de atividade, feed e prioridade das atividades                                                                                                        |
 | `src/tabs/<aba>/`         | Uma pasta plana por aba: `general`, `calendar`, `workspaces`, `claude`, `notifications`, `settings`                                                                               |
 | `src/features/<domínio>/` | Regra pura (`<assunto>.ts`) e serviço (`<assunto>-service.ts`, `claude-client.ts`) de cada fonte de dados: `claude`, `media`, `meetings`, `notifications`, `system`, `workspaces` |
-| `src/settings/`           | GSettings tipado (`frodo-settings.ts`), valores do schema, perfis do Claude, itens da pílula, atalho, abas                                                                        |
+| `src/settings/`           | GSettings tipado (`frodo-settings.ts`), valores do schema, perfis do Claude, atalho, abas                                                                                         |
 | `src/shared/`             | `Emitter`, `Disposables`, `Timer`, formatação, geometria, `readTextFile`, `Level`, `IslandHandle`, `shell-internals.ts`                                                           |
 | `src/shared/ui/`          | Componentes St: botões, cards, layout, anel, barra de segmentos, segmentado, ícones, `ActorLoan`                                                                                  |
 | `src/types/`              | Declarações que faltam nos `@girs`                                                                                                                                                |
@@ -41,7 +40,6 @@ Código agrupado por camada e domínio. Import só desce: `app → pill, tabs �
 | Em `features/`, só `*-service.ts` e `*-client.ts` importam `gi://` ou `resource://` (import de tipo pode); o resto tem teste | ESLint (`no-restricted-imports`)    |
 | Feature não importa outra feature; aba não importa outra aba (o comum vai para `shared/`)                                    | ESLint (`no-restricted-imports`)    |
 | Aba fala com a ilha só pelo `IslandHandle` (`src/shared/island-handle.ts`)                                                   | ESLint (aba não importa `app/`)     |
-| `prefs.ts` não importa `St`, `Clutter`, `Meta`, `Shell`, `resource:///org/gnome/shell/`, `shared/ui/` nem `shell-internals`  | ESLint (`no-restricted-imports`)    |
 | Serviço não conhece a UI; a UI assina eventos tipados (`Emitter`)                                                            | ESLint (camadas), revisão           |
 | Todo `connect`, timer e patch do `enable()` é desfeito no `disable()` por `Disposables`                                      | `npm run smoke` (religa), revisão   |
 | API privada do shell só em `src/shared/shell-internals.ts`                                                                   | revisão                             |

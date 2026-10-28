@@ -52,17 +52,5 @@ export default tseslint.config(
     restrict(['src/features/**/*-service.ts', 'src/features/**/*-client.ts'], [above('pill', 'tabs', 'app'), otherFeature]),
     restrict(['src/pill/**/*.ts'], [above('tabs', 'app')]),
     restrict(['src/tabs/**/*.ts'], [above('pill', 'app'), sibling('tabs', 'Aba não importa outra aba.')]),
-    restrict(
-        ['src/prefs.ts'],
-        [
-            above('app', 'pill', 'tabs'),
-            {regex: '(^|/)shared/(ui/|shell-internals)', message: 'prefs roda no GTK, fora do shell.'},
-            {
-                regex: '^(gi://(St|Clutter|Meta|Shell)|resource:///org/gnome/shell/)',
-                caseSensitive: true,
-                message: 'prefs roda no GTK, fora do shell.',
-            },
-        ],
-    ),
     prettier,
 );

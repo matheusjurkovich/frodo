@@ -101,10 +101,14 @@ export class Segmented<T extends string> extends Emitter<{changed: [T]}> {
         if (this.#wrap) this.#reflow();
     }
 
-    #select(id: T): void {
-        if (id === this.#selected) return;
+    set selected(id: T) {
         this.#selected = id;
         for (const [item, {button}] of this.#items) button.checked = item === id;
+    }
+
+    #select(id: T): void {
+        if (id === this.#selected) return;
+        this.selected = id;
         this.emit('changed', id);
     }
 

@@ -35,6 +35,7 @@ function shortcutButton(icon: FrodoIconName, text: string, onClick: () => void):
         child: content,
         can_focus: true,
         x_expand: true,
+        y_expand: true,
         accessible_name: text,
     });
     button.connect('clicked', onClick);
@@ -106,6 +107,8 @@ export class ShortcutsCard implements Component {
         ];
 
         const container = grid(SPACING);
+        container.y_expand = true;
+        if (container.layout_manager instanceof Clutter.GridLayout) container.layout_manager.row_homogeneous = true;
         this.#disposables.add(packGrid(container, buttons, COLUMNS));
         this.#card = new CollapsibleCard('shortcuts', 'Atalhos', settings);
         this.#card.body.add_child(container);

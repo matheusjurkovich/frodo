@@ -35,15 +35,7 @@ export default class FrodoExtension extends Extension {
 
         const services = createServices(this.getSettings(), disposables);
         disposables.own(new TopBarVisibility(services.settings));
-        const islands = disposables.own(
-            new IslandManager({
-                ...services,
-                openPreferences: () => {
-                    islands.closeAll();
-                    this.openPreferences();
-                },
-            }),
-        );
+        const islands = disposables.own(new IslandManager(services));
 
         for (const [name, action] of [
             [

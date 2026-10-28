@@ -352,6 +352,7 @@ export function calendarEventSource(): CalendarEventSource | null {
 export type PowerActions = ReturnType<typeof SystemActions.getDefault> & {
     activateSuspend(): void;
     activateRestart(): void;
+    activateLogout(): void;
     activatePowerOff(): void;
     activateLockScreen(): void;
 };

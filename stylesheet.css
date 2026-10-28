@@ -201,8 +201,11 @@
 }
 
 .frodo-pill-cover {
-    icon-size: 24px;
-    border-radius: 6px;
+    width: 24px;
+    height: 24px;
+    border-radius: 12px;
+    background-size: cover;
+    background-position: center;
 }
 
 .frodo-pill-volume {
@@ -900,6 +903,53 @@
     font-size: 13px;
 }
 
+.frodo-stepper {
+    spacing: 8px;
+}
+
+.frodo-stepper-value {
+    min-width: 52px;
+    text-align: center;
+    font-size: 13px;
+}
+
+.frodo-settings-profiles {
+    spacing: 8px;
+}
+
+.frodo-settings-profile {
+    spacing: 4px;
+}
+
+.frodo-entry {
+    min-height: 32px;
+    padding: 0 10px;
+    border: 1px solid #2e2e33;
+    border-radius: 10px;
+    background-color: #1f1f23;
+    color: #f4f4f5;
+    caret-color: #f4f4f5;
+    selection-background-color: -st-accent-color;
+    selected-color: -st-accent-fg-color;
+    font-size: 13px;
+}
+
+.frodo-entry:focus {
+    border-color: -st-accent-color;
+}
+
+.frodo-entry:error {
+    border-color: #f87171;
+}
+
+.frodo-entry StLabel.hint-text {
+    color: #71717a;
+}
+
+.frodo-entry-name StLabel.hint-text {
+    color: #f4f4f5;
+}
+
 .frodo-integration {
     spacing: 12px;
 }
@@ -929,13 +979,8 @@
 }
 
 .frodo-integration-google {
-    background-color: #1f5fa8;
-    color: #ffffff;
-}
-
-.frodo-integration-initials {
-    font-size: 13px;
-    font-weight: 700;
+    background-color: #ffffff;
+    color: #4285f4;
 }
 
 .frodo-integration-claude {

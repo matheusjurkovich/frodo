@@ -32,7 +32,7 @@ const USAGE_PAGE = 'https://claude.ai/settings/usage';
 const TICK_SECONDS = 30;
 
 export interface ClaudeTabActions {
-    readonly openPreferences: () => void;
+    readonly openSettings: () => void;
     readonly close: () => void;
 }
 
@@ -153,7 +153,7 @@ export class LimitsCard implements Component {
                 frodoIcon('gear'),
                 'Configurações',
                 () => {
-                    this.#actions.openPreferences();
+                    this.#actions.openSettings();
                 },
                 'control',
                 32,

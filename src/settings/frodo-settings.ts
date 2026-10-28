@@ -50,6 +50,10 @@ export class FrodoSettings {
         return this.gsettings.get_int('rotate-seconds');
     }
 
+    set rotateSeconds(value: number) {
+        this.gsettings.set_int('rotate-seconds', value);
+    }
+
     get monitors(): MonitorMode {
         const value = this.gsettings.get_string('monitors');
         return isOneOf(MONITOR_MODES, value) ? value : 'primary';
@@ -63,12 +67,24 @@ export class FrodoSettings {
         return this.gsettings.get_boolean('hide-top-bar');
     }
 
+    set hideTopBar(value: boolean) {
+        this.gsettings.set_boolean('hide-top-bar', value);
+    }
+
     get claudePollMinutes(): number {
         return this.gsettings.get_int('claude-poll-minutes');
     }
 
+    set claudePollMinutes(value: number) {
+        this.gsettings.set_int('claude-poll-minutes', value);
+    }
+
     get claudeShowRemaining(): boolean {
         return this.gsettings.get_boolean('claude-show-remaining');
+    }
+
+    set claudeShowRemaining(value: boolean) {
+        this.gsettings.set_boolean('claude-show-remaining', value);
     }
 
     get claudeProfiles(): ClaudeProfile[] {
@@ -89,6 +105,18 @@ export class FrodoSettings {
 
     get toggleShortcut(): string {
         return this.gsettings.get_strv('toggle-shortcut')[0] ?? '';
+    }
+
+    set toggleShortcut(value: string) {
+        this.gsettings.set_strv('toggle-shortcut', [value]);
+    }
+
+    get claudeShortcut(): string {
+        return this.gsettings.get_strv('claude-shortcut')[0] ?? '';
+    }
+
+    set claudeShortcut(value: string) {
+        this.gsettings.set_strv('claude-shortcut', [value]);
     }
 
     get openOnHover(): boolean {

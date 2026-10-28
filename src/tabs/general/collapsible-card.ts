@@ -42,6 +42,7 @@ export class CollapsibleCard implements Component {
         this.actor.add_child(header);
         this.actor.add_child(this.body);
 
+        this.body.y_expand = true;
         this.#caret.set_pivot_point(0.5, 0.5);
         this.#count.visible = false;
         this.#disposables.add(
@@ -73,6 +74,7 @@ export class CollapsibleCard implements Component {
     #sync(): void {
         const collapsed = this.#settings.collapsedCards.includes(this.#id);
         this.body.visible = !collapsed;
+        this.actor.y_expand = !collapsed;
         this.#caret.rotation_angle_z = collapsed ? 0 : 180;
         const summary = this.#summary.get_child();
         if (summary) summary.visible = collapsed;

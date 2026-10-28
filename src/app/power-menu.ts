@@ -29,6 +29,15 @@ const ENTRIES: readonly Entry[] = [
         },
     },
     {
+        text: 'Encerrar sessão',
+        icon: 'logout',
+        danger: false,
+        available: actions => actions.canLogout,
+        activate: actions => {
+            actions.activateLogout();
+        },
+    },
+    {
         text: 'Reiniciar',
         icon: 'restart',
         danger: false,
@@ -79,7 +88,7 @@ export class PowerMenu {
 
         this.#note = new PopupMenu.PopupBaseMenuItem({reactive: false, can_focus: false});
         this.#note.add_style_class_name('frodo-power-note');
-        const note = label('Programas abertos serão fechados ao reiniciar ou desligar.', 'frodo-power-note-text');
+        const note = label('Programas abertos serão fechados ao encerrar a sessão, reiniciar ou desligar.', 'frodo-power-note-text');
         note.x_expand = true;
         note.clutter_text.line_wrap = true;
         this.#note.add_child(note);
@@ -107,7 +116,7 @@ export class PowerMenu {
     #syncAvailability(): void {
         const actions = powerActions();
         for (const [entry, item] of this.#items) item.visible = entry.available(actions);
-        this.#note.visible = actions.canRestart || actions.canPowerOff;
+        this.#note.visible = actions.canLogout || actions.canRestart || actions.canPowerOff;
     }
 
     destroy(): void {
