@@ -254,6 +254,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         if (this.#isOpen) return;
         this.#openTimer.stop();
         this.#feed.cancelTransient();
+        this.#finishConceal();
         this.#isOpen = true;
         this.#openedBy = reason;
         this.pill.actor.set({reactive: false, hover: false});
@@ -339,7 +340,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         const pill = this.pill.actor;
         const backdrop = this.#backdrop;
         panel.remove_all_transitions();
-        pill.remove_all_transitions();
+        pill.remove_transition('opacity');
         backdrop.remove_all_transitions();
         backdrop.remove_constraint_by_name(FOLLOW);
         backdrop.hide();
@@ -486,6 +487,16 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
             this.#feed.cancelTransient();
             this.close();
         }
+        this.#syncTongue();
+    }
+
+    #finishConceal(): void {
+        const pill = this.pill.actor;
+        if (this.#pillWanted || !pill.visible) return;
+        pill.remove_all_transitions();
+        pill.set_size(-1, -1);
+        pill.hide();
+        pill.opacity = 255;
         this.#syncTongue();
     }
 

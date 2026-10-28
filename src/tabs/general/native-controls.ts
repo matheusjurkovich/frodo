@@ -243,6 +243,7 @@ export class NativeControls {
         slideOut(menu.actor, -1, () => {
             menu.actor.hide();
             settle(menu.actor);
+            menu.emit('menu-closed');
         });
         slideIn(content, -1);
     }
@@ -250,7 +251,10 @@ export class NativeControls {
     #restore(menus: readonly QuickToggleMenu[]): void {
         for (const menu of menus) {
             settle(menu.actor);
-            menu.box.opacity = 255;
+            if (menu.isOpen) continue;
+            menu.actor.hide();
+            menu.actor.height = 0;
+            menu.box.opacity = 0;
         }
         settle(this.#content);
         this.#content.set({height: -1, opacity: 255, reactive: true, clip_to_allocation: false});

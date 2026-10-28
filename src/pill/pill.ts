@@ -24,6 +24,11 @@ const STATE_CLASSES: Partial<Record<ActivityKind, string>> = {
     notification: 'frodo-pill-notification',
 };
 
+function disarm(actor: Clutter.Actor): void {
+    actor.reactive = false;
+    for (const child of actor.get_children()) disarm(child);
+}
+
 export interface PillDependencies extends ActivityServices {
     readonly settings: FrodoSettings;
     readonly state: SystemState;
@@ -109,7 +114,8 @@ export class Pill extends Emitter<{rebuilt: []}> {
                 settle(outgoing);
             });
         } else if (outgoing) {
-            this.#activity.actor.add_child(outgoing);
+            disarm(outgoing);
+            this.#activity.actor.insert_child_below(outgoing, null);
             fadeOut(outgoing, () => {
                 outgoing.destroy();
             });
