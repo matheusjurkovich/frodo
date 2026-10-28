@@ -98,6 +98,10 @@ export class ActivityView implements Component {
         return this.#hasAction;
     }
 
+    get clickTab(): TabId | null {
+        return this.#clickTab;
+    }
+
     get content(): St.BoxLayout | null {
         return this.#content;
     }

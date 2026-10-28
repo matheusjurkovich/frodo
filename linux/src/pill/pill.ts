@@ -7,6 +7,7 @@ import type {ClaudeService} from '../features/claude/claude-service.js';
 import type {NotificationBridge} from '../features/notifications/notification-bridge-service.js';
 import type {FrodoSettings} from '../settings/frodo-settings.js';
 import type {SystemState} from '../features/system/system-state-service.js';
+import type {TabId} from '../settings/schema-values.js';
 import {Disposables} from '../shared/disposables.js';
 import {Emitter} from '../shared/emitter.js';
 import {SOFT_SPRING, SPRING} from '../shared/spring.js';
@@ -86,6 +87,10 @@ export class Pill extends Emitter<{rebuilt: []}> {
 
     get hasAction(): boolean {
         return this.#activity.hasAction;
+    }
+
+    get clickTab(): TabId | null {
+        return this.#activity.clickTab;
     }
 
     setBar(bar: boolean): void {

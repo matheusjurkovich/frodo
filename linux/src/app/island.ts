@@ -297,6 +297,8 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
 
     open(reason: OpenReason): void {
         if (this.#isOpen) return;
+        const tab = reason === 'hover' ? this.pill.clickTab : null;
+        if (tab) this.emit('tabRequested', tab);
         this.#openTimer.stop();
         this.#feed.cancelTransient();
         this.#finishConceal();
