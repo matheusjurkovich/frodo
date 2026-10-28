@@ -64,6 +64,7 @@
 .frodo-sep {
     width: 1px;
     height: 14px;
+    min-height: 14px;
     background-color: #2a2a2f;
 }
 
@@ -79,6 +80,7 @@
 .frodo-ring {
     width: 16px;
     height: 16px;
+    min-height: 16px;
     -frodo-track-color: #2a2a2f;
 }
 
@@ -94,6 +96,7 @@
 
 .frodo-header {
     height: 44px;
+    min-height: 44px;
     padding: 0 4px 0 12px;
     spacing: 8px;
 }
@@ -149,6 +152,7 @@
 .frodo-pill-dot {
     width: 8px;
     height: 8px;
+    min-height: 8px;
     border-radius: 4px;
     background-color: #fca5a5;
 }
@@ -188,10 +192,12 @@
 
 .frodo-pill .frodo-text-button {
     height: 32px;
+    min-height: 32px;
 }
 
 .frodo-pill-bar .frodo-text-button {
     height: 24px;
+    min-height: 24px;
     padding: 0 10px;
     font-size: 12px;
 }
@@ -199,6 +205,7 @@
 .frodo-pill-bar .frodo-icon-button-32 {
     width: 24px;
     height: 24px;
+    min-height: 24px;
 }
 
 .frodo-tray {
@@ -227,6 +234,7 @@
 
 .frodo-tab {
     height: 36px;
+    min-height: 36px;
     padding: 0 12px;
     border-radius: 999px;
     font-size: 13px;
@@ -381,6 +389,7 @@
 
 .frodo-chart-plot {
     height: 64px;
+    min-height: 64px;
 }
 
 .frodo-chart-bar {
@@ -403,6 +412,7 @@
 
 .frodo-chart-axis {
     height: 16px;
+    min-height: 16px;
     margin-top: 4px;
 }
 
@@ -417,6 +427,7 @@
 
 .frodo-track.frodo-model-bar {
     height: 10px;
+    min-height: 10px;
     border-radius: 5px;
 }
 
@@ -447,6 +458,7 @@
 .frodo-legend-swatch {
     width: 8px;
     height: 8px;
+    min-height: 8px;
     border-radius: 2px;
 }
 
@@ -496,6 +508,7 @@
 
 .frodo-filters .frodo-segmented-item {
     height: 30px;
+    min-height: 30px;
     padding: 0 10px;
     background-color: #232327;
     color: #d4d4d8;
@@ -540,6 +553,7 @@
 .frodo-session-dot {
     width: 8px;
     height: 8px;
+    min-height: 8px;
     margin-top: 6px;
     border-radius: 4px;
 }
@@ -673,6 +687,7 @@
 
 .frodo-session-actions .frodo-text-button {
     height: 32px;
+    min-height: 32px;
     padding: 0 12px;
     font-size: 12px;
     font-weight: 400;
@@ -731,6 +746,7 @@
 
 .frodo-power-item {
     height: 44px;
+    min-height: 44px;
     padding: 0 12px;
     spacing: 12px;
     border-radius: 12px;
@@ -812,6 +828,7 @@
 .frodo-integration-icon {
     width: 36px;
     height: 36px;
+    min-height: 36px;
     border-radius: 10px;
 }
 
@@ -905,20 +922,24 @@
 .frodo-icon-button-32 {
     width: 32px;
     height: 32px;
+    min-height: 32px;
 }
 
 .frodo-icon-button-36 {
     width: 36px;
     height: 36px;
+    min-height: 36px;
 }
 
 .frodo-icon-button-44 {
     width: 44px;
     height: 44px;
+    min-height: 44px;
 }
 
 .frodo-text-button {
     height: 36px;
+    min-height: 36px;
     padding: 0 14px;
     font-size: 13px;
     font-weight: 500;
@@ -952,6 +973,7 @@
 .frodo-chip-counter {
     min-width: 8px;
     height: 18px;
+    min-height: 18px;
     padding: 0 5px;
     border-radius: 9px;
     background-color: -st-accent-color;
@@ -966,6 +988,7 @@
 
 .frodo-segmented-item {
     height: 28px;
+    min-height: 28px;
     padding: 0 12px;
     border-radius: 999px;
     font-size: 12px;
@@ -987,6 +1010,7 @@
 
 .frodo-track {
     height: 6px;
+    min-height: 6px;
     border-radius: 999px;
     background-color: #2a2a2f;
 }
@@ -1169,6 +1193,7 @@
 
 .frodo-media .frodo-track {
     height: 4px;
+    min-height: 4px;
 }
 
 .frodo-media-fill {
@@ -1186,6 +1211,7 @@
 
 .frodo-collapsible-header {
     height: 40px;
+    min-height: 40px;
     padding: 0 10px;
     border-radius: 12px;
     color: #a1a1aa;
@@ -1221,6 +1247,7 @@
 
 .frodo-shortcut {
     height: 64px;
+    min-height: 64px;
     border-radius: 14px;
     font-size: 12px;
 }
@@ -1240,6 +1267,7 @@
 
 .frodo-app {
     height: 64px;
+    min-height: 64px;
     border-radius: 14px;
     color: #e4e4e7;
 }
@@ -1255,6 +1283,7 @@
 .frodo-app-icon {
     width: 34px;
     height: 34px;
+    min-height: 34px;
 }
 
 .frodo-calendar {
@@ -1288,6 +1317,7 @@
 .frodo-calendar .pager-button {
     width: 32px;
     height: 32px;
+    min-height: 32px;
     padding: 0;
     border-radius: 999px;
     background-color: transparent;
@@ -1300,6 +1330,7 @@
 
 .frodo-calendar .calendar-day-heading {
     height: 24px;
+    min-height: 24px;
     margin: 0 1px;
     padding: 0;
     background-color: transparent;
@@ -1311,6 +1342,7 @@
 .frodo-calendar .calendar-day {
     width: 36px;
     height: 36px;
+    min-height: 36px;
     margin: 1px;
     border: 1px solid transparent;
     border-radius: 12px;
@@ -1383,6 +1415,7 @@
 
 .frodo-notifications .frodo-text-button {
     height: 32px;
+    min-height: 32px;
     padding: 0 12px;
     font-size: 12px;
     font-weight: 400;
@@ -1495,6 +1528,7 @@
 .frodo-workspace-badge {
     width: 20px;
     height: 20px;
+    min-height: 20px;
     border-radius: 6px;
     background-color: #2a2a2f;
     color: #d4d4d8;

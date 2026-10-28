@@ -1,6 +1,6 @@
 import type Clutter from 'gi://Clutter';
 
-import {calendarParts} from '../../../shell/internals.js';
+import {calendarParts, closeDateMenu} from '../../../shell/internals.js';
 import {Disposables} from '../../../util/disposables.js';
 import {ActorLoan} from '../../actor-loan.js';
 import {column, row} from '../../components/layout.js';
@@ -35,6 +35,7 @@ export class CalendarPage implements Component {
 
     #borrow(): void {
         this.#loan.dispose();
+        closeDateMenu();
         const parts = calendarParts();
         if (!parts?.month.get_parent() || !parts.events.get_parent()) return;
         parts.selectToday();

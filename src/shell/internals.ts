@@ -156,6 +156,10 @@ export function closeQuickSettingsMenu(): void {
     quickSettings()?.menu.close(PopupAnimation.NONE);
 }
 
+export function closeDateMenu(): void {
+    Main.panel.statusArea.dateMenu?.menu.close(PopupAnimation.NONE);
+}
+
 export function quickSettingsItemMenu(item: Clutter.Actor): QuickToggleMenu | null {
     return (item as {readonly menu?: QuickToggleMenu | null}).menu ?? null;
 }
