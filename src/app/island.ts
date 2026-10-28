@@ -14,8 +14,9 @@ import type {FrodoSettings} from '../settings/frodo-settings.js';
 import type {SystemState} from '../features/system/system-state-service.js';
 import {
     dateMenuContainer,
+    hasMaximizedWindow,
     hasRealFullscreen,
-    onFullscreenStateChanged,
+    onWindowCoverChanged,
     panelCenterBox,
     sessionPanelHas,
     watchTopEdge,
@@ -69,7 +70,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
     readonly #disposables = new Disposables();
     #placement: Placement | null = null;
     #dateMenu: Clutter.Actor | null = null;
-    #fullscreen = false;
+    #covered = false;
     #unredirectDisabled = false;
     #isOpen = false;
     #openedBy: OpenReason | null = null;
@@ -172,8 +173,8 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
             }),
         );
         this.#disposables.add(
-            onFullscreenStateChanged(() => {
-                this.#syncFullscreen();
+            onWindowCoverChanged(() => {
+                this.#syncCovered();
             }),
         );
         this.#disposables.signal(
@@ -191,7 +192,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         this.pill.setBar(placement === 'bar');
         if (placement === 'bar') this.#attachToBar();
         else this.#attachFloating();
-        this.#syncFullscreen();
+        this.#syncCovered();
     }
 
     setContent(content: Clutter.Actor | null): void {
@@ -304,7 +305,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
     }
 
     #anchor(): Clutter.Actor {
-        return this.#fullscreen ? this.#tongue : this.pill.actor;
+        return this.#covered ? this.#tongue : this.pill.actor;
     }
 
     #watchTopEdge(): void {
@@ -314,7 +315,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         if (!span) return;
         this.#disposables.add(
             watchTopEdge(span, () => {
-                if (this.#isOpen || this.#fullscreen || this.pill.hasAction || !this.#settings.openOnHover) return;
+                if (this.#isOpen || this.#covered || this.pill.hasAction || !this.#settings.openOnHover) return;
                 this.open('hover');
                 this.#closeTimer.once(EDGE_GRACE_MS, () => {
                     if (!this.panel.hover && this.#holds === 0) this.close();
@@ -325,7 +326,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
 
     #syncTongue(): void {
         const tongue = this.#tongue;
-        const visible = this.#fullscreen && !this.#isOpen;
+        const visible = this.#covered && !this.#isOpen;
         if (tongue.visible !== visible) tongue.set({visible, hover: false});
         const monitor = this.#monitor();
         if (tongue.visible && monitor) tongue.set_position(Math.round(monitor.x + (monitor.width - tongue.width) / 2), monitor.y);
@@ -381,11 +382,11 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         pill.set_position(Math.round(monitor.x + (monitor.width - pill.width) / 2), monitor.y + FLOAT_TOP);
     }
 
-    #syncFullscreen(): void {
-        const fullscreen = hasRealFullscreen(this.monitorIndex);
-        const entering = fullscreen && !this.#fullscreen;
-        this.#fullscreen = fullscreen;
-        this.pill.actor.visible = !fullscreen;
+    #syncCovered(): void {
+        const covered = hasRealFullscreen(this.monitorIndex) || (this.#placement === 'float' && hasMaximizedWindow(this.monitorIndex));
+        const entering = covered && !this.#covered;
+        this.#covered = covered;
+        this.pill.actor.visible = !covered;
         this.#syncUnredirect();
         if (entering) {
             this.#feed.cancelTransient();
@@ -395,7 +396,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
     }
 
     #syncUnredirect(): void {
-        const disable = this.#fullscreen || this.#placement === 'float';
+        const disable = this.#covered || this.#placement === 'float';
         if (disable === this.#unredirectDisabled) return;
         this.#unredirectDisabled = disable;
         if (disable) global.compositor.disable_unredirect();
@@ -507,7 +508,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         this.clearListeners();
         this.#flushPendingRelayout();
         this.#release();
-        this.#fullscreen = false;
+        this.#covered = false;
         this.#syncUnredirect();
         Main.layoutManager.untrackChrome(this.panel);
         Main.layoutManager.removeChrome(this.#tongue);

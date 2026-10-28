@@ -375,22 +375,35 @@ function isVisibleOnActiveWorkspace(window: Meta.Window): boolean {
 }
 
 export function hasRealFullscreen(monitorIndex: number): boolean {
+    return visibleWindowsOn(monitorIndex).some(window => window.is_fullscreen());
+}
+
+export function hasMaximizedWindow(monitorIndex: number): boolean {
+    return visibleWindowsOn(monitorIndex).some(
+        window => window.maximized_vertically && window.get_window_type() === Meta.WindowType.NORMAL,
+    );
+}
+
+function visibleWindowsOn(monitorIndex: number): Meta.Window[] {
     return global
         .get_window_actors()
         .map(actor => actor.meta_window)
-        .some(
-            window =>
-                window !== null && window.is_fullscreen() && window.get_monitor() === monitorIndex && isVisibleOnActiveWorkspace(window),
+        .filter(
+            (window): window is Meta.Window =>
+                window !== null && window.get_monitor() === monitorIndex && isVisibleOnActiveWorkspace(window),
         );
 }
 
-export function onFullscreenStateChanged(callback: () => void): Disposer {
+export function onWindowCoverChanged(callback: () => void): Disposer {
     const display = global.display;
     const workspaces = global.workspace_manager;
-    const fullscreenId = display.connect('in-fullscreen-changed', callback);
+    const wm = global.window_manager;
+    const displayIds = ['in-fullscreen-changed', 'restacked', 'window-entered-monitor'].map(signal => display.connect(signal, callback));
+    const wmIds = ['size-changed', 'minimize', 'unminimize', 'map', 'destroy'].map(signal => wm.connect(signal, callback));
     const workspaceId = workspaces.connect('active-workspace-changed', callback);
     return () => {
-        display.disconnect(fullscreenId);
+        for (const id of displayIds) display.disconnect(id);
+        for (const id of wmIds) wm.disconnect(id);
         workspaces.disconnect(workspaceId);
     };
 }
