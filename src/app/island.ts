@@ -26,7 +26,9 @@ import type {Disposer} from '../shared/disposables.js';
 import {Emitter} from '../shared/emitter.js';
 import type {IslandHandle} from '../shared/island-handle.js';
 import type {FrodoServices} from './services.js';
+import {SOFT_SPRING, SPRING} from '../shared/spring.js';
 import {Timer} from '../shared/timer.js';
+import {springEase} from '../shared/ui/motion.js';
 import type {ActivityFeed} from '../pill/activity-feed.js';
 import {Pill} from '../pill/pill.js';
 
@@ -38,6 +40,7 @@ const CLAUDE_MAX_AGE_SECONDS = 60;
 const FLOAT_TOP = 6;
 const EDGE_SPAN = 900;
 const EDGE_GRACE_MS = 1500;
+const REVEAL_FADE_MS = 220;
 
 export type OpenReason = 'hover' | 'click' | 'key';
 
@@ -72,6 +75,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
     #dateMenu: Clutter.Actor | null = null;
     #covered = false;
     #unredirectDisabled = false;
+    #pillWanted = true;
     #isOpen = false;
     #openedBy: OpenReason | null = null;
     #holds = 0;
@@ -394,13 +398,55 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         const alert = !fullscreen && (kind === 'notification' || kind === 'claude-permission');
         const entering = covered && !this.#covered;
         this.#covered = covered;
-        this.pill.actor.visible = !covered || alert;
+        this.#showPill(!covered || alert, !fullscreen && this.#placement === 'float' && !this.#isOpen);
         this.#syncUnredirect();
         if (entering) {
             this.#feed.cancelTransient();
             this.close();
         }
         this.#syncTongue();
+    }
+
+    #showPill(wanted: boolean, animate: boolean): void {
+        if (wanted === this.#pillWanted) return;
+        this.#pillWanted = wanted;
+        const pill = this.pill.actor;
+        if (!animate) {
+            pill.visible = wanted;
+            return;
+        }
+        const [, tongueWidth] = this.#tongue.get_preferred_width(-1);
+        const [, tongueHeight] = this.#tongue.get_preferred_height(tongueWidth);
+        if (!wanted) {
+            springEase(pill, {width: tongueWidth, height: tongueHeight}, SOFT_SPRING);
+            pill.ease({
+                opacity: 0,
+                duration: SOFT_SPRING.ms,
+                mode: Clutter.AnimationMode.EASE_IN_QUAD,
+                onComplete: () => {
+                    pill.remove_all_transitions();
+                    pill.set_size(-1, -1);
+                    pill.hide();
+                    pill.opacity = 255;
+                    this.#syncTongue();
+                },
+            });
+            return;
+        }
+        const shown = pill.visible;
+        const fromWidth = shown ? pill.width : tongueWidth;
+        const fromHeight = shown ? pill.height : tongueHeight;
+        pill.remove_all_transitions();
+        pill.set_size(-1, -1);
+        pill.show();
+        const [, width] = pill.get_preferred_width(-1);
+        const [, height] = pill.get_preferred_height(width);
+        pill.set_size(fromWidth, fromHeight);
+        if (!shown) pill.opacity = 0;
+        springEase(pill, {width, height}, SPRING, () => {
+            pill.set_size(-1, -1);
+        });
+        pill.ease({opacity: 255, duration: REVEAL_FADE_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
     }
 
     #syncUnredirect(): void {
