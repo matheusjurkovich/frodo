@@ -132,7 +132,10 @@ npm run pack -- 1.2.3  # build + frodo-linux-1.2.3.zip pronto para o extensions.
 - O PR de release não roda o `ci-linux.yml` (PR aberto pelo `GITHUB_TOKEN` não dispara workflow); o job de release roda
   `npm run check` antes de empacotar e não anexa nada se falhar.
 - Config em `release-please-config.json` e `.release-please-manifest.json` na raiz. A primeira versão é 1.0.0
-  (`initial-version`), com o changelog contado a partir do `bootstrap-sha`.
+  (`initial-version`), com o changelog contado a partir do `bootstrap-sha`. Esse SHA só existe na `master` se o branch que
+  trouxe o release-please entrar com merge commit ou fast-forward, nunca squash ou rebase; confira o changelog do primeiro PR
+  de release antes do merge.
+- `CHANGELOG.md` é gerado pelo release-please e fica fora do Prettier (`.prettierignore`).
 - O repositório precisa de Settings › Actions › General › "Allow GitHub Actions to create and approve pull requests" ligado.
 - O zip é o que vai para o extensions.gnome.org. Os logos do Claude, Codex e Google ficam no pacote por escolha do dono, mesmo
   que a revisão de lá possa pedir a troca.
