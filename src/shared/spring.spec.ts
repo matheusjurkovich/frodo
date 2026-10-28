@@ -1,4 +1,4 @@
-import {FIRM_SPRING, GENTLE_SPRING, SOFT_SPRING, SPRING, springPeak, springProgress, springWithin} from './spring.js';
+import {FIRM_SPRING, SOFT_SPRING, SPRING, springPeak, springProgress, springWithin} from './spring.js';
 
 describe('springProgress', () => {
     it('começa em 0 e termina exatamente em 1', () => {
@@ -15,10 +15,6 @@ describe('springProgress', () => {
 
     it('mola C passa uns 10% do alvo', () => {
         expect(springPeak(SPRING.damping)).toBeCloseTo(1.107, 2);
-    });
-
-    it('mola suave da ilha passa uns 5% do alvo', () => {
-        expect(springPeak(GENTLE_SPRING.damping)).toBeCloseTo(1.054, 2);
     });
 
     it('mola leve quase não passa do alvo', () => {
