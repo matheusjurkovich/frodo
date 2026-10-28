@@ -84,12 +84,20 @@ function settingsRow(text: string, ...controls: Clutter.Actor[]): St.BoxLayout {
     return line;
 }
 
-function pair(left: Clutter.Actor, right: Clutter.Actor): St.BoxLayout {
-    const columns = row('frodo-settings-columns');
-    columns.layout_manager.homogeneous = true;
-    columns.add_child(left);
-    columns.add_child(right);
-    return columns;
+function stack(...cards: St.Widget[]): St.BoxLayout {
+    const side = column('frodo-section');
+    for (const child of cards) side.add_child(child);
+    const last = cards.at(-1);
+    if (last) last.y_expand = true;
+    return side;
+}
+
+function columns(left: St.BoxLayout, right: St.BoxLayout): St.BoxLayout {
+    const box = row('frodo-settings-columns');
+    box.layout_manager.homogeneous = true;
+    box.add_child(left);
+    box.add_child(right);
+    return box;
 }
 
 function homePath(path: string): string {
@@ -116,10 +124,12 @@ export class SettingsPage implements Component {
         this.#typing(this.#newProfile);
 
         this.actor.add_child(backHeader('Configurações da ilha', actions.back));
-        this.actor.add_child(pair(this.#behavior(), this.#tabs()));
-        this.actor.add_child(pair(this.#screen(), this.#shortcuts()));
-        this.actor.add_child(this.#claude());
-        this.actor.add_child(this.#integrations(actions));
+        this.actor.add_child(
+            columns(
+                stack(this.#behavior(), this.#screen(), this.#claude()),
+                stack(this.#tabs(), this.#shortcuts(), this.#integrations(actions)),
+            ),
+        );
 
         const sync = (): void => {
             this.#sync();
