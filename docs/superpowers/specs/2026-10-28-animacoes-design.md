@@ -94,11 +94,11 @@ nesse caso tem que ser comparado ao protótipo antes.
 ### Abrir e fechar a ilha (decidido: como no protótipo)
 
 - Abrir: a caixa da ilha vai do tamanho da pílula até o tamanho natural com uma mola de ≈ 5% (amortecimento 0,68, 500 ms),
-  mudando largura, altura e cantos. O conteúdo cresce junto, em escala uniforme presa à largura da caixa e a partir do
-  centro da pílula: passa do tamanho no quique junto com a borda e nunca estica. A pílula some com fade cruzado.
-  Ajustado pelo usuário na conferência 2: conteúdo parado com só a borda mexendo pareceu estranho.
-- Fechar: **escolha minha**, o mesmo caminho ao contrário com a mola leve, sem quique visível. Encolher quicando parece errado e
-  fechar precisa ser rápido.
+  mudando largura, altura e cantos. O conteúdo, como na Dynamic Island do iPhone, aparece dentro da forma que cresce: fade,
+  desfoque de 16 px a 0 em 300 ms e zoom de 90% a 100% com a mola leve, a partir do centro da pílula. Ajustado pelo usuário
+  na conferência 2 (conteúdo parado e depois conteúdo crescendo 1:1 com a borda pareceram estranhos).
+- Fechar: **escolha minha**, a forma encolhe até a pílula com a mola leve, sem quique visível, enquanto o conteúdo desfoca,
+  encolhe para 95% e some em 160 ms.
 - A passagem do alvo respeita o teto de `#capHeight`, como na troca de aba.
 - Se engasgar no shell aninhado (ver "Verificação"), volta para a escala de hoje com a mola C no lugar da curva quad, e o
   usuário é avisado antes.
