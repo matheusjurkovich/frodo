@@ -93,7 +93,7 @@ nesse caso tem que ser comparado ao protótipo antes.
 
 ### Abrir e fechar a ilha (decidido: como no protótipo)
 
-- Abrir: a caixa da ilha vai do tamanho da pílula até o tamanho natural com a mola leve (passa ≈ 2%; o usuário pediu menos quique na conferência 2), mudando largura, altura e cantos. O
+- Abrir: a caixa da ilha vai do tamanho da pílula até o tamanho natural sem quique, desacelerando até o tamanho final (curva firme; o usuário pediu na conferência 2), mudando largura, altura e cantos. O
   conteúdo fica no tamanho natural o tempo todo, sem esticar, e aparece com fade. A pílula some com fade cruzado. Isso
   substitui a escala de hoje (`#animateOpen`, `#collapsedScale`), que estica o conteúdo.
 - Fechar: **escolha minha**, o mesmo caminho ao contrário com a mola leve, sem quique visível. Encolher quicando parece errado e
