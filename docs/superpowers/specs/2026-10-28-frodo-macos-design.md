@@ -14,7 +14,7 @@ O Frodo é uma extensão do GNOME Shell: roda dentro do `gnome-shell` e usa St, 
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | Linguagem   | Swift 6, SwiftUI + AppKit, SwiftPM, macOS 14+. Tauri e Electron foram descartados: trocariam "leve, sem processo extra" por um runtime web |
 | Paridade    | Núcleo mais melhor esforço, **só API pública**                                                                                             |
-| Posição     | Pílula flutuante centralizada logo abaixo da barra de menus ou do notch. Sem modo notch no v1                                              |
+| Posição     | Pílula flutuante, em cima no meio por padrão. Configurações oferece 8 posições (cantos, meio das bordas e embaixo no meio). Sem modo notch no v1 |
 | Tema        | Accent do sistema (`controlAccentColor`, o equivalente de `-st-accent-color`) e SF Pro. Os tokens vêm de `2026-10-27-frodo-redesign.md`    |
 | Eventos     | Porte de `Emitter`, `Timer` e `Disposables` do Linux (closures e relógio injetável), não Combine nem async/await                           |
 | Credenciais | Keychain, lido pelo `/usr/bin/security` como o Claude Code faz (sem prompt, independe da assinatura). Sem renovar o token no v1            |

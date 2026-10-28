@@ -50,6 +50,16 @@ enum Snapshots {
             model.settingsOpen = settings
             writeWindow(IslandRootView(services: services, model: model, onToggle: {}, onClose: {}), size: CGSize(width: 1000, height: 860), name: name, directory: directory)
         }
+        let placements: [(String, IslandPosition, Bool)] = [
+            ("posicao-embaixo-direita-pilula", .bottomRight, false), ("posicao-meio-esquerda-pilula", .middleLeft, false),
+            ("posicao-meio-esquerda-ilha", .middleLeft, true), ("posicao-embaixo-meio-ilha", .bottomCenter, true),
+        ]
+        for (name, position, isOpen) in placements {
+            let model = IslandModel()
+            model.position = position
+            model.isOpen = isOpen
+            writeWindow(IslandRootView(services: services, model: model, onToggle: {}, onClose: {}), size: CGSize(width: 1000, height: 860), name: name, directory: directory)
+        }
         print("frodo snapshot: imagens em \(directory)")
     }
 

@@ -78,6 +78,16 @@ public final class FrodoSettings {
         set { set(min(30, max(2, newValue)), for: "rotate-seconds") }
     }
 
+    public var position: IslandPosition {
+        get { enumValue("position", default: .topCenter) }
+        set { set(newValue.rawValue, for: "position") }
+    }
+
+    public var openBlur: Bool {
+        get { defaults.object(forKey: "open-blur") == nil ? true : defaults.bool(forKey: "open-blur") }
+        set { set(newValue, for: "open-blur") }
+    }
+
     public var monitors: MonitorMode {
         get { enumValue("monitors", default: .primary) }
         set { set(newValue.rawValue, for: "monitors") }

@@ -54,13 +54,16 @@ final class IslandController: NSObject {
             let size = self.model.targetSize
             return self.model.showsTongue ? CGSize(width: size.width, height: size.height + 8) : size
         }
+        hosting.position = { [weak self] in self?.model.position ?? .topCenter }
         hosting.onPointer = { [weak self] in self?.updateHover() }
         panel.contentView = hosting
         host = hosting
+        model.position = services.settings.position
         place()
         panel.orderFrontRegardless()
         model.updateActivity(services.feed.current)
         disposables.add(services.feed.changed.on { [weak self] _ in self?.syncActivity() })
+        disposables.add(services.settings.onChanged(["position"]) { [weak self] in self?.applyPosition() })
         coverTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.refreshCovered() }
         }
@@ -85,12 +88,21 @@ final class IslandController: NSObject {
     }
 
     func place() {
-        let cap = min(Theme.Size.maxIslandHeight, screen.visibleFrame.height - 40)
-        let height = cap + Theme.Size.panelPadding
-        let width = Theme.Size.islandWidth + Theme.Size.panelPadding * 2
-        model.panelHeight = height
-        let top = screen.visibleFrame.maxY - Theme.Size.topMargin
-        panel.setFrame(NSRect(x: screen.frame.midX - width / 2, y: top - height, width: width, height: height), display: true)
+        let visible = screen.visibleFrame
+        let cap = min(Theme.Size.maxIslandHeight, visible.height - 40)
+        model.panelHeight = cap + Theme.Size.panelPadding
+        let frame = islandPanelFrame(
+            position: model.position, visible: visible, islandSize: CGSize(width: Theme.Size.islandWidth, height: cap),
+            padding: Theme.Size.panelPadding, margin: Theme.Size.topMargin
+        )
+        panel.setFrame(frame, display: true)
+        host?.updateTrackingAreas()
+    }
+
+    private func applyPosition() {
+        close()
+        model.position = services.settings.position
+        place()
     }
 
     private func shapeRect(open: Bool) -> NSRect {
@@ -98,11 +110,11 @@ final class IslandController: NSObject {
         if open {
             size = CGSize(width: Theme.Size.islandWidth, height: min(model.islandHeight, Theme.Size.maxIslandHeight))
         } else if model.showsTongue {
-            size = CGSize(width: 120, height: 16)
+            size = model.position.isSideEdge ? CGSize(width: 16, height: 120) : CGSize(width: 120, height: 16)
         } else {
             size = model.pillSize
         }
-        return NSRect(x: panel.frame.midX - size.width / 2, y: panel.frame.maxY - size.height, width: size.width, height: size.height)
+        return islandShapeRect(position: model.position, panel: panel.frame, size: size)
     }
 
     func updateHover() {
