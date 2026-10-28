@@ -1,5 +1,4 @@
 import Clutter from 'gi://Clutter';
-import Gio from 'gi://Gio';
 import Pango from 'gi://Pango';
 import St from 'gi://St';
 
@@ -28,9 +27,9 @@ function setEnabled(button: St.Button, enabled: boolean): void {
 export class MediaCard implements Component {
     readonly actor = card('frodo-media');
     readonly #media: MediaService;
-    readonly #cover = new St.Icon({
+    readonly #cover = new St.Bin({
         style_class: 'frodo-media-cover frodo-media-cover-empty',
-        gicon: frodoIcon('music'),
+        child: new St.Icon({gicon: frodoIcon('music')}),
         y_align: Clutter.ActorAlign.CENTER,
     });
     readonly #app = chip('');
@@ -159,8 +158,10 @@ export class MediaCard implements Component {
     #setCover(url: string): void {
         if (url === this.#coverUrl) return;
         this.#coverUrl = url;
-        this.#cover.gicon = url === '' ? frodoIcon('music') : Gio.FileIcon.new(Gio.File.new_for_uri(url));
-        if (url === '') this.#cover.add_style_class_name('frodo-media-cover-empty');
+        const empty = url === '';
+        this.#cover.style = empty ? null : `background-image: url(${JSON.stringify(url)});`;
+        this.#cover.child.visible = empty;
+        if (empty) this.#cover.add_style_class_name('frodo-media-cover-empty');
         else this.#cover.remove_style_class_name('frodo-media-cover-empty');
     }
 

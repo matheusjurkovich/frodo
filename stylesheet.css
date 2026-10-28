@@ -1573,15 +1573,20 @@
 }
 
 .frodo-media-cover {
-    icon-size: 168px;
-    border-radius: 14px;
+    width: 168px;
+    height: 168px;
+    border-radius: 18px;
+    background-size: cover;
+    background-position: center;
 }
 
 .frodo-media-cover-empty {
-    icon-size: 56px;
-    padding: 56px;
     background-color: #1e7a45;
     color: #ffffff;
+}
+
+.frodo-media-cover-empty StIcon {
+    icon-size: 56px;
 }
 
 .frodo-media-text {
