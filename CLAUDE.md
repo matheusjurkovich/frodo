@@ -104,7 +104,7 @@ openTab}`). Nada global além de `Main` e `global` do shell.
 ## Comandos
 
 ```shell
-npm ci
+npm ci               # também instala o hook commit-msg (husky)
 npm run check        # typecheck + lint + prettier + testes
 npm test             # só os testes (Jasmine no gjs)
 npm run build        # src/ -> dist/, copia metadata, CSS, ícones, schemas e hooks
@@ -150,6 +150,8 @@ Código do shell para consulta: `gresource extract /usr/lib/gnome-shell/libshell
 
 ## Commits e docs
 
-- Conventional Commits em pt-BR, minúsculos (`fix: calendário volta ao mês atual ao fechar a ilha`).
+- Conventional Commits em pt-BR, minúsculos (`fix: calendário volta ao mês atual ao fechar a ilha`), verificados pelo
+  commitlint (`@commitlint/config-conventional`) no hook `commit-msg` do husky. O assunto não começa com
+  maiúscula, nem com nome próprio (`fix: atalho Super+Z …`, não `fix: Super+Z …`). Merge usa a mensagem padrão do git.
 - Mudança grande começa por spec e plano em `docs/superpowers/` (`specs/` e `plans/`, prefixo de data).
 - Mudou comportamento visível ou estrutura: atualize `README.md` e este arquivo no mesmo commit.

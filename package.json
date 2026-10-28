@@ -12,9 +12,12 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "mkdir -p .build && glib-compile-schemas --targetdir=.build schemas && node tests/entry.js && esbuild .build/entry.ts --bundle --format=esm --platform=neutral --main-fields=module,main --alias:jasmine-boot=./node_modules/jasmine-core/lib/jasmine-core/jasmine.js --external:gi://* --external:system --outfile=.build/tests.js --log-level=warning && gjs -m .build/tests.js",
-    "check": "npm run typecheck && npm run lint && npm run format:check && npm test"
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm test",
+    "prepare": "husky"
   },
   "devDependencies": {
+    "@commitlint/cli": "20.5.3",
+    "@commitlint/config-conventional": "20.5.3",
     "@eslint/js": "10.0.1",
     "@girs/gnome-shell": "50.0.4",
     "@girs/soup-3.0": "4.9.0",
@@ -22,6 +25,7 @@
     "esbuild": "0.28.2",
     "eslint": "10.13.0",
     "eslint-config-prettier": "10.1.8",
+    "husky": "9.1.7",
     "jasmine-core": "7.0.2",
     "prettier": "3.9.10",
     "typescript": "6.0.3",
