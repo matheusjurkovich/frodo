@@ -1,3 +1,4 @@
+import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 
 import {ClaudeTranscripts} from '../src/services/claude-transcripts.js';
@@ -163,6 +164,46 @@ describe('ClaudeTranscripts', () => {
         GLib.file_set_contents(`${tmp}/projects/p/sid/fora.jsonl`, `${line({id: 'z', at: today, input: 100})}\n`);
         await service.scan();
         expect(service.index.summary('today', new Date()).input).toBe(20);
+    });
+
+    it('grava o cache no máximo a cada 5 min enquanto querem, ao soltar e ao destruir', async () => {
+        const start = Date.now();
+        const now = spyOn(Date, 'now').and.returnValue(start);
+        const writes = spyOn(Gio.File.prototype, 'replace_contents_bytes_async').and.callThrough();
+        const settled = (): Promise<unknown> => writes.calls.mostRecent().returnValue as Promise<unknown>;
+        write([line({id: 'a', at: today, input: 10})]);
+        service.setWanted(true);
+        await service.scan();
+        expect(writes).toHaveBeenCalledTimes(1);
+        append(`${line({id: 'b', at: today, input: 5})}\n`);
+        await service.scan();
+        expect(writes).toHaveBeenCalledTimes(1);
+        now.and.returnValue(start + 5 * 60 * 1000);
+        append(`${line({id: 'c', at: today, input: 1})}\n`);
+        await service.scan();
+        expect(writes).toHaveBeenCalledTimes(2);
+        append(`${line({id: 'd', at: today, input: 1})}\n`);
+        await service.scan();
+        expect(writes).toHaveBeenCalledTimes(2);
+        service.setWanted(false);
+        service.setWanted(false);
+        expect(writes).toHaveBeenCalledTimes(3);
+        await settled();
+        const again = new ClaudeTranscripts(settings, cachePath);
+        await again.scan();
+        expect(again.index.summary('today', new Date()).input).toBe(17);
+        expect(writes).toHaveBeenCalledTimes(3);
+
+        service.setWanted(true);
+        append(`${line({id: 'e', at: today, input: 2})}\n`);
+        await service.scan();
+        expect(writes).toHaveBeenCalledTimes(3);
+        service.destroy();
+        expect(writes).toHaveBeenCalledTimes(4);
+        await settled();
+        const last = new ClaudeTranscripts(settings, cachePath);
+        await last.scan();
+        expect(last.index.summary('today', new Date()).input).toBe(19);
     });
 
     it('reaproveita a passada em curso', async () => {

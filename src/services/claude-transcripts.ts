@@ -19,6 +19,7 @@ const VERSION = 4;
 const CHUNK_BYTES = 1024 * 1024;
 const KEPT_MS = 30 * 24 * 60 * 60 * 1000;
 const SCAN_SECONDS = 30;
+const SAVE_EVERY_MS = 5 * 60 * 1000;
 const BATCH = 256;
 const GC_EVERY_BYTES = 4 * 1024 * 1024;
 const ATTRIBUTES = 'standard::name,standard::type,standard::size,time::modified';
@@ -119,6 +120,7 @@ export class ClaudeTranscripts extends Emitter<{changed: []}> {
     #destroyed = false;
     #sinceGc = 0;
     #wanted = 0;
+    #savedAt = -Infinity;
 
     constructor(settings: FrodoSettings, cachePath = GLib.build_filenamev([GLib.get_user_cache_dir(), 'frodo', 'claude-index.json'])) {
         super();
@@ -140,6 +142,7 @@ export class ClaudeTranscripts extends Emitter<{changed: []}> {
         this.#wanted = Math.max(0, before + (wanted ? 1 : -1));
         if (this.#wanted === 0) {
             this.#timer.stop();
+            if (before > 0 && !this.#running && this.#dirty) void this.#save();
             return;
         }
         if (before > 0) return;
@@ -176,7 +179,7 @@ export class ClaudeTranscripts extends Emitter<{changed: []}> {
             this.#dirty = true;
         }
         index.prune(Date.now());
-        if (this.#dirty) await this.#save();
+        if (this.#dirty && (this.#wanted === 0 || Date.now() - this.#savedAt >= SAVE_EVERY_MS)) await this.#save();
     }
 
     async #list(): Promise<Listing> {
@@ -249,6 +252,7 @@ export class ClaudeTranscripts extends Emitter<{changed: []}> {
     async #save(): Promise<void> {
         const text = JSON.stringify({version: VERSION, index: this.#index, files: Object.fromEntries(this.#offsets ?? [])});
         this.#dirty = false;
+        this.#savedAt = Date.now();
         try {
             GLib.mkdir_with_parents(GLib.path_get_dirname(this.#cachePath), 0o700);
             await Gio.File.new_for_path(this.#cachePath).replace_contents_bytes_async(
@@ -256,7 +260,7 @@ export class ClaudeTranscripts extends Emitter<{changed: []}> {
                 null,
                 false,
                 Gio.FileCreateFlags.PRIVATE,
-                this.#cancellable,
+                null,
             );
         } catch {
             this.#dirty = true;
@@ -267,6 +271,7 @@ export class ClaudeTranscripts extends Emitter<{changed: []}> {
         this.#destroyed = true;
         this.#timer.stop();
         this.#cancellable.cancel();
+        if (this.#dirty) void this.#save();
         this.clearListeners();
     }
 }
