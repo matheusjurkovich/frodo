@@ -2,7 +2,7 @@ import Clutter from 'gi://Clutter';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
 
-import {SOFT_SPRING, SPRING, springProgress} from '../spring.js';
+import {FIRM_SPRING, SOFT_SPRING, SPRING, springProgress} from '../spring.js';
 import type {Spring} from '../spring.js';
 
 const FADE_OUT_MS = 110;
@@ -13,6 +13,9 @@ const FADE_IN_SCALE = 0.92;
 const ZOOM_DELAY_MS = 40;
 const SLIDE_PX = 56;
 const SLIDE_FADE_MS = 220;
+const REVEAL_IN_MS = 240;
+const REVEAL_IN_DELAY_MS = 80;
+const REVEAL_OUT_MS = 120;
 
 type Axis = 'width' | 'height';
 
@@ -177,4 +180,48 @@ export function slideIn(actor: Clutter.Actor, direction: 1 | -1): void {
     actor.set({translation_x: direction * SLIDE_PX, opacity: 0});
     springEase(actor, {translationX: 0}, SPRING);
     actor.ease({opacity: 255, duration: SLIDE_FADE_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+}
+
+export function reveal(actor: Clutter.Actor, show: boolean, onDone?: () => void): void {
+    const growing = actor.get_transition('height') !== null;
+    if (show ? actor.visible && !growing : !actor.visible) {
+        onDone?.();
+        return;
+    }
+    const from = actor.visible ? actor.allocation.get_height() : 0;
+    actor.remove_transition('height');
+    if (!show) {
+        if (!actor.mapped) {
+            actor.hide();
+            actor.set({height: -1, clip_to_allocation: false, opacity: 255});
+            onDone?.();
+            return;
+        }
+        actor.set({height: from, clip_to_allocation: true});
+        springEase(actor, {height: 0}, FIRM_SPRING, () => {
+            actor.hide();
+            actor.set({height: -1, clip_to_allocation: false, opacity: 255});
+            onDone?.();
+        });
+        actor.ease({opacity: 0, duration: REVEAL_OUT_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+        return;
+    }
+    const hidden = !actor.visible;
+    actor.height = -1;
+    actor.show();
+    if (!actor.mapped) {
+        settle(actor);
+        actor.clip_to_allocation = false;
+        onDone?.();
+        return;
+    }
+    const width = actor.allocation.get_width();
+    const [, to] = actor.get_preferred_height(width > 0 ? width : (actor.get_parent()?.allocation.get_width() ?? -1));
+    actor.set({height: from, clip_to_allocation: true});
+    if (hidden) actor.opacity = 0;
+    springEase(actor, {height: to}, SPRING, () => {
+        actor.set({height: -1, clip_to_allocation: false});
+        onDone?.();
+    });
+    actor.ease({opacity: 255, duration: REVEAL_IN_MS, delay: REVEAL_IN_DELAY_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
 }

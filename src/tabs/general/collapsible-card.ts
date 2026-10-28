@@ -4,10 +4,12 @@ import St from 'gi://St';
 import type {CardId} from '../../settings/schema-values.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
 import {Disposables} from '../../shared/disposables.js';
+import {SPRING} from '../../shared/spring.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
 import {card, cardTitle} from '../../shared/ui/card.js';
 import {column, label, row} from '../../shared/ui/layout.js';
 import type {Component} from '../../shared/ui/lifecycle.js';
+import {reveal, springEase} from '../../shared/ui/motion.js';
 
 export class CollapsibleCard implements Component {
     readonly actor = card('frodo-collapsible');
@@ -73,9 +75,11 @@ export class CollapsibleCard implements Component {
 
     #sync(): void {
         const collapsed = this.#settings.collapsedCards.includes(this.#id);
-        this.body.visible = !collapsed;
-        this.actor.y_expand = !collapsed;
-        this.#caret.rotation_angle_z = collapsed ? 0 : 180;
+        if (!collapsed) this.actor.y_expand = true;
+        reveal(this.body, !collapsed, () => {
+            if (collapsed) this.actor.y_expand = false;
+        });
+        springEase(this.#caret, {rotationAngleZ: collapsed ? 0 : 180}, SPRING);
         const summary = this.#summary.get_child();
         if (summary) summary.visible = collapsed;
     }
