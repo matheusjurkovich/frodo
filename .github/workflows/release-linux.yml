@@ -1,0 +1,42 @@
+name: release-linux
+
+on:
+  push:
+    tags:
+      - 'linux-v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    env:
+      HUSKY: '0'
+    defaults:
+      run:
+        working-directory: linux
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: linux/package-lock.json
+      - name: Instala gjs e typelibs
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends gjs gir1.2-soup-3.0 libglib2.0-bin
+      - run: npm ci
+      - run: npm run check
+      - run: npm run build
+      - name: Empacota a extensão
+        run: |
+          version="${GITHUB_REF_NAME#linux-v}"
+          jq --arg version "$version" '. + {"version-name": $version}' dist/metadata.json > dist/metadata.tmp
+          mv dist/metadata.tmp dist/metadata.json
+          (cd dist && zip -qr "../frodo-linux-$version.zip" .)
+          echo "ASSET=frodo-linux-$version.zip" >> "$GITHUB_ENV"
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+      - name: Cria a release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "$GITHUB_REF_NAME" "$ASSET" --verify-tag --title "Frodo Linux $VERSION" --generate-notes

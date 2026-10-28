@@ -14,7 +14,7 @@
     "format:check": "prettier --check .",
     "test": "mkdir -p .build && glib-compile-schemas --targetdir=.build schemas && node tests/entry.js && esbuild .build/entry.ts --bundle --format=esm --platform=neutral --main-fields=module,main --alias:jasmine-boot=./node_modules/jasmine-core/lib/jasmine-core/jasmine.js --external:gi://* --external:system --outfile=.build/tests.js --log-level=warning && gjs -m .build/tests.js",
     "check": "npm run typecheck && npm run lint && npm run format:check && npm test",
-    "prepare": "husky"
+    "prepare": "cd .. && husky linux/.husky"
   },
   "devDependencies": {
     "@commitlint/cli": "20.5.3",

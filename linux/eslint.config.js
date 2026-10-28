@@ -17,7 +17,7 @@ const restrict = (files, patterns, ignores = []) => ({
 const otherFeature = sibling('features', 'Feature não importa outra feature; o que é comum vai para shared/.');
 
 export default tseslint.config(
-    {ignores: ['dist/', '.build/', 'node_modules/', '.superpowers/', 'docs/']},
+    {ignores: ['dist/', '.build/', 'node_modules/', '.superpowers/']},
     js.configs.recommended,
     tseslint.configs.strictTypeChecked,
     tseslint.configs.stylisticTypeChecked,
