@@ -14,7 +14,7 @@ Roda dentro do próprio gnome-shell (sem processo extra). Escrita em TypeScript 
 | Claude            | Limites de uso por perfil, consumo de tokens a partir das transcrições e sessões abertas do Claude Code                       |
 | Notificações      | Lista de notificações, não perturbe e limpar tudo                                                                             |
 
-A engrenagem do cabeçalho abre as configurações, todas dentro da ilha (comportamento, abas visíveis, modo da ilha fechada, monitores e barra superior, Claude e perfis, atalhos e integrações); não há janela de preferências separada. O botão ao lado dela abre o menu de energia (suspender, encerrar sessão, reiniciar e desligar). Durante uma gravação de tela, o cabeçalho mostra Parar gravação. Qualquer aba pode ser ocultada; se todas forem, a Geral continua visível.
+A engrenagem do cabeçalho abre as configurações, todas dentro da ilha (comportamento, abas visíveis, monitores e barra superior, Claude e perfis, atalhos e integrações); não há janela de preferências separada. O botão ao lado dela abre o menu de energia (suspender, encerrar sessão, reiniciar e desligar). Durante uma gravação de tela, o cabeçalho mostra Parar gravação. Qualquer aba pode ser ocultada; se todas forem, a Geral continua visível.
 
 ## Estados da pílula
 

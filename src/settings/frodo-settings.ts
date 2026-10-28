@@ -50,10 +50,6 @@ export class FrodoSettings {
         return this.gsettings.get_int('rotate-seconds');
     }
 
-    set rotateSeconds(value: number) {
-        this.gsettings.set_int('rotate-seconds', value);
-    }
-
     get monitors(): MonitorMode {
         const value = this.gsettings.get_string('monitors');
         return isOneOf(MONITOR_MODES, value) ? value : 'primary';

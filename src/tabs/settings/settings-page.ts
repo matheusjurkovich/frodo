@@ -11,7 +11,7 @@ import type {ClaudeProfile} from '../../settings/claude-profile.js';
 import {accelerator, shortcutLabel} from '../../settings/shortcut.js';
 import {TAB_LABELS, visibleTabs} from '../../settings/tabs.js';
 import {TAB_IDS} from '../../settings/schema-values.js';
-import type {ClosedMode, MonitorMode, TabId} from '../../settings/schema-values.js';
+import type {MonitorMode, TabId} from '../../settings/schema-values.js';
 import {defaultConfigDir} from '../../features/claude/claude-client.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
 import {spawn} from '../../shared/shell-internals.js';
@@ -25,7 +25,6 @@ import {frodoIcon} from '../../shared/ui/icons.js';
 
 const INTERFACE_SCHEMA = 'org.gnome.desktop.interface';
 const SHOW_SECONDS_KEY = 'clock-show-seconds';
-const ROTATE_SECONDS = {min: 2, max: 30} as const;
 const POLL_MINUTES = {min: 1, max: 60} as const;
 const MODIFIER_KEYS: readonly number[] = [
     Clutter.KEY_Shift_L,
@@ -39,12 +38,6 @@ const MODIFIER_KEYS: readonly number[] = [
     Clutter.KEY_Meta_L,
     Clutter.KEY_Meta_R,
     Clutter.KEY_ISO_Level3_Shift,
-];
-
-const MODES: readonly {id: ClosedMode; label: string}[] = [
-    {id: 'minimal', label: 'Minimalista'},
-    {id: 'compact', label: 'Compacto'},
-    {id: 'rotating', label: 'Rotativo'},
 ];
 
 const MONITORS: readonly {id: MonitorMode; label: string}[] = [
@@ -124,8 +117,8 @@ export class SettingsPage implements Component {
 
         this.actor.add_child(backHeader('Configurações da ilha', actions.back));
         this.actor.add_child(pair(this.#behavior(), this.#tabs()));
-        this.actor.add_child(pair(this.#closedIsland(), this.#screen()));
-        this.actor.add_child(pair(this.#claude(), this.#shortcuts()));
+        this.actor.add_child(pair(this.#screen(), this.#shortcuts()));
+        this.actor.add_child(this.#claude());
         this.actor.add_child(this.#integrations(actions));
 
         const sync = (): void => {
@@ -137,8 +130,6 @@ export class SettingsPage implements Component {
                     'open-on-hover',
                     'auto-close',
                     'hidden-tabs',
-                    'closed-mode',
-                    'rotate-seconds',
                     'monitors',
                     'hide-top-bar',
                     'claude-poll-minutes',
@@ -262,40 +253,6 @@ export class SettingsPage implements Component {
             tabs.add_child(box);
         }
         return tabs;
-    }
-
-    #closedIsland(): St.BoxLayout {
-        const settings = this.#settings;
-        const closed = card('frodo-settings-card');
-        closed.add_child(cardTitle('Ilha fechada'));
-        closed.add_child(
-            settingsRow(
-                'Modo',
-                this.#segmented(
-                    MODES,
-                    () => settings.closedMode,
-                    mode => {
-                        settings.closedMode = mode;
-                    },
-                ),
-            ),
-        );
-        const rotate = settingsRow(
-            'Trocar a cada',
-            this.#stepper(
-                ROTATE_SECONDS,
-                's',
-                () => settings.rotateSeconds,
-                value => {
-                    settings.rotateSeconds = value;
-                },
-            ),
-        );
-        closed.add_child(rotate);
-        this.#bindings.push(() => {
-            rotate.visible = settings.closedMode === 'rotating';
-        });
-        return closed;
     }
 
     #screen(): St.BoxLayout {
