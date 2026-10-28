@@ -47,6 +47,14 @@ export class PanelContent {
     readonly #header: Header;
     readonly #pages = new Map<TabId, Component>();
     readonly #settingsPage: Component;
+    readonly #stack = new St.Viewport({style_class: 'frodo-pages', layout_manager: new Clutter.BinLayout(), x_expand: true});
+    readonly #scroll = new St.ScrollView({
+        hscrollbar_policy: St.PolicyType.NEVER,
+        vscrollbar_policy: St.PolicyType.AUTOMATIC,
+        overlay_scrollbars: true,
+        x_expand: true,
+        child: this.#stack,
+    });
     readonly #disposables = new Disposables();
     #power: PowerMenu | null = null;
     #view: PanelView = {kind: 'tab', tab: TAB_IDS[0]};
@@ -57,7 +65,20 @@ export class PanelContent {
         this.#settings = settings;
 
         const specs: readonly TabSpec[] = [
-            {id: 'general', icon: 'general', label: TAB_LABELS.general, create: () => new GeneralPage({island, settings, media})},
+            {
+                id: 'general',
+                icon: 'general',
+                label: TAB_LABELS.general,
+                create: () =>
+                    new GeneralPage({
+                        island,
+                        settings,
+                        media,
+                        scrollToTop: () => {
+                            this.#scrollToTop();
+                        },
+                    }),
+            },
             {id: 'calendar', icon: 'calendar', label: TAB_LABELS.calendar, create: () => new CalendarPage(island)},
             {id: 'workspaces', icon: 'workspaces', label: TAB_LABELS.workspaces, create: () => new WorkspacesPage(workspaces, island)},
             {
@@ -104,15 +125,14 @@ export class PanelContent {
                 island.close();
             },
         });
-        const stack = new St.Widget({style_class: 'frodo-pages', layout_manager: new Clutter.BinLayout(), x_expand: true});
         for (const spec of specs) {
             const page = spec.create();
             this.#pages.set(spec.id, page);
-            stack.add_child(page.actor);
+            this.#stack.add_child(page.actor);
         }
-        stack.add_child(this.#settingsPage.actor);
+        this.#stack.add_child(this.#settingsPage.actor);
         this.actor.add_child(this.#header.actor);
-        this.actor.add_child(stack);
+        this.actor.add_child(this.#scroll);
 
         this.#disposables.add(
             this.#tabBar.on('selected', tab => {
@@ -147,10 +167,15 @@ export class PanelContent {
         this.#settingsPage.actor.visible = view.kind === 'settings';
         this.#tabBar.select(tab);
         this.#header.setSettingsActive(view.kind === 'settings');
+        this.#scrollToTop();
     }
 
     showOnNextOpen(tab: TabId): void {
         this.#nextTab = tab;
+    }
+
+    #scrollToTop(): void {
+        this.#scroll.vadjustment.value = 0;
     }
 
     #leaveSettings(): void {

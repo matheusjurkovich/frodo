@@ -139,6 +139,12 @@ export class Island extends Emitter<IslandEvents> {
                 this.#syncFullscreen();
             }),
         );
+        this.#disposables.signal(
+            global.display,
+            global.display.connect('workareas-changed', () => {
+                if (this.#isOpen) this.#capHeight(this.panel.y);
+            }),
+        );
         this.#syncMemoryNeed();
     }
 
@@ -312,6 +318,7 @@ export class Island extends Emitter<IslandEvents> {
         panel.show();
 
         const [pillX, pillY] = pill.get_transformed_position();
+        this.#capHeight(Math.round(pillY));
         const [, naturalWidth] = panel.get_preferred_width(-1);
         const monitor = this.#monitor();
         if (monitor) panel.set_position(centerClamp(pillX, pill.width, naturalWidth, monitor.x, monitor.width), Math.round(pillY));
@@ -322,6 +329,13 @@ export class Island extends Emitter<IslandEvents> {
         panel.scale_y = collapsed.scaleY;
         panel.ease({opacity: 255, scaleX: 1, scaleY: 1, duration: ANIMATION_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
         pill.ease({opacity: 0, duration: ANIMATION_MS / 2, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+    }
+
+    #capHeight(top: number): void {
+        const area = Main.layoutManager.getWorkAreaForMonitor(this.monitorIndex);
+        const content = this.panel.get_theme_node().adjust_for_height(area.y + area.height - top);
+        const scale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
+        this.panel.style = `max-height: ${Math.max(0, Math.floor(content / scale))}px;`;
     }
 
     #recenterPanel(): void {

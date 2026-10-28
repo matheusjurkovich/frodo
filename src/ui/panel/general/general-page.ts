@@ -16,6 +16,7 @@ export interface GeneralDependencies {
     readonly island: Island;
     readonly settings: FrodoSettings;
     readonly media: MediaService;
+    readonly scrollToTop: () => void;
 }
 
 export class GeneralPage implements Component {
@@ -26,10 +27,10 @@ export class GeneralPage implements Component {
     readonly #shortcuts: ShortcutsCard;
     readonly #apps: AppsCard;
 
-    constructor({island, settings, media}: GeneralDependencies) {
+    constructor({island, settings, media, scrollToTop}: GeneralDependencies) {
         const content = column('frodo-section');
         const overlayHost = new St.Widget({x_expand: true, y_expand: true});
-        this.#controls = new NativeControls(island, overlayHost, content);
+        this.#controls = new NativeControls(island, overlayHost, content, scrollToTop);
         this.#sound = new SoundCard(this.#controls);
         this.#media = new MediaCard(media);
         this.#shortcuts = new ShortcutsCard(island, settings);

@@ -44,13 +44,15 @@ export class NativeControls {
     readonly #island: Island;
     readonly #overlayHost: St.Widget;
     readonly #content: St.Widget;
+    readonly #scrollToTop: () => void;
     readonly #disposables = new Disposables();
     readonly #loan = new Disposables();
 
-    constructor(island: Island, overlayHost: St.Widget, content: St.Widget) {
+    constructor(island: Island, overlayHost: St.Widget, content: St.Widget, scrollToTop: () => void) {
         this.#island = island;
         this.#overlayHost = overlayHost;
         this.#content = content;
+        this.#scrollToTop = scrollToTop;
         this.#disposables.add(
             island.on('opening', () => {
                 this.#borrow();
@@ -130,6 +132,7 @@ export class NativeControls {
         const sync = (): void => {
             const open = menus.some(menu => menu.isOpen);
             this.#content.set({opacity: open ? 0 : 255, reactive: !open});
+            if (open) this.#scrollToTop();
         };
         for (const menu of menus) {
             this.#loan.add(detachConstraints(menu.actor));
