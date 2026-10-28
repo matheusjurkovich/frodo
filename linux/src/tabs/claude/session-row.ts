@@ -9,6 +9,8 @@ import type {Disposer} from '../../shared/disposables.js';
 import {textButton} from '../../shared/ui/buttons.js';
 import {column, grid, label, packGrid, row} from '../../shared/ui/layout.js';
 import type {Component} from '../../shared/ui/lifecycle.js';
+import {reveal, springEase} from '../../shared/ui/motion.js';
+import {SPRING} from '../../shared/spring.js';
 import {levelClass} from '../../shared/level.js';
 import {SegmentBar} from '../../shared/ui/segment-bar.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
@@ -188,8 +190,8 @@ export class SessionRow implements Component {
         this.#step.text = step;
         this.#step.visible = step !== '';
         this.#header.accessible_name = `${state.repo}, ${STATUS_LABELS[status]}`;
-        this.#showExpanded(expanded);
         if (expanded) this.#updateBody(state, status, stats, diff, pending, canOpenPullRequest);
+        this.#showExpanded(expanded);
     }
 
     #showStatus(status: SessionStatus): void {
@@ -207,8 +209,8 @@ export class SessionRow implements Component {
         this.#expanded = expanded;
         if (expanded) this.actor.add_style_class_name('frodo-session-open');
         else this.actor.remove_style_class_name('frodo-session-open');
-        this.#caret.rotation_angle_z = expanded ? 180 : 0;
-        this.#body.visible = expanded;
+        springEase(this.#caret, {rotationAngleZ: expanded ? 180 : 0}, SPRING);
+        reveal(this.#body, expanded);
     }
 
     #updateBody(

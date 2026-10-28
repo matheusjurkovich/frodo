@@ -181,6 +181,57 @@ export function slideIn(actor: Clutter.Actor, direction: 1 | -1): void {
     actor.ease({opacity: 255, duration: SLIDE_FADE_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
 }
 
+function naturalHeight(actor: St.Widget, width: number): number {
+    const node = actor.get_theme_node();
+    const [min, natural] = actor.layout_manager.get_preferred_height(actor, node.adjust_for_width(width));
+    return node.adjust_preferred_height(min, natural)[1];
+}
+
+function follow(actor: St.Widget, from: number): void {
+    const width = actor.allocation.get_width();
+    const to = naturalHeight(actor, width);
+    const release = (): void => {
+        actor.set({height: -1, clip_to_allocation: false});
+    };
+    if (Math.round(from) === Math.round(to)) {
+        release();
+        return;
+    }
+    actor.set({height: from, clip_to_allocation: true});
+    springEase(actor, {height: to}, SPRING, release);
+    actor.get_transition('height')?.connect('new-frame', () => {
+        if (Math.abs(naturalHeight(actor, width) - to) >= 1) follow(actor, actor.height);
+    });
+}
+
+export function swap(actor: St.Widget, direction: 1 | -1, change: () => void, axis: 'x' | 'y' = 'x'): void {
+    const frame = actor.get_parent();
+    if (!actor.mapped || !frame) {
+        settle(actor);
+        actor.set({height: -1, clip_to_allocation: false});
+        change();
+        return;
+    }
+    const from = actor.allocation.get_height();
+    actor.remove_all_transitions();
+    actor.set({height: -1, opacity: 0, translation_x: 0, translation_y: 0});
+    change();
+    const offset = direction * SLIDE_PX;
+    frame.clip_to_allocation = true;
+    const release = (): void => {
+        frame.clip_to_allocation = false;
+    };
+    if (axis === 'x') {
+        actor.translation_x = offset;
+        springEase(actor, {translationX: 0}, SPRING, release);
+    } else {
+        actor.translation_y = offset;
+        springEase(actor, {translationY: 0}, SPRING, release);
+    }
+    actor.ease({opacity: 255, duration: SLIDE_FADE_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+    follow(actor, from);
+}
+
 export function reveal(actor: Clutter.Actor, show: boolean, onDone?: () => void): void {
     const growing = actor.get_transition('height') !== null;
     if (show ? actor.visible && !growing : !actor.visible) {

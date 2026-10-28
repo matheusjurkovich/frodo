@@ -10,6 +10,7 @@ import {card, cardHeading, emptyState} from '../../shared/ui/card.js';
 import {column, label, row} from '../../shared/ui/layout.js';
 import {whileMapped} from '../../shared/ui/lifecycle.js';
 import type {Component} from '../../shared/ui/lifecycle.js';
+import {swap} from '../../shared/ui/motion.js';
 import {Segmented} from '../../shared/ui/segmented.js';
 import type {AiProvider} from '../../shared/ai-provider.js';
 import {SessionRow} from './session-row.js';
@@ -51,6 +52,7 @@ export class SessionsCard implements Component {
     readonly #close: () => void;
     readonly #filters: Segmented<Filter>;
     readonly #summary = label('', 'frodo-sessions-summary');
+    readonly #body = column('');
     readonly #list = column('frodo-sessions-list');
     readonly #empty = column('frodo-sessions-empty');
     readonly #emptyText = emptyState('');
@@ -85,13 +87,17 @@ export class SessionsCard implements Component {
 
         this.actor.add_child(header);
         this.actor.add_child(this.#filters.actor);
-        this.actor.add_child(this.#list);
-        this.actor.add_child(this.#empty);
+        this.#body.add_child(this.#list);
+        this.#body.add_child(this.#empty);
+        this.actor.add_child(this.#body);
 
         this.#disposables.add(
             this.#filters.on('changed', filter => {
+                const direction = FILTERS.findIndex(({id}) => id === filter) > FILTERS.findIndex(({id}) => id === this.#selected) ? 1 : -1;
                 this.#selected = filter;
-                this.#render();
+                swap(this.#body, direction, () => {
+                    this.#render();
+                });
             }),
         );
         this.#disposables.add(

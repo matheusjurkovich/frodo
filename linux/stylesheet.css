@@ -1255,8 +1255,12 @@
 }
 
 .frodo-segmented-item:checked {
-    background-color: #2f2f35;
     color: #fafafa;
+}
+
+.frodo-segmented-indicator {
+    border-radius: 999px;
+    background-color: #2f2f35;
 }
 
 .frodo-segmented-content {
@@ -2138,7 +2142,7 @@
 
 .frodo-surface-clear .frodo-button-ghost:checked,
 .frodo-surface-clear .frodo-button-control:hover,
-.frodo-surface-clear .frodo-segmented-item:checked,
+.frodo-surface-clear .frodo-segmented-indicator,
 .frodo-surface-clear .frodo-pill-item:hover,
 .frodo-surface-clear .frodo-pill-item:checked,
 .frodo-surface-clear .frodo-position-cell,

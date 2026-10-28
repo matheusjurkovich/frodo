@@ -11,6 +11,7 @@ import type {AiProvider} from '../../shared/ai-provider.js';
 import {Disposables} from '../../shared/disposables.js';
 import {column, row} from '../../shared/ui/layout.js';
 import type {Component} from '../../shared/ui/lifecycle.js';
+import {swap} from '../../shared/ui/motion.js';
 import {Segmented} from '../../shared/ui/segmented.js';
 import {ConsumptionCard} from './consumption-card.js';
 import {LimitsCard} from './limits-card.js';
@@ -19,6 +20,8 @@ import {MetersCard, OverviewCard} from './provider-cards.js';
 import {SessionsCard} from './sessions-card.js';
 
 type View = AiProvider | 'all';
+
+const VIEWS: readonly View[] = ['all', ...AI_PROVIDERS];
 
 export interface ClaudePageDependencies {
     readonly claude: ClaudeService;
@@ -36,6 +39,7 @@ export class ClaudePage implements Component {
     readonly #selector = row('frodo-ai-selector');
     readonly #overview = row('frodo-ai-overview');
     readonly #overviewCards = new Map<AiProvider, OverviewCard>();
+    readonly #views = column('');
     readonly #all = column('frodo-section');
     readonly #single = row('frodo-cols');
     readonly #left = column('frodo-section');
@@ -72,9 +76,10 @@ export class ClaudePage implements Component {
             this.#single.add_child(side);
         }
 
+        this.#views.add_child(this.#all);
+        this.#views.add_child(this.#single);
         this.actor.add_child(this.#selector);
-        this.actor.add_child(this.#all);
-        this.actor.add_child(this.#single);
+        this.actor.add_child(this.#views);
 
         this.#disposables.add(
             settings.onChanged('disabled-ai', () => {
@@ -102,8 +107,18 @@ export class ClaudePage implements Component {
     }
 
     #show(view: View): void {
+        const direction = VIEWS.indexOf(view) > VIEWS.indexOf(this.#view) ? 1 : -1;
+        const changed = view !== this.#view;
         this.#view = view;
         if (this.#segmented) this.#segmented.selected = view;
+        if (changed)
+            swap(this.#views, direction, () => {
+                this.#apply(view);
+            });
+        else this.#apply(view);
+    }
+
+    #apply(view: View): void {
         const all = view === 'all';
         this.#all.visible = all;
         this.#single.visible = !all;

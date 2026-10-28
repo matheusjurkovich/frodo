@@ -9,6 +9,7 @@ import {card, cardHeading, cardTitle} from '../../shared/ui/card.js';
 import {column, dimLabel, label, row} from '../../shared/ui/layout.js';
 import {whileMapped} from '../../shared/ui/lifecycle.js';
 import type {Component} from '../../shared/ui/lifecycle.js';
+import {swap} from '../../shared/ui/motion.js';
 import {SegmentBar} from '../../shared/ui/segment-bar.js';
 import {Segmented} from '../../shared/ui/segmented.js';
 import {BarChart} from './bar-chart.js';
@@ -121,8 +122,11 @@ export class ConsumptionCard implements Component {
 
         this.#disposables.add(
             this.#period.on('changed', period => {
+                const direction = ORDER.indexOf(period) > ORDER.indexOf(this.#selected) ? 1 : -1;
                 this.#selected = period;
-                this.#render();
+                swap(this.#body, direction, () => {
+                    this.#render();
+                });
             }),
         );
         this.#disposables.add(

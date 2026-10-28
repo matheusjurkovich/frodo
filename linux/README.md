@@ -43,7 +43,7 @@ Em Configurações › Tela e posição, "Fundo" escolhe o estilo da pílula, da
 
 ## Animações
 
-As trocas de estado seguem a Dynamic Island do iPhone. A pílula muda de tamanho com mola e troca o conteúdo com fade cruzado; volume, passo do Claude e timers mudam no lugar, sem piscar. Ao abrir, a forma cresce a partir da pílula e o conteúdo aparece dentro dela com fade, desfoque e zoom leve; ao fechar, o conteúdo desfoca e a forma volta para a pílula. As abas, as configurações e os submenus de Wi-Fi, Bluetooth e áudio deslizam para o lado, o marcador da aba e a altura da ilha acompanham com mola, os acordeões abrem e fecham com mola e as notificações dispensadas saem deslizando. Hover e clique trocam de cor com transição curta. Com "Animações" desligada no GNOME, tudo troca na hora.
+As trocas de estado seguem a Dynamic Island do iPhone. A pílula muda de tamanho com mola e troca o conteúdo com fade cruzado; volume, passo do Claude e timers mudam no lugar, sem piscar. Ao abrir, a forma cresce a partir da pílula e o conteúdo aparece dentro dela com fade, desfoque e zoom leve; ao fechar, o conteúdo desfoca e a forma volta para a pílula. As abas, as configurações e os submenus de Wi-Fi, Bluetooth e áudio deslizam para o lado, assim como a troca de IA, de período e de filtro na aba IA; a seção das configurações entra de cima ou de baixo, o marcador da aba e dos seletores segmentados e a altura da ilha acompanham com mola, os acordeões e os detalhes de uma sessão abrem e fecham com mola e as notificações dispensadas saem deslizando. Hover e clique trocam de cor com transição curta. Com "Animações" desligada no GNOME, tudo troca na hora.
 
 ## Requisitos
 

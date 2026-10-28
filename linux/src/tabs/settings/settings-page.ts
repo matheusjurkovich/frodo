@@ -21,6 +21,7 @@ import {backHeader, card} from '../../shared/ui/card.js';
 import {chip, iconButton, textButton} from '../../shared/ui/buttons.js';
 import {column, dimLabel, label, row} from '../../shared/ui/layout.js';
 import type {Component} from '../../shared/ui/lifecycle.js';
+import {swap} from '../../shared/ui/motion.js';
 import {providerTile} from '../../shared/ui/provider-tile.js';
 import {Segmented} from '../../shared/ui/segmented.js';
 import {Switch} from '../../shared/ui/switch.js';
@@ -172,6 +173,7 @@ export class SettingsPage implements Component {
     readonly #bindings: (() => void)[] = [];
     readonly #nav = new Map<SectionId, St.Button>();
     readonly #sections = new Map<SectionId, St.BoxLayout>();
+    readonly #content = column('frodo-settings-content');
     readonly #profiles = column('frodo-settings-profiles');
     readonly #newProfile = new St.Entry({style_class: 'frodo-entry', hint_text: '~/.claude-trabalho', can_focus: true, x_expand: true});
     readonly #pillEditor = column('frodo-pill-editor');
@@ -191,7 +193,7 @@ export class SettingsPage implements Component {
         const nav = column('frodo-settings-nav');
         nav.x_expand = false;
         nav.y_align = Clutter.ActorAlign.START;
-        const content = column('frodo-settings-content');
+        const content = this.#content;
         content.x_expand = true;
         const builders: Record<SectionId, () => St.Widget[]> = {
             general: () => [this.#behavior(), this.#shortcuts()],
@@ -264,9 +266,16 @@ export class SettingsPage implements Component {
     }
 
     #show(id: SectionId): void {
+        const order = (section: SectionId): number => SECTIONS.findIndex(entry => entry.id === section);
+        const direction = order(id) > order(this.#section) ? 1 : -1;
+        const changed = id !== this.#section;
         this.#section = id;
         for (const [other, button] of this.#nav) button.checked = other === id;
-        for (const [other, section] of this.#sections) section.visible = other === id;
+        const apply = (): void => {
+            for (const [other, section] of this.#sections) section.visible = other === id;
+        };
+        if (changed) swap(this.#content, direction, apply, 'y');
+        else apply();
     }
 
     #typing(entry: St.Entry): void {
@@ -291,7 +300,7 @@ export class SettingsPage implements Component {
         return toggle.actor;
     }
 
-    #segmented<T extends string>(options: readonly {id: T; label: string}[], read: () => T, write: (value: T) => void): St.BoxLayout {
+    #segmented<T extends string>(options: readonly {id: T; label: string}[], read: () => T, write: (value: T) => void): St.Widget {
         const segmented = this.#disposables.own(new Segmented(options, read(), ''));
         segmented.on('changed', write);
         this.#bindings.push(() => {
