@@ -1,4 +1,5 @@
 import AppKit
+import FrodoCore
 import SwiftUI
 
 final class FrodoPanel: NSPanel {
@@ -9,16 +10,20 @@ final class FrodoPanel: NSPanel {
 
 final class ShapeHostingView<Content: View>: NSHostingView<Content> {
     var shapeSize: () -> CGSize = { .zero }
+    var position: () -> IslandPosition = { .topCenter }
     var onPointer: () -> Void = {}
     private var region: NSTrackingArea?
 
+    private func anchoredRect(size: CGSize) -> CGRect {
+        let rect = islandShapeRect(position: position(), panel: CGRect(origin: .zero, size: bounds.size), size: size)
+        return isFlipped ? CGRect(x: rect.minX, y: bounds.height - rect.maxY, width: rect.width, height: rect.height) : rect
+    }
+
     override func hitTest(_ point: NSPoint) -> NSView? {
         let local = superview.map { convert(point, from: $0) } ?? point
-        let size = shapeSize()
-        let originX = (bounds.width - size.width) / 2
-        let originY = isFlipped ? 0 : bounds.height - size.height
-        let shape = NSRect(x: originX, y: originY, width: size.width, height: size.height)
-        return shape.contains(local) ? self : nil
+        guard anchoredRect(size: shapeSize()).contains(local) else { return nil }
+        if let hit = super.hitTest(point), hit is NSTextField || hit is NSText { return hit }
+        return self
     }
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
@@ -26,9 +31,10 @@ final class ShapeHostingView<Content: View>: NSHostingView<Content> {
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         if let region { removeTrackingArea(region) }
-        let width: CGFloat = 640
-        let rect = NSRect(x: (bounds.width - width) / 2, y: isFlipped ? 0 : bounds.height - 70, width: width, height: 70)
-        let area = NSTrackingArea(rect: rect, options: [.mouseEnteredAndExited, .mouseMoved, .activeAlways], owner: self, userInfo: nil)
+        let area = NSTrackingArea(
+            rect: anchoredRect(size: CGSize(width: min(640, bounds.width), height: 70)),
+            options: [.mouseEnteredAndExited, .mouseMoved, .activeAlways], owner: self, userInfo: nil
+        )
         addTrackingArea(area)
         region = area
     }

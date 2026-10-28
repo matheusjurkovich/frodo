@@ -11,6 +11,7 @@ final class IslandModel {
     var settingsOpen = false
     var powerMenuOpen = false
     var covered = false
+    var position: IslandPosition = .topCenter
     var pillSize = CGSize(width: 220, height: Theme.Size.pillHeight)
     var islandHeight: CGFloat = 400
     var activity: PillActivity?
@@ -23,7 +24,7 @@ final class IslandModel {
 
     var targetSize: CGSize {
         if isOpen { return CGSize(width: Theme.Size.islandWidth, height: min(islandHeight, Theme.Size.maxIslandHeight)) }
-        if showsTongue { return CGSize(width: 96, height: 8) }
+        if showsTongue { return position.isSideEdge ? CGSize(width: 8, height: 96) : CGSize(width: 96, height: 8) }
         return pillSize
     }
 

@@ -43,6 +43,15 @@ struct SettingsView: View {
                 title: "Iniciar com o macOS",
                 isOn: Binding(get: { LoginItem.isEnabled }, set: { _ = LoginItem.setEnabled($0); services.revisions.settings += 1 })
             )
+            ToggleRow(title: "Desfoque ao abrir", subtitle: "Desligue se a abertura da ilha ficar pesada", isOn: bind(\.openBlur))
+            HStack(alignment: .center) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Posição").font(Theme.Font.body()).foregroundStyle(Theme.text)
+                    Text(settings.position.label).font(Theme.Font.label()).foregroundStyle(Theme.textSecondary)
+                }
+                Spacer()
+                PositionPicker(selection: bind(\.position))
+            }
             HStack {
                 Text("Monitores").font(Theme.Font.body()).foregroundStyle(Theme.text)
                 Spacer()
@@ -56,7 +65,7 @@ struct SettingsView: View {
             SegmentedPicker(options: [(ClosedMode.minimal, "Mínima"), (.compact, "Compacta"), (.rotating, "Rotativa")], selection: bind(\.closedMode))
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8, alignment: .leading), count: 2), alignment: .leading, spacing: 6) {
                 ForEach(ClosedItem.allCases, id: \.self) { item in
-                    Toggle(
+                    FrodoCheckbox(
                         itemLabel(item),
                         isOn: Binding(
                             get: { settings.closedItems.contains(item) },
@@ -67,11 +76,11 @@ struct SettingsView: View {
                             }
                         )
                     )
-                    .toggleStyle(.checkbox).font(Theme.Font.secondary()).foregroundStyle(Theme.text).frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
             if settings.closedMode == .rotating {
-                Stepper("Trocar a cada \(settings.rotateSeconds) s", value: bind(\.rotateSeconds), in: 2 ... 30).font(Theme.Font.secondary()).foregroundStyle(Theme.text)
+                FrodoStepper("Trocar a cada \(settings.rotateSeconds) s", value: bind(\.rotateSeconds), range: 2 ... 30)
             }
         }
     }
@@ -91,7 +100,7 @@ struct SettingsView: View {
     private var tabsCard: some View {
         CardView(title: "Abas visíveis") {
             ForEach(TabId.allCases, id: \.self) { tab in
-                Toggle(
+                FrodoCheckbox(
                     tab.label,
                     isOn: Binding(
                         get: { !settings.hiddenTabs.contains(tab) },
@@ -102,14 +111,14 @@ struct SettingsView: View {
                         }
                     )
                 )
-                .toggleStyle(.checkbox).font(Theme.Font.secondary()).foregroundStyle(Theme.text)
+                
             }
         }
     }
 
     private var claudeCard: some View {
         CardView(title: "Claude") {
-            Stepper("Atualizar a cada \(settings.claudePollMinutes) min", value: bind(\.claudePollMinutes), in: 1 ... 60).font(Theme.Font.secondary()).foregroundStyle(Theme.text)
+            FrodoStepper("Atualizar a cada \(settings.claudePollMinutes) min", value: bind(\.claudePollMinutes), range: 1 ... 60)
             ToggleRow(title: "Mostrar o que resta", subtitle: "Em vez do que já foi usado", isOn: bind(\.claudeShowRemaining))
             Text("Perfis").font(Theme.Font.label(.medium)).foregroundStyle(Theme.textSecondary)
             ForEach(settings.claudeProfiles, id: \.id) { item in

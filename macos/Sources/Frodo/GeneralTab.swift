@@ -102,11 +102,9 @@ private struct SoundCard: View {
         CardView(title: "Som") {
             HStack(spacing: 10) {
                 FrodoIcon(name: "wave", size: 16, color: Theme.textSecondary)
-                Slider(
-                    value: Binding(get: { Double(services.volume.percent) }, set: { services.volume.setPercent(Int($0)); services.revisions.volume += 1 }),
-                    in: 0 ... 100
+                FrodoSlider(
+                    value: Binding(get: { Double(services.volume.percent) }, set: { services.volume.setPercent(Int($0)); services.revisions.volume += 1 })
                 )
-                .tint(Theme.accent)
                 Text("\(services.volume.percent)%").font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text).monospacedDigit().frame(width: 40, alignment: .trailing)
             }
             if !services.volume.outputName.isEmpty {

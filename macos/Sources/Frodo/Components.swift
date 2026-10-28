@@ -1,3 +1,4 @@
+import FrodoCore
 import SwiftUI
 
 struct HoverBackground: ViewModifier {
@@ -175,7 +176,143 @@ struct ToggleRow: View {
                 if let subtitle { Text(subtitle).font(Theme.Font.label()).foregroundStyle(Theme.textSecondary) }
             }
             Spacer()
-            Toggle("", isOn: $isOn).toggleStyle(.switch).labelsHidden().tint(Theme.accent)
+            FrodoSwitch(isOn: $isOn)
+        }
+    }
+}
+
+struct FrodoSwitch: View {
+    @Binding var isOn: Bool
+
+    var body: some View {
+        Button {
+            withAnimation(Motion.standard) { isOn.toggle() }
+        } label: {
+            ZStack(alignment: isOn ? .trailing : .leading) {
+                Capsule().fill(isOn ? Theme.accent : Theme.track).frame(width: 46, height: 28)
+                Circle().fill(Color.white).frame(width: 22, height: 22).padding(3)
+            }
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+struct FrodoCheckbox: View {
+    let title: String
+    @Binding var isOn: Bool
+
+    init(_ title: String, isOn: Binding<Bool>) {
+        self.title = title
+        _isOn = isOn
+    }
+
+    var body: some View {
+        Button {
+            withAnimation(Motion.hover) { isOn.toggle() }
+        } label: {
+            HStack(spacing: 8) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 5, style: .continuous).fill(isOn ? Theme.accent : Theme.control)
+                        .overlay(RoundedRectangle(cornerRadius: 5, style: .continuous).stroke(Theme.textSecondary.opacity(isOn ? 0 : 0.5), lineWidth: 1))
+                    if isOn { Image(systemName: "checkmark").font(.system(size: 10, weight: .bold)).foregroundStyle(.white) }
+                }
+                .frame(width: 18, height: 18)
+                Text(title).font(Theme.Font.secondary()).foregroundStyle(Theme.text)
+                Spacer(minLength: 0)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+struct FrodoStepper: View {
+    let title: String
+    @Binding var value: Int
+    let range: ClosedRange<Int>
+
+    init(_ title: String, value: Binding<Int>, range: ClosedRange<Int>) {
+        self.title = title
+        _value = value
+        self.range = range
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(title).font(Theme.Font.secondary()).foregroundStyle(Theme.text)
+            Spacer(minLength: 8)
+            IconButton(icon: "minus", size: 26, iconSize: 10) { value = max(range.lowerBound, value - 1) }
+            IconButton(icon: "plus", size: 26, iconSize: 10) { value = min(range.upperBound, value + 1) }
+        }
+    }
+}
+
+struct FrodoSlider: View {
+    @Binding var value: Double
+
+    var body: some View {
+        GeometryReader { proxy in
+            let width = max(1, proxy.size.width)
+            let fraction = min(1, max(0, value / 100))
+            ZStack(alignment: .leading) {
+                Capsule().fill(Theme.track).frame(height: 6)
+                Capsule().fill(Theme.accent).frame(width: max(6, width * fraction), height: 6)
+                Circle().fill(Theme.text).frame(width: 18, height: 18).offset(x: max(0, min(width - 18, width * fraction - 9)))
+            }
+            .frame(maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0).onChanged { drag in
+                    let ratio: Double = Double(drag.location.x) / Double(width)
+                    value = Swift.min(100.0, Swift.max(0.0, ratio * 100.0))
+                }
+            )
+        }
+        .frame(height: 24)
+    }
+}
+
+struct PositionPicker: View {
+    @Binding var selection: IslandPosition
+
+    private let rows: [VerticalAnchor] = [.top, .middle, .bottom]
+    private let columns: [HorizontalAnchor] = [.leading, .center, .trailing]
+
+    private func position(_ vertical: VerticalAnchor, _ horizontal: HorizontalAnchor) -> IslandPosition? {
+        IslandPosition.allCases.first { $0.vertical == vertical && $0.horizontal == horizontal }
+    }
+
+    var body: some View {
+        VStack(spacing: 4) {
+            ForEach(rows.indices, id: \.self) { row in
+                HStack(spacing: 4) {
+                    ForEach(columns.indices, id: \.self) { column in
+                        cell(position(rows[row], columns[column]))
+                    }
+                }
+            }
+        }
+        .padding(6)
+        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Theme.cardInner))
+    }
+
+    @ViewBuilder
+    private func cell(_ target: IslandPosition?) -> some View {
+        if let target {
+            Button {
+                withAnimation(Motion.hover) { selection = target }
+            } label: {
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .fill(selection == target ? Theme.accent : Theme.control)
+                    .frame(width: 38, height: 24)
+                    .overlay { if selection == target { Capsule().fill(Color.white).frame(width: 14, height: 5) } }
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(target.label)
+        } else {
+            RoundedRectangle(cornerRadius: 5, style: .continuous).stroke(Theme.track, lineWidth: 1).frame(width: 38, height: 24)
         }
     }
 }

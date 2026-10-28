@@ -32,7 +32,7 @@ struct IslandRootView: View {
         let _ = services.revisions.settings
         let size = model.targetSize
         let radius = model.isOpen ? Theme.Radius.panel : min(size.height / 2, 26)
-        ZStack(alignment: .top) {
+        ZStack(alignment: model.position.alignment) {
             RoundedRectangle(cornerRadius: radius, style: .continuous)
                 .fill(Theme.island)
                 .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).stroke(borderColor, lineWidth: model.activity.map(isUrgent) == true ? 1.5 : 1))
@@ -43,7 +43,7 @@ struct IslandRootView: View {
                 .animation(model.isOpen ? Motion.island : Motion.standard, value: size)
                 .animation(Motion.standard, value: radius)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: model.position.alignment)
     }
 
     private var borderColor: Color {
@@ -111,8 +111,8 @@ struct IslandRootView: View {
                 }
             }
         }
-        .blur(radius: model.isOpen ? 0 : Motion.openBlur)
-        .scaleEffect(model.isOpen ? 1 : Motion.openScale, anchor: .top)
+        .blur(radius: model.isOpen || !services.settings.openBlur ? 0 : Motion.openBlur)
+        .scaleEffect(model.isOpen ? 1 : Motion.openScale, anchor: model.position.unitPoint)
         .opacity(model.isOpen ? 1 : 0)
         .allowsHitTesting(model.isOpen)
         .animation(model.isOpen ? Motion.island : Motion.fadeOut, value: model.isOpen)
@@ -125,6 +125,36 @@ struct IslandRootView: View {
         case .calendar: CalendarTab(services: services)
         case .claude: ClaudeTab(services: services)
         case .notifications: NotificationsTab(services: services)
+        }
+    }
+}
+
+extension IslandPosition {
+    var alignment: Alignment {
+        switch (vertical, horizontal) {
+        case (.top, .leading): .topLeading
+        case (.top, .center): .top
+        case (.top, .trailing): .topTrailing
+        case (.middle, .leading): .leading
+        case (.middle, .center): .center
+        case (.middle, .trailing): .trailing
+        case (.bottom, .leading): .bottomLeading
+        case (.bottom, .center): .bottom
+        case (.bottom, .trailing): .bottomTrailing
+        }
+    }
+
+    var unitPoint: UnitPoint {
+        switch (vertical, horizontal) {
+        case (.top, .leading): .topLeading
+        case (.top, .center): .top
+        case (.top, .trailing): .topTrailing
+        case (.middle, .leading): .leading
+        case (.middle, .center): .center
+        case (.middle, .trailing): .trailing
+        case (.bottom, .leading): .bottomLeading
+        case (.bottom, .center): .bottom
+        case (.bottom, .trailing): .bottomTrailing
         }
     }
 }

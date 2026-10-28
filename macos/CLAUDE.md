@@ -31,10 +31,12 @@ Pacote SwiftPM. A regra "import só desce" é imposta pelo compilador pelos alvo
 ## Painel e hover (aprendido nos spikes)
 
 - O painel tem o tamanho máximo da ilha mais 50 pt de margem de quique; a forma é animada pelo SwiftUI por dentro. Nunca anime o frame da janela.
+- A posição (`IslandPosition`, 8 opções) muda só a geometria pura em `Core/IslandPosition.swift` (`islandPanelFrame`, `islandShapeRect`), que o painel, o `hitTest`, a região do hover e o alinhamento do SwiftUI usam. Não calcule posição fora dela. A margem de quique fica só nos lados que não encostam na tela. Trocar a posição fecha a ilha antes de mover o painel.
 - `hitTest` recebe o ponto nas coordenadas do **superview**: converta, e devolva `self` só dentro da forma. Fora dela o clique atravessa (pixel transparente).
 - `acceptsFirstMouse` verdadeiro; `mouseDown` próprio precisa chamar `super`.
 - Hover: `NSTrackingArea` só para abrir; fechar com timer de 50 ms enquanto aberta, sempre conferindo `NSEvent.mouseLocation`. Monitores globais de `mouseMoved` não recebem eventos.
 - `.onHover` do SwiftUI com redimensionamento é instável.
+- Controles nativos do AppKit (`Toggle`, `Slider`, `Stepper`, checkbox) não recebem o clique neste painel, porque o `hitTest` devolve o próprio painel. Use `FrodoSwitch`, `FrodoSlider`, `FrodoStepper` e `FrodoCheckbox` (`Components.swift`), que funcionam por gesto. Só campos de texto (`NSTextField`) passam pelo `hitTest`.
 - `ImageRenderer` não desenha `ScrollView`: para capturar telas use `NSHostingView` numa janela fora da tela (`--snapshot`).
 
 ## Testes
