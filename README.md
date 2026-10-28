@@ -31,6 +31,10 @@ Fechada, a pílula mostra hora, data, notificações, rede e bateria. Quando alg
 
 Em tela cheia a pílula some e fica só a lingueta no topo; passe o mouse ou clique nela para abrir a ilha. Com a barra superior oculta, o mesmo vale quando há uma janela maximizada ou encaixada na metade da tela visível no monitor, mesmo sem foco; nesse caso a pílula volta por cima da janela enquanto mostra uma notificação ou um pedido de permissão do Claude. Em tela cheia, e sempre que a barra superior está oculta, a ilha desliga o scanout direto do compositor, como o GNOME faz com banners e OSD, para a pílula e a dock não piscarem sobre o app.
 
+## Animações
+
+As trocas de estado seguem a Dynamic Island do iPhone. A pílula muda de tamanho com mola e troca o conteúdo com fade cruzado; volume, passo do Claude e timers mudam no lugar, sem piscar. Ao abrir, a forma cresce a partir da pílula e o conteúdo aparece dentro dela com fade, desfoque e zoom leve; ao fechar, o conteúdo desfoca e a forma volta para a pílula. As abas, as configurações e os submenus de Wi-Fi, Bluetooth e áudio deslizam para o lado, o marcador da aba e a altura da ilha acompanham com mola, os acordeões abrem e fecham com mola e as notificações dispensadas saem deslizando. Hover e clique trocam de cor com transição curta. Com "Animações" desligada no GNOME, tudo troca na hora.
+
 ## Requisitos
 
 - GNOME Shell 50 (Wayland)
@@ -182,6 +186,7 @@ O hook só espera se a extensão estiver ligada (ela grava o pid do shell em `$X
 | `npm test`          | Jasmine rodando no `gjs`, com todo `*.spec.ts` de `src/` e `tests/`        |
 | `npm run check`     | Tudo acima, menos o build                                                  |
 | `npm run smoke`     | Build e gnome-shell headless isolado: liga, desliga e religa a extensão    |
+| `npm run devkit`    | Build e gnome-shell aninhado numa janela para conferir ao vivo             |
 
 ## Estrutura
 
@@ -198,12 +203,14 @@ src/
   features/<domínio>/     regra pura e serviço de cada fonte de dados: claude, media, meetings,
                           notifications, system, workspaces
   settings/               GSettings tipado, valores do schema, perfis do Claude, atalho e abas
-  shared/                 Emitter, Disposables, Timer, formatação, geometria, leitura de arquivo, nível,
+  shared/                 Emitter, Disposables, Timer, formatação, geometria, curva de mola, leitura de arquivo, nível,
                           contrato da ilha para as abas (island-handle.ts) e shell-internals.ts
-    ui/                   componentes St: botões, cards, layout, anel, barra de segmentos, ícones, empréstimo de ator
+    ui/                   componentes St: botões, cards, layout, anel, barra de segmentos, ícones, empréstimo de ator,
+                          movimento (motion.ts)
   types/                  declarações que faltam nos tipos @girs
 tests/                    runner Jasmine (entry.js acha todo *.spec.ts), polyfills e fixtures
 tools/smoke.sh            gnome-shell headless isolado: liga, desliga e religa a extensão
+tools/devkit.sh           gnome-shell aninhado numa janela, isolado, para conferir ao vivo
 hooks/                    hook do Claude Code que grava o estado de cada sessão
 icons/                    ícones SVG simbólicos (créditos em icons/README.md)
 ```

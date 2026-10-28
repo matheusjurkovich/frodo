@@ -2014,3 +2014,25 @@
     padding: 2px 6px;
     font-size: 12px;
 }
+
+.frodo-app,
+.frodo-button,
+.frodo-calendar .calendar-day,
+.frodo-calendar .pager-button,
+.frodo-collapsible-header,
+.frodo-entry,
+.frodo-segmented-item,
+.frodo-general .frodo-sound-icon .icon-button,
+.frodo-general .frodo-sound-menu .icon-button,
+.frodo-general .quick-toggle,
+.frodo-general .quick-toggle-menu-button,
+.frodo-general .quick-toggle-menu .popup-menu-item,
+.frodo-notification,
+.frodo-power-item,
+.frodo-session-header,
+.frodo-tab,
+.frodo-tongue,
+.frodo-workspace,
+.frodo-workspace-new {
+    transition-duration: 150ms;
+}
