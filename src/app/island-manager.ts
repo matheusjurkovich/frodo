@@ -3,16 +3,12 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {targetMonitors} from './monitors.js';
 import {tabToOpen, visibleTabs} from '../settings/tabs.js';
 import type {TabId} from '../settings/schema-values.js';
-import type {ClaudeTranscripts} from '../features/claude/claude-transcripts-service.js';
-import type {Workspaces} from '../features/workspaces/workspaces-service.js';
 import {Disposables} from '../shared/disposables.js';
 import {Island} from './island.js';
-import type {IslandDependencies} from './island.js';
 import {PanelContent} from './panel-content.js';
+import type {FrodoServices} from './services.js';
 
-export interface IslandManagerDependencies extends IslandDependencies {
-    readonly transcripts: ClaudeTranscripts;
-    readonly workspaces: Workspaces;
+export interface IslandManagerDependencies extends FrodoServices {
     readonly openPreferences: () => void;
 }
 
@@ -62,7 +58,7 @@ export class IslandManager {
 
     #rebuild(): void {
         this.#clear();
-        const {settings, claude, transcripts, sessions, bridge, media, workspaces, openPreferences} = this.#dependencies;
+        const {settings} = this.#dependencies;
         const primary = Main.layoutManager.primaryIndex;
         for (const monitorIndex of targetMonitors(settings.monitors, primary, Main.layoutManager.monitors.length)) {
             const island = new Island(this.#dependencies, monitorIndex);
@@ -70,7 +66,7 @@ export class IslandManager {
             island.on('opening', () => {
                 for (const other of this.#entries) if (other.island !== island) other.island.close();
             });
-            const content = new PanelContent({island, claude, transcripts, sessions, settings, bridge, media, workspaces, openPreferences});
+            const content = new PanelContent({...this.#dependencies, island});
             island.setContent(content.actor);
             island.on('tabRequested', tab => {
                 content.showOnNextOpen(tab);

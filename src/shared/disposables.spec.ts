@@ -18,4 +18,20 @@ describe('Disposables', () => {
         bag.dispose();
         expect(target.disconnect).toHaveBeenCalledOnceWith(7);
     });
+
+    it('own devolve o item e o destrói no dispose, em ordem inversa', () => {
+        const calls: string[] = [];
+        const disposables = new Disposables();
+        const item = {
+            destroy: (): void => {
+                calls.push('item');
+            },
+        };
+        expect(disposables.own(item)).toBe(item);
+        disposables.add(() => {
+            calls.push('add');
+        });
+        disposables.dispose();
+        expect(calls).toEqual(['add', 'item']);
+    });
 });

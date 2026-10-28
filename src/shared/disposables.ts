@@ -11,6 +11,13 @@ export class Disposables {
         this.#items.push(dispose);
     }
 
+    own<T extends {destroy(): void}>(item: T): T {
+        this.add(() => {
+            item.destroy();
+        });
+        return item;
+    }
+
     signal(source: SignalSource, id: number): void {
         this.add(() => {
             source.disconnect(id);

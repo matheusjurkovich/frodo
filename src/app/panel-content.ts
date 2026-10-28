@@ -4,17 +4,12 @@ import St from 'gi://St';
 import {TAB_LABELS, tabToOpen, visibleTabs} from '../settings/tabs.js';
 import {TAB_IDS} from '../settings/schema-values.js';
 import type {TabId} from '../settings/schema-values.js';
-import type {ClaudeService} from '../features/claude/claude-service.js';
-import type {ClaudeSessions} from '../features/claude/claude-sessions-service.js';
-import type {ClaudeTranscripts} from '../features/claude/claude-transcripts-service.js';
-import type {MediaService} from '../features/media/media-service.js';
-import type {NotificationBridge} from '../features/notifications/notification-bridge-service.js';
 import type {FrodoSettings} from '../settings/frodo-settings.js';
-import type {Workspaces} from '../features/workspaces/workspaces-service.js';
 import {Disposables} from '../shared/disposables.js';
 import {column} from '../shared/ui/layout.js';
 import type {Component} from '../shared/ui/lifecycle.js';
 import type {Island} from './island.js';
+import type {FrodoServices} from './services.js';
 import {CalendarPage} from '../tabs/calendar/calendar-page.js';
 import {ClaudePage} from '../tabs/claude/claude-page.js';
 import {GeneralPage} from '../tabs/general/general-page.js';
@@ -28,15 +23,8 @@ import {WorkspacesPage} from '../tabs/workspaces/workspaces-page.js';
 
 export type PanelView = {readonly kind: 'tab'; readonly tab: TabId} | {readonly kind: 'settings'};
 
-export interface PanelDependencies {
+export interface PanelDependencies extends FrodoServices {
     readonly island: Island;
-    readonly claude: ClaudeService;
-    readonly transcripts: ClaudeTranscripts;
-    readonly sessions: ClaudeSessions;
-    readonly settings: FrodoSettings;
-    readonly bridge: NotificationBridge;
-    readonly media: MediaService;
-    readonly workspaces: Workspaces;
     readonly openPreferences: () => void;
 }
 

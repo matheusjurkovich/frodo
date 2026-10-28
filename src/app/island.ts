@@ -8,10 +8,6 @@ import type * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import {centerClamp, topEdgeSpan} from '../shared/geometry.js';
 import type {TabId} from '../settings/schema-values.js';
 import type {ClaudeService} from '../features/claude/claude-service.js';
-import type {ClaudeSessions} from '../features/claude/claude-sessions-service.js';
-import type {MediaService} from '../features/media/media-service.js';
-import type {NotificationBridge} from '../features/notifications/notification-bridge-service.js';
-import type {Recording} from '../features/system/recording-service.js';
 import type {FrodoSettings} from '../settings/frodo-settings.js';
 import type {SystemState} from '../features/system/system-state-service.js';
 import {
@@ -26,6 +22,7 @@ import {Disposables} from '../shared/disposables.js';
 import type {Disposer} from '../shared/disposables.js';
 import {Emitter} from '../shared/emitter.js';
 import type {IslandHandle} from '../shared/island-handle.js';
+import type {FrodoServices} from './services.js';
 import {Timer} from '../shared/timer.js';
 import type {ActivityFeed} from '../pill/activity-feed.js';
 import {Pill} from '../pill/pill.js';
@@ -47,17 +44,6 @@ function pressedButton(event: Clutter.Event, root: Clutter.Actor): boolean {
     return false;
 }
 export type Placement = 'bar' | 'float';
-
-export interface IslandDependencies {
-    readonly settings: FrodoSettings;
-    readonly state: SystemState;
-    readonly claude: ClaudeService;
-    readonly bridge: NotificationBridge;
-    readonly feed: ActivityFeed;
-    readonly recording: Recording;
-    readonly sessions: ClaudeSessions;
-    readonly media: MediaService;
-}
 
 export interface IslandEvents {
     opening: [];
@@ -86,7 +72,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
     #openedBy: OpenReason | null = null;
     #holds = 0;
 
-    constructor(dependencies: IslandDependencies, monitorIndex: number) {
+    constructor(dependencies: FrodoServices, monitorIndex: number) {
         super();
         const {settings, state, claude, feed} = dependencies;
         this.#settings = settings;
