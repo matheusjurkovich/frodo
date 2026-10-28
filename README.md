@@ -20,7 +20,7 @@ A engrenagem do cabeçalho abre as configurações, todas dentro da ilha (compor
 
 Fechada, a pílula mostra hora, data, notificações, rede e bateria. Quando algo acontece, ela troca para uma atividade por no máximo 5 segundos e volta ao repouso; a mesma atividade só reaparece quando muda (gravação nova, outro passo do Claude, outra faixa, música retomada). Abrir a ilha dá como vistas as atividades em andamento. Com mais de uma ao mesmo tempo, vale esta ordem de prioridade, e a que foi interrompida volta depois com os 5 segundos inteiros:
 
-1. Notificação recebida (qualquer uma que não seja crítica), por 3 segundos cada.
+1. Notificação recebida (qualquer uma que não seja crítica), por 3 segundos cada. Com a pílula flutuando, vira um card com o avatar arredondado, o app, o título e o corpo; na barra superior fica numa linha.
 2. Gravação de tela, com o tempo e o botão Parar (o cabeçalho da ilha também tem Parar gravação).
 3. Pedido de permissão do Claude, com a ferramenta e os botões Negar e Aprovar (o mais antigo, se houver vários).
 4. Sessão do Claude esperando permissão sem pedido aberto pela ilha, com o botão Abrir.

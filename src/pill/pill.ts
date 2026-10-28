@@ -17,6 +17,7 @@ const STATE_CLASSES: Partial<Record<ActivityKind, string>> = {
     'claude-permission': 'frodo-pill-waiting',
     'claude-waiting': 'frodo-pill-waiting',
     meeting: 'frodo-pill-meeting',
+    notification: 'frodo-pill-notification',
 };
 
 export interface PillDependencies extends ActivityServices {
@@ -67,7 +68,7 @@ export class Pill extends Emitter<{rebuilt: []}> {
 
     setBar(bar: boolean): void {
         this.#bar = bar;
-        this.#syncStyle();
+        this.#sync();
     }
 
     activate(): boolean {
@@ -78,7 +79,7 @@ export class Pill extends Emitter<{rebuilt: []}> {
         const activity = this.#feed.current;
         this.#idle.actor.visible = activity === null;
         this.#activity.actor.visible = activity !== null;
-        if (activity) this.#activity.show(activity);
+        if (activity) this.#activity.show(activity, this.#bar);
         else this.#activity.clear();
         this.#syncStyle();
     }

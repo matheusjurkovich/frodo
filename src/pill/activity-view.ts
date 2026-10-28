@@ -9,10 +9,11 @@ import type {MediaService} from '../features/media/media-service.js';
 import type {Recording} from '../features/system/recording-service.js';
 import {Timer} from '../shared/timer.js';
 import {iconButton, textButton} from '../shared/ui/buttons.js';
-import {label} from '../shared/ui/layout.js';
+import {column, label} from '../shared/ui/layout.js';
 import type {Component} from '../shared/ui/lifecycle.js';
 import {SegmentBar} from '../shared/ui/segment-bar.js';
 import {frodoIcon} from '../shared/ui/icons.js';
+import {setSourceColor} from '../shared/ui/progress-ring.js';
 import type {PillActivity} from './activity-feed.js';
 
 const TICK_SECONDS = 1;
@@ -39,6 +40,37 @@ export interface ActivityServices {
 
 function icon(gicon: Gio.Icon, styleClass = ''): St.Icon {
     return new St.Icon({gicon, style_class: `frodo-pill-icon ${styleClass}`.trim(), y_align: Clutter.ActorAlign.CENTER});
+}
+
+function avatar(gicon: Gio.Icon): St.Widget {
+    const box = new St.Widget({
+        style_class: 'frodo-pill-avatar',
+        layout_manager: new Clutter.BinLayout(),
+        y_align: Clutter.ActorAlign.CENTER,
+    });
+    const corners = new St.DrawingArea({style_class: 'frodo-pill-avatar-corners', x_expand: true, y_expand: true});
+    corners.connect('repaint', () => {
+        const cr = corners.get_context();
+        const node = corners.get_theme_node();
+        const [w, h] = corners.get_surface_size();
+        const r = Math.min(node.get_border_radius(St.Corner.TOPLEFT), w / 2, h / 2);
+        cr.rectangle(0, 0, w, h);
+        cr.moveTo(r, 0);
+        cr.arcNegative(r, r, r, -Math.PI / 2, Math.PI);
+        cr.lineTo(0, h - r);
+        cr.arcNegative(r, h - r, r, Math.PI, Math.PI / 2);
+        cr.lineTo(w - r, h);
+        cr.arcNegative(w - r, h - r, r, Math.PI / 2, 0);
+        cr.lineTo(w, r);
+        cr.arcNegative(w - r, r, r, 0, -Math.PI / 2);
+        cr.closePath();
+        setSourceColor(cr, node.get_foreground_color());
+        cr.fill();
+        cr.$dispose();
+    });
+    box.add_child(new St.Icon({gicon, style_class: 'frodo-pill-avatar-icon'}));
+    box.add_child(corners);
+    return box;
 }
 
 function volumeIcon(percent: number): Gio.Icon {
@@ -71,7 +103,7 @@ export class ActivityView implements Component {
         return true;
     }
 
-    show(activity: PillActivity): void {
+    show(activity: PillActivity, bar: boolean): void {
         this.clear();
         switch (activity.kind) {
             case 'recording':
@@ -87,7 +119,7 @@ export class ActivityView implements Component {
                 this.#meeting(activity);
                 break;
             case 'notification':
-                this.#notification(activity);
+                this.#notification(activity, bar);
                 break;
             case 'volume':
                 this.#volume(activity);
@@ -200,15 +232,22 @@ export class ActivityView implements Component {
         });
     }
 
-    #notification({item}: Of<'notification'>): void {
+    #notification({item}: Of<'notification'>, bar: boolean): void {
         this.#clickTab = 'notifications';
+        const app = item.app === '' ? 'agora' : `${ellipsize(item.app, APP_CHARS)} · agora`;
         const body = item.body.replace(/\s+/g, ' ').trim();
-        this.#add(
-            icon(item.gicon ?? frodoIcon('info')),
-            label(item.app === '' ? 'agora' : `${ellipsize(item.app, APP_CHARS)} · agora`, 'frodo-pill-detail'),
-            label(ellipsize(item.title, TITLE_CHARS), 'frodo-pill-title'),
-        );
-        if (body !== '') this.#add(label(ellipsize(body, BODY_CHARS), 'frodo-pill-detail'));
+        const gicon = item.gicon ?? frodoIcon('info');
+        if (bar) {
+            this.#add(avatar(gicon), label(app, 'frodo-pill-detail'), label(ellipsize(item.title, TITLE_CHARS), 'frodo-pill-title'));
+            if (body !== '') this.#add(label(ellipsize(body, BODY_CHARS), 'frodo-pill-detail'));
+            return;
+        }
+        const text = column('frodo-pill-notification-text');
+        text.y_align = Clutter.ActorAlign.CENTER;
+        text.add_child(label(app, 'frodo-pill-detail'));
+        text.add_child(label(item.title, 'frodo-pill-notification-title'));
+        if (body !== '') text.add_child(label(body, 'frodo-pill-notification-body'));
+        this.#add(avatar(gicon), text);
     }
 
     #volume({percent}: Of<'volume'>): void {

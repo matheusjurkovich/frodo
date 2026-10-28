@@ -43,6 +43,19 @@
     padding-right: 4px;
 }
 
+.frodo-pill-notification {
+    width: 420px;
+    padding: 10px;
+    border-radius: 24px;
+    spacing: 12px;
+}
+
+.frodo-pill-bar.frodo-pill-notification {
+    width: auto;
+    padding: 0 16px 0 18px;
+    border-radius: 999px;
+}
+
 .frodo-pill-recording {
     border: 1px solid #fca5a5;
 }
@@ -206,6 +219,51 @@
     border-radius: 12px;
     background-size: cover;
     background-position: center;
+}
+
+.frodo-pill-avatar {
+    width: 36px;
+    height: 36px;
+}
+
+.frodo-pill-avatar-icon {
+    icon-size: 36px;
+}
+
+.frodo-pill-avatar-corners {
+    border-radius: 10px;
+    color: #0a0a0b;
+}
+
+.frodo-pill-bar .frodo-pill-avatar {
+    width: 20px;
+    height: 20px;
+}
+
+.frodo-pill-bar .frodo-pill-avatar-icon {
+    icon-size: 20px;
+}
+
+.frodo-pill-bar .frodo-pill-avatar-corners {
+    border-radius: 6px;
+}
+
+.frodo-pill-notification .frodo-pill-content {
+    spacing: 12px;
+}
+
+.frodo-pill-notification-text {
+    spacing: 2px;
+}
+
+.frodo-pill-notification-title {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.frodo-pill-notification-body {
+    font-size: 13px;
+    color: #a1a1aa;
 }
 
 .frodo-pill-volume {
