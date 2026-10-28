@@ -6,7 +6,6 @@ import {TAB_IDS} from '../settings/schema-values.js';
 import type {TabId} from '../settings/schema-values.js';
 import type {FrodoSettings} from '../settings/frodo-settings.js';
 import {Disposables} from '../shared/disposables.js';
-import {Timer} from '../shared/timer.js';
 import {SPRING} from '../shared/spring.js';
 import {column} from '../shared/ui/layout.js';
 import {HEIGHT_AXIS, morphSize, settle, slideIn, slideOut} from '../shared/ui/motion.js';
@@ -40,13 +39,11 @@ export class PanelContent {
     readonly #stack = new St.Viewport({style_class: 'frodo-pages', layout_manager: new Clutter.BinLayout(), x_expand: true});
     readonly #scroll = new St.ScrollView({
         hscrollbar_policy: St.PolicyType.NEVER,
-        vscrollbar_policy: St.PolicyType.AUTOMATIC,
-        overlay_scrollbars: true,
+        vscrollbar_policy: St.PolicyType.EXTERNAL,
         x_expand: true,
         child: this.#stack,
     });
     readonly #disposables = new Disposables();
-    readonly #scrollbarTimer = new Timer();
     #power: PowerMenu | null = null;
     #view: PanelView = {kind: 'tab', tab: TAB_IDS[0]};
     #lastTab: TabId = TAB_IDS[0];
@@ -168,7 +165,6 @@ export class PanelContent {
         if (tab) this.#lastTab = tab;
         if (animate && from !== to && this.actor.mapped) this.#slide(from, to, direction);
         else {
-            this.#showScrollbar(true);
             for (const page of this.#allActors()) {
                 settle(page);
                 page.visible = page === to;
@@ -187,10 +183,6 @@ export class PanelContent {
             }
         settle(to);
         this.#scrollToTop();
-        this.#showScrollbar(false);
-        this.#scrollbarTimer.once(SPRING.ms, () => {
-            this.#showScrollbar(true);
-        });
         morphSize(
             this.#scroll,
             () => {
@@ -206,11 +198,6 @@ export class PanelContent {
             settle(from);
         });
         slideIn(to, direction);
-    }
-
-    #showScrollbar(show: boolean): void {
-        if (show) this.#scrollbarTimer.stop();
-        this.#scroll.vscrollbar_policy = show ? St.PolicyType.AUTOMATIC : St.PolicyType.NEVER;
     }
 
     #actorOf(view: PanelView): Clutter.Actor {
@@ -244,7 +231,6 @@ export class PanelContent {
     }
 
     destroy(): void {
-        this.#scrollbarTimer.stop();
         this.#disposables.dispose();
         this.#power?.destroy();
         this.#tabBar.destroy();

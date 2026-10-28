@@ -22,8 +22,7 @@ export class NotificationsPage implements Component {
     readonly #scroll = new St.ScrollView({
         style_class: 'frodo-notification-scroll',
         hscrollbar_policy: St.PolicyType.NEVER,
-        vscrollbar_policy: St.PolicyType.AUTOMATIC,
-        overlay_scrollbars: true,
+        vscrollbar_policy: St.PolicyType.EXTERNAL,
         x_expand: true,
         child: this.#list,
     });
