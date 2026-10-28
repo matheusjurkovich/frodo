@@ -2,8 +2,8 @@ import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import type Meta from 'gi://Meta';
 
-import {nextState, parentPid, parseHookEvent, parseShortstat} from './claude-sessions.js';
-import type {DiffStat, SessionState} from './claude-sessions.js';
+import {decisionJson, nextState, oldestPending, parentPid, parseHookEvent, parsePending, parseShortstat} from './claude-sessions.js';
+import type {Decision, DiffStat, PendingRequest, SessionState} from './claude-sessions.js';
 import {Emitter} from '../../shared/emitter.js';
 import {Timer} from '../../shared/timer.js';
 import {readTextFile} from '../../shared/files.js';
@@ -17,8 +17,12 @@ const HOOK_SCRIPT = 'hooks/claude-session.sh';
 const SWEEP_SECONDS = 60;
 const BATCH = 64;
 
+function pidAlive(pid: number): boolean {
+    return GLib.file_test(`/proc/${pid}`, GLib.FileTest.EXISTS);
+}
+
 function isAlive(state: SessionState): boolean {
-    return state.pid === null || GLib.file_test(`/proc/${state.pid}`, GLib.FileTest.EXISTS);
+    return state.pid === null || pidAlive(state.pid);
 }
 
 function readStat(pid: number): string {
@@ -68,12 +72,17 @@ async function run(argv: string[], cwd: string, cancellable: Gio.Cancellable): P
 export class ClaudeSessions extends Emitter<{changed: []}> {
     readonly #settings: FrodoSettings;
     readonly #dir: string;
+    readonly #pendingDir: string;
+    readonly #decisionsDir: string;
     readonly #activate: ((window: Meta.Window) => void) | null;
     readonly #states = new Map<string, SessionState>();
+    readonly #pending = new Map<string, PendingRequest>();
     readonly #timer = new Timer();
     readonly #cancellable = new Gio.Cancellable();
     readonly #monitor: Gio.FileMonitor;
     readonly #monitorId: number;
+    readonly #pendingMonitor: Gio.FileMonitor;
+    readonly #pendingMonitorId: number;
     #queue: Promise<void> = Promise.resolve();
     #hooksInstalled = false;
     #checkingHooks = false;
@@ -81,25 +90,59 @@ export class ClaudeSessions extends Emitter<{changed: []}> {
 
     constructor(
         settings: FrodoSettings,
-        dir = GLib.build_filenamev([GLib.get_user_runtime_dir(), 'frodo', 'sessions']),
+        root = GLib.build_filenamev([GLib.get_user_runtime_dir(), 'frodo']),
         activate: ((window: Meta.Window) => void) | null = null,
     ) {
         super();
         this.#settings = settings;
-        this.#dir = dir;
+        this.#dir = GLib.build_filenamev([root, 'sessions']);
+        this.#pendingDir = GLib.build_filenamev([root, 'pending']);
+        this.#decisionsDir = GLib.build_filenamev([root, 'decisions']);
         this.#activate = activate;
-        GLib.mkdir_with_parents(dir, 0o700);
-        const directory = Gio.File.new_for_path(dir);
+        for (const dir of [this.#dir, this.#pendingDir, this.#decisionsDir]) GLib.mkdir_with_parents(dir, 0o700);
+        const directory = Gio.File.new_for_path(this.#dir);
         this.#monitor = directory.monitor_directory(Gio.FileMonitorFlags.WATCH_MOVES, this.#cancellable);
         this.#monitorId = this.#monitor.connect('changed', (_monitor, file, other, type) => {
             this.#onFileChanged(file, other, type);
         });
-        this.#enqueue(() => this.#load(directory));
+        const pendingDirectory = Gio.File.new_for_path(this.#pendingDir);
+        this.#pendingMonitor = pendingDirectory.monitor_directory(Gio.FileMonitorFlags.WATCH_MOVES, this.#cancellable);
+        this.#pendingMonitorId = this.#pendingMonitor.connect('changed', (_monitor, file, other, type) => {
+            this.#onPendingChanged(file, other, type);
+        });
+        this.#enqueue(async () => {
+            await this.#load(directory);
+            return this.#loadPending(pendingDirectory);
+        });
         void this.#checkHooks();
     }
 
     get sessions(): readonly SessionState[] {
         return [...this.#states.values()].filter(isAlive);
+    }
+
+    get pending(): readonly PendingRequest[] {
+        return [...this.#pending.values()].filter(pending => pidAlive(pending.pid));
+    }
+
+    pendingFor(sessionId: string): PendingRequest | null {
+        return oldestPending(this.pending, sessionId);
+    }
+
+    decide(request: PendingRequest, decision: Decision): boolean {
+        if (!pidAlive(request.pid)) {
+            if (this.#pending.delete(request.key)) this.#changed();
+            return false;
+        }
+        try {
+            GLib.file_set_contents(GLib.build_filenamev([this.#decisionsDir, `${request.key}.json`]), decisionJson(decision));
+        } catch (error) {
+            logError(error as object);
+            return false;
+        }
+        this.#pending.delete(request.key);
+        this.#changed();
+        return true;
     }
 
     focus(id: string): boolean {
@@ -173,6 +216,26 @@ export class ClaudeSessions extends Emitter<{changed: []}> {
         }
     }
 
+    #onPendingChanged(file: Gio.File, other: Gio.File | null, type: Gio.FileMonitorEvent): void {
+        switch (type) {
+            case Gio.FileMonitorEvent.CREATED:
+            case Gio.FileMonitorEvent.CHANGES_DONE_HINT:
+            case Gio.FileMonitorEvent.MOVED_IN:
+                this.#enqueue(() => this.#readPending(file));
+                break;
+            case Gio.FileMonitorEvent.RENAMED:
+                this.#enqueue(async () => {
+                    const forgotten = this.#forgetPending(file);
+                    return (other !== null && (await this.#readPending(other))) || forgotten;
+                });
+                break;
+            case Gio.FileMonitorEvent.DELETED:
+            case Gio.FileMonitorEvent.MOVED_OUT:
+                this.#enqueue(() => Promise.resolve(this.#forgetPending(file)));
+                break;
+        }
+    }
+
     #enqueue(work: () => Promise<boolean>): void {
         this.#queue = this.#queue
             .then(async () => {
@@ -189,6 +252,26 @@ export class ClaudeSessions extends Emitter<{changed: []}> {
             await this.#read(directory.get_child(info.get_name()), modified || Date.now());
         }
         return true;
+    }
+
+    async #loadPending(directory: Gio.File): Promise<boolean> {
+        for (const info of await list(directory, this.#cancellable).catch(() => []))
+            await this.#readPending(directory.get_child(info.get_name()));
+        return true;
+    }
+
+    async #readPending(file: Gio.File): Promise<boolean> {
+        const text = await readTextFile(file.get_path() ?? '');
+        const pending = text === null ? null : parsePending(file.get_basename() ?? '', text);
+        if (this.#destroyed || !pending || !pidAlive(pending.pid)) return false;
+        const previous = this.#pending.get(pending.key);
+        this.#pending.set(pending.key, pending);
+        return JSON.stringify(previous) !== JSON.stringify(pending);
+    }
+
+    #forgetPending(file: Gio.File): boolean {
+        const name = file.get_basename() ?? '';
+        return name.endsWith('.json') && this.#pending.delete(name.slice(0, -'.json'.length));
     }
 
     async #read(file: Gio.File, atMs: number): Promise<boolean> {
@@ -217,12 +300,15 @@ export class ClaudeSessions extends Emitter<{changed: []}> {
     #sweep(): void {
         let removed = false;
         for (const state of [...this.#states.values()]) if (!isAlive(state)) removed = this.#remove(state.sessionId) || removed;
+        for (const pending of [...this.#pending.values()])
+            if (!pidAlive(pending.pid)) removed = this.#pending.delete(pending.key) || removed;
         if (removed) this.#changed();
     }
 
     #changed(): void {
         if (this.#destroyed) return;
-        const busy = [...this.#states.values()].some(state => state.status === 'working' || state.status === 'waiting');
+        const busy =
+            this.#pending.size > 0 || [...this.#states.values()].some(state => state.status === 'working' || state.status === 'waiting');
         if (!busy) this.#timer.stop();
         else if (!this.#timer.active)
             this.#timer.every(SWEEP_SECONDS, () => {
@@ -241,6 +327,8 @@ export class ClaudeSessions extends Emitter<{changed: []}> {
         this.#cancellable.cancel();
         this.#monitor.disconnect(this.#monitorId);
         this.#monitor.cancel();
+        this.#pendingMonitor.disconnect(this.#pendingMonitorId);
+        this.#pendingMonitor.cancel();
         this.clearListeners();
     }
 }

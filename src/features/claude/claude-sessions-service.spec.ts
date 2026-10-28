@@ -40,25 +40,26 @@ describe('ClaudeSessions', () => {
     it('cria a pasta que não existe', () => {
         const dir = `${tmp()}/nova`;
         const sessions = new ClaudeSessions(settings, dir);
-        expect(GLib.file_test(dir, GLib.FileTest.IS_DIR)).toBeTrue();
+        for (const sub of ['sessions', 'pending', 'decisions']) expect(GLib.file_test(`${dir}/${sub}`, GLib.FileTest.IS_DIR)).toBeTrue();
         sessions.destroy();
     });
 
     it('lê a pasta, ignora lixo e descarta sessão morta', async () => {
         const dir = tmp();
+        GLib.mkdir_with_parents(`${dir}/sessions`, 0o700);
         GLib.file_set_contents(
-            `${dir}/a.json`,
+            `${dir}/sessions/a.json`,
             JSON.stringify({pid: self, event: {session_id: 'a', cwd: '/r/x', transcript_path: '/t', hook_event_name: 'Stop'}}),
         );
-        GLib.file_set_contents(`${dir}/b.json`, '{');
+        GLib.file_set_contents(`${dir}/sessions/b.json`, '{');
         GLib.file_set_contents(
-            `${dir}/c.json`,
+            `${dir}/sessions/c.json`,
             JSON.stringify({pid: dead, event: {session_id: 'c', cwd: '/r/y', transcript_path: '/t', hook_event_name: 'Stop'}}),
         );
         const sessions = new ClaudeSessions(settings, dir);
         await changed(sessions);
         expect(sessions.sessions.map(state => state.sessionId)).toEqual(['a']);
-        expect(GLib.file_test(`${dir}/c.json`, GLib.FileTest.EXISTS)).toBeFalse();
+        expect(GLib.file_test(`${dir}/sessions/c.json`, GLib.FileTest.EXISTS)).toBeFalse();
         sessions.destroy();
     });
 
@@ -68,7 +69,7 @@ describe('ClaudeSessions', () => {
         await changed(sessions);
         const write = (name: string): void => {
             GLib.file_set_contents(
-                `${dir}/d.json`,
+                `${dir}/sessions/d.json`,
                 JSON.stringify({pid: self, event: {session_id: 'd', cwd: '/r/z', transcript_path: '/t', hook_event_name: name}}),
             );
         };
@@ -95,7 +96,7 @@ describe('ClaudeSessions', () => {
         });
         const write = (name: string): void => {
             GLib.file_set_contents(
-                `${dir}/e.json`,
+                `${dir}/sessions/e.json`,
                 JSON.stringify({pid: self, event: {session_id: 'e', cwd: '/r/e', transcript_path: '/t', hook_event_name: name}}),
             );
         };
@@ -105,6 +106,72 @@ describe('ClaudeSessions', () => {
         await changed(sessions);
         expect(sessions.sessions).toEqual([]);
         expect(log).toHaveBeenCalledTimes(1);
+        sessions.destroy();
+    });
+
+    function pendingFile(dir: string, name: string, pid: number, since: number): void {
+        GLib.mkdir_with_parents(`${dir}/pending`, 0o700);
+        GLib.file_set_contents(`${dir}/pending/${name}.json`, JSON.stringify({pid, tool: 'Bash', since}));
+    }
+
+    it('lista pedido pendente com pid vivo e ignora pid morto', async () => {
+        const dir = tmp();
+        pendingFile(dir, 's.r1', self, 10);
+        pendingFile(dir, 's.r2', dead, 20);
+        const sessions = new ClaudeSessions(settings, dir);
+        await changed(sessions);
+        expect(sessions.pending.map(pending => pending.key)).toEqual(['s.r1']);
+        sessions.destroy();
+    });
+
+    it('segue pedido novo e pedido apagado pelo hook', async () => {
+        const dir = tmp();
+        const sessions = new ClaudeSessions(settings, dir);
+        await changed(sessions);
+        pendingFile(dir, 's.r1', self, 10);
+        await changed(sessions);
+        expect(sessions.pending.map(pending => pending.key)).toEqual(['s.r1']);
+        GLib.unlink(`${dir}/pending/s.r1.json`);
+        await changed(sessions);
+        expect(sessions.pending).toEqual([]);
+        sessions.destroy();
+    });
+
+    it('pendingFor devolve o mais antigo da sessão', async () => {
+        const dir = tmp();
+        pendingFile(dir, 's.r1', self, 20);
+        pendingFile(dir, 's.r2', self, 10);
+        pendingFile(dir, 't.r3', self, 5);
+        const sessions = new ClaudeSessions(settings, dir);
+        await changed(sessions);
+        expect(sessions.pendingFor('s')?.key).toBe('s.r2');
+        expect(sessions.pendingFor('x')).toBeNull();
+        sessions.destroy();
+    });
+
+    it('decide grava o arquivo de decisão e tira o pedido na hora', async () => {
+        const dir = tmp();
+        pendingFile(dir, 's.r1', self, 10);
+        const sessions = new ClaudeSessions(settings, dir);
+        await changed(sessions);
+        const pending = sessions.pendingFor('s');
+        if (!pending) throw new Error('sem pedido');
+        expect(sessions.decide(pending, 'allow')).toBeTrue();
+        expect(sessions.pending).toEqual([]);
+        const [, bytes] = GLib.file_get_contents(`${dir}/decisions/s.r1.json`);
+        expect(JSON.parse(new TextDecoder().decode(bytes))).toEqual({behavior: 'allow'});
+        sessions.destroy();
+    });
+
+    it('decide devolve false e não grava nada quando o hook já saiu', async () => {
+        const dir = tmp();
+        pendingFile(dir, 's.r1', self, 10);
+        const sessions = new ClaudeSessions(settings, dir);
+        await changed(sessions);
+        const pending = sessions.pendingFor('s');
+        if (!pending) throw new Error('sem pedido');
+        expect(sessions.decide({...pending, pid: dead}, 'deny')).toBeFalse();
+        expect(GLib.file_test(`${dir}/decisions/s.r1.json`, GLib.FileTest.EXISTS)).toBeFalse();
         sessions.destroy();
     });
 });
