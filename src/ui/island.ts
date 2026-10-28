@@ -335,7 +335,8 @@ export class Island extends Emitter<IslandEvents> {
         const area = Main.layoutManager.getWorkAreaForMonitor(this.monitorIndex);
         const content = this.panel.get_theme_node().adjust_for_height(area.y + area.height - top);
         const scale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
-        this.panel.style = `max-height: ${Math.max(0, Math.floor(content / scale))}px;`;
+        const height = Math.floor(content / scale);
+        if (Number.isFinite(height)) this.panel.style = `max-height: ${Math.max(0, height)}px;`;
     }
 
     #recenterPanel(): void {

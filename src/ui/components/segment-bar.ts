@@ -47,7 +47,7 @@ export class SegmentBar {
     }
 
     #layout(): void {
-        const width = this.actor.width;
+        const width = this.actor.has_allocation() ? this.actor.allocation.get_width() : 0;
         const widths = segmentWidths(
             this.#segments.map(({fraction}) => fraction),
             width,

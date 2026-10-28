@@ -109,10 +109,13 @@ export class NativeControls {
 
     #lendSlider(slider: QuickSlider, bin: St.Bin): void {
         this.#lend(slider, bin);
+        const expand = slider.x_expand;
+        slider.x_expand = true;
         const binding = slider.bind_property('visible', bin, 'visible', GObject.BindingFlags.SYNC_CREATE);
         this.#loan.add(() => {
             binding.unbind();
             bin.hide();
+            slider.x_expand = expand;
         });
     }
 

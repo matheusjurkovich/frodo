@@ -38,13 +38,20 @@ export function packGrid(container: St.Widget, children: readonly Clutter.Actor[
     const layout = container.layout_manager;
     if (!(layout instanceof Clutter.GridLayout)) throw new TypeError('packGrid exige um container com Clutter.GridLayout');
 
+    let packing = false;
     const pack = (): void => {
-        for (const child of children) if (child.get_parent() === container) container.remove_child(child);
-        let index = 0;
-        for (const child of children) {
-            if (!child.visible) continue;
-            layout.attach(child, index % columns, Math.floor(index / columns), 1, 1);
-            index++;
+        if (packing) return;
+        packing = true;
+        try {
+            for (const child of children) if (child.get_parent() === container) container.remove_child(child);
+            let index = 0;
+            for (const child of children) {
+                if (!child.visible && !child.show_on_set_parent) continue;
+                layout.attach(child, index % columns, Math.floor(index / columns), 1, 1);
+                index++;
+            }
+        } finally {
+            packing = false;
         }
     };
 
