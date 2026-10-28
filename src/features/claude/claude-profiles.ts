@@ -1,8 +1,4 @@
-export interface ClaudeProfile {
-    readonly id: string;
-    readonly label: string;
-    readonly configDir: string;
-}
+import type {ClaudeProfile} from '../../settings/claude-profile.js';
 
 export function labelForDirName(name: string): string {
     if (name === '.claude') return 'Claude';
@@ -19,22 +15,6 @@ export function profileChip(label: string): string {
     const [first, second] = words;
     if (first && second) return `${first.charAt(0)}${second.charAt(0)}`.toUpperCase();
     return label.slice(0, 2).toUpperCase() || '?';
-}
-
-export function parseProfiles(json: string): ClaudeProfile[] {
-    let list: unknown;
-    try {
-        list = JSON.parse(json);
-    } catch {
-        return [];
-    }
-    if (!Array.isArray(list)) return [];
-    return list.flatMap((item: unknown) => {
-        if (typeof item !== 'object' || item === null) return [];
-        const {id, label, configDir} = item as Record<string, unknown>;
-        if (typeof configDir !== 'string' || configDir === '') return [];
-        return [{id: typeof id === 'string' ? id : configDir, label: typeof label === 'string' ? label : 'Claude', configDir}];
-    });
 }
 
 const trimSlashes = (path: string): string => path.replace(/\/+$/, '');

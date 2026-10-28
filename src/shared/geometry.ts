@@ -1,4 +1,9 @@
-import type {Rect} from '../features/workspaces/workspaces.js';
+export interface Rect {
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
+}
 
 export interface EdgeSpan {
     readonly x1: number;

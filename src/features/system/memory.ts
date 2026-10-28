@@ -1,4 +1,7 @@
-import type {MemoryInfo} from '../../settings/schema-values.js';
+export interface MemoryInfo {
+    readonly totalKb: number;
+    readonly usedKb: number;
+}
 
 export function parseMeminfo(text: string): MemoryInfo | null {
     const total = /^MemTotal:\s+(\d+)/m.exec(text)?.[1];

@@ -5,17 +5,17 @@ import {Disposables} from '../../shared/disposables.js';
 import {ActorLoan} from '../../shared/ui/actor-loan.js';
 import {column, row} from '../../shared/ui/layout.js';
 import type {Component} from '../../shared/ui/lifecycle.js';
-import type {Island} from '../../app/island.js';
+import type {IslandHandle} from '../../shared/island-handle.js';
 
 export class CalendarPage implements Component {
     readonly actor = row('frodo-calendar');
     readonly #month = column('frodo-calendar-month');
     readonly #events = column('frodo-calendar-events');
-    readonly #island: Island;
+    readonly #island: IslandHandle;
     readonly #disposables = new Disposables();
     readonly #loan = new Disposables();
 
-    constructor(island: Island) {
+    constructor(island: IslandHandle) {
         this.#island = island;
         this.#month.x_expand = false;
         this.actor.add_child(this.#month);

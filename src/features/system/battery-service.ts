@@ -2,7 +2,7 @@ import Gio from 'gi://Gio';
 import UPower from 'gi://UPowerGlib';
 import {loadInterfaceXML} from 'resource:///org/gnome/shell/misc/fileUtils.js';
 
-import type {BatteryInfo} from '../../settings/schema-values.js';
+import type {BatteryInfo} from './battery.js';
 import {Emitter} from '../../shared/emitter.js';
 
 interface DisplayDevice {

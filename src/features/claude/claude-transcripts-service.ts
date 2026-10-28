@@ -6,7 +6,7 @@ import {ClaudeIndex} from './claude-index.js';
 import {completeLines, parseAssistantLine} from './claude-transcript.js';
 import {Emitter} from '../../shared/emitter.js';
 import {Timer} from '../../shared/timer.js';
-import {readTextFile} from '../system/memory-service.js';
+import {readTextFile} from '../../shared/files.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
 
 Gio._promisify(Gio.File.prototype, 'enumerate_children_async', 'enumerate_children_finish');

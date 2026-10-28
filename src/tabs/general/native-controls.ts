@@ -20,7 +20,7 @@ import {ActorLoan} from '../../shared/ui/actor-loan.js';
 import {iconButton} from '../../shared/ui/buttons.js';
 import {packGrid} from '../../shared/ui/layout.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
-import type {Island} from '../../app/island.js';
+import type {IslandHandle} from '../../shared/island-handle.js';
 
 const OVERLAY_BINDINGS = [Clutter.BindCoordinate.X, Clutter.BindCoordinate.Y, Clutter.BindCoordinate.WIDTH] as const;
 const TILE_COLUMNS = 2;
@@ -62,14 +62,14 @@ export class NativeControls {
     readonly output = sliderSlots();
     readonly input = sliderSlots();
     readonly brightness = sliderSlots();
-    readonly #island: Island;
+    readonly #island: IslandHandle;
     readonly #overlayHost: St.Widget;
     readonly #content: St.Widget;
     readonly #scrollToTop: () => void;
     readonly #disposables = new Disposables();
     readonly #loan = new Disposables();
 
-    constructor(island: Island, overlayHost: St.Widget, content: St.Widget, scrollToTop: () => void) {
+    constructor(island: IslandHandle, overlayHost: St.Widget, content: St.Widget, scrollToTop: () => void) {
         this.#island = island;
         this.#overlayHost = overlayHost;
         this.#content = content;

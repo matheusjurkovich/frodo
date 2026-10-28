@@ -2,7 +2,7 @@ import Gio from 'gi://Gio';
 import Soup from 'gi://Soup?version=3.0';
 
 import {isActiveProfile} from './claude-profiles.js';
-import type {ClaudeProfile} from './claude-profiles.js';
+import type {ClaudeProfile} from '../../settings/claude-profile.js';
 import {accountSummary, claudeErrorMessage, normalizeSpend, normalizeWindows, tierLabel} from './claude-usage.js';
 import type {Spend, UsageWindow} from './claude-usage.js';
 import {Disposables} from '../../shared/disposables.js';

@@ -15,7 +15,7 @@ import {column, grid, label, packGrid} from '../../shared/ui/layout.js';
 import type {Component} from '../../shared/ui/lifecycle.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
 import type {FrodoIconName} from '../../shared/ui/icons.js';
-import type {Island} from '../../app/island.js';
+import type {IslandHandle} from '../../shared/island-handle.js';
 
 const COLUMNS = 3;
 const SPACING = 6;
@@ -59,7 +59,7 @@ export class ShortcutsCard implements Component {
     #source: Gvc.MixerStream | null = null;
     #sourceId = 0;
 
-    constructor(island: Island, settings: FrodoSettings) {
+    constructor(island: IslandHandle, settings: FrodoSettings) {
         const closeThen = (action: () => void) => () => {
             island.close();
             action();

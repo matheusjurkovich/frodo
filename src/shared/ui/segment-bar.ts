@@ -1,17 +1,12 @@
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 
-import type {Level} from '../../features/claude/claude-usage.js';
 import {segmentWidths} from '../geometry.js';
 import {allocatedWidth} from './layout.js';
 
 export interface Segment {
     readonly fraction: number;
     readonly styleClass: string;
-}
-
-export function levelClass(level: Level): string {
-    return `frodo-level-${level}`;
 }
 
 export class SegmentBar {

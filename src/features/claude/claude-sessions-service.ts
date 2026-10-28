@@ -6,7 +6,7 @@ import {nextState, parentPid, parseHookEvent, parseShortstat} from './claude-ses
 import type {DiffStat, SessionState} from './claude-sessions.js';
 import {Emitter} from '../../shared/emitter.js';
 import {Timer} from '../../shared/timer.js';
-import {readTextFile} from '../system/memory-service.js';
+import {readTextFile} from '../../shared/files.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
 
 Gio._promisify(Gio.File.prototype, 'enumerate_children_async', 'enumerate_children_finish');

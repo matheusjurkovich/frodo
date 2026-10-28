@@ -25,6 +25,7 @@ import {
 import {Disposables} from '../shared/disposables.js';
 import type {Disposer} from '../shared/disposables.js';
 import {Emitter} from '../shared/emitter.js';
+import type {IslandHandle} from '../shared/island-handle.js';
 import {Timer} from '../shared/timer.js';
 import type {ActivityFeed} from '../pill/activity-feed.js';
 import {Pill} from '../pill/pill.js';
@@ -64,7 +65,7 @@ export interface IslandEvents {
     tabRequested: [TabId];
 }
 
-export class Island extends Emitter<IslandEvents> {
+export class Island extends Emitter<IslandEvents> implements IslandHandle {
     readonly pill: Pill;
     readonly panel = new St.Bin({style_class: 'frodo-panel', reactive: true, track_hover: true, visible: false});
     readonly #tongue = new St.Widget({style_class: 'frodo-tongue', reactive: true, track_hover: true, visible: false});

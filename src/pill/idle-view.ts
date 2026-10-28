@@ -3,7 +3,8 @@ import GLib from 'gi://GLib';
 import GnomeDesktop from 'gi://GnomeDesktop';
 import St from 'gi://St';
 
-import {batteryLevel, formatDate} from '../shared/format.js';
+import {batteryLevel} from '../features/system/battery.js';
+import {formatDate} from '../shared/format.js';
 import {formatGb} from '../features/system/memory.js';
 import type {ClosedItem} from '../settings/schema-values.js';
 import {displayLevel, shownPercent} from '../features/claude/claude-usage.js';

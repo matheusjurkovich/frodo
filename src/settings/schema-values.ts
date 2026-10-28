@@ -1,13 +1,3 @@
-export interface MemoryInfo {
-    readonly totalKb: number;
-    readonly usedKb: number;
-}
-
-export interface BatteryInfo {
-    readonly percent: number;
-    readonly charging: boolean;
-}
-
 export const CLOSED_MODES = ['minimal', 'compact', 'rotating'] as const;
 export type ClosedMode = (typeof CLOSED_MODES)[number];
 

@@ -4,7 +4,7 @@ import Shell from 'gi://Shell';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import {WINDOW_COLOR_SLOTS, appsSummary, colorSlot, thumbnailRects, workspaceTitle} from './workspaces.js';
-import type {Rect} from './workspaces.js';
+import type {Rect} from '../../shared/geometry.js';
 import {Emitter} from '../../shared/emitter.js';
 
 const WM_PREFERENCES_SCHEMA = 'org.gnome.desktop.wm.preferences';

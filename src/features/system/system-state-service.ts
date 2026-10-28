@@ -1,4 +1,5 @@
-import type {BatteryInfo, MemoryInfo} from '../../settings/schema-values.js';
+import type {BatteryInfo} from './battery.js';
+import type {MemoryInfo} from './memory.js';
 import {Disposables} from '../../shared/disposables.js';
 import {Emitter} from '../../shared/emitter.js';
 import {Timer} from '../../shared/timer.js';

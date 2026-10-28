@@ -1,9 +1,4 @@
-export interface Rect {
-    readonly x: number;
-    readonly y: number;
-    readonly width: number;
-    readonly height: number;
-}
+import type {Rect} from '../../shared/geometry.js';
 
 export const WINDOW_COLOR_SLOTS = 6;
 const SUMMARY_VISIBLE_APPS = 2;

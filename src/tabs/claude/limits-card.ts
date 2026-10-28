@@ -13,7 +13,7 @@ import {
     shownPercent,
     tierIcon,
 } from '../../features/claude/claude-usage.js';
-import type {Level, Spend, UsageWindow} from '../../features/claude/claude-usage.js';
+import type {Spend, UsageWindow} from '../../features/claude/claude-usage.js';
 import type {ClaudeService, ProfileUsage} from '../../features/claude/claude-service.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
 import {Disposables} from '../../shared/disposables.js';
@@ -23,7 +23,9 @@ import {card, cardHeading} from '../../shared/ui/card.js';
 import {column, dimLabel, label, row, spacer} from '../../shared/ui/layout.js';
 import {whileMapped} from '../../shared/ui/lifecycle.js';
 import type {Component} from '../../shared/ui/lifecycle.js';
-import {SegmentBar, levelClass} from '../../shared/ui/segment-bar.js';
+import {levelClass} from '../../shared/level.js';
+import type {Level} from '../../shared/level.js';
+import {SegmentBar} from '../../shared/ui/segment-bar.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
 
 const USAGE_PAGE = 'https://claude.ai/settings/usage';

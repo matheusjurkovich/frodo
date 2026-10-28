@@ -1,4 +1,5 @@
-export type Level = 'ok' | 'warn' | 'crit';
+import type {Level} from '../../shared/level.js';
+
 export type WindowRole = 'session' | 'weekly' | 'scoped' | 'other';
 export type TierIcon = 'free' | 'pro' | 'max' | 'team' | 'enterprise';
 

@@ -2,10 +2,11 @@ import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 
 import {parseCredentials} from './claude-credentials.js';
-import {labelForDirName, parseProfiles} from './claude-profiles.js';
-import type {ClaudeProfile} from './claude-profiles.js';
+import {parseProfiles} from '../../settings/claude-profile.js';
+import type {ClaudeProfile} from '../../settings/claude-profile.js';
+import {labelForDirName} from './claude-profiles.js';
 import {credentialsPath, defaultConfigDir} from './claude-client.js';
-import {readTextFile} from '../system/memory-service.js';
+import {readTextFile} from '../../shared/files.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
 
 Gio._promisify(Gio.File.prototype, 'enumerate_children_async', 'enumerate_children_finish');

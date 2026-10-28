@@ -3,7 +3,7 @@ import Gio from 'gi://Gio';
 import Soup from 'gi://Soup?version=3.0';
 
 import {needsRefresh, parseCredentials} from './claude-credentials.js';
-import {readTextFile} from '../system/memory-service.js';
+import {readTextFile} from '../../shared/files.js';
 
 Gio._promisify(Soup.Session.prototype, 'send_and_read_async');
 Gio._promisify(Gio.File.prototype, 'replace_contents_bytes_async', 'replace_contents_finish');

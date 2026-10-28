@@ -9,13 +9,13 @@ import {column, label, row} from '../../shared/ui/layout.js';
 import {whileMapped} from '../../shared/ui/lifecycle.js';
 import type {Component} from '../../shared/ui/lifecycle.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
-import type {Island} from '../../app/island.js';
+import type {IslandHandle} from '../../shared/island-handle.js';
 import {notificationRow} from './notification-row.js';
 
 export class NotificationsPage implements Component {
     readonly actor = card('frodo-notifications');
     readonly #bridge: NotificationBridge;
-    readonly #island: Island;
+    readonly #island: IslandHandle;
     readonly #list = column('frodo-notification-list');
     readonly #scroll = new St.ScrollView({
         style_class: 'frodo-notification-scroll',
@@ -31,7 +31,7 @@ export class NotificationsPage implements Component {
     readonly #disposables = new Disposables();
     readonly #running = new Disposables();
 
-    constructor(bridge: NotificationBridge, island: Island) {
+    constructor(bridge: NotificationBridge, island: IslandHandle) {
         this.#bridge = bridge;
         this.#island = island;
         this.#doNotDisturb = textButton(

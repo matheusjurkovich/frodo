@@ -9,7 +9,7 @@ import {CollapsibleCard} from './collapsible-card.js';
 import {column, grid, label, packGrid} from '../../shared/ui/layout.js';
 import {whileMapped} from '../../shared/ui/lifecycle.js';
 import type {Component} from '../../shared/ui/lifecycle.js';
-import type {Island} from '../../app/island.js';
+import type {IslandHandle} from '../../shared/island-handle.js';
 
 const COLUMNS = 4;
 const SPACING = 6;
@@ -20,7 +20,7 @@ const BADGE_OFFSET_X = 6;
 const BADGE_OFFSET_Y = -4;
 
 export class AppsCard implements Component {
-    readonly #island: Island;
+    readonly #island: IslandHandle;
     readonly #apps = Shell.AppSystem.get_default();
     readonly #card: CollapsibleCard;
     readonly #grid = grid(SPACING);
@@ -28,7 +28,7 @@ export class AppsCard implements Component {
     readonly #packing = new Disposables();
     readonly #running = new Disposables();
 
-    constructor(island: Island, settings: FrodoSettings) {
+    constructor(island: IslandHandle, settings: FrodoSettings) {
         this.#island = island;
         this.#card = new CollapsibleCard('apps', 'Programas abertos', settings);
         this.#card.body.add_child(this.#grid);

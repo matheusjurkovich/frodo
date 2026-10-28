@@ -2,8 +2,8 @@ import type Gio from 'gi://Gio';
 
 import {CARD_IDS, CLOSED_ITEMS, CLOSED_MODES, MONITOR_MODES, TAB_IDS, isOneOf} from './schema-values.js';
 import type {CardId, ClosedItem, ClosedMode, MonitorMode, TabId} from './schema-values.js';
-import {parseProfiles} from '../features/claude/claude-profiles.js';
-import type {ClaudeProfile} from '../features/claude/claude-profiles.js';
+import {parseProfiles} from './claude-profile.js';
+import type {ClaudeProfile} from './claude-profile.js';
 import type {Disposer} from '../shared/disposables.js';
 
 export type SettingsKey =

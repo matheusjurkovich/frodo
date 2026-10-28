@@ -1,5 +1,3 @@
-import type {BatteryInfo} from '../settings/schema-values.js';
-
 const WEEKDAYS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'] as const;
 const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'] as const;
 
@@ -52,17 +50,6 @@ export function formatUntil(startMs: number, nowMs: number): string {
 export function formatSpan(seconds: number): string {
     const minutes = Math.max(1, Math.floor(seconds / 60));
     return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${pad(minutes % 60)} min`;
-}
-
-export type BatteryLevel = 'empty' | 'low' | 'medium' | 'high' | 'full' | 'charging';
-
-export function batteryLevel(battery: BatteryInfo): BatteryLevel {
-    if (battery.charging) return 'charging';
-    if (battery.percent >= 90) return 'full';
-    if (battery.percent >= 60) return 'high';
-    if (battery.percent >= 35) return 'medium';
-    if (battery.percent >= 10) return 'low';
-    return 'empty';
 }
 
 export function ellipsize(text: string, max: number): string {

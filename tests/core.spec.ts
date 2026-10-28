@@ -1,14 +1,5 @@
-import {
-    batteryLevel,
-    ellipsize,
-    formatAgo,
-    formatDate,
-    formatSpan,
-    formatTimer,
-    formatTokens,
-    formatUntil,
-    secondsSince,
-} from '../src/shared/format.js';
+import {ellipsize, formatAgo, formatDate, formatSpan, formatTimer, formatTokens, formatUntil, secondsSince} from '../src/shared/format.js';
+import {batteryLevel} from '../src/features/system/battery.js';
 import {barHeight, centerClamp, segmentWidths, topEdgeSpan} from '../src/shared/geometry.js';
 import {formatGb, parseMeminfo} from '../src/features/system/memory.js';
 import {latest, shouldIntercept} from '../src/features/notifications/notifications.js';

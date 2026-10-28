@@ -5,7 +5,7 @@ import {Disposables} from '../../shared/disposables.js';
 import {column, dimLabel, grid, label, packGrid, row} from '../../shared/ui/layout.js';
 import {whileMapped} from '../../shared/ui/lifecycle.js';
 import type {Component} from '../../shared/ui/lifecycle.js';
-import type {Island} from '../../app/island.js';
+import type {IslandHandle} from '../../shared/island-handle.js';
 import {SCREEN_HEIGHT, SCREEN_WIDTH, newWorkspaceCard, workspaceCard} from './workspace-card.js';
 
 const COLUMNS = 5;
@@ -14,13 +14,13 @@ const SPACING = 10;
 export class WorkspacesPage implements Component {
     readonly actor = column('frodo-workspaces');
     readonly #workspaces: Workspaces;
-    readonly #island: Island;
+    readonly #island: IslandHandle;
     readonly #grid = grid(SPACING);
     readonly #disposables = new Disposables();
     readonly #packing = new Disposables();
     readonly #running = new Disposables();
 
-    constructor(workspaces: Workspaces, island: Island) {
+    constructor(workspaces: Workspaces, island: IslandHandle) {
         this.#workspaces = workspaces;
         this.#island = island;
 

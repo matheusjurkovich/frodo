@@ -2,8 +2,8 @@ import type cairo from 'cairo';
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 
-import type {Level} from '../../features/claude/claude-usage.js';
-import {levelClass} from './segment-bar.js';
+import {levelClass} from '../level.js';
+import type {Level} from '../level.js';
 
 type ThemeColor = ReturnType<St.ThemeNode['get_color']>;
 

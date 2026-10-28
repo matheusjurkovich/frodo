@@ -9,7 +9,7 @@ import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/ex
 import {itemsForPreferences, moveItem} from './settings/closed-items.js';
 import type {ItemEntry} from './settings/closed-items.js';
 import {isActiveProfile} from './features/claude/claude-profiles.js';
-import type {ClaudeProfile} from './features/claude/claude-profiles.js';
+import type {ClaudeProfile} from './settings/claude-profile.js';
 import {isValidShortcut} from './settings/shortcut.js';
 import {defaultConfigDir} from './features/claude/claude-client.js';
 import {profileFor} from './features/claude/claude-profiles-service.js';

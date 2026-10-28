@@ -16,7 +16,8 @@ import {
 } from '../src/features/claude/claude-usage.js';
 import type {LevelInput} from '../src/features/claude/claude-usage.js';
 import {needsRefresh, parseCredentials} from '../src/features/claude/claude-credentials.js';
-import {isActiveProfile, labelForDirName, parseProfiles, profileChip} from '../src/features/claude/claude-profiles.js';
+import {isActiveProfile, labelForDirName, profileChip} from '../src/features/claude/claude-profiles.js';
+import {parseProfiles} from '../src/settings/claude-profile.js';
 
 const NOW = Date.UTC(2026, 9, 24, 12, 0);
 const iso = (offsetSeconds: number): string => new Date(NOW + offsetSeconds * 1000).toISOString();

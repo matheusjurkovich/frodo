@@ -9,7 +9,8 @@ import type {Disposer} from '../../shared/disposables.js';
 import {textButton} from '../../shared/ui/buttons.js';
 import {column, grid, label, packGrid, row} from '../../shared/ui/layout.js';
 import type {Component} from '../../shared/ui/lifecycle.js';
-import {SegmentBar, levelClass} from '../../shared/ui/segment-bar.js';
+import {levelClass} from '../../shared/level.js';
+import {SegmentBar} from '../../shared/ui/segment-bar.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
 
 const STATUS_LABELS: Record<SessionStatus, string> = {
