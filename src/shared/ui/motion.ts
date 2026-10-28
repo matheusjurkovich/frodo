@@ -1,4 +1,6 @@
 import Clutter from 'gi://Clutter';
+import GObject from 'gi://GObject';
+import St from 'gi://St';
 
 import {SOFT_SPRING, springProgress} from '../spring.js';
 import type {Spring} from '../spring.js';
@@ -21,6 +23,9 @@ export const BOTH_AXES: Axes = {width: true, height: true};
 export const WIDTH_AXIS: Axes = {width: true, height: false};
 export const HEIGHT_AXIS: Axes = {width: false, height: true};
 
+const SPRING_KEYS = 24;
+const DOUBLE_PROPERTIES = new Set(['scale-x', 'scale-y', 'rotation-angle-z']);
+
 type EaseParams = Parameters<Clutter.Actor['ease']>[0];
 
 export type SpringProps = Omit<EaseParams, 'duration' | 'mode' | 'onComplete' | 'onStopped'>;
@@ -29,23 +34,58 @@ function snakeCase(name: string): string {
     return name.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
 }
 
-export function springEase(actor: Clutter.Actor, props: SpringProps, spring: Spring, onComplete?: () => void): void {
-    const params: Record<string, unknown> = {};
-    const names: string[] = [];
-    for (const [key, value] of Object.entries(props)) {
-        if (key === 'delay') {
-            params[key] = value;
-            continue;
-        }
-        const name = snakeCase(key);
-        params[name] = value;
-        names.push(name.replaceAll('_', '-'));
+function typedValue(property: string, value: number): GObject.Value {
+    const typed = new GObject.Value();
+    if (DOUBLE_PROPERTIES.has(property)) {
+        typed.init(GObject.TYPE_DOUBLE);
+        typed.set_double(value);
+    } else {
+        typed.init(GObject.TYPE_FLOAT);
+        typed.set_float(value);
     }
-    actor.ease({...params, duration: spring.ms, mode: Clutter.AnimationMode.LINEAR, onComplete});
-    for (const name of names)
-        actor
-            .get_transition(name)
-            ?.set_progress_func((_timeline, elapsed, total) => springProgress(spring.damping, total > 0 ? elapsed / total : 1));
+    return typed;
+}
+
+export function springEase(actor: Clutter.Actor, props: SpringProps, spring: Spring, onComplete?: () => void): void {
+    const settings = St.Settings.get();
+    const scale = settings.enable_animations ? settings.slow_down_factor : 0;
+    const duration = Math.round(spring.ms * scale);
+    const delay = Math.round((props.delay ?? 0) * scale);
+    const fields = actor as unknown as Record<string, number>;
+    const targets = Object.entries(props)
+        .filter((entry): entry is [string, number] => entry[0] !== 'delay' && typeof entry[1] === 'number')
+        .map(([key, to]) => ({field: snakeCase(key), property: snakeCase(key).replaceAll('_', '-'), to}));
+    for (const {property} of targets) actor.remove_transition(property);
+    if (duration <= 0 || !actor.mapped) {
+        for (const {field, to} of targets) fields[field] = to;
+        onComplete?.();
+        return;
+    }
+    const times = Array.from({length: SPRING_KEYS - 1}, (_, index) => (index + 1) / SPRING_KEYS);
+    let remaining = targets.length;
+    let interrupted = false;
+    for (const {field, property, to} of targets) {
+        const from = fields[field] ?? 0;
+        const transition = new Clutter.KeyframeTransition({
+            property_name: property,
+            duration,
+            delay,
+            progress_mode: Clutter.AnimationMode.LINEAR,
+            remove_on_complete: true,
+        });
+        transition.set_from(typedValue(property, from));
+        transition.set_to(typedValue(property, to));
+        transition.set_key_frames(times);
+        transition.set_values(times.map(time => typedValue(property, from + (to - from) * springProgress(spring.damping, time))));
+        transition.set_modes(times.map(() => Clutter.AnimationMode.LINEAR));
+        transition.connect('stopped', (_transition, finished) => {
+            if (!finished) interrupted = true;
+            remaining--;
+            if (remaining === 0 && !interrupted) onComplete?.();
+        });
+        actor.add_transition(property, transition);
+    }
+    if (targets.length === 0) onComplete?.();
 }
 
 function axesOf(axes: Axes): Axis[] {
@@ -92,6 +132,7 @@ export function fadeOut(actor: Clutter.Actor, onGone: () => void): void {
         onGone();
         return;
     }
+    actor.remove_all_transitions();
     actor.set_pivot_point(0.5, 0.5);
     actor.ease({
         opacity: 0,

@@ -26,7 +26,7 @@ import type {Disposer} from '../shared/disposables.js';
 import {Emitter} from '../shared/emitter.js';
 import type {IslandHandle} from '../shared/island-handle.js';
 import type {FrodoServices} from './services.js';
-import {SOFT_SPRING, SPRING} from '../shared/spring.js';
+import {SOFT_SPRING, SPRING, springWithin} from '../shared/spring.js';
 import {Timer} from '../shared/timer.js';
 import {springEase} from '../shared/ui/motion.js';
 import type {ActivityFeed} from '../pill/activity-feed.js';
@@ -35,12 +35,14 @@ import {Pill} from '../pill/pill.js';
 const OPEN_DELAY_MS = 150;
 const CLOSE_DELAY_MS = 300;
 const AUTO_CLOSE_MS = 5000;
-const ANIMATION_MS = 250;
+const FADE_IN_MS = 220;
+const FADE_IN_DELAY_MS = 70;
+const FADE_OUT_MS = 110;
+const FOLLOW = 'frodo-follow';
 const CLAUDE_MAX_AGE_SECONDS = 60;
 const FLOAT_TOP = 6;
 const EDGE_SPAN = 900;
 const EDGE_GRACE_MS = 1500;
-const REVEAL_FADE_MS = 220;
 
 export type OpenReason = 'hover' | 'click' | 'key';
 
@@ -60,6 +62,7 @@ export interface IslandEvents {
 export class Island extends Emitter<IslandEvents> implements IslandHandle {
     readonly pill: Pill;
     readonly panel = new St.Bin({style_class: 'frodo-panel', reactive: true, track_hover: true, visible: false});
+    readonly #backdrop = new St.Widget({style_class: 'frodo-panel-backdrop', visible: false});
     readonly #tongue = new St.Widget({style_class: 'frodo-tongue', reactive: true, track_hover: true, visible: false});
     readonly monitorIndex: number;
 
@@ -76,6 +79,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
     #covered = false;
     #unredirectDisabled = false;
     #pillWanted = true;
+    #clipping = false;
     #isOpen = false;
     #openedBy: OpenReason | null = null;
     #holds = 0;
@@ -97,6 +101,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
                 },
             },
         });
+        Main.layoutManager.addTopChrome(this.#backdrop, {affectsStruts: false});
         Main.layoutManager.addTopChrome(this.panel, {affectsStruts: false});
         Main.layoutManager.addTopChrome(this.#tongue, {affectsStruts: false});
 
@@ -156,6 +161,12 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
             }),
         );
         this.#watchTopEdge();
+        this.#disposables.signal(
+            this.#backdrop,
+            this.#backdrop.connect('notify::allocation', () => {
+                if (this.#clipping) this.#clipToBackdrop();
+            }),
+        );
         this.#disposables.signal(
             this.panel,
             this.panel.connect('notify::width', () => {
@@ -286,27 +297,54 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
     }
 
     #animateClose(): void {
-        this.panel.ease({
-            opacity: 0,
-            ...this.#collapsedScale(),
-            duration: ANIMATION_MS,
-            mode: Clutter.AnimationMode.EASE_IN_QUAD,
-            onComplete: () => {
-                this.panel.hide();
-            },
+        const {panel} = this;
+        const pill = this.pill.actor;
+        const backdrop = this.#backdrop;
+        const anchor = this.#anchor();
+        anchor.get_allocation_box();
+        const [anchorX, anchorY] = anchor.get_transformed_position();
+        this.#pinBackdrop();
+        this.#clipping = true;
+        this.#clipToBackdrop();
+        panel.ease({opacity: 0, duration: FADE_OUT_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+        springEase(backdrop, {x: anchorX, y: anchorY, width: anchor.width, height: anchor.height}, SOFT_SPRING, () => {
+            backdrop.hide();
+            panel.hide();
+            panel.remove_clip();
+            this.#clipping = false;
         });
-        this.pill.actor.ease({opacity: 255, duration: ANIMATION_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+        pill.ease({opacity: 255, duration: FADE_IN_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
     }
 
     #snapClosed(): void {
         const {panel} = this;
         const pill = this.pill.actor;
-        const {scaleX, scaleY} = this.#collapsedScale();
+        const backdrop = this.#backdrop;
         panel.remove_all_transitions();
         pill.remove_all_transitions();
-        panel.set({opacity: 0, scale_x: scaleX, scale_y: scaleY});
+        backdrop.remove_all_transitions();
+        backdrop.remove_constraint_by_name(FOLLOW);
+        backdrop.hide();
+        this.#clipping = false;
+        panel.remove_clip();
+        panel.opacity = 0;
         panel.hide();
         pill.opacity = 255;
+    }
+
+    #pinBackdrop(): void {
+        const backdrop = this.#backdrop;
+        if (!backdrop.get_constraint(FOLLOW)) return;
+        const {x, y, width, height} = this.panel;
+        backdrop.remove_constraint_by_name(FOLLOW);
+        backdrop.set_position(x, y);
+        backdrop.set_size(width, height);
+    }
+
+    #clipToBackdrop(): void {
+        const {panel} = this;
+        const backdrop = this.#backdrop;
+        panel.set_clip(backdrop.x - panel.x, backdrop.y - panel.y, backdrop.width, backdrop.height);
     }
 
     #monitor(): {x: number; y: number; width: number} | null {
@@ -446,7 +484,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         springEase(pill, {width, height}, SPRING, () => {
             pill.set_size(-1, -1);
         });
-        pill.ease({opacity: 255, duration: REVEAL_FADE_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+        pill.ease({opacity: 255, duration: FADE_IN_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
     }
 
     #syncUnredirect(): void {
@@ -460,6 +498,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
     #animateOpen(): void {
         const {panel} = this;
         const pill = this.pill.actor;
+        const backdrop = this.#backdrop;
         const anchor = this.#anchor();
         anchor.get_allocation_box();
         panel.remove_all_transitions();
@@ -471,13 +510,27 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         const [, naturalWidth] = panel.get_preferred_width(-1);
         const monitor = this.#monitor();
         if (monitor) panel.set_position(centerClamp(anchorX, anchor.width, naturalWidth, monitor.x, monitor.width), Math.round(anchorY));
-        panel.set_pivot_point((anchorX + anchor.width / 2 - panel.x) / Math.max(1, naturalWidth), 0);
+        const area = Main.layoutManager.getWorkAreaForMonitor(this.monitorIndex);
+        const max = area.y + area.height - panel.y;
+        const [, naturalHeight] = panel.get_preferred_height(naturalWidth);
+        const height = Math.min(naturalHeight, max);
 
-        const collapsed = this.#collapsedScale();
-        panel.scale_x = collapsed.scaleX;
-        panel.scale_y = collapsed.scaleY;
-        panel.ease({opacity: 255, scaleX: 1, scaleY: 1, duration: ANIMATION_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
-        pill.ease({opacity: 0, duration: ANIMATION_MS / 2, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+        this.#pinBackdrop();
+        if (!backdrop.visible) {
+            backdrop.set_position(anchorX, anchorY);
+            backdrop.set_size(anchor.width, anchor.height);
+            backdrop.show();
+        }
+        this.#clipping = true;
+        this.#clipToBackdrop();
+        springEase(backdrop, {x: panel.x, width: naturalWidth}, SPRING);
+        springEase(backdrop, {y: panel.y, height}, springWithin(SPRING, backdrop.height, height, max), () => {
+            this.#clipping = false;
+            panel.remove_clip();
+            backdrop.add_constraint_with_name(FOLLOW, new Clutter.BindConstraint({source: panel, coordinate: Clutter.BindCoordinate.ALL}));
+        });
+        panel.ease({opacity: 255, duration: FADE_IN_MS, delay: FADE_IN_DELAY_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+        pill.ease({opacity: 0, duration: FADE_OUT_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
     }
 
     #capHeight(top: number): void {
@@ -503,16 +556,6 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         const anchor = this.#anchor();
         const [anchorX] = anchor.get_transformed_position();
         this.panel.x = centerClamp(anchorX, anchor.width, this.panel.width, monitor.x, monitor.width);
-    }
-
-    #collapsedScale(): {scaleX: number; scaleY: number} {
-        const pill = this.#anchor();
-        const [, naturalWidth] = this.panel.get_preferred_width(-1);
-        const [, naturalHeight] = this.panel.get_preferred_height(naturalWidth);
-        return {
-            scaleX: Math.min(1, Math.max(1, pill.width) / Math.max(1, naturalWidth)),
-            scaleY: Math.min(1, Math.max(1, pill.height) / Math.max(1, naturalHeight)),
-        };
     }
 
     #syncMemoryNeed(): void {
@@ -566,6 +609,8 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         this.#syncUnredirect();
         Main.layoutManager.untrackChrome(this.panel);
         Main.layoutManager.removeChrome(this.#tongue);
+        Main.layoutManager.removeChrome(this.#backdrop);
+        this.#backdrop.destroy();
         this.#tongue.destroy();
         this.panel.set_child(null);
         this.pill.destroy();

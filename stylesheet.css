@@ -132,12 +132,16 @@
 }
 
 .frodo-panel {
-    background-color: #0a0a0b;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 28px;
+    border: 1px solid transparent;
     padding: 10px;
     width: 878px;
     font-size: 10pt;
+}
+
+.frodo-panel-backdrop {
+    background-color: #0a0a0b;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 28px;
 }
 
 .frodo-header {
