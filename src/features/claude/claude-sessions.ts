@@ -26,6 +26,17 @@ export interface SessionState {
     readonly updatedAt: number;
 }
 
+export interface PendingRequest {
+    readonly key: string;
+    readonly sessionId: string;
+    readonly request: string;
+    readonly pid: number;
+    readonly tool: string;
+    readonly since: number;
+}
+
+export type Decision = 'allow' | 'deny';
+
 export interface DiffStat {
     readonly files: number;
     readonly added: number;
@@ -40,6 +51,7 @@ export interface ContextUsage {
 
 const IDLE_AFTER_MS = 30 * 60 * 1000;
 const CONTEXT_WARN_FRACTION = 0.85;
+const PENDING_FILE = /^([A-Za-z0-9-]+)\.([A-Za-z0-9-]+)\.json$/;
 const STEP_KEYS = ['command', 'file_path', 'notebook_path', 'pattern', 'description', 'url', 'query'] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -170,4 +182,33 @@ export function parseShortstat(text: string): DiffStat | null {
     if (!files) return null;
     const count = (pattern: RegExp): number => Number(pattern.exec(text)?.[1] ?? 0);
     return {files: Number(files[1]), added: count(/(\d+) insertions?\(\+\)/), removed: count(/(\d+) deletions?\(-\)/)};
+}
+
+export function parsePending(fileName: string, text: string): PendingRequest | null {
+    const name = PENDING_FILE.exec(fileName);
+    if (!name) return null;
+    let data: unknown;
+    try {
+        data = JSON.parse(text);
+    } catch {
+        return null;
+    }
+    if (!isRecord(data)) return null;
+    const {pid, tool, since} = data;
+    if (typeof pid !== 'number' || !Number.isSafeInteger(pid) || pid <= 0) return null;
+    if (typeof tool !== 'string' || tool === '' || typeof since !== 'number' || !Number.isFinite(since)) return null;
+    const [, sessionId = '', request = ''] = name;
+    return {key: `${sessionId}.${request}`, sessionId, request, pid, tool, since};
+}
+
+export function decisionJson(decision: Decision): string {
+    return `${JSON.stringify({behavior: decision})}\n`;
+}
+
+export function oldestPending(list: readonly PendingRequest[], sessionId?: string): PendingRequest | null {
+    let oldest: PendingRequest | null = null;
+    for (const pending of list)
+        if ((sessionId === undefined || pending.sessionId === sessionId) && (oldest === null || pending.since < oldest.since))
+            oldest = pending;
+    return oldest;
 }

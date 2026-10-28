@@ -1,16 +1,19 @@
 import {
     contextUsage,
     countByStatus,
+    decisionJson,
     displayStatus,
     nextState,
+    oldestPending,
     parentPid,
     parseHookEvent,
+    parsePending,
     parseShortstat,
     sessionMeta,
     stepFor,
 } from './claude-sessions.js';
 import type {SessionStats} from './claude-index.js';
-import type {HookEvent, SessionState, SessionStatus} from './claude-sessions.js';
+import type {HookEvent, PendingRequest, SessionState, SessionStatus} from './claude-sessions.js';
 
 const at = Date.UTC(2026, 9, 27, 12);
 
@@ -150,5 +153,54 @@ describe('sessões do Claude', () => {
         expect(parseShortstat(' 3 files changed, 214 insertions(+), 38 deletions(-)\n')).toEqual({files: 3, added: 214, removed: 38});
         expect(parseShortstat(' 1 file changed, 2 insertions(+)\n')).toEqual({files: 1, added: 2, removed: 0});
         expect(parseShortstat('')).toBeNull();
+    });
+});
+
+describe('pedidos de permissão pendentes', () => {
+    const text = '{"pid":4242,"tool":"Bash","since":1700000000000}';
+
+    it('lê nome e conteúdo do pedido', () => {
+        expect(parsePending('abc-1.r-9.json', text)).toEqual({
+            key: 'abc-1.r-9',
+            sessionId: 'abc-1',
+            request: 'r-9',
+            pid: 4242,
+            tool: 'Bash',
+            since: 1700000000000,
+        });
+    });
+
+    it('rejeita nome fora do formato', () => {
+        for (const name of ['abc.json', '../x.r.json', 'a.b.c.json', 'a.r.txt', '.r.json', 'a..json', 'a b.r.json'])
+            expect(parsePending(name, text)).toBeNull();
+    });
+
+    it('rejeita conteúdo inválido', () => {
+        for (const body of [
+            '',
+            '{',
+            '[]',
+            '{"pid":"1","tool":"Bash","since":1}',
+            '{"pid":0,"tool":"Bash","since":1}',
+            '{"pid":1.5,"tool":"Bash","since":1}',
+            '{"pid":1,"tool":"","since":1}',
+            '{"pid":1,"since":1}',
+            '{"pid":1,"tool":"Bash"}',
+        ])
+            expect(parsePending('a.r.json', body)).toBeNull();
+    });
+
+    it('monta o arquivo de decisão', () => {
+        expect(JSON.parse(decisionJson('allow'))).toEqual({behavior: 'allow'});
+        expect(JSON.parse(decisionJson('deny'))).toEqual({behavior: 'deny'});
+    });
+
+    it('escolhe o pedido mais antigo, opcionalmente da sessão', () => {
+        const a: PendingRequest = {key: 'a.1', sessionId: 'a', request: '1', pid: 1, tool: 'Bash', since: 30};
+        const b: PendingRequest = {key: 'b.1', sessionId: 'b', request: '1', pid: 1, tool: 'Edit', since: 10};
+        const c: PendingRequest = {key: 'a.2', sessionId: 'a', request: '2', pid: 1, tool: 'Write', since: 20};
+        expect(oldestPending([a, b, c])).toBe(b);
+        expect(oldestPending([a, b, c], 'a')).toBe(c);
+        expect(oldestPending([], 'a')).toBeNull();
     });
 });
