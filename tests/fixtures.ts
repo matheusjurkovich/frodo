@@ -1,6 +1,8 @@
 import Gio from 'gi://Gio';
 
-import {FrodoSettings, SCHEMA_ID} from '../src/services/settings.js';
+import {FrodoSettings} from '../src/services/settings.js';
+
+const SCHEMA_ID = 'org.gnome.shell.extensions.frodo';
 
 export interface LineOptions {
     id: string;

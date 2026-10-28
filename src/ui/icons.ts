@@ -15,7 +15,6 @@ export type FrodoIconName =
     | 'close'
     | 'info'
     | 'external'
-    | 'user'
     | 'claude'
     | 'refresh'
     | 'previous'

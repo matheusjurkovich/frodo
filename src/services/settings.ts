@@ -6,8 +6,6 @@ import {parseProfiles} from '../core/claude-profiles.js';
 import type {ClaudeProfile} from '../core/claude-profiles.js';
 import type {Disposer} from '../util/disposables.js';
 
-export const SCHEMA_ID = 'org.gnome.shell.extensions.frodo';
-
 export type SettingsKey =
     | 'closed-mode'
     | 'closed-items'
@@ -65,10 +63,6 @@ export class FrodoSettings {
         return this.gsettings.get_boolean('hide-top-bar');
     }
 
-    set hideTopBar(value: boolean) {
-        this.gsettings.set_boolean('hide-top-bar', value);
-    }
-
     get claudePollMinutes(): number {
         return this.gsettings.get_int('claude-poll-minutes');
     }
@@ -93,20 +87,8 @@ export class FrodoSettings {
         this.gsettings.set_boolean('claude-profiles-initialized', value);
     }
 
-    get claudeShortcut(): string {
-        return this.gsettings.get_strv('claude-shortcut')[0] ?? '';
-    }
-
-    set claudeShortcut(value: string) {
-        this.gsettings.set_strv('claude-shortcut', [value]);
-    }
-
     get toggleShortcut(): string {
         return this.gsettings.get_strv('toggle-shortcut')[0] ?? '';
-    }
-
-    set toggleShortcut(value: string) {
-        this.gsettings.set_strv('toggle-shortcut', [value]);
     }
 
     get openOnHover(): boolean {

@@ -5,16 +5,6 @@ const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', '
 
 const pad = (n: number): string => String(n).padStart(2, '0');
 
-export function formatReset(iso: string | null, nowMs: number): string {
-    if (!iso) return '';
-    const at = new Date(iso);
-    const diffMin = Math.max(0, Math.round((at.getTime() - nowMs) / 60e3));
-    if (Number.isNaN(diffMin)) return '';
-    if (diffMin < 60) return `em ${diffMin}m`;
-    if (diffMin < 24 * 60) return `em ${Math.floor(diffMin / 60)}h ${diffMin % 60}m`;
-    return `${WEEKDAYS[at.getDay()] ?? ''} ${pad(at.getHours())}:${pad(at.getMinutes())}`;
-}
-
 export function weekdayLabel(day: number): string {
     const weekday = WEEKDAYS[day] ?? '';
     return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}`;

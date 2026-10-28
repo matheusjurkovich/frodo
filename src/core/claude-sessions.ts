@@ -7,7 +7,6 @@ export type SessionStatus = 'working' | 'waiting' | 'done' | 'idle';
 export interface HookEvent {
     readonly sessionId: string;
     readonly cwd: string;
-    readonly transcriptPath: string;
     readonly name: string;
     readonly tool: string | null;
     readonly input: Record<string, unknown>;
@@ -19,7 +18,6 @@ export interface SessionState {
     readonly sessionId: string;
     readonly cwd: string;
     readonly repo: string;
-    readonly transcriptPath: string;
     readonly status: SessionStatus;
     readonly tool: string | null;
     readonly step: string;
@@ -64,12 +62,11 @@ export function parseHookEvent(text: string): HookEvent | null {
         return null;
     }
     if (!isRecord(data) || !isRecord(data.event)) return null;
-    const {session_id: sessionId, cwd, transcript_path: transcriptPath, hook_event_name: name} = data.event;
+    const {session_id: sessionId, cwd, hook_event_name: name} = data.event;
     if (typeof sessionId !== 'string' || sessionId === '' || typeof cwd !== 'string' || typeof name !== 'string') return null;
     return {
         sessionId,
         cwd,
-        transcriptPath: optionalString(transcriptPath) ?? '',
         name,
         tool: optionalString(data.event.tool_name),
         input: isRecord(data.event.tool_input) ? data.event.tool_input : {},
@@ -101,7 +98,6 @@ function transition(previous: SessionState | null, event: HookEvent, atMs: numbe
         sessionId: event.sessionId,
         cwd: event.cwd,
         repo: basename(event.cwd),
-        transcriptPath: event.transcriptPath,
         pid: event.pid ?? previous?.pid ?? null,
         updatedAt: atMs,
     };

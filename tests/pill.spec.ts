@@ -119,7 +119,6 @@ function session(id: string, status: SessionStatus, step = ''): SessionState {
         sessionId: id,
         cwd: '/r',
         repo: 'r',
-        transcriptPath: '',
         status,
         tool: null,
         step,

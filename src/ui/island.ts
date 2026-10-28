@@ -43,7 +43,6 @@ export interface IslandDependencies {
 
 export interface IslandEvents {
     opening: [];
-    opened: [];
     closed: [];
     tabRequested: [TabId];
 }
@@ -143,10 +142,6 @@ export class Island extends Emitter<IslandEvents> {
         this.#syncMemoryNeed();
     }
 
-    get isOpen(): boolean {
-        return this.#isOpen;
-    }
-
     setPlacement(placement: Placement): void {
         if (placement === this.#placement) return;
         this.#detach();
@@ -199,7 +194,6 @@ export class Island extends Emitter<IslandEvents> {
                 },
             });
         if (reason !== 'hover') this.#onPanelHover();
-        this.emit('opened');
     }
 
     openTab(tab: TabId): void {

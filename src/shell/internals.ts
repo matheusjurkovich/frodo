@@ -28,7 +28,6 @@ interface StatusItem {
 }
 
 export interface QuickSettingsMenuInternals {
-    readonly box: St.BoxLayout;
     readonly actor: St.Widget;
     readonly _grid: St.Widget;
     readonly _overlay: Clutter.Actor;
@@ -235,10 +234,6 @@ export function powerActions(): PowerActions {
 
 export function spawn(argv: readonly string[]): void {
     (Util as unknown as {spawn(argv: string[]): void}).spawn([...argv]);
-}
-
-export function toggleOverview(): void {
-    Main.overview.toggle();
 }
 
 export function messageTray(): MessageTray.MessageTray & MessageTrayInternals {

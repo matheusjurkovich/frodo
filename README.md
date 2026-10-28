@@ -1,8 +1,32 @@
 # Frodo
 
-Dynamic island leve para GNOME Shell 50: hora, bateria, RAM, uso do Claude Code, notificações, bandeja e controles rápidos.
+Dynamic island leve para GNOME Shell 50. A pílula mostra hora, bateria, RAM e uso do Claude Code e muda conforme o que acontece no sistema; ao abrir, vira uma ilha com cinco abas.
 
 Roda dentro do próprio gnome-shell (sem processo extra). Escrita em TypeScript e compilada para JavaScript.
+
+## Abas
+
+| Aba               | O que mostra                                                                                                                           |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Geral             | Controles do Quick Settings nativo (emprestados enquanto a ilha está aberta), som, tocando agora, atalhos, programas abertos e bandeja |
+| Calendário        | Grade do mês e lista de eventos do calendário nativo                                                                                   |
+| Áreas de trabalho | Uma miniatura por área de trabalho, com as janelas abertas; clicar ativa a área, e há o card Nova área                                 |
+| Claude            | Limites de uso por perfil, consumo de tokens a partir das transcrições e sessões abertas do Claude Code                                |
+| Notificações      | Lista de notificações, não perturbe e limpar tudo                                                                                      |
+
+A engrenagem do cabeçalho abre as configurações dentro da ilha (comportamento, abas visíveis e integrações, com o botão Mais opções para as preferências completas) e o botão ao lado dela abre o menu de energia. Qualquer aba pode ser ocultada; se todas forem, a Geral continua visível.
+
+## Estados da pílula
+
+Fechada, a pílula mostra os itens escolhidos nas preferências (hora, ícones do sistema, bateria, RAM e uso do Claude). Quando algo acontece, ela troca para uma atividade. Com mais de uma ao mesmo tempo, vale esta ordem de prioridade:
+
+1. Gravação de tela, com o tempo e o botão Parar.
+2. Sessão do Claude esperando permissão, com o botão Abrir.
+3. Reunião em breve, com a contagem regressiva e o botão Abrir.
+4. Notificação recebida, por 3 segundos.
+5. Volume alterado, por 1,5 segundo.
+6. Sessão do Claude trabalhando, com o passo atual e o tempo.
+7. Música tocando, com capa, título e botão de pausa.
 
 ## Requisitos
 
@@ -140,14 +164,14 @@ Cada perfil do Claude Code (`CLAUDE_CONFIG_DIR`, como `~/.claude-trabalho`) tem 
 
 ## Scripts
 
-| Comando             | O que faz                                                          |
-| ------------------- | ------------------------------------------------------------------ |
-| `npm run build`     | Compila `src/` para `dist/` e copia metadata, CSS, schemas e hooks |
-| `npm run typecheck` | `tsc` em modo strict no código e nos testes                        |
-| `npm run lint`      | ESLint (typescript-eslint strict + stylistic)                      |
-| `npm run format`    | Prettier                                                           |
-| `npm test`          | Jasmine rodando no `gjs`                                           |
-| `npm run check`     | Tudo acima, menos o build                                          |
+| Comando             | O que faz                                                                  |
+| ------------------- | -------------------------------------------------------------------------- |
+| `npm run build`     | Compila `src/` para `dist/` e copia metadata, CSS, ícones, schemas e hooks |
+| `npm run typecheck` | `tsc` em modo strict no código e nos testes                                |
+| `npm run lint`      | ESLint (typescript-eslint strict + stylistic)                              |
+| `npm run format`    | Prettier                                                                   |
+| `npm test`          | Jasmine rodando no `gjs`                                                   |
+| `npm run check`     | Tudo acima, menos o build                                                  |
 
 ## Estrutura
 
@@ -156,14 +180,32 @@ src/
   extension.ts        raiz de composição: liga serviços e UI no enable/disable
   prefs.ts            janela de preferências (Adwaita)
   core/               lógica pura, sem GNOME Shell: parsing, formatação, tipos
-  services/           fontes de dados: settings, RAM, bateria, notificações e o Claude (perfis, cliente com renovação de token)
+  services/           fontes de dados, sem UI (lista abaixo)
   shell/internals.ts  único lugar que toca APIs privadas do GNOME Shell
-  ui/                 pílula, ilha por monitor, Quick Settings nativo, bandeja, painel em abas
+  ui/
+    components/       componentes St reutilizáveis: botões, cards, anel de progresso, barra de segmentos
+    panel/            ilha aberta: cabeçalho, barra de abas, menu de energia
+      <aba>/          uma pasta por aba: general, calendar, workspaces, claude, notifications
+      settings/       tela de configurações dentro da ilha
+    pill/             pílula: visão ociosa, visão de atividade e o feed que escolhe a atividade
+    island.ts         ilha de um monitor; island-manager.ts cuida de uma por monitor
   util/               Emitter tipado, Disposables e Timer
   types/              declarações que faltam nos tipos @girs
 tests/                specs Jasmine (core, util e serviços)
 hooks/                hook do Claude Code que grava o estado de cada sessão
+icons/                ícones SVG simbólicos (créditos em icons/README.md)
 ```
+
+Serviços em `src/services/`:
+
+- Configurações (`settings`): GSettings tipado.
+- RAM e bateria (`system-state`, `memory`, `battery`): leitura de `/proc/meminfo` e UPower.
+- Notificações (`notification-bridge`): fila do shell, contagem e avisos para a pílula.
+- Claude (`claude-service`, `claude-client`, `claude-profiles`): uso e limites por perfil, com renovação de token.
+- Transcrições do Claude (`claude-transcripts`): índice persistente em `$XDG_CACHE_HOME/frodo/claude-index.json`, lido em pedaços e só nos bytes novos.
+- Sessões do Claude (`claude-sessions`): estado vindo do hook, acompanhado com `Gio.FileMonitor`.
+- Mídia (`media`): MPRIS com proxies próprios.
+- Áreas de trabalho (`workspaces`), gravação de tela (`recording`), volume (`volume`) e reuniões (`meetings`).
 
 Regras da arquitetura:
 
@@ -172,6 +214,9 @@ Regras da arquitetura:
 - Todo `connect`, timer e patch feito no `enable()` é desfeito no `disable()` através de `Disposables`.
 - Acesso a internals privados do shell fica isolado em `src/shell/internals.ts`.
 - Controles do sistema reaproveitam o Quick Settings nativo do GNOME (emprestado enquanto a ilha está aberta), em vez de reimplementá-los.
+- Cor só existe no `stylesheet.css`. O código TypeScript não guarda cor; o desenho em Cairo lê a cor do tema (`get_theme_node()`).
+- O destaque (tile ligado, dia selecionado, botão primário, contador, anel da área ativa) vem do accent do sistema (`-st-accent-color`), então trocar o accent do GNOME muda a ilha na hora. Só as cores de marca e de estado (Claude, modelos, ok, aviso e perigo) são fixas.
+- Card ou página que lê disco ou D-Bus periodicamente só roda enquanto está visível (`whileMapped`).
 
 ## Licença e créditos
 

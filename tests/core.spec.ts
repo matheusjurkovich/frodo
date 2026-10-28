@@ -3,7 +3,6 @@ import {
     ellipsize,
     formatAgo,
     formatDate,
-    formatReset,
     formatSpan,
     formatTimer,
     formatTokens,
@@ -38,21 +37,6 @@ describe('memory', () => {
 });
 
 describe('format', () => {
-    const now = Date.UTC(2026, 9, 24, 12, 0);
-
-    it('formata tempo até o reset', () => {
-        expect(formatReset(new Date(now + 130 * 60e3).toISOString(), now)).toBe('em 2h 10m');
-        expect(formatReset(new Date(now + 45 * 60e3).toISOString(), now)).toBe('em 45m');
-        expect(formatReset(null, now)).toBe('');
-    });
-
-    it('usa dia e hora para resets distantes', () => {
-        const far = new Date(now + 3 * 86400e3);
-        const day = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][far.getDay()] ?? '';
-        const time = `${String(far.getHours()).padStart(2, '0')}:${String(far.getMinutes()).padStart(2, '0')}`;
-        expect(formatReset(far.toISOString(), now)).toBe(`${day} ${time}`);
-    });
-
     it('formata data curta', () => {
         expect(formatDate(new Date(2026, 9, 24))).toBe('Sáb, 24 out');
     });
