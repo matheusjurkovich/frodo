@@ -69,10 +69,10 @@ npm install
 ./install.sh
 ```
 
-O `install.sh` compila para `dist/` e liga `dist/` em `~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich`. No Wayland, saia e entre na sessão para o GNOME carregar o código novo, depois:
+O `install.sh` compila para `dist/` e liga `dist/` em `~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich.github.io`. No Wayland, saia e entre na sessão para o GNOME carregar o código novo, depois:
 
 ```bash
-gnome-extensions enable frodo@matheusjurkovich
+gnome-extensions enable frodo@matheusjurkovich.github.io
 ```
 
 ## Sessões do Claude Code
@@ -89,7 +89,7 @@ Acrescente o bloco abaixo ao `~/.claude/settings.json`, junto com o que já houv
         "hooks": [
           {
             "type": "command",
-            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich/hooks/claude-session.sh"
+            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich.github.io/hooks/claude-session.sh"
           }
         ]
       }
@@ -99,7 +99,7 @@ Acrescente o bloco abaixo ao `~/.claude/settings.json`, junto com o que já houv
         "hooks": [
           {
             "type": "command",
-            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich/hooks/claude-session.sh"
+            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich.github.io/hooks/claude-session.sh"
           }
         ]
       }
@@ -109,7 +109,7 @@ Acrescente o bloco abaixo ao `~/.claude/settings.json`, junto com o que já houv
         "hooks": [
           {
             "type": "command",
-            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich/hooks/claude-session.sh"
+            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich.github.io/hooks/claude-session.sh"
           }
         ]
       }
@@ -119,7 +119,7 @@ Acrescente o bloco abaixo ao `~/.claude/settings.json`, junto com o que já houv
         "hooks": [
           {
             "type": "command",
-            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich/hooks/claude-session.sh"
+            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich.github.io/hooks/claude-session.sh"
           }
         ]
       }
@@ -129,7 +129,7 @@ Acrescente o bloco abaixo ao `~/.claude/settings.json`, junto com o que já houv
         "hooks": [
           {
             "type": "command",
-            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich/hooks/claude-session.sh"
+            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich.github.io/hooks/claude-session.sh"
           }
         ]
       }
@@ -139,7 +139,7 @@ Acrescente o bloco abaixo ao `~/.claude/settings.json`, junto com o que já houv
         "hooks": [
           {
             "type": "command",
-            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich/hooks/claude-session.sh"
+            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich.github.io/hooks/claude-session.sh"
           }
         ]
       }
@@ -149,7 +149,7 @@ Acrescente o bloco abaixo ao `~/.claude/settings.json`, junto com o que já houv
         "hooks": [
           {
             "type": "command",
-            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich/hooks/claude-session.sh"
+            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich.github.io/hooks/claude-session.sh"
           }
         ]
       }
@@ -159,7 +159,7 @@ Acrescente o bloco abaixo ao `~/.claude/settings.json`, junto com o que já houv
         "hooks": [
           {
             "type": "command",
-            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich/hooks/claude-session.sh"
+            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich.github.io/hooks/claude-session.sh"
           }
         ]
       }
@@ -169,7 +169,7 @@ Acrescente o bloco abaixo ao `~/.claude/settings.json`, junto com o que já houv
         "hooks": [
           {
             "type": "command",
-            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich/hooks/claude-session.sh"
+            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich.github.io/hooks/claude-session.sh"
           }
         ]
       }
@@ -179,7 +179,7 @@ Acrescente o bloco abaixo ao `~/.claude/settings.json`, junto com o que já houv
         "hooks": [
           {
             "type": "command",
-            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich/hooks/claude-session.sh"
+            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich.github.io/hooks/claude-session.sh"
           }
         ]
       }

@@ -119,7 +119,7 @@ npm test             # só os testes (Jasmine no gjs)
 npm run build        # src/ -> dist/, copia metadata, CSS, ícones, schemas e hooks
 npm run smoke        # build + gnome-shell headless isolado: liga, desliga e religa; falha se não ficar ACTIVE
 npm run format       # Prettier
-./install.sh         # build e link de dist/ em ~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich
+./install.sh         # build e link de dist/ em ~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich.github.io
 ```
 
 ## Verificar no shell
@@ -131,9 +131,9 @@ que ele imprime.
 
 ```shell
 npm run build
-TMP=$(mktemp -d) && mkdir -p $TMP/data/gnome-shell/extensions $TMP/Desktop && ln -s "$PWD/dist" $TMP/data/gnome-shell/extensions/frodo@matheusjurkovich
+TMP=$(mktemp -d) && mkdir -p $TMP/data/gnome-shell/extensions $TMP/Desktop && ln -s "$PWD/dist" $TMP/data/gnome-shell/extensions/frodo@matheusjurkovich.github.io
 env HOME=$TMP XDG_DATA_HOME=$TMP/data XDG_CONFIG_HOME=$TMP/config XDG_CACHE_HOME=$TMP/cache GSETTINGS_BACKEND=memory \
-  dbus-run-session -- sh -c 'gnome-shell --headless --wayland --no-x11 --virtual-monitor 1440x900 --mode=ubuntu > "$HOME/shell.log" 2>&1 & until gdbus introspect --session --dest org.gnome.Shell --object-path /org/gnome/Shell > /dev/null 2>&1; do sleep 0.5; done; gnome-extensions enable frodo@matheusjurkovich; sleep 5; LC_ALL=C gnome-extensions info frodo@matheusjurkovich | grep State; kill $!'
+  dbus-run-session -- sh -c 'gnome-shell --headless --wayland --no-x11 --virtual-monitor 1440x900 --mode=ubuntu > "$HOME/shell.log" 2>&1 & until gdbus introspect --session --dest org.gnome.Shell --object-path /org/gnome/Shell > /dev/null 2>&1; do sleep 0.5; done; gnome-extensions enable frodo@matheusjurkovich.github.io; sleep 5; LC_ALL=C gnome-extensions info frodo@matheusjurkovich.github.io | grep State; kill $!'
 grep -iE 'JS ERROR|CRITICAL' $TMP/shell.log | grep -i frodo
 ```
 
