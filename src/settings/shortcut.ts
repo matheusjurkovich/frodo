@@ -1,5 +1,17 @@
-export function isValidShortcut(ok: boolean, key: number, mods: number): boolean {
-    return ok && key !== 0 && mods !== 0;
+export interface ShortcutModifiers {
+    readonly super: boolean;
+    readonly control: boolean;
+    readonly alt: boolean;
+    readonly shift: boolean;
+}
+
+export function accelerator(keyName: string, modifiers: ShortcutModifiers): string | null {
+    if (keyName === '' || !(modifiers.super || modifiers.control || modifiers.alt)) return null;
+    const prefix = (['super', 'shift', 'control', 'alt'] as const)
+        .filter(name => modifiers[name])
+        .map(name => `<${name.charAt(0).toUpperCase()}${name.slice(1)}>`)
+        .join('');
+    return `${prefix}${keyName.length === 1 ? keyName.toLowerCase() : keyName}`;
 }
 
 export function shortcutLabel(accelerator: string): string {

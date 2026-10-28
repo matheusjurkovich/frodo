@@ -25,7 +25,6 @@ export type PanelView = {readonly kind: 'tab'; readonly tab: TabId} | {readonly 
 
 export interface PanelDependencies extends FrodoServices {
     readonly island: Island;
-    readonly openPreferences: () => void;
 }
 
 export class PanelContent {
@@ -49,7 +48,7 @@ export class PanelContent {
     #lastTab: TabId = TAB_IDS[0];
     #nextTab: TabId = TAB_IDS[0];
 
-    constructor({island, claude, transcripts, sessions, settings, bridge, media, workspaces, openPreferences}: PanelDependencies) {
+    constructor({island, claude, transcripts, sessions, settings, bridge, media, workspaces, recording}: PanelDependencies) {
         this.#settings = settings;
 
         const specs: readonly TabSpec[] = [
@@ -80,7 +79,9 @@ export class PanelContent {
                         sessions,
                         settings,
                         actions: {
-                            openPreferences,
+                            openSettings: () => {
+                                this.show({kind: 'settings'});
+                            },
                             close: () => {
                                 island.close();
                             },
@@ -91,26 +92,32 @@ export class PanelContent {
         ];
 
         this.#tabBar = new TabBar(specs);
-        this.#header = new Header(this.#tabBar, {
-            openSettings: () => {
-                if (this.#view.kind === 'settings') this.#leaveSettings();
-                else this.show({kind: 'settings'});
+        this.#header = new Header(
+            this.#tabBar,
+            {
+                openSettings: () => {
+                    if (this.#view.kind === 'settings') this.#leaveSettings();
+                    else this.show({kind: 'settings'});
+                },
+                openPower: source => {
+                    this.#power ??= new PowerMenu(source, island);
+                    this.#power.toggle();
+                },
+                collapse: () => {
+                    island.close();
+                },
             },
-            openPower: source => {
-                this.#power ??= new PowerMenu(source, island);
-                this.#power.toggle();
-            },
-            collapse: () => {
-                island.close();
-            },
-        });
+            recording,
+        );
         this.#settingsPage = new SettingsPage(settings, {
             back: () => {
                 this.#leaveSettings();
             },
-            openPreferences,
             close: () => {
                 island.close();
+            },
+            grabKeyboard: focus => {
+                island.grabKeyboard(focus);
             },
         });
         for (const spec of specs) {

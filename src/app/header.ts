@@ -4,8 +4,10 @@ import GLib from 'gi://GLib';
 import GnomeDesktop from 'gi://GnomeDesktop';
 import St from 'gi://St';
 
+import type {Recording} from '../features/system/recording-service.js';
+import type {Disposer} from '../shared/disposables.js';
 import {formatDate} from '../shared/format.js';
-import {iconButton} from '../shared/ui/buttons.js';
+import {iconButton, textButton} from '../shared/ui/buttons.js';
 import {label, row} from '../shared/ui/layout.js';
 import type {Component} from '../shared/ui/lifecycle.js';
 import {frodoIcon} from '../shared/ui/icons.js';
@@ -27,8 +29,9 @@ export class Header implements Component {
     readonly #interface = new Gio.Settings({schema_id: INTERFACE_SCHEMA});
     readonly #clockId: number;
     readonly #settingsId: number;
+    readonly #unsubscribeRecording: Disposer;
 
-    constructor(tabBar: TabBar, actions: HeaderActions) {
+    constructor(tabBar: TabBar, actions: HeaderActions, recording: Pick<Recording, 'startedAt' | 'on' | 'stop'>) {
         const clock = label('', 'frodo-header-clock');
         const date = label('', 'frodo-header-date');
         const time = new St.BoxLayout({
@@ -40,8 +43,22 @@ export class Header implements Component {
         time.add_child(date);
 
         this.#gear = iconButton(frodoIcon('gear'), 'Configurações da ilha', actions.openSettings, 'ghost');
+        const stop = textButton(
+            'Parar gravação',
+            () => {
+                recording.stop();
+            },
+            'danger',
+            frodoIcon('stop'),
+        );
+        const syncRecording = (): void => {
+            stop.visible = recording.startedAt !== null;
+        };
+        this.#unsubscribeRecording = recording.on('changed', syncRecording);
+        syncRecording();
         this.actor.add_child(time);
         this.actor.add_child(tabBar.actor);
+        this.actor.add_child(stop);
         this.actor.add_child(this.#gear);
         const {openPower} = actions;
         if (openPower) {
@@ -73,6 +90,7 @@ export class Header implements Component {
     }
 
     destroy(): void {
+        this.#unsubscribeRecording();
         this.#wallClock.disconnect(this.#clockId);
         this.#interface.disconnect(this.#settingsId);
         this.actor.destroy();

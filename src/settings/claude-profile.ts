@@ -19,3 +19,9 @@ export function parseProfiles(json: string): ClaudeProfile[] {
         return [{id: typeof id === 'string' ? id : configDir, label: typeof label === 'string' ? label : 'Claude', configDir}];
     });
 }
+
+export function expandHome(path: string, home: string): string {
+    const trimmed = path.trim().replace(/(.)\/+$/, '$1');
+    if (trimmed === '~') return home;
+    return trimmed.startsWith('~/') ? `${home}${trimmed.slice(1)}` : trimmed;
+}

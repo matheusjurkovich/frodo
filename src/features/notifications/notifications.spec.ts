@@ -1,10 +1,9 @@
 import {latest, shouldIntercept} from './notifications.js';
 
 describe('notifications', () => {
-    it('intercepta só notificações normais sem ações', () => {
-        expect(shouldIntercept({urgency: 1, actions: []})).toBeTrue();
-        expect(shouldIntercept({urgency: 3, actions: []})).toBeFalse();
-        expect(shouldIntercept({urgency: 1, actions: [{}]})).toBeFalse();
+    it('intercepta toda notificação que não é crítica, com ou sem ações', () => {
+        expect(shouldIntercept({urgency: 1})).toBeTrue();
+        expect(shouldIntercept({urgency: 3})).toBeFalse();
         expect(shouldIntercept(null)).toBeFalse();
     });
 

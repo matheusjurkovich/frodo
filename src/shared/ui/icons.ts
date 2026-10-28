@@ -12,6 +12,8 @@ export type FrodoIconName =
     | 'power'
     | 'suspend'
     | 'restart'
+    | 'logout'
+    | 'google'
     | 'collapse'
     | 'close'
     | 'info'
@@ -43,7 +45,8 @@ export type FrodoIconName =
     | 'folder'
     | 'lock'
     | 'expand'
-    | 'plus';
+    | 'plus'
+    | 'minus';
 
 let directory: Gio.File | null = null;
 

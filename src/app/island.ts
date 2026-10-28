@@ -68,6 +68,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
     #placement: Placement | null = null;
     #dateMenu: Clutter.Actor | null = null;
     #fullscreen = false;
+    #unredirectDisabled = false;
     #isOpen = false;
     #openedBy: OpenReason | null = null;
     #holds = 0;
@@ -215,15 +216,28 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         this.emit('opening');
         this.#animateOpen();
         this.#syncTongue();
-        if (reason !== 'hover')
-            this.#grab.grab({
-                actor: this.panel,
-                focus: this.panel,
-                onUngrab: () => {
-                    this.close();
-                },
-            });
-        if (reason !== 'hover') this.#onPanelHover();
+        if (reason !== 'hover') this.#takeGrab(this.panel);
+    }
+
+    grabKeyboard(focus: Clutter.Actor): void {
+        if (!this.#isOpen) return;
+        if (this.#grab.isActorGrabbed(this.panel)) {
+            focus.grab_key_focus();
+            return;
+        }
+        this.#openedBy = 'click';
+        this.#takeGrab(focus);
+    }
+
+    #takeGrab(focus: Clutter.Actor): void {
+        this.#grab.grab({
+            actor: this.panel,
+            focus,
+            onUngrab: () => {
+                this.close();
+            },
+        });
+        this.#onPanelHover();
     }
 
     openTab(tab: TabId): void {
@@ -359,6 +373,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         const entering = fullscreen && !this.#fullscreen;
         this.#fullscreen = fullscreen;
         this.pill.actor.visible = !fullscreen;
+        this.#syncUnredirect();
         if (entering) {
             this.#feed.cancelTransient();
             this.close();
@@ -366,10 +381,18 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         this.#syncTongue();
     }
 
+    #syncUnredirect(): void {
+        if (this.#fullscreen === this.#unredirectDisabled) return;
+        this.#unredirectDisabled = this.#fullscreen;
+        if (this.#fullscreen) global.compositor.disable_unredirect();
+        else global.compositor.enable_unredirect();
+    }
+
     #animateOpen(): void {
         const {panel} = this;
         const pill = this.pill.actor;
         const anchor = this.#anchor();
+        anchor.get_allocation_box();
         panel.remove_all_transitions();
         panel.opacity = 0;
         panel.show();
@@ -461,6 +484,8 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         this.clearListeners();
         this.#flushPendingRelayout();
         this.#release();
+        this.#fullscreen = false;
+        this.#syncUnredirect();
         Main.layoutManager.untrackChrome(this.panel);
         Main.layoutManager.removeChrome(this.#tongue);
         this.#tongue.destroy();

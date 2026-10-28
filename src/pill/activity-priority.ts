@@ -1,9 +1,9 @@
 export const ACTIVITY_KINDS = [
+    'notification',
     'recording',
     'claude-permission',
     'claude-waiting',
     'meeting',
-    'notification',
     'volume',
     'claude-working',
     'media',

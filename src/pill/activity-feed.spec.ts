@@ -74,8 +74,8 @@ function request(sessionId: string, name: string, since: number): PendingRequest
     return {key: `${sessionId}.${name}`, sessionId, request: name, pid: 1, tool: 'Bash', since};
 }
 
-function track(playing: boolean): MediaTrack {
-    return {title: 't', artist: 'a', coverUrl: '', lengthUs: null, app: 'p', playing, canPrevious: false, canNext: false};
+function track(playing: boolean, title = 't'): MediaTrack {
+    return {title, artist: 'a', coverUrl: '', lengthUs: null, app: 'p', playing, canPrevious: false, canNext: false};
 }
 
 interface Armed {
@@ -234,11 +234,41 @@ describe('ActivityFeed', () => {
         expect(feed.current?.kind).toBe('media');
     });
 
-    it('reunião vence a notificação', () => {
-        bridge.push('Oi');
-        expect(feed.current?.kind).toBe('notification');
+    it('mídia aparece 5 s ao começar a tocar e some', () => {
+        media.set(track(true));
+        expect(timers.onceMs()).toEqual([5000]);
+        timers.fire(5000);
+        expect(feed.current).toBeNull();
+        media.set(track(true));
+        expect(feed.current).toBeNull();
+        expect(timers.armed.size).toBe(0);
+    });
+
+    it('mídia volta a aparecer ao retomar ou trocar de faixa', () => {
+        media.set(track(true));
+        timers.fire(5000);
+        media.set(track(false));
+        media.set(track(true));
+        expect(feed.current?.kind).toBe('media');
+        timers.fire(5000);
+        media.set(track(true, 'outra'));
+        expect(feed.current?.kind).toBe('media');
+    });
+
+    it('mídia que já tocava ao ligar não aparece', () => {
+        media.set(track(true));
+        const later = new ActivityFeed({recording, sessions, meetings, bridge, volume, media});
+        expect(later.current).toBeNull();
+        later.destroy();
+    });
+
+    it('notificação vence a reunião e a gravação', () => {
         meetings.set({title: 'Daily', startsAt: 5000});
-        expect(feed.current).toEqual({kind: 'meeting', title: 'Daily', startsAt: 5000});
+        recording.set(1000);
+        bridge.push('Oi');
+        expect(notificationTitle()).toBe('Oi');
+        timers.fire(3000);
+        expect(feed.current).toEqual({kind: 'recording', startedAt: 1000});
     });
 
     it('a fila de notificações avança de 3 s em 3 s e recomeça depois de esvaziar', () => {
@@ -285,6 +315,7 @@ describe('ActivityFeed', () => {
         bridge.push('a');
         bridge.push('b');
         volume.set(40);
+        media.set(track(true));
         expect(feed.current?.kind).toBe('notification');
         feed.cancelTransient();
         expect(feed.current).toBeNull();

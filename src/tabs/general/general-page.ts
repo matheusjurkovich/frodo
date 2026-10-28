@@ -22,10 +22,7 @@ export interface GeneralDependencies {
 function columns(...sides: Clutter.Actor[]): St.BoxLayout {
     const box = row('frodo-cols');
     box.layout_manager.homogeneous = true;
-    for (const side of sides) {
-        side.y_align = Clutter.ActorAlign.START;
-        box.add_child(side);
-    }
+    for (const side of sides) box.add_child(side);
     return box;
 }
 

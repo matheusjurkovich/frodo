@@ -229,11 +229,14 @@ export class ActivityView implements Component {
     }
 
     #media({track}: Of<'media'>): void {
-        const cover = new St.Icon({
-            gicon: track.coverUrl === '' ? frodoIcon('music') : Gio.FileIcon.new(Gio.File.new_for_uri(track.coverUrl)),
-            style_class: 'frodo-pill-cover',
-            y_align: Clutter.ActorAlign.CENTER,
-        });
+        const cover =
+            track.coverUrl === ''
+                ? icon(frodoIcon('music'))
+                : new St.Widget({
+                      style_class: 'frodo-pill-cover',
+                      style: `background-image: url(${JSON.stringify(track.coverUrl)});`,
+                      y_align: Clutter.ActorAlign.CENTER,
+                  });
         this.#add(cover, label(ellipsize(track.title, TRACK_CHARS), 'frodo-pill-title'));
         if (track.artist !== '') this.#add(label(ellipsize(track.artist, ARTIST_CHARS), 'frodo-pill-detail'));
         this.#add(icon(frodoIcon('wave'), 'frodo-pill-icon-wave'));

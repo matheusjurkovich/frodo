@@ -8,21 +8,17 @@ import {Island} from './island.js';
 import {PanelContent} from './panel-content.js';
 import type {FrodoServices} from './services.js';
 
-export interface IslandManagerDependencies extends FrodoServices {
-    readonly openPreferences: () => void;
-}
-
 interface Entry {
     readonly island: Island;
     readonly content: PanelContent;
 }
 
 export class IslandManager {
-    readonly #dependencies: IslandManagerDependencies;
+    readonly #dependencies: FrodoServices;
     readonly #disposables = new Disposables();
     #entries: Entry[] = [];
 
-    constructor(dependencies: IslandManagerDependencies) {
+    constructor(dependencies: FrodoServices) {
         this.#dependencies = dependencies;
         const {settings} = dependencies;
         this.#disposables.add(
@@ -50,10 +46,6 @@ export class IslandManager {
     #currentEntry(): Entry | undefined {
         const current = global.display.get_current_monitor();
         return this.#entries.find(entry => entry.island.monitorIndex === current) ?? this.#entries[0];
-    }
-
-    closeAll(): void {
-        for (const {island} of this.#entries) island.close();
     }
 
     #rebuild(): void {

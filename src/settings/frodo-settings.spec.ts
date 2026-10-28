@@ -46,4 +46,20 @@ describe('FrodoSettings', () => {
         expect(settings.gsettings.get_boolean('open-on-hover')).toBeFalse();
         expect(settings.gsettings.get_boolean('auto-close')).toBeTrue();
     });
+
+    it('grava as chaves que eram das preferências', () => {
+        const settings = createSettings();
+        settings.rotateSeconds = 9;
+        settings.hideTopBar = true;
+        settings.claudePollMinutes = 12;
+        settings.claudeShowRemaining = true;
+        settings.toggleShortcut = '<Super>x';
+        settings.claudeShortcut = '<Control><Alt>c';
+        expect(settings.rotateSeconds).toBe(9);
+        expect(settings.hideTopBar).toBeTrue();
+        expect(settings.claudePollMinutes).toBe(12);
+        expect(settings.claudeShowRemaining).toBeTrue();
+        expect(settings.gsettings.get_strv('toggle-shortcut')).toEqual(['<Super>x']);
+        expect(settings.claudeShortcut).toBe('<Control><Alt>c');
+    });
 });

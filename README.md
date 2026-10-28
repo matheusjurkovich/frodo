@@ -14,20 +14,22 @@ Roda dentro do próprio gnome-shell (sem processo extra). Escrita em TypeScript 
 | Claude            | Limites de uso por perfil, consumo de tokens a partir das transcrições e sessões abertas do Claude Code                       |
 | Notificações      | Lista de notificações, não perturbe e limpar tudo                                                                             |
 
-A engrenagem do cabeçalho abre as configurações dentro da ilha (comportamento, abas visíveis e integrações, com o botão Mais opções para as preferências completas) e o botão ao lado dela abre o menu de energia. Qualquer aba pode ser ocultada; se todas forem, a Geral continua visível.
+A engrenagem do cabeçalho abre as configurações, todas dentro da ilha (comportamento, abas visíveis, modo da ilha fechada, monitores e barra superior, Claude e perfis, atalhos e integrações); não há janela de preferências separada. O botão ao lado dela abre o menu de energia (suspender, encerrar sessão, reiniciar e desligar). Durante uma gravação de tela, o cabeçalho mostra Parar gravação. Qualquer aba pode ser ocultada; se todas forem, a Geral continua visível.
 
 ## Estados da pílula
 
-Fechada, a pílula mostra os itens escolhidos nas preferências (hora, ícones do sistema, bateria, RAM e uso do Claude). Quando algo acontece, ela troca para uma atividade. Com mais de uma ao mesmo tempo, vale esta ordem de prioridade:
+Fechada, a pílula mostra hora, data, notificações, rede e bateria. Quando algo acontece, ela troca para uma atividade. Com mais de uma ao mesmo tempo, vale esta ordem de prioridade:
 
-1. Gravação de tela, com o tempo e o botão Parar.
-2. Pedido de permissão do Claude, com a ferramenta e os botões Negar e Aprovar (o mais antigo, se houver vários).
-3. Sessão do Claude esperando permissão sem pedido aberto pela ilha, com o botão Abrir.
-4. Reunião em breve, com a contagem regressiva e o botão Abrir.
-5. Notificação recebida, por 3 segundos.
+1. Notificação recebida (qualquer uma que não seja crítica), por 3 segundos.
+2. Gravação de tela, com o tempo e o botão Parar.
+3. Pedido de permissão do Claude, com a ferramenta e os botões Negar e Aprovar (o mais antigo, se houver vários).
+4. Sessão do Claude esperando permissão sem pedido aberto pela ilha, com o botão Abrir.
+5. Reunião em breve, com a contagem regressiva e o botão Abrir.
 6. Volume alterado, por 1,5 segundo.
 7. Sessão do Claude trabalhando, com o passo atual e o tempo.
-8. Música tocando, com capa, título e botão de pausa.
+8. Música que começou a tocar, por 5 segundos, com capa redonda, título e botão de pausa.
+
+Em tela cheia a pílula some e fica só a lingueta no topo; enquanto isso a ilha desliga o scanout direto do compositor, como o GNOME faz com banners e OSD, para não piscar sobre o app.
 
 ## Requisitos
 
@@ -188,7 +190,6 @@ Código agrupado por camada e domínio. Import só desce: `app → pill, tabs �
 ```
 src/
   extension.ts            enable/disable: ícones, createServices, barra do topo, ilhas e atalhos
-  prefs.ts                janela de preferências (Adwaita, processo GTK)
   app/                    a ilha: services.ts (cria os serviços), island.ts (um monitor), island-manager.ts
                           (um por monitor), panel-content.ts, header.ts, tab-bar.ts, power-menu.ts,
                           top-bar-visibility.ts e monitors.ts
@@ -196,7 +197,7 @@ src/
   tabs/<aba>/             uma pasta por aba: general, calendar, workspaces, claude, notifications, settings
   features/<domínio>/     regra pura e serviço de cada fonte de dados: claude, media, meetings,
                           notifications, system, workspaces
-  settings/               GSettings tipado, valores do schema, perfis do Claude, itens da pílula, atalho e abas
+  settings/               GSettings tipado, valores do schema, perfis do Claude, atalho e abas
   shared/                 Emitter, Disposables, Timer, formatação, geometria, leitura de arquivo, nível,
                           contrato da ilha para as abas (island-handle.ts) e shell-internals.ts
     ui/                   componentes St: botões, cards, layout, anel, barra de segmentos, ícones, empréstimo de ator
@@ -223,7 +224,6 @@ Regras da arquitetura:
 - Import só desce: `app → pill, tabs → features → settings → shared` (ESLint).
 - Em `features/`, só `*-service.ts` e `*-client.ts` falam com o GNOME; o resto é regra pura, coberta por testes (ESLint).
 - Feature não importa feature; aba não importa aba (ESLint). As abas falam com a ilha pelo `IslandHandle`.
-- `prefs.ts` roda no GTK: não importa `St`, `Clutter`, `Meta`, `Shell` nem componentes do shell (ESLint).
 - Spec ao lado do arquivo que testa (`<nome>.spec.ts`), descoberto sozinho pelo `npm test`.
 - Serviço não conhece a UI; a UI assina eventos tipados (`Emitter`).
 - Todo `connect`, timer e patch feito no `enable()` é desfeito no `disable()` através de `Disposables` (`npm run smoke` religa a extensão).
