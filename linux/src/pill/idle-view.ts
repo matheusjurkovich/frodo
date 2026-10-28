@@ -13,7 +13,13 @@ import type {ClaudeService} from '../features/claude/claude-service.js';
 import type {NotificationBridge} from '../features/notifications/notification-bridge-service.js';
 import type {FrodoSettings} from '../settings/frodo-settings.js';
 import type {SystemState} from '../features/system/system-state-service.js';
-import {extensionIndicators, networkIndicator, onPanelIndicatorsChanged, quickSettings} from '../shared/shell-internals.js';
+import {
+    extensionIndicators,
+    networkIndicator,
+    onIndicatorsChanged,
+    otherSystemIndicators,
+    systemIndicator,
+} from '../shared/shell-internals.js';
 import {Disposables} from '../shared/disposables.js';
 import {Emitter} from '../shared/emitter.js';
 import {Timer} from '../shared/timer.js';
@@ -24,7 +30,7 @@ import {frodoIcon} from '../shared/ui/icons.js';
 
 const FADE_MS = 150;
 
-type TextItem = Exclude<ClosedItem, 'clock' | 'date' | 'notifications' | 'network' | 'system' | 'extensions'>;
+type TextItem = Extract<ClosedItem, 'battery' | 'ram' | 'claude-session' | 'claude-weekly'>;
 
 const TEXT_ITEMS: readonly ClosedItem[] = ['battery', 'ram', 'claude-session', 'claude-weekly'];
 
@@ -36,6 +42,10 @@ interface Segment {
     readonly actor: Clutter.Actor;
     readonly isVisible: () => boolean;
     readonly update: () => void;
+}
+
+function present(actor: Clutter.Actor | null): Clutter.Actor[] {
+    return actor ? [actor] : [];
 }
 
 function clockText(): string {
@@ -157,11 +167,16 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
             case 'notifications':
                 return this.#notificationsSegment();
             case 'network':
-                return this.#networkSegment();
+                return this.#cloneSegment(() => present(networkIndicator()));
+            case 'bluetooth':
+            case 'volume':
+            case 'microphone':
+            case 'do-not-disturb':
+                return this.#cloneSegment(() => present(systemIndicator(item)));
             case 'system':
-                return this.#systemSegment();
+                return this.#cloneSegment(otherSystemIndicators);
             case 'extensions':
-                return this.#extensionsSegment();
+                return this.#cloneSegment(extensionIndicators);
             case 'battery':
                 return this.#batterySegment();
             case 'ram':
@@ -198,25 +213,9 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
         };
     }
 
-    #networkSegment(): Segment | null {
-        const network = networkIndicator();
-        if (!network) return null;
-        const clone = new Clutter.Clone({source: network, y_align: Clutter.ActorAlign.CENTER});
-        const box = new St.Bin({style_class: 'frodo-system-icons', child: clone, y_align: Clutter.ActorAlign.CENTER});
-        return {actor: box, isVisible: () => true, update: () => undefined};
-    }
-
-    #systemSegment(): Segment | null {
-        const indicators = quickSettings()?._indicators;
-        if (!indicators) return null;
-        const clone = new Clutter.Clone({source: indicators, y_align: Clutter.ActorAlign.CENTER});
-        const box = new St.Bin({style_class: 'frodo-system-icons', child: clone, y_align: Clutter.ActorAlign.CENTER});
-        return {actor: box, isVisible: () => true, update: () => undefined};
-    }
-
-    #extensionsSegment(): Segment {
-        const sources = extensionIndicators();
-        const box = new St.BoxLayout({style_class: 'frodo-system-icons frodo-pill-extensions', y_align: Clutter.ActorAlign.CENTER});
+    #cloneSegment(read: () => Clutter.Actor[]): Segment {
+        const sources = read();
+        const box = new St.BoxLayout({style_class: 'frodo-system-icons', y_align: Clutter.ActorAlign.CENTER});
         const clones = sources.map(source => new Clutter.Clone({source, y_align: Clutter.ActorAlign.CENTER}));
         for (const clone of clones) box.add_child(clone);
         for (const source of sources)
@@ -227,8 +226,8 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
                 }),
             );
         this.#built.add(
-            onPanelIndicatorsChanged(() => {
-                const current = extensionIndicators();
+            onIndicatorsChanged(() => {
+                const current = read();
                 if (current.length !== sources.length || current.some((source, index) => source !== sources[index])) this.#build();
             }),
         );

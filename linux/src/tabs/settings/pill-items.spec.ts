@@ -14,6 +14,10 @@ describe('pill-items', () => {
 
     it('lista os itens fora da pílula na ordem do catálogo', () => {
         expect(missingItems(['ram', 'clock', 'date', 'notifications', 'network', 'battery'])).toEqual([
+            'bluetooth',
+            'volume',
+            'microphone',
+            'do-not-disturb',
             'system',
             'claude-session',
             'claude-weekly',

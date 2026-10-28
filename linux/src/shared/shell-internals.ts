@@ -183,16 +183,28 @@ export function extensionIndicators(): Clutter.Actor[] {
     );
 }
 
-export function onPanelIndicatorsChanged(callback: () => void): Disposer {
-    const ids = PANEL_SIDES.map(side => {
-        const box = panelBox(side);
-        return [box, box.connect('child-added', callback), box.connect('child-removed', callback)] as const;
-    });
+export function onIndicatorsChanged(callback: () => void): Disposer {
+    const indicators = quickSettings()?._indicators;
+    const boxes = [...PANEL_SIDES.map(panelBox), ...(indicators ? [indicators] : [])];
+    const destroyed = new Set<Clutter.Actor>();
+    const changed = (): void => {
+        if (destroyed.size === 0) callback();
+    };
+    const ids = boxes.map(
+        box =>
+            [
+                box,
+                [
+                    box.connect('child-added', changed),
+                    box.connect('child-removed', changed),
+                    box.connect('destroy', () => {
+                        destroyed.add(box);
+                    }),
+                ],
+            ] as const,
+    );
     return () => {
-        for (const [box, added, removed] of ids) {
-            box.disconnect(added);
-            box.disconnect(removed);
-        }
+        for (const [box, handlers] of ids) if (!destroyed.has(box)) for (const id of handlers) box.disconnect(id);
     };
 }
 
@@ -211,6 +223,33 @@ export function quickSettings(): QuickSettingsInternals | null {
 
 export function networkIndicator(): Clutter.Actor | null {
     return quickSettings()?._network ?? null;
+}
+
+export type SystemIndicatorName = 'bluetooth' | 'volume' | 'microphone' | 'do-not-disturb';
+
+const SYSTEM_INDICATOR_FIELDS: Record<SystemIndicatorName, string> = {
+    bluetooth: '_bluetooth',
+    volume: '_volumeOutput',
+    microphone: '_volumeInput',
+    'do-not-disturb': '_doNotDisturb',
+};
+
+const OWN_INDICATOR_FIELDS: readonly string[] = [...Object.values(SYSTEM_INDICATOR_FIELDS), '_network', '_system'];
+
+function quickSettingsFields(): Record<string, Clutter.Actor | null | undefined> | null {
+    return quickSettings() as unknown as Record<string, Clutter.Actor | null | undefined> | null;
+}
+
+export function systemIndicator(name: SystemIndicatorName): Clutter.Actor | null {
+    return quickSettingsFields()?.[SYSTEM_INDICATOR_FIELDS[name]] ?? null;
+}
+
+export function otherSystemIndicators(): Clutter.Actor[] {
+    const fields = quickSettingsFields();
+    const indicators = quickSettings()?._indicators;
+    if (!fields || !indicators) return [];
+    const own = OWN_INDICATOR_FIELDS.map(field => fields[field]);
+    return indicators.get_children().filter(child => !own.includes(child));
 }
 
 export function quickSettingsParts(): QuickSettingsParts | null {

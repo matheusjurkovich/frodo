@@ -18,7 +18,7 @@ A engrenagem do cabeçalho abre as configurações, todas dentro da ilha (pílul
 
 ## Estados da pílula
 
-Fechada, a pílula mostra hora, data, notificações, rede e bateria. Em Configurações › Pílula dá para escolher o modo (Mínimo, só o relógio; Compacto, tudo junto; Rotativo, com bateria, RAM e Claude revezando num espaço a cada poucos segundos), a posição no topo (centro, esquerda ou direita), a ordem dos itens e quais entram. Além dos itens do Frodo e dos ícones do sistema, há "Ícones de extensões": os indicadores que outras extensões põem na barra superior (AppIndicator, monitores de recurso e afins) aparecem na pílula, só para ver; clicar continua abrindo a ilha. Quando algo acontece, ela troca para uma atividade por no máximo 5 segundos e volta ao repouso; a mesma atividade só reaparece quando muda (gravação nova, outro passo do Claude, outra faixa, música retomada). Abrir a ilha dá como vistas as atividades em andamento. Com mais de uma ao mesmo tempo, vale esta ordem de prioridade, e a que foi interrompida volta depois com os 5 segundos inteiros:
+Fechada, a pílula mostra hora, data, notificações, rede e bateria. Em Configurações › Pílula dá para escolher o modo (Mínimo, só o relógio; Compacto, tudo junto; Rotativo, com bateria, RAM e Claude revezando num espaço a cada poucos segundos), a posição no topo (centro, esquerda ou direita), a ordem dos itens e quais entram. Os ícones do sistema podem entrar separados (Bluetooth, Som, Microfone e Não perturbe, que só aparecem quando o GNOME os mostra) e o resto fica em "Outros ícones do sistema", sem repetir rede e bateria. Há também "Ícones de extensões": os indicadores que outras extensões põem na barra superior (AppIndicator, monitores de recurso e afins) aparecem na pílula, só para ver; clicar continua abrindo a ilha. Quando algo acontece, ela troca para uma atividade por no máximo 5 segundos e volta ao repouso; a mesma atividade só reaparece quando muda (gravação nova, outro passo do Claude, outra faixa, música retomada). Abrir a ilha dá como vistas as atividades em andamento. Com mais de uma ao mesmo tempo, vale esta ordem de prioridade, e a que foi interrompida volta depois com os 5 segundos inteiros:
 
 1. Notificação recebida (qualquer uma que não seja crítica), por 3 segundos cada. Com a pílula flutuando, vira um card com o avatar arredondado, o app, o título e o corpo; na barra superior fica numa linha.
 2. Gravação de tela, com o tempo e o botão Parar (o cabeçalho da ilha também tem Parar gravação).
@@ -28,6 +28,8 @@ Fechada, a pílula mostra hora, data, notificações, rede e bateria. Em Configu
 6. Volume alterado, por 1,5 segundo.
 7. Sessão do Claude trabalhando, a cada ferramenta nova, com o passo atual e o tempo.
 8. Música tocando, com capa redonda, título e botão de pausa.
+
+Clicar ou passar o mouse na pílula durante uma notificação abre a ilha na aba Notificações; durante uma sessão do Claude trabalhando, na aba Claude. Sem atividade, ela abre na Geral.
 
 Em tela cheia a pílula some e fica só a lingueta no topo; passe o mouse ou clique nela para abrir a ilha. Com a barra superior oculta, o mesmo vale quando há uma janela maximizada ou encaixada na metade da tela visível no monitor, mesmo sem foco; nesse caso a pílula volta por cima da janela enquanto mostra uma notificação ou um pedido de permissão do Claude. Em tela cheia, e sempre que a barra superior está oculta, a ilha desliga o scanout direto do compositor, como o GNOME faz com banners e OSD, para a pílula e a dock não piscarem sobre o app.
 
