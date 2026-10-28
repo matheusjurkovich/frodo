@@ -352,6 +352,8 @@ export function accountSummary(profile: unknown): AccountSummary | null {
     };
 }
 
+export const STALE_USAGE_MESSAGE = 'Uso desatualizado. Abra o Claude Code para atualizar.';
+
 export function claudeErrorMessage(status: number | null, apiMessage: string | null): string {
     switch (status) {
         case null:

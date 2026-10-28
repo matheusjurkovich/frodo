@@ -1,6 +1,6 @@
 import GLib from 'gi://GLib';
 
-import {CLIENT_ID, ClaudeApiError, ClaudeClient, PROFILE_URL, SignedOutError, TOKEN_URL, USAGE_URL} from './claude-client.js';
+import {ClaudeApiError, ClaudeClient, ExpiredTokenError, SignedOutError, USAGE_URL} from './claude-client.js';
 import type {HttpRequest, HttpResponse, Transport} from './claude-client.js';
 
 describe('ClaudeClient', () => {
@@ -48,49 +48,37 @@ describe('ClaudeClient', () => {
         expect(calls).toEqual([{method: 'GET', url: USAGE_URL, token: 'valido'}]);
     });
 
-    it('renova o token expirado e regrava o arquivo preservando o resto', async () => {
-        writeCredentials({accessToken: 'velho', refreshToken: 'r1', expiresAt: NOW - 1000, subscriptionType: 'max'});
-        const client = new ClaudeClient(
-            dir,
-            transport({
-                [`POST ${TOKEN_URL}`]: {status: 200, body: '{"access_token":"novo","refresh_token":"r2","expires_in":3600}'},
-                [`GET ${USAGE_URL}`]: {status: 200, body: '{}'},
-            }),
-        );
+    it('token vencido não chama a API nem grava as credenciais', async () => {
+        writeCredentials({accessToken: 'velho', refreshToken: 'r1', expiresAt: NOW - 1000});
+        const before = readCredentials();
+        const client = new ClaudeClient(dir, transport({}));
+        await expectAsync(client.fetchUsage()).toBeRejectedWithError(ExpiredTokenError);
+        expect(calls).toEqual([]);
+        expect(readCredentials()).toEqual(before);
+    });
+
+    it('chamadas em paralelo com token vencido não fazem requisição', async () => {
+        writeCredentials({accessToken: 'velho', refreshToken: 'r1', expiresAt: NOW - 1000});
+        const client = new ClaudeClient(dir, transport({}));
+        const results = await Promise.allSettled([client.fetchUsage(), client.fetchProfile()]);
+        expect(results.every(result => result.status === 'rejected' && result.reason instanceof ExpiredTokenError)).toBeTrue();
+        expect(calls).toEqual([]);
+    });
+
+    it('usa o token novo quando o Claude Code renova o arquivo', async () => {
+        writeCredentials({accessToken: 'velho', expiresAt: NOW - 1000});
+        const client = new ClaudeClient(dir, transport({[`GET ${USAGE_URL}`]: {status: 200, body: '{}'}}));
+        await expectAsync(client.fetchUsage()).toBeRejectedWithError(ExpiredTokenError);
+        writeCredentials({accessToken: 'novo', expiresAt: NOW + 3600e3});
         await client.fetchUsage();
-        expect(calls[0]).toEqual({
-            method: 'POST',
-            url: TOKEN_URL,
-            json: {grant_type: 'refresh_token', refresh_token: 'r1', client_id: CLIENT_ID},
-        });
-        expect(calls[1]).toEqual({method: 'GET', url: USAGE_URL, token: 'novo'});
-        const saved = readCredentials();
-        const oauth = saved.claudeAiOauth as Record<string, unknown>;
-        expect(oauth.accessToken).toBe('novo');
-        expect(oauth.refreshToken).toBe('r2');
-        expect(oauth.subscriptionType).toBe('max');
-        expect(Number(oauth.expiresAt)).toBeGreaterThan(NOW);
-        expect(saved.outro).toEqual({manter: true});
+        expect(calls).toEqual([{method: 'GET', url: USAGE_URL, token: 'novo'}]);
     });
 
-    it('trata refresh recusado como sessão expirada', async () => {
-        writeCredentials({accessToken: 'velho', refreshToken: 'r1', expiresAt: NOW - 1000});
-        const client = new ClaudeClient(dir, transport({[`POST ${TOKEN_URL}`]: {status: 400, body: '{}'}}));
-        await expectAsync(client.fetchUsage()).toBeRejectedWith(jasmine.objectContaining({status: 401}));
-    });
-
-    it('faz uma única renovação para chamadas em paralelo', async () => {
-        writeCredentials({accessToken: 'velho', refreshToken: 'r1', expiresAt: NOW - 1000});
-        const client = new ClaudeClient(
-            dir,
-            transport({
-                [`POST ${TOKEN_URL}`]: {status: 200, body: '{"access_token":"novo","expires_in":3600}'},
-                [`GET ${USAGE_URL}`]: {status: 200, body: '{}'},
-                [`GET ${PROFILE_URL}`]: {status: 200, body: '{}'},
-            }),
-        );
-        await Promise.all([client.fetchUsage(), client.fetchProfile()]);
-        expect(calls.filter(call => call.method === 'POST').length).toBe(1);
+    it('credencial sem expiresAt usa o token', async () => {
+        writeCredentials({accessToken: 'sem-prazo'});
+        const client = new ClaudeClient(dir, transport({[`GET ${USAGE_URL}`]: {status: 200, body: '{}'}}));
+        await client.fetchUsage();
+        expect(calls).toEqual([{method: 'GET', url: USAGE_URL, token: 'sem-prazo'}]);
     });
 
     it('expõe o status 429', async () => {

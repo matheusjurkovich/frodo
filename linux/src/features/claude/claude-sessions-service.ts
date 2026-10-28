@@ -17,7 +17,7 @@ Gio._promisify(Gio.Subprocess.prototype, 'communicate_utf8_async', 'communicate_
 
 const HOOK_SCRIPT = 'hooks/claude-session.sh';
 const SWEEP_SECONDS = 60;
-const EXTENSION_UUID = 'frodo@matheusjurkovich';
+const EXTENSION_UUID = 'frodo@matheusjurkovich.github.io';
 
 function agentConfigPath(agent: HookedAgent): string {
     const home = GLib.get_home_dir();

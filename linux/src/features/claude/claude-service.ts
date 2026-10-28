@@ -3,12 +3,12 @@ import Soup from 'gi://Soup?version=3.0';
 
 import {isActiveProfile} from './claude-profiles.js';
 import type {ClaudeProfile} from '../../settings/claude-profile.js';
-import {accountSummary, claudeErrorMessage, normalizeSpend, normalizeWindows, tierLabel} from './claude-usage.js';
+import {STALE_USAGE_MESSAGE, accountSummary, claudeErrorMessage, normalizeSpend, normalizeWindows, tierLabel} from './claude-usage.js';
 import type {Spend, UsageWindow} from './claude-usage.js';
 import {Disposables} from '../../shared/disposables.js';
 import {Emitter} from '../../shared/emitter.js';
 import {Timer} from '../../shared/timer.js';
-import {ClaudeApiError, ClaudeClient, SignedOutError, defaultConfigDir, soupTransport} from './claude-client.js';
+import {ClaudeApiError, ClaudeClient, ExpiredTokenError, SignedOutError, defaultConfigDir, soupTransport} from './claude-client.js';
 import {ensureProfiles} from './claude-profiles-service.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
 
@@ -150,6 +150,11 @@ export class ClaudeService extends Emitter<{changed: []}> {
     #applyError(entry: Entry, error: unknown): void {
         if (error instanceof SignedOutError) {
             this.#update(entry, {status: 'signed-out', windows: [], spend: null, error: 'Sem login do Claude Code neste perfil.'});
+            return;
+        }
+        if (error instanceof ExpiredTokenError) {
+            const hasData = entry.usage.windows.length > 0 || entry.usage.spend !== null;
+            this.#update(entry, {status: hasData ? 'ok' : 'error', error: STALE_USAGE_MESSAGE});
             return;
         }
         const {status, apiMessage} = errorStatus(error);

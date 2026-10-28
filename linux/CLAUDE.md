@@ -119,8 +119,26 @@ npm test             # só os testes (Jasmine no gjs)
 npm run build        # src/ -> dist/, copia metadata, CSS, ícones, schemas e hooks
 npm run smoke        # build + gnome-shell headless isolado: liga, desliga e religa; falha se não ficar ACTIVE
 npm run format       # Prettier
-./install.sh         # build e link de dist/ em ~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich
+./install.sh         # build e link de dist/ em ~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich.github.io
+npm run pack -- 1.2.3  # build + frodo-linux-1.2.3.zip pronto para o extensions.gnome.org (sem gschemas.compiled)
 ```
+
+## Release
+
+- A versão sai dos commits: o `release-please.yml` (raiz) mantém aberto o PR `chore: release linux X.Y.Z` com a versão do
+  `package.json` e o `CHANGELOG.md`. `fix:` sobe patch, `feat:` sobe minor, `!` ou `BREAKING CHANGE` sobe major. Só conta commit
+  que toca `linux/` (o release-please não aceita caminho extra, então mudança só em `shared/` não gera versão).
+- Lançar é fazer merge desse PR: cria a tag `linux-vX.Y.Z`, a release e anexa o zip do `tools/pack.sh`.
+- O PR de release não roda o `ci-linux.yml` (PR aberto pelo `GITHUB_TOKEN` não dispara workflow); o job de release roda
+  `npm run check` antes de empacotar e não anexa nada se falhar.
+- Config em `release-please-config.json` e `.release-please-manifest.json` na raiz. A primeira versão é 1.0.0
+  (`initial-version`), com o changelog contado a partir do `bootstrap-sha`. Esse SHA só existe na `master` se o branch que
+  trouxe o release-please entrar com merge commit ou fast-forward, nunca squash ou rebase; confira o changelog do primeiro PR
+  de release antes do merge.
+- `CHANGELOG.md` é gerado pelo release-please e fica fora do Prettier (`.prettierignore`).
+- O repositório precisa de Settings › Actions › General › "Allow GitHub Actions to create and approve pull requests" ligado.
+- O zip é o que vai para o extensions.gnome.org. Os logos do Claude, Codex e Google ficam no pacote por escolha do dono, mesmo
+  que a revisão de lá possa pedir a troca.
 
 ## Verificar no shell
 
@@ -131,9 +149,9 @@ que ele imprime.
 
 ```shell
 npm run build
-TMP=$(mktemp -d) && mkdir -p $TMP/data/gnome-shell/extensions $TMP/Desktop && ln -s "$PWD/dist" $TMP/data/gnome-shell/extensions/frodo@matheusjurkovich
+TMP=$(mktemp -d) && mkdir -p $TMP/data/gnome-shell/extensions $TMP/Desktop && ln -s "$PWD/dist" $TMP/data/gnome-shell/extensions/frodo@matheusjurkovich.github.io
 env HOME=$TMP XDG_DATA_HOME=$TMP/data XDG_CONFIG_HOME=$TMP/config XDG_CACHE_HOME=$TMP/cache GSETTINGS_BACKEND=memory \
-  dbus-run-session -- sh -c 'gnome-shell --headless --wayland --no-x11 --virtual-monitor 1440x900 --mode=ubuntu > "$HOME/shell.log" 2>&1 & until gdbus introspect --session --dest org.gnome.Shell --object-path /org/gnome/Shell > /dev/null 2>&1; do sleep 0.5; done; gnome-extensions enable frodo@matheusjurkovich; sleep 5; LC_ALL=C gnome-extensions info frodo@matheusjurkovich | grep State; kill $!'
+  dbus-run-session -- sh -c 'gnome-shell --headless --wayland --no-x11 --virtual-monitor 1440x900 --mode=ubuntu > "$HOME/shell.log" 2>&1 & until gdbus introspect --session --dest org.gnome.Shell --object-path /org/gnome/Shell > /dev/null 2>&1; do sleep 0.5; done; gnome-extensions enable frodo@matheusjurkovich.github.io; sleep 5; LC_ALL=C gnome-extensions info frodo@matheusjurkovich.github.io | grep State; kill $!'
 grep -iE 'JS ERROR|CRITICAL' $TMP/shell.log | grep -i frodo
 ```
 

@@ -61,6 +61,8 @@ Baixe o `frodo-linux-<versão>.zip` da [página de releases](https://github.com/
 gnome-extensions install --force frodo-linux-<versão>.zip
 ```
 
+O mesmo zip é o pacote para enviar ao [extensions.gnome.org](https://extensions.gnome.org/upload/): leva só o que roda, com o schema em XML e sem o compilado.
+
 ### Do código-fonte
 
 ```bash
@@ -69,10 +71,10 @@ npm install
 ./install.sh
 ```
 
-O `install.sh` compila para `dist/` e liga `dist/` em `~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich`. No Wayland, saia e entre na sessão para o GNOME carregar o código novo, depois:
+O `install.sh` compila para `dist/` e liga `dist/` em `~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich.github.io`. No Wayland, saia e entre na sessão para o GNOME carregar o código novo, depois:
 
 ```bash
-gnome-extensions enable frodo@matheusjurkovich
+gnome-extensions enable frodo@matheusjurkovich.github.io
 ```
 
 ## Sessões do Claude Code
@@ -89,7 +91,7 @@ Acrescente o bloco abaixo ao `~/.claude/settings.json`, junto com o que já houv
         "hooks": [
           {
             "type": "command",
-            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich/hooks/claude-session.sh"
+            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich.github.io/hooks/claude-session.sh"
           }
         ]
       }
@@ -99,7 +101,7 @@ Acrescente o bloco abaixo ao `~/.claude/settings.json`, junto com o que já houv
         "hooks": [
           {
             "type": "command",
-            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich/hooks/claude-session.sh"
+            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich.github.io/hooks/claude-session.sh"
           }
         ]
       }
@@ -109,7 +111,7 @@ Acrescente o bloco abaixo ao `~/.claude/settings.json`, junto com o que já houv
         "hooks": [
           {
             "type": "command",
-            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich/hooks/claude-session.sh"
+            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich.github.io/hooks/claude-session.sh"
           }
         ]
       }
@@ -119,7 +121,7 @@ Acrescente o bloco abaixo ao `~/.claude/settings.json`, junto com o que já houv
         "hooks": [
           {
             "type": "command",
-            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich/hooks/claude-session.sh"
+            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich.github.io/hooks/claude-session.sh"
           }
         ]
       }
@@ -129,7 +131,7 @@ Acrescente o bloco abaixo ao `~/.claude/settings.json`, junto com o que já houv
         "hooks": [
           {
             "type": "command",
-            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich/hooks/claude-session.sh"
+            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich.github.io/hooks/claude-session.sh"
           }
         ]
       }
@@ -139,7 +141,7 @@ Acrescente o bloco abaixo ao `~/.claude/settings.json`, junto com o que já houv
         "hooks": [
           {
             "type": "command",
-            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich/hooks/claude-session.sh"
+            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich.github.io/hooks/claude-session.sh"
           }
         ]
       }
@@ -149,7 +151,7 @@ Acrescente o bloco abaixo ao `~/.claude/settings.json`, junto com o que já houv
         "hooks": [
           {
             "type": "command",
-            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich/hooks/claude-session.sh"
+            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich.github.io/hooks/claude-session.sh"
           }
         ]
       }
@@ -159,7 +161,7 @@ Acrescente o bloco abaixo ao `~/.claude/settings.json`, junto com o que já houv
         "hooks": [
           {
             "type": "command",
-            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich/hooks/claude-session.sh"
+            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich.github.io/hooks/claude-session.sh"
           }
         ]
       }
@@ -169,7 +171,7 @@ Acrescente o bloco abaixo ao `~/.claude/settings.json`, junto com o que já houv
         "hooks": [
           {
             "type": "command",
-            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich/hooks/claude-session.sh"
+            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich.github.io/hooks/claude-session.sh"
           }
         ]
       }
@@ -179,7 +181,7 @@ Acrescente o bloco abaixo ao `~/.claude/settings.json`, junto com o que já houv
         "hooks": [
           {
             "type": "command",
-            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich/hooks/claude-session.sh"
+            "command": "~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich.github.io/hooks/claude-session.sh"
           }
         ]
       }
@@ -248,7 +250,7 @@ Fontes de dados em `src/features/`:
 - Configurações (`src/settings/frodo-settings.ts`): GSettings tipado.
 - RAM e bateria (`system/system-state-service.ts`, `system/memory-service.ts`, `system/battery-service.ts`): leitura de `/proc/meminfo` e UPower.
 - Notificações (`notifications/notification-bridge-service.ts`): fila do shell, contagem e avisos para a pílula.
-- Claude (`claude/claude-service.ts`, `claude/claude-client.ts`, `claude/claude-profiles-service.ts`): uso e limites por perfil, com renovação de token.
+- Claude (`claude/claude-service.ts`, `claude/claude-client.ts`, `claude/claude-profiles-service.ts`): uso e limites por perfil. Só lê o token de `.credentials.json`; quem renova é o próprio Claude Code. Com o token vencido, os últimos números ficam na tela com "Uso desatualizado. Abra o Claude Code para atualizar." até o Claude Code ser usado de novo.
 - Transcrições do Claude (`claude/claude-transcripts-service.ts`): índice persistente em `$XDG_CACHE_HOME/frodo/claude-index.json`, lido em pedaços e só nos bytes novos.
 - Sessões de IA (`claude/claude-sessions-service.ts`): estado vindo do hook (Claude Code, Codex e Gemini CLI, cada uma com o seu `provider`), acompanhado com `Gio.FileMonitor`; também instala os hooks do Codex e do Gemini.
 - Codex (`codex/codex-service.ts`): cotas pela cauda do rollout mais novo e consumo dos últimos 30 dias.

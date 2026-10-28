@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "rm -rf dist && tsc -p tsconfig.build.json && cp metadata.json stylesheet.css dist/ && cp -r schemas dist/ && cp -r ../shared/icons ../shared/hooks dist/ && rm -f dist/hooks/*.test.sh && chmod +x dist/hooks/*.sh && glib-compile-schemas dist/schemas",
+    "pack": "npm run build && sh tools/pack.sh",
     "smoke": "npm run build && sh tools/smoke.sh",
     "devkit": "npm run build && sh tools/devkit.sh",
     "typecheck": "tsc -p tsconfig.json",
