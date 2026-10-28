@@ -1,13 +1,17 @@
+import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 
 import type {ActivityKind} from './activity-priority.js';
+import {sameSubject} from './activity-subject.js';
 import type {ClaudeService} from '../features/claude/claude-service.js';
 import type {NotificationBridge} from '../features/notifications/notification-bridge-service.js';
 import type {FrodoSettings} from '../settings/frodo-settings.js';
 import type {SystemState} from '../features/system/system-state-service.js';
 import {Disposables} from '../shared/disposables.js';
 import {Emitter} from '../shared/emitter.js';
-import type {ActivityFeed} from './activity-feed.js';
+import {SOFT_SPRING, SPRING} from '../shared/spring.js';
+import {BOTH_AXES, WIDTH_AXIS, fadeIn, fadeOut, morphSize, settle} from '../shared/ui/motion.js';
+import type {ActivityFeed, PillActivity} from './activity-feed.js';
 import {ActivityView} from './activity-view.js';
 import type {ActivityServices} from './activity-view.js';
 import {IdleView} from './idle-view.js';
@@ -29,13 +33,19 @@ export interface PillDependencies extends ActivityServices {
 }
 
 export class Pill extends Emitter<{rebuilt: []}> {
-    readonly actor = new St.BoxLayout({style_class: 'frodo-pill', reactive: true, track_hover: true});
+    readonly actor = new St.Widget({
+        style_class: 'frodo-pill',
+        layout_manager: new Clutter.BinLayout(),
+        reactive: true,
+        track_hover: true,
+    });
 
     readonly #feed: ActivityFeed;
     readonly #idle: IdleView;
     readonly #activity: ActivityView;
     readonly #disposables = new Disposables();
     #bar = false;
+    #shown: PillActivity | null = null;
 
     constructor({settings, state, claude, bridge, feed, recording, sessions, media, actions}: PillDependencies) {
         super();
@@ -76,12 +86,36 @@ export class Pill extends Emitter<{rebuilt: []}> {
     }
 
     #sync(): void {
-        const activity = this.#feed.current;
-        this.#idle.actor.visible = activity === null;
-        this.#activity.actor.visible = activity !== null;
-        if (activity) this.#activity.show(activity, this.#bar);
-        else this.#activity.clear();
-        this.#syncStyle();
+        const next = this.#feed.current;
+        const previous = this.#shown;
+        this.#shown = next;
+        const axes = this.#bar ? WIDTH_AXIS : BOTH_AXES;
+        const apply = (): void => {
+            this.#idle.actor.visible = next === null;
+            if (next) this.#activity.show(next, this.#bar);
+            else this.#activity.clear();
+            this.#syncStyle();
+        };
+        if (sameSubject(previous, next)) {
+            morphSize(this.actor, apply, SOFT_SPRING, axes);
+            return;
+        }
+        const outgoing = previous === null ? this.#idle.actor : this.#activity.takeContent();
+        morphSize(this.actor, apply, SPRING, axes);
+        if (outgoing === this.#idle.actor) {
+            outgoing.show();
+            fadeOut(outgoing, () => {
+                outgoing.hide();
+                settle(outgoing);
+            });
+        } else if (outgoing) {
+            this.#activity.actor.add_child(outgoing);
+            fadeOut(outgoing, () => {
+                outgoing.destroy();
+            });
+        }
+        const incoming = next === null ? this.#idle.actor : this.#activity.content;
+        if (incoming) fadeIn(incoming);
     }
 
     #syncStyle(): void {

@@ -79,10 +79,11 @@ function volumeIcon(percent: number): Gio.Icon {
 }
 
 export class ActivityView implements Component {
-    readonly actor = new St.BoxLayout({style_class: 'frodo-pill-content'});
+    readonly actor = new St.Widget({layout_manager: new Clutter.BinLayout()});
 
     readonly #services: ActivityServices;
     readonly #ticker = new Timer();
+    #content: St.BoxLayout | null = null;
     #clickTab: TabId | null = null;
     #hasAction = false;
 
@@ -97,6 +98,10 @@ export class ActivityView implements Component {
         return this.#hasAction;
     }
 
+    get content(): St.BoxLayout | null {
+        return this.#content;
+    }
+
     activate(): boolean {
         if (this.#clickTab === null) return false;
         this.#services.actions.openTab(this.#clickTab);
@@ -105,6 +110,8 @@ export class ActivityView implements Component {
 
     show(activity: PillActivity, bar: boolean): void {
         this.clear();
+        this.#content = new St.BoxLayout({style_class: 'frodo-pill-content'});
+        this.actor.add_child(this.#content);
         switch (activity.kind) {
             case 'recording':
                 this.#recording(activity);
@@ -133,20 +140,27 @@ export class ActivityView implements Component {
         }
     }
 
-    clear(): void {
+    takeContent(): St.BoxLayout | null {
+        const content = this.#content;
         this.#ticker.stop();
-        this.actor.destroy_all_children();
+        this.#content = null;
         this.#clickTab = null;
         this.#hasAction = false;
+        if (content) this.actor.remove_child(content);
+        return content;
+    }
+
+    clear(): void {
+        this.takeContent()?.destroy();
     }
 
     #add(...children: Clutter.Actor[]): void {
-        for (const child of children) this.actor.add_child(child);
+        for (const child of children) this.#content?.add_child(child);
     }
 
     #addAction(button: St.Button): void {
         this.#hasAction = true;
-        this.actor.add_child(button);
+        this.#content?.add_child(button);
     }
 
     #tick(update: () => void): void {
