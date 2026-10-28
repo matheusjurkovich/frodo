@@ -383,7 +383,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
             panel.opacity = 0;
             this.#clipping = false;
         });
-        pill.ease({opacity: 255, duration: FADE_IN_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+        pill.ease({opacity: 255, duration: FADE_IN_MS, delay: SOFT_SPRING.ms - FADE_IN_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
     }
 
     #snapClosed(): void {
