@@ -1,4 +1,4 @@
-import {appsSummary, colorSlot, thumbnailRects, workspaceTitle} from '../src/core/workspaces.js';
+import {appsSummary, colorSlot, thumbnailRects, workspaceTitle} from '../src/features/workspaces/workspaces.js';
 
 describe('áreas de trabalho', () => {
     const area = {x: 0, y: 0, width: 1920, height: 1200};

@@ -8,17 +8,17 @@ import {
     formatTokens,
     formatUntil,
     secondsSince,
-} from '../src/core/format.js';
-import {barHeight, centerClamp, segmentWidths, topEdgeSpan} from '../src/core/geometry.js';
-import {formatGb, parseMeminfo} from '../src/core/memory.js';
-import {latest, shouldIntercept} from '../src/core/notifications.js';
-import {parseMetadata, pickPlayer, trackFraction} from '../src/core/media.js';
-import type {PlayerCandidate} from '../src/core/media.js';
-import {isValidShortcut, shortcutLabel} from '../src/core/shortcut.js';
-import {tabToOpen, visibleTabs} from '../src/core/tabs.js';
-import {itemsForPreferences, moveItem} from '../src/core/items.js';
-import {targetMonitors} from '../src/core/monitors.js';
-import {CLOSED_MODES, TAB_IDS, isOneOf} from '../src/core/types.js';
+} from '../src/shared/format.js';
+import {barHeight, centerClamp, segmentWidths, topEdgeSpan} from '../src/shared/geometry.js';
+import {formatGb, parseMeminfo} from '../src/features/system/memory.js';
+import {latest, shouldIntercept} from '../src/features/notifications/notifications.js';
+import {parseMetadata, pickPlayer, trackFraction} from '../src/features/media/media.js';
+import type {PlayerCandidate} from '../src/features/media/media.js';
+import {isValidShortcut, shortcutLabel} from '../src/settings/shortcut.js';
+import {tabToOpen, visibleTabs} from '../src/settings/tabs.js';
+import {itemsForPreferences, moveItem} from '../src/settings/closed-items.js';
+import {targetMonitors} from '../src/app/monitors.js';
+import {CLOSED_MODES, TAB_IDS, isOneOf} from '../src/settings/schema-values.js';
 
 describe('memory', () => {
     it('calcula usado a partir de MemAvailable', () => {

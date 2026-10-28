@@ -10,11 +10,11 @@ import {
     parseShortstat,
     sessionMeta,
     stepFor,
-} from '../src/core/claude-sessions.js';
-import type {SessionStats} from '../src/core/claude-index.js';
-import type {HookEvent, SessionState, SessionStatus} from '../src/core/claude-sessions.js';
-import {ClaudeSessions} from '../src/services/claude-sessions.js';
-import {Timer} from '../src/util/timer.js';
+} from '../src/features/claude/claude-sessions.js';
+import type {SessionStats} from '../src/features/claude/claude-index.js';
+import type {HookEvent, SessionState, SessionStatus} from '../src/features/claude/claude-sessions.js';
+import {ClaudeSessions} from '../src/features/claude/claude-sessions-service.js';
+import {Timer} from '../src/shared/timer.js';
 import {createSettings} from './fixtures.js';
 
 const at = Date.UTC(2026, 9, 27, 12);

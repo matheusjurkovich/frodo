@@ -1,12 +1,12 @@
-import type {SessionState, SessionStatus} from '../src/core/claude-sessions.js';
-import {nextMeeting} from '../src/core/meetings.js';
-import {pickActivity} from '../src/core/pill-activity.js';
-import type {MediaTrack} from '../src/services/media.js';
-import type {NotificationBridgeEvents} from '../src/services/notification-bridge.js';
-import {ActivityFeed} from '../src/ui/pill/activity-feed.js';
-import type {FeedSources} from '../src/ui/pill/activity-feed.js';
-import {Emitter} from '../src/util/emitter.js';
-import {Timer} from '../src/util/timer.js';
+import type {SessionState, SessionStatus} from '../src/features/claude/claude-sessions.js';
+import {nextMeeting} from '../src/features/meetings/meetings.js';
+import {pickActivity} from '../src/pill/activity-priority.js';
+import type {MediaTrack} from '../src/features/media/media-service.js';
+import type {NotificationBridgeEvents} from '../src/features/notifications/notification-bridge-service.js';
+import {ActivityFeed} from '../src/pill/activity-feed.js';
+import type {FeedSources} from '../src/pill/activity-feed.js';
+import {Emitter} from '../src/shared/emitter.js';
+import {Timer} from '../src/shared/timer.js';
 
 describe('prioridade da pílula', () => {
     it('mostra o estado mais alto', () => {

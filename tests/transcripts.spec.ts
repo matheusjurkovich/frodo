@@ -1,9 +1,9 @@
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 
-import {ClaudeTranscripts} from '../src/services/claude-transcripts.js';
-import {Timer} from '../src/util/timer.js';
-import type {FrodoSettings} from '../src/services/settings.js';
+import {ClaudeTranscripts} from '../src/features/claude/claude-transcripts-service.js';
+import {Timer} from '../src/shared/timer.js';
+import type {FrodoSettings} from '../src/settings/frodo-settings.js';
 import {createSettings, line} from './fixtures.js';
 
 describe('ClaudeTranscripts', () => {

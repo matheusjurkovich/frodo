@@ -1,6 +1,6 @@
 import Gio from 'gi://Gio';
 
-import {FrodoSettings} from '../src/services/settings.js';
+import {FrodoSettings} from '../src/settings/frodo-settings.js';
 
 const SCHEMA_ID = 'org.gnome.shell.extensions.frodo';
 

@@ -1,5 +1,5 @@
-import {ClaudeIndex} from '../src/core/claude-index.js';
-import {completeLines, contextWindow, modelDisplayName, modelFamily, parseAssistantLine} from '../src/core/claude-transcript.js';
+import {ClaudeIndex} from '../src/features/claude/claude-index.js';
+import {completeLines, contextWindow, modelDisplayName, modelFamily, parseAssistantLine} from '../src/features/claude/claude-transcript.js';
 import {line} from './fixtures.js';
 
 const now = new Date(2026, 9, 27, 10, 30);

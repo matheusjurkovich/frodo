@@ -1,6 +1,6 @@
-import {Disposables} from '../src/util/disposables.js';
-import {Emitter} from '../src/util/emitter.js';
-import {Timer} from '../src/util/timer.js';
+import {Disposables} from '../src/shared/disposables.js';
+import {Emitter} from '../src/shared/emitter.js';
+import {Timer} from '../src/shared/timer.js';
 
 class Counter extends Emitter<{changed: [number]; reset: []}> {
     fire(n: number): void {

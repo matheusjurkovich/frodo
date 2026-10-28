@@ -6,16 +6,16 @@ import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk';
 import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
-import {itemsForPreferences, moveItem} from './core/items.js';
-import type {ItemEntry} from './core/items.js';
-import {isActiveProfile} from './core/claude-profiles.js';
-import type {ClaudeProfile} from './core/claude-profiles.js';
-import {isValidShortcut} from './core/shortcut.js';
-import {defaultConfigDir} from './services/claude-client.js';
-import {profileFor} from './services/claude-profiles.js';
-import type {ClosedItem, ClosedMode, MonitorMode} from './core/types.js';
-import {FrodoSettings} from './services/settings.js';
-import type {SettingsKey} from './services/settings.js';
+import {itemsForPreferences, moveItem} from './settings/closed-items.js';
+import type {ItemEntry} from './settings/closed-items.js';
+import {isActiveProfile} from './features/claude/claude-profiles.js';
+import type {ClaudeProfile} from './features/claude/claude-profiles.js';
+import {isValidShortcut} from './settings/shortcut.js';
+import {defaultConfigDir} from './features/claude/claude-client.js';
+import {profileFor} from './features/claude/claude-profiles-service.js';
+import type {ClosedItem, ClosedMode, MonitorMode} from './settings/schema-values.js';
+import {FrodoSettings} from './settings/frodo-settings.js';
+import type {SettingsKey} from './settings/frodo-settings.js';
 
 type Option<T extends string> = readonly [value: T, label: string];
 

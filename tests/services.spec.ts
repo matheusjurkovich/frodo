@@ -1,8 +1,16 @@
 import GLib from 'gi://GLib';
 
-import {CLIENT_ID, ClaudeApiError, ClaudeClient, PROFILE_URL, SignedOutError, TOKEN_URL, USAGE_URL} from '../src/services/claude-client.js';
-import type {HttpRequest, HttpResponse, Transport} from '../src/services/claude-client.js';
-import {readMemory} from '../src/services/memory.js';
+import {
+    CLIENT_ID,
+    ClaudeApiError,
+    ClaudeClient,
+    PROFILE_URL,
+    SignedOutError,
+    TOKEN_URL,
+    USAGE_URL,
+} from '../src/features/claude/claude-client.js';
+import type {HttpRequest, HttpResponse, Transport} from '../src/features/claude/claude-client.js';
+import {readMemory} from '../src/features/system/memory-service.js';
 import {createSettings} from './fixtures.js';
 
 describe('readMemory', () => {
