@@ -79,7 +79,7 @@ function volumeIcon(percent: number): Gio.Icon {
 }
 
 export class ActivityView implements Component {
-    readonly actor = new St.Widget({layout_manager: new Clutter.BinLayout()});
+    readonly actor = new St.Widget({layout_manager: new Clutter.BinLayout(), x_expand: true});
 
     readonly #services: ActivityServices;
     readonly #ticker = new Timer();
@@ -110,7 +110,7 @@ export class ActivityView implements Component {
 
     show(activity: PillActivity, bar: boolean): void {
         this.clear();
-        this.#content = new St.BoxLayout({style_class: 'frodo-pill-content'});
+        this.#content = new St.BoxLayout({style_class: 'frodo-pill-content', x_expand: true});
         this.actor.add_child(this.#content);
         switch (activity.kind) {
             case 'recording':
