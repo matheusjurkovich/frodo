@@ -37,7 +37,7 @@ export class GeneralPage implements Component {
     constructor({island, settings, media, scrollToTop}: GeneralDependencies) {
         const content = column('frodo-section');
         const overlayHost = new St.Widget({x_expand: true, y_expand: true});
-        this.#controls = new NativeControls(island, overlayHost, content, scrollToTop);
+        this.#controls = new NativeControls(island, this.actor, overlayHost, content, scrollToTop);
         this.#sound = new SoundCard(this.#controls);
         this.#media = new MediaCard(media);
         this.#shortcuts = new ShortcutsCard(island, settings);
