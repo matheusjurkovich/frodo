@@ -75,7 +75,7 @@ function request(sessionId: string, name: string, since: number): PendingRequest
 }
 
 function track(playing: boolean, title = 't'): MediaTrack {
-    return {title, artist: 'a', coverUrl: '', lengthUs: null, app: 'p', playing, canPrevious: false, canNext: false};
+    return {title, artist: 'a', album: '', coverUrl: '', lengthUs: null, app: 'p', playing, canPrevious: false, canNext: false};
 }
 
 interface Armed {

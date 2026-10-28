@@ -1,6 +1,7 @@
 export interface TrackMetadata {
     readonly title: string;
     readonly artist: string;
+    readonly album: string;
     readonly coverUrl: string;
     readonly lengthUs: number | null;
 }
@@ -17,6 +18,7 @@ export function parseMetadata(metadata: Record<string, unknown>): TrackMetadata 
     return {
         title: text(metadata['xesam:title']),
         artist: artists(metadata['xesam:artist']),
+        album: text(metadata['xesam:album']),
         coverUrl: text(metadata['mpris:artUrl']),
         lengthUs: typeof length === 'number' && Number.isFinite(length) && length > 0 ? length : null,
     };

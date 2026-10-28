@@ -1,4 +1,5 @@
 import GObject from 'gi://GObject';
+import Pango from 'gi://Pango';
 import type Gvc from 'gi://Gvc';
 import type St from 'gi://St';
 import {QuickSlider} from 'resource:///org/gnome/shell/ui/quickSettings.js';
@@ -11,18 +12,23 @@ import {whileMapped} from '../../shared/ui/lifecycle.js';
 import type {Component} from '../../shared/ui/lifecycle.js';
 import type {NativeControls, SliderSlots} from './native-controls.js';
 
-function header(slots: SliderSlots, title: string, value: St.Label): St.BoxLayout {
-    const line = row('frodo-sound-header');
-    const text = label(title, 'frodo-sound-title');
-    text.x_expand = true;
-    for (const child of [slots.icon, text, value, slots.menu]) line.add_child(child);
+function group(slots: SliderSlots, title: string, device: St.Label, value: St.Label): St.BoxLayout {
+    const header = row('frodo-sound-header');
+    device.x_expand = true;
+    for (const child of [label(title, 'frodo-sound-title'), device, value]) header.add_child(child);
+    const body = column('frodo-sound-body');
+    body.add_child(header);
+    body.add_child(slots.slider);
+    const line = row('frodo-sound-group');
+    for (const child of [slots.icon, body, slots.menu]) line.add_child(child);
+    slots.slider.bind_property('visible', line, 'visible', GObject.BindingFlags.SYNC_CREATE);
     return line;
 }
 
-function group(...children: St.Widget[]): St.BoxLayout {
-    const box = column('frodo-sound-group');
-    for (const child of children) box.add_child(child);
-    return box;
+function deviceLabel(): St.Label {
+    const device = label('', 'frodo-sound-device');
+    device.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+    return device;
 }
 
 export class SoundCard implements Component {
@@ -31,26 +37,24 @@ export class SoundCard implements Component {
     readonly #volume = label('', 'frodo-sound-value frodo-mono');
     readonly #microphone = label('', 'frodo-sound-value frodo-mono');
     readonly #brightness = label('', 'frodo-sound-value frodo-mono');
-    readonly #sink = label('', 'frodo-sound-sink');
+    readonly #sink = deviceLabel();
+    readonly #source = deviceLabel();
     readonly #disposables = new Disposables();
     readonly #values = new Disposables();
 
     constructor(controls: NativeControls) {
-        const microphone = group(header(controls.input, 'Microfone', this.#microphone), controls.input.slider);
-        const brightness = group(header(controls.brightness, 'Brilho', this.#brightness), controls.brightness.slider);
-        controls.input.slider.bind_property('visible', microphone, 'visible', GObject.BindingFlags.SYNC_CREATE);
-        controls.brightness.slider.bind_property('visible', brightness, 'visible', GObject.BindingFlags.SYNC_CREATE);
-        this.actor.add_child(group(header(controls.output, 'Volume', this.#volume), controls.output.slider, this.#sink));
-        this.actor.add_child(microphone);
-        this.actor.add_child(brightness);
+        this.actor.add_child(group(controls.output, 'Volume', this.#sink, this.#volume));
+        this.actor.add_child(group(controls.input, 'Microfone', this.#source, this.#microphone));
+        this.actor.add_child(group(controls.brightness, 'Brilho', label('', 'frodo-sound-device'), this.#brightness));
 
-        this.#disposables.signal(
-            this.#mixer,
-            this.#mixer.connect('default-sink-changed', () => {
-                this.#syncSink();
-            }),
-        );
-        this.#syncSink();
+        for (const signal of ['default-sink-changed', 'default-source-changed'])
+            this.#disposables.signal(
+                this.#mixer,
+                this.#mixer.connect(signal, () => {
+                    this.#syncDevices();
+                }),
+            );
+        this.#syncDevices();
         this.#disposables.add(
             whileMapped(
                 this.actor,
@@ -66,10 +70,9 @@ export class SoundCard implements Component {
         );
     }
 
-    #syncSink(): void {
-        const description = (this.#mixer.get_default_sink() as Gvc.MixerStream | null)?.get_description();
-        this.#sink.text = `Saída: ${description ?? ''}`;
-        this.#sink.visible = Boolean(description);
+    #syncDevices(): void {
+        this.#sink.text = (this.#mixer.get_default_sink() as Gvc.MixerStream | null)?.get_description() ?? '';
+        this.#source.text = (this.#mixer.get_default_source() as Gvc.MixerStream | null)?.get_description() ?? '';
     }
 
     #follow(bin: St.Bin, value: St.Label): void {

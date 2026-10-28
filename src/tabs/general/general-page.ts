@@ -43,15 +43,23 @@ export class GeneralPage implements Component {
         this.#shortcuts = new ShortcutsCard(island, settings);
         this.#apps = new AppsCard(island, settings);
 
-        const left = column('frodo-section');
-        left.add_child(this.#controls.tiles);
-        left.add_child(this.#shortcuts.actor);
-        const right = column('frodo-section');
-        right.add_child(this.#sound.actor);
-        right.add_child(this.#media.actor);
-        right.add_child(this.#apps.actor);
+        this.#shortcuts.actor.y_align = Clutter.ActorAlign.START;
+        this.#apps.actor.y_align = Clutter.ActorAlign.START;
+        const stack = column('frodo-section');
+        stack.y_align = Clutter.ActorAlign.START;
+        stack.add_child(this.#shortcuts.actor);
+        const bottom = columns(stack, this.#media.actor);
+        const placeApps = (): void => {
+            const target = this.#media.actor.visible ? stack : bottom;
+            if (this.#apps.actor.get_parent() === target) return;
+            this.#apps.actor.get_parent()?.remove_child(this.#apps.actor);
+            target.add_child(this.#apps.actor);
+        };
+        this.#media.actor.connect('notify::visible', placeApps);
+        placeApps();
 
-        content.add_child(columns(left, right));
+        content.add_child(columns(this.#controls.tiles, this.#sound.actor));
+        content.add_child(bottom);
         this.actor.add_child(content);
         this.actor.add_child(overlayHost);
     }

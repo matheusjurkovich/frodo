@@ -1,5 +1,6 @@
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
+import Pango from 'gi://Pango';
 import St from 'gi://St';
 
 import {formatTimer} from '../../shared/format.js';
@@ -7,9 +8,9 @@ import {trackFraction} from '../../features/media/media.js';
 import type {MediaService} from '../../features/media/media-service.js';
 import {Disposables} from '../../shared/disposables.js';
 import {Timer} from '../../shared/timer.js';
-import {iconButton} from '../../shared/ui/buttons.js';
+import {chip, iconButton} from '../../shared/ui/buttons.js';
 import {card} from '../../shared/ui/card.js';
-import {column, label, row} from '../../shared/ui/layout.js';
+import {column, label, row, spacer} from '../../shared/ui/layout.js';
 import {whileMapped} from '../../shared/ui/lifecycle.js';
 import type {Component} from '../../shared/ui/lifecycle.js';
 import {SegmentBar} from '../../shared/ui/segment-bar.js';
@@ -32,13 +33,14 @@ export class MediaCard implements Component {
         gicon: frodoIcon('music'),
         y_align: Clutter.ActorAlign.CENTER,
     });
-    readonly #heading = label('', 'frodo-media-heading');
+    readonly #app = chip('');
     readonly #title = label('', 'frodo-media-title');
     readonly #artist = label('', 'frodo-media-artist');
+    readonly #album = label('', 'frodo-media-album');
     readonly #elapsed = label('', 'frodo-media-time frodo-mono');
     readonly #total = label('', 'frodo-media-time frodo-mono');
     readonly #bar = new SegmentBar();
-    readonly #progress = row('frodo-media-progress');
+    readonly #progress = column('frodo-media-progress');
     readonly #previous: St.Button;
     readonly #playPause: St.Button;
     readonly #next: St.Button;
@@ -58,7 +60,7 @@ export class MediaCard implements Component {
                 media.previous();
             },
             'ghost',
-            36,
+            44,
         );
         this.#playPause = iconButton(
             frodoIcon('play'),
@@ -67,7 +69,7 @@ export class MediaCard implements Component {
                 media.playPause();
             },
             'light',
-            44,
+            52,
         );
         this.#next = iconButton(
             frodoIcon('next'),
@@ -76,27 +78,36 @@ export class MediaCard implements Component {
                 media.next();
             },
             'ghost',
-            36,
+            44,
         );
 
-        this.#progress.add_child(this.#elapsed);
+        this.#title.clutter_text.set({line_wrap: true, ellipsize: Pango.EllipsizeMode.END});
         this.#progress.add_child(this.#bar.actor);
-        this.#progress.add_child(this.#total);
+        const times = row('frodo-media-times');
+        times.add_child(this.#elapsed);
+        times.add_child(spacer());
+        times.add_child(this.#total);
+        this.#progress.add_child(times);
+
+        const heading = row('frodo-media-heading');
+        heading.add_child(label('Tocando agora', 'frodo-media-label'));
+        heading.add_child(spacer());
+        heading.add_child(this.#app);
 
         const text = column('frodo-media-text');
         text.y_align = Clutter.ActorAlign.CENTER;
-        for (const child of [this.#heading, this.#title, this.#artist, this.#progress]) text.add_child(child);
-
-        const controls = row('frodo-media-controls');
-        controls.x_expand = false;
-        controls.y_align = Clutter.ActorAlign.CENTER;
-        for (const child of [this.#previous, this.#playPause, this.#next]) controls.add_child(child);
+        for (const child of [this.#title, this.#artist, this.#album]) text.add_child(child);
 
         const line = row('frodo-media-row');
         line.add_child(this.#cover);
         line.add_child(text);
-        line.add_child(controls);
-        this.actor.add_child(line);
+
+        const controls = row('frodo-media-controls');
+        controls.x_align = Clutter.ActorAlign.CENTER;
+        controls.x_expand = false;
+        for (const child of [this.#previous, this.#playPause, this.#next]) controls.add_child(child);
+
+        for (const child of [heading, line, this.#progress, controls]) this.actor.add_child(child);
 
         this.#disposables.add(
             media.on('changed', () => {
@@ -125,10 +136,16 @@ export class MediaCard implements Component {
         this.actor.visible = track !== null;
         if (!track) return;
 
-        this.#heading.text = track.app ? `Tocando agora · ${track.app}` : 'Tocando agora';
+        this.#app.text = track.app;
+        this.#app.visible = track.app !== '';
         this.#title.text = track.title;
-        this.#artist.text = track.artist;
-        this.#artist.visible = track.artist !== '';
+        for (const [text, value] of [
+            [this.#artist, track.artist],
+            [this.#album, track.album],
+        ] as const) {
+            text.text = value;
+            text.visible = value !== '';
+        }
         this.#setCover(track.coverUrl);
 
         const playPauseIcon = this.#playPause.child;

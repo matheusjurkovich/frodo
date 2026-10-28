@@ -4,9 +4,15 @@ import type {PlayerCandidate} from './media.js';
 describe('mídia', () => {
     it('lê os metadados do MPRIS', () => {
         expect(
-            parseMetadata({'xesam:title': 'Faixa', 'xesam:artist': ['A', 'B'], 'mpris:artUrl': 'file:///c.png', 'mpris:length': 232000000}),
-        ).toEqual({title: 'Faixa', artist: 'A, B', coverUrl: 'file:///c.png', lengthUs: 232000000});
-        expect(parseMetadata({})).toEqual({title: '', artist: '', coverUrl: '', lengthUs: null});
+            parseMetadata({
+                'xesam:title': 'Faixa',
+                'xesam:artist': ['A', 'B'],
+                'xesam:album': 'Disco',
+                'mpris:artUrl': 'file:///c.png',
+                'mpris:length': 232000000,
+            }),
+        ).toEqual({title: 'Faixa', artist: 'A, B', album: 'Disco', coverUrl: 'file:///c.png', lengthUs: 232000000});
+        expect(parseMetadata({})).toEqual({title: '', artist: '', album: '', coverUrl: '', lengthUs: null});
     });
 
     it('calcula o progresso só com duração conhecida', () => {
