@@ -57,7 +57,7 @@ export class PanelContent {
         this.#settings = settings;
 
         const specs: readonly TabSpec[] = [
-            {id: 'general', icon: 'general', label: TAB_LABELS.general, create: () => new GeneralPage({island, settings, bridge, media})},
+            {id: 'general', icon: 'general', label: TAB_LABELS.general, create: () => new GeneralPage({island, settings, media})},
             {id: 'calendar', icon: 'calendar', label: TAB_LABELS.calendar, create: () => new CalendarPage(island)},
             {id: 'workspaces', icon: 'workspaces', label: TAB_LABELS.workspaces, create: () => new WorkspacesPage(workspaces, island)},
             {

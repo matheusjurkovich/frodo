@@ -2,7 +2,6 @@ import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 
 import type {MediaService} from '../../../services/media.js';
-import type {NotificationBridge} from '../../../services/notification-bridge.js';
 import type {FrodoSettings} from '../../../services/settings.js';
 import {column, row} from '../../components/layout.js';
 import type {Component} from '../../components/lifecycle.js';
@@ -16,7 +15,6 @@ import {SoundCard} from './sound-card.js';
 export interface GeneralDependencies {
     readonly island: Island;
     readonly settings: FrodoSettings;
-    readonly bridge: NotificationBridge;
     readonly media: MediaService;
 }
 

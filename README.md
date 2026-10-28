@@ -191,7 +191,9 @@ src/
     island.ts         ilha de um monitor; island-manager.ts cuida de uma por monitor
   util/               Emitter tipado, Disposables e Timer
   types/              declarações que faltam nos tipos @girs
-tests/                specs Jasmine (core, util e serviços)
+tests/                specs Jasmine: core (formatos, abas, mídia, monitores), Claude (limites, perfis,
+                      índice, transcrições e sessões), pílula (prioridade, reunião e feed),
+                      áreas de trabalho, serviços (memória, ClaudeClient, settings) e util
 hooks/                hook do Claude Code que grava o estado de cada sessão
 icons/                ícones SVG simbólicos (créditos em icons/README.md)
 ```

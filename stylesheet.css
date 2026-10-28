@@ -64,7 +64,7 @@
 .frodo-sep {
     width: 1px;
     height: 14px;
-    background-color: #333;
+    background-color: #2a2a2f;
 }
 
 .frodo-battery {
@@ -73,7 +73,7 @@
 
 .frodo-battery-icon {
     icon-size: 16px;
-    color: #fff;
+    color: #f4f4f5;
 }
 
 .frodo-ring {
@@ -202,7 +202,7 @@
 }
 
 .frodo-tray {
-    background-color: #1a1a1a;
+    background-color: #232327;
     border-radius: 16px;
     padding: 2px;
     spacing: 0;
