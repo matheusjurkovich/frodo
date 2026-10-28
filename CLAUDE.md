@@ -29,7 +29,7 @@ Código agrupado por camada e domínio. Import só desce: `app → pill, tabs �
 | `tools/smoke.sh`          | gnome-shell headless isolado: liga, desliga e religa a extensão                                                                                                                   |
 | `stylesheet.css`          | Todo o visual (cor só existe aqui)                                                                                                                                                |
 | `schemas/`                | Schema do GSettings                                                                                                                                                               |
-| `hooks/claude-session.sh` | Hook do Claude Code que grava o estado de cada sessão para a aba Claude                                                                                                           |
+| `hooks/claude-session.sh` | Hook do Claude Code que grava o estado de cada sessão e, no `PermissionRequest`, espera e devolve a decisão da ilha                                                               |
 | `icons/`                  | SVG simbólicos (`frodo-<nome>-symbolic.svg`)                                                                                                                                      |
 | `docs/superpowers/`       | Specs e planos (redesign, arquitetura)                                                                                                                                            |
 

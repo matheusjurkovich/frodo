@@ -21,12 +21,13 @@ A engrenagem do cabeçalho abre as configurações dentro da ilha (comportamento
 Fechada, a pílula mostra os itens escolhidos nas preferências (hora, ícones do sistema, bateria, RAM e uso do Claude). Quando algo acontece, ela troca para uma atividade. Com mais de uma ao mesmo tempo, vale esta ordem de prioridade:
 
 1. Gravação de tela, com o tempo e o botão Parar.
-2. Sessão do Claude esperando permissão, com o botão Abrir.
-3. Reunião em breve, com a contagem regressiva e o botão Abrir.
-4. Notificação recebida, por 3 segundos.
-5. Volume alterado, por 1,5 segundo.
-6. Sessão do Claude trabalhando, com o passo atual e o tempo.
-7. Música tocando, com capa, título e botão de pausa.
+2. Pedido de permissão do Claude, com a ferramenta e os botões Negar e Aprovar (o mais antigo, se houver vários).
+3. Sessão do Claude esperando permissão sem pedido aberto pela ilha, com o botão Abrir.
+4. Reunião em breve, com a contagem regressiva e o botão Abrir.
+5. Notificação recebida, por 3 segundos.
+6. Volume alterado, por 1,5 segundo.
+7. Sessão do Claude trabalhando, com o passo atual e o tempo.
+8. Música tocando, com capa, título e botão de pausa.
 
 ## Requisitos
 
@@ -161,6 +162,12 @@ Acrescente o bloco abaixo ao `~/.claude/settings.json`, junto com o que já houv
 ```
 
 Cada perfil do Claude Code (`CLAUDE_CONFIG_DIR`, como `~/.claude-trabalho`) tem o próprio `settings.json` e precisa do mesmo bloco. Sem ele, as sessões daquele perfil não aparecem.
+
+### Aprovar pela ilha
+
+No `PermissionRequest`, o hook cria `$XDG_RUNTIME_DIR/frodo/pending/<session_id>.<pedido>.json` e espera a resposta em `decisions/` com o mesmo nome. A pílula e a linha expandida da sessão na aba Claude mostram Negar e Aprovar enquanto o processo do hook estiver vivo; o clique grava a decisão e o hook a devolve ao Claude Code (negar manda "Negado pela ilha do Frodo." e o Claude segue trabalhando). O diálogo do próprio Claude Code continua valendo: respondido lá, o hook percebe pelo próximo evento da sessão e sai.
+
+O hook espera até 590 s em sessões do Claude desktop (`CLAUDE_CODE_ENTRYPOINT=claude-desktop`) e 15 s nas demais. O `timeout` do `PermissionRequest` no `settings.json` precisa ficar ausente (padrão de 600 s) ou ser 600; com um valor menor, o Claude Code mata a espera antes do clique.
 
 ## Scripts
 
