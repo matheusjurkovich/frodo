@@ -15,6 +15,8 @@ import {BOTH_AXES, WIDTH_AXIS, fadeIn, fadeOut, morphSize, settle} from '../shar
 import type {ActivityFeed, PillActivity} from './activity-feed.js';
 import {ActivityView} from './activity-view.js';
 import type {ActivityServices} from './activity-view.js';
+import type {CodexUsage} from '../features/codex/codex-service.js';
+import type {GeminiUsage} from '../features/gemini/gemini-service.js';
 import {IdleView} from './idle-view.js';
 
 const STATE_CLASSES: Partial<Record<ActivityKind, string>> = {
@@ -34,6 +36,8 @@ export interface PillDependencies extends ActivityServices {
     readonly settings: FrodoSettings;
     readonly state: SystemState;
     readonly claude: ClaudeService;
+    readonly codex: CodexUsage;
+    readonly gemini: GeminiUsage;
     readonly bridge: NotificationBridge;
     readonly feed: ActivityFeed;
 }
@@ -54,11 +58,11 @@ export class Pill extends Emitter<{rebuilt: []}> {
     #bar = false;
     #shown: PillActivity | null = null;
 
-    constructor({settings, state, claude, bridge, feed, recording, sessions, media, actions}: PillDependencies) {
+    constructor({settings, state, claude, codex, gemini, bridge, feed, recording, sessions, media, actions}: PillDependencies) {
         super();
         this.#feed = feed;
         this.#settings = settings;
-        this.#idle = new IdleView(settings, state, claude, bridge);
+        this.#idle = new IdleView({settings, state, claude, codex, gemini, bridge});
         this.#activity = new ActivityView({recording, sessions, media, actions});
         this.actor.add_child(this.#idle.actor);
         this.actor.add_child(this.#activity.actor);

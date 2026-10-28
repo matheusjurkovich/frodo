@@ -58,6 +58,7 @@ class FakeMedia extends Emitter<{changed: []}> {
 
 function session(id: string, status: SessionStatus, step = '', tool: string | null = null): SessionState {
     return {
+        provider: 'claude',
         sessionId: id,
         cwd: '/r',
         repo: 'r',

@@ -42,6 +42,7 @@ export type FrodoIconName =
     | 'wave'
     | 'mic-off'
     | 'terminal'
+    | 'gemini'
     | 'folder'
     | 'lock'
     | 'expand'

@@ -2,9 +2,11 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import {targetMonitors} from './monitors.js';
 import {tabToOpen, visibleTabs} from '../settings/tabs.js';
+import {isBottom} from '../settings/schema-values.js';
 import type {TabId} from '../settings/schema-values.js';
 import {Disposables} from '../shared/disposables.js';
 import {Island} from './island.js';
+import type {Placement} from './island.js';
 import {PanelContent} from './panel-content.js';
 import type {FrodoServices} from './services.js';
 
@@ -24,6 +26,11 @@ export class IslandManager {
         this.#disposables.add(
             settings.onChanged(['monitors', 'hide-top-bar'], () => {
                 this.#rebuild();
+            }),
+        );
+        this.#disposables.add(
+            settings.onChanged('pill-position', () => {
+                for (const {island} of this.#entries) island.setPlacement(this.#placementFor(island.monitorIndex));
             }),
         );
         this.#disposables.signal(
@@ -54,7 +61,7 @@ export class IslandManager {
         const primary = Main.layoutManager.primaryIndex;
         for (const monitorIndex of targetMonitors(settings.monitors, primary, Main.layoutManager.monitors.length)) {
             const island = new Island(this.#dependencies, monitorIndex);
-            island.setPlacement(monitorIndex === primary && !settings.hideTopBar ? 'bar' : 'float');
+            island.setPlacement(this.#placementFor(monitorIndex));
             island.on('opening', () => {
                 for (const other of this.#entries) if (other.island !== island) other.island.close();
             });
@@ -65,6 +72,12 @@ export class IslandManager {
             });
             this.#entries.push({island, content});
         }
+    }
+
+    #placementFor(monitorIndex: number): Placement {
+        const {settings} = this.#dependencies;
+        const bar = monitorIndex === Main.layoutManager.primaryIndex && !settings.hideTopBar && !isBottom(settings.pillPosition);
+        return bar ? 'bar' : 'float';
     }
 
     #clear(): void {

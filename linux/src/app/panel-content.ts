@@ -49,7 +49,7 @@ export class PanelContent {
     #lastTab: TabId = TAB_IDS[0];
     #nextTab: TabId = TAB_IDS[0];
 
-    constructor({island, claude, transcripts, sessions, settings, bridge, media, workspaces, recording}: PanelDependencies) {
+    constructor({island, claude, transcripts, sessions, codex, gemini, settings, bridge, media, workspaces, recording}: PanelDependencies) {
         this.#settings = settings;
 
         const specs: readonly TabSpec[] = [
@@ -78,6 +78,8 @@ export class PanelContent {
                         claude,
                         transcripts,
                         sessions,
+                        codex,
+                        gemini,
                         settings,
                         actions: {
                             openSettings: () => {
@@ -110,7 +112,7 @@ export class PanelContent {
             },
             recording,
         );
-        this.#settingsPage = new SettingsPage(settings, {
+        this.#settingsPage = new SettingsPage(settings, sessions, {
             back: () => {
                 this.#leaveSettings();
             },

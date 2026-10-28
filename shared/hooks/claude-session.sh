@@ -10,14 +10,28 @@ else
 fi
 dir="$root/sessions"
 mkdir -p "$dir" || exit 0
+case ${1:-claude} in codex | gemini) provider=$1 ;; *) provider=claude ;; esac
 input=$(cat)
 id=$(printf '%s' "$input" | grep -o '"session_id" *: *"[A-Za-z0-9-]*"' | head -n 1 | sed 's/.*"\([A-Za-z0-9-]*\)"$/\1/')
 [ -n "$id" ] || exit 0
-case ${CLAUDE_PID:-x} in *[!0-9]*) pid=null ;; *) pid=$CLAUDE_PID ;; esac
+agent_pid() {
+    current=$PPID
+    while [ "${current:-0}" -gt 1 ]; do
+        name=$(ps -p "$current" -o comm= 2> /dev/null)
+        case ${name##*/} in
+            sh | dash | bash | zsh | fish) current=$(ps -p "$current" -o ppid= 2> /dev/null | tr -d ' ') ;;
+            '') return ;;
+            *) printf '%s' "$current" && return ;;
+        esac
+    done
+}
+if [ "$provider" = claude ]; then pid=${CLAUDE_PID:-x}; else pid=$(agent_pid); fi
+case ${pid:-x} in *[!0-9]*) pid=null ;; esac
 session="$dir/$id.json"
 tmp="$session.$$"
-printf '{"pid":%s,"event":%s}\n' "$pid" "$input" > "$tmp" && mv -f "$tmp" "$session" || rm -f "$tmp"
+printf '{"pid":%s,"provider":"%s","event":%s}\n' "$pid" "$provider" "$input" > "$tmp" && mv -f "$tmp" "$session" || rm -f "$tmp"
 
+[ "$provider" != gemini ] || exit 0
 printf '%s' "$input" | grep -q '"hook_event_name" *: *"PermissionRequest"' || exit 0
 tool=$(printf '%s' "$input" | grep -o '"tool_name" *: *"[A-Za-z0-9_.:-]*"' | head -n 1 | sed 's/.*"\([A-Za-z0-9_.:-]*\)"$/\1/')
 [ -n "$tool" ] || exit 0

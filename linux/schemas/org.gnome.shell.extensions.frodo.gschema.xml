@@ -21,6 +21,9 @@
         <choice value="center"/>
         <choice value="left"/>
         <choice value="right"/>
+        <choice value="bottom-left"/>
+        <choice value="bottom-center"/>
+        <choice value="bottom-right"/>
       </choices>
       <default>'center'</default>
     </key>
@@ -73,6 +76,17 @@
     </key>
     <key name="collapsed-cards" type="as">
       <default>[]</default>
+    </key>
+    <key name="disabled-ai" type="as">
+      <default>[]</default>
+    </key>
+    <key name="gemini-daily-limit" type="i">
+      <range min="1" max="100000"/>
+      <default>1000</default>
+    </key>
+    <key name="meeting-notice-minutes" type="i">
+      <range min="0" max="60"/>
+      <default>10</default>
     </key>
   </schema>
 </schemalist>

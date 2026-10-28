@@ -4,6 +4,8 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {ClaudeService} from '../features/claude/claude-service.js';
 import {ClaudeSessions} from '../features/claude/claude-sessions-service.js';
 import {ClaudeTranscripts} from '../features/claude/claude-transcripts-service.js';
+import {CodexUsage} from '../features/codex/codex-service.js';
+import {GeminiUsage} from '../features/gemini/gemini-service.js';
 import {MediaService} from '../features/media/media-service.js';
 import {UpcomingMeeting} from '../features/meetings/meetings-service.js';
 import {NotificationBridge} from '../features/notifications/notification-bridge-service.js';
@@ -21,6 +23,8 @@ export interface FrodoServices {
     readonly claude: ClaudeService;
     readonly transcripts: ClaudeTranscripts;
     readonly sessions: ClaudeSessions;
+    readonly codex: CodexUsage;
+    readonly gemini: GeminiUsage;
     readonly media: MediaService;
     readonly workspaces: Workspaces;
     readonly bridge: NotificationBridge;
@@ -40,12 +44,14 @@ export function createServices(gsettings: Gio.Settings, disposables: Disposables
             Main.activateWindow(window);
         }),
     );
+    const codex = disposables.own(new CodexUsage(settings));
+    const gemini = disposables.own(new GeminiUsage(settings));
     const media = disposables.own(new MediaService());
     const workspaces = disposables.own(new Workspaces());
     const bridge = disposables.own(new NotificationBridge());
     const recording = disposables.own(new Recording());
     const volume = disposables.own(new VolumeWatch());
-    const meetings = disposables.own(new UpcomingMeeting());
+    const meetings = disposables.own(new UpcomingMeeting(settings));
     const feed = disposables.own(new ActivityFeed({recording, sessions, meetings, bridge, volume, media}));
-    return {settings, state, claude, transcripts, sessions, media, workspaces, bridge, recording, volume, meetings, feed};
+    return {settings, state, claude, transcripts, sessions, codex, gemini, media, workspaces, bridge, recording, volume, meetings, feed};
 }

@@ -10,6 +10,13 @@ import type {ClosedItem} from '../settings/schema-values.js';
 import {displayLevel, shownPercent} from '../features/claude/claude-usage.js';
 import type {UsageWindow} from '../features/claude/claude-usage.js';
 import type {ClaudeService} from '../features/claude/claude-service.js';
+import {codexMeters} from '../features/codex/codex-usage.js';
+import type {CodexUsage} from '../features/codex/codex-service.js';
+import {geminiMeters} from '../features/gemini/gemini-usage.js';
+import type {GeminiUsage} from '../features/gemini/gemini-service.js';
+import {meterLevel, shownMeterPercent} from '../shared/meter.js';
+import type {Meter} from '../shared/meter.js';
+import {providerIcon} from '../shared/ui/provider-tile.js';
 import type {NotificationBridge} from '../features/notifications/notification-bridge-service.js';
 import type {FrodoSettings} from '../settings/frodo-settings.js';
 import type {SystemState} from '../features/system/system-state-service.js';
@@ -30,9 +37,33 @@ import {frodoIcon} from '../shared/ui/icons.js';
 
 const FADE_MS = 150;
 
-type TextItem = Extract<ClosedItem, 'battery' | 'ram' | 'claude-session' | 'claude-weekly'>;
+type MeterItem = Extract<ClosedItem, 'codex-session' | 'codex-weekly' | 'gemini-daily'>;
+type TextItem = Extract<ClosedItem, 'battery' | 'ram' | 'claude-session' | 'claude-weekly'> | MeterItem;
 
-const TEXT_ITEMS: readonly ClosedItem[] = ['battery', 'ram', 'claude-session', 'claude-weekly'];
+const TEXT_ITEMS: readonly ClosedItem[] = [
+    'battery',
+    'ram',
+    'claude-session',
+    'claude-weekly',
+    'codex-session',
+    'codex-weekly',
+    'gemini-daily',
+];
+
+const METER_ITEMS: Record<MeterItem, {provider: 'codex' | 'gemini'; key: string; name: string; suffix: string}> = {
+    'codex-session': {provider: 'codex', key: 'session', name: 'Codex', suffix: ''},
+    'codex-weekly': {provider: 'codex', key: 'weekly', name: 'Codex', suffix: ' · 7d'},
+    'gemini-daily': {provider: 'gemini', key: 'daily', name: 'Gemini', suffix: ' hoje'},
+};
+
+export interface IdleViewDependencies {
+    readonly settings: FrodoSettings;
+    readonly state: SystemState;
+    readonly claude: ClaudeService;
+    readonly codex: CodexUsage;
+    readonly gemini: GeminiUsage;
+    readonly bridge: NotificationBridge;
+}
 
 function isTextItem(item: ClosedItem): item is TextItem {
     return TEXT_ITEMS.includes(item);
@@ -58,6 +89,8 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
     readonly #settings: FrodoSettings;
     readonly #state: SystemState;
     readonly #claude: ClaudeService;
+    readonly #codex: CodexUsage;
+    readonly #gemini: GeminiUsage;
     readonly #bridge: NotificationBridge;
     readonly #clock = new GnomeDesktop.WallClock();
     readonly #rotateTimer = new Timer();
@@ -69,11 +102,13 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
     #rotateIndex = 0;
     #rotatingSlot: St.Label | null = null;
 
-    constructor(settings: FrodoSettings, state: SystemState, claude: ClaudeService, bridge: NotificationBridge) {
+    constructor({settings, state, claude, codex, gemini, bridge}: IdleViewDependencies) {
         super();
         this.#settings = settings;
         this.#state = state;
         this.#claude = claude;
+        this.#codex = codex;
+        this.#gemini = gemini;
         this.#bridge = bridge;
 
         this.#disposables.signal(
@@ -89,6 +124,17 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
         );
         this.#disposables.add(
             claude.on('changed', () => {
+                this.#update();
+            }),
+        );
+        for (const source of [codex, gemini])
+            this.#disposables.add(
+                source.on('changed', () => {
+                    this.#update();
+                }),
+            );
+        this.#disposables.add(
+            settings.onChanged('disabled-ai', () => {
                 this.#update();
             }),
         );
@@ -184,7 +230,45 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
             case 'claude-session':
             case 'claude-weekly':
                 return this.#claudeSegment(item);
+            case 'codex-session':
+            case 'codex-weekly':
+            case 'gemini-daily':
+                return this.#meterSegment(item);
         }
+    }
+
+    #meter(item: MeterItem): Meter | null {
+        const {provider, key} = METER_ITEMS[item];
+        if (!this.#settings.providerEnabled(provider)) return null;
+        const meters = provider === 'codex' ? codexMeters(this.#codex.limits, Date.now()) : geminiMeters(this.#gemini.quota);
+        return meters.find(meter => meter.key === key) ?? null;
+    }
+
+    #meterSegment(item: MeterItem): Segment {
+        const {provider, suffix} = METER_ITEMS[item];
+        const box = new St.BoxLayout({style_class: 'frodo-claude', y_align: Clutter.ActorAlign.CENTER});
+        box.add_child(providerIcon(provider, 'frodo-claude-icon'));
+        const ring = new ProgressRing();
+        ring.actor.add_style_class_name(`frodo-provider-${provider}`);
+        const value = dimLabel('—');
+        box.add_child(ring.actor);
+        box.add_child(value);
+        return {
+            actor: box,
+            isVisible: () => this.#settings.providerEnabled(provider),
+            update: () => {
+                const meter = this.#meter(item);
+                ring.actor.visible = meter !== null;
+                if (!meter) {
+                    value.text = '—';
+                    return;
+                }
+                const shown = shownMeterPercent(meter.percent, this.#settings.claudeShowRemaining);
+                ring.level = meterLevel(meter.percent);
+                ring.percent = shown;
+                value.text = `${Math.round(shown)}%${suffix}`;
+            },
+        };
     }
 
     #clockSegment(): Segment {
@@ -316,7 +400,10 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
     }
 
     #rotatingItems(): TextItem[] {
-        return this.#settings.closedItems.filter(isTextItem).filter(item => item !== 'battery' || this.#state.battery !== null);
+        return this.#settings.closedItems
+            .filter(isTextItem)
+            .filter(item => item !== 'battery' || this.#state.battery !== null)
+            .filter(item => !(item in METER_ITEMS) || this.#settings.providerEnabled(METER_ITEMS[item as MeterItem].provider));
     }
 
     #itemText(item: TextItem): string {
@@ -332,6 +419,15 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
                 const name = item === 'claude-session' ? 'Claude' : 'Semana';
                 return window
                     ? `${name} ${Math.round(shownPercent(window.utilization, this.#settings.claudeShowRemaining))}%`
+                    : `${name} —`;
+            }
+            case 'codex-session':
+            case 'codex-weekly':
+            case 'gemini-daily': {
+                const meter = this.#meter(item);
+                const {name, suffix} = METER_ITEMS[item];
+                return meter
+                    ? `${name} ${Math.round(shownMeterPercent(meter.percent, this.#settings.claudeShowRemaining))}%${suffix}`
                     : `${name} —`;
             }
         }

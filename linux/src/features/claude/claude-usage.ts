@@ -1,4 +1,6 @@
 import type {Level} from '../../shared/level.js';
+import {resetNote} from '../../shared/meter.js';
+import type {Meter} from '../../shared/meter.js';
 
 export type WindowRole = 'session' | 'weekly' | 'scoped' | 'other';
 export type TierIcon = 'free' | 'pro' | 'max' | 'team' | 'enterprise';
@@ -363,4 +365,21 @@ export function claudeErrorMessage(status: number | null, apiMessage: string | n
         default:
             return `Erro do Claude (HTTP ${status}).`;
     }
+}
+
+const SHORT_LABELS: Partial<Record<WindowRole, string>> = {session: 'Sessão 5 h', weekly: 'Semana'};
+
+export function claudeMeters(windows: readonly UsageWindow[], now: number): Meter[] {
+    return windows
+        .filter(window => window.role === 'session' || window.role === 'weekly')
+        .map(window => {
+            const reset = window.resetsAt === null ? Number.NaN : Date.parse(window.resetsAt);
+            return {
+                key: window.role,
+                label: window.label,
+                short: SHORT_LABELS[window.role] ?? window.label,
+                percent: window.utilization,
+                note: Number.isFinite(reset) ? resetNote(reset, now) : '',
+            };
+        });
 }

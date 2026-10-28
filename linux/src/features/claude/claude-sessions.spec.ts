@@ -107,6 +107,23 @@ describe('sessões do Claude', () => {
         expect(stepFor('Mystery', {})).toBe('Mystery');
     });
 
+    it('lê o provedor e traduz os eventos do Gemini', () => {
+        const read = (provider: unknown, name: string, extra: Record<string, unknown> = {}): HookEvent | null =>
+            parseHookEvent(JSON.stringify({pid: 7, provider, event: {session_id: 'g1', cwd: '/p/app', hook_event_name: name, ...extra}}));
+        expect(read(undefined, 'Stop')?.provider).toBe('claude');
+        expect(read('outro', 'Stop')?.provider).toBe('claude');
+        expect(read('codex', 'PermissionRequest')?.provider).toBe('codex');
+        const prompt = read('gemini', 'BeforeAgent');
+        const tool = read('gemini', 'BeforeTool', {tool_name: 'run_shell_command', tool_input: {command: 'ls'}});
+        const asking = read('gemini', 'Notification', {notification_type: 'ToolPermission'});
+        const finished = read('gemini', 'AfterAgent');
+        if (!prompt || !tool || !asking || !finished) throw new Error('evento inválido');
+        const working = nextState(nextState(null, prompt, at), tool, at + 1000);
+        expect(working).toEqual(jasmine.objectContaining({provider: 'gemini', status: 'working', step: 'run_shell_command ls'}));
+        expect(nextState(working, asking, at + 2000)?.status).toBe('waiting');
+        expect(nextState(working, finished, at + 3000)?.status).toBe('done');
+    });
+
     it('ignora arquivos inválidos', () => {
         expect(parseHookEvent('{')).toBeNull();
         expect(parseHookEvent(JSON.stringify({pid: 1, event: {hook_event_name: 'Stop'}}))).toBeNull();

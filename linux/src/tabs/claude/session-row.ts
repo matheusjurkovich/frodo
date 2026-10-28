@@ -12,6 +12,9 @@ import type {Component} from '../../shared/ui/lifecycle.js';
 import {levelClass} from '../../shared/level.js';
 import {SegmentBar} from '../../shared/ui/segment-bar.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
+import {providerTile} from '../../shared/ui/provider-tile.js';
+import {AI_PROVIDERS, PROVIDER_NAMES} from '../../shared/ai-provider.js';
+import type {AiProvider} from '../../shared/ai-provider.js';
 
 const STATUS_LABELS: Record<SessionStatus, string> = {
     working: 'Trabalhando',
@@ -109,6 +112,7 @@ export class SessionRow implements Component {
     readonly #dismiss: St.Button;
     readonly #actionsRow = row('frodo-session-actions');
     readonly #unpack: Disposer[] = [];
+    readonly #tiles = new Map<AiProvider, St.Bin>();
     #pending: PendingRequest | null = null;
     #shown: SessionStatus | null = null;
     #expanded: boolean | null = null;
@@ -116,6 +120,12 @@ export class SessionRow implements Component {
     constructor({toggle, focus, openPullRequest, dismiss, approve, deny}: SessionRowActions) {
         const top = row('frodo-session-top');
         this.#repo.x_expand = true;
+        for (const provider of AI_PROVIDERS) {
+            const tile = providerTile(provider, 20);
+            tile.visible = false;
+            this.#tiles.set(provider, tile);
+            top.add_child(tile);
+        }
         top.add_child(this.#repo);
         top.add_child(this.#status);
         const text = column('frodo-session-text');
@@ -169,7 +179,8 @@ export class SessionRow implements Component {
     update({state, status, stats, expanded, diff, pending, canOpenPullRequest, nowMs}: SessionRowView): void {
         this.#showStatus(status);
         this.#repo.text = state.repo;
-        const meta = sessionMeta(state, stats, status, nowMs);
+        for (const [provider, tile] of this.#tiles) tile.visible = provider === state.provider;
+        const meta = [PROVIDER_NAMES[state.provider], sessionMeta(state, stats, status, nowMs)].filter(Boolean).join(' · ');
         this.#meta.text = meta;
         this.#meta.visible = meta !== '';
         this.#pending = pending;

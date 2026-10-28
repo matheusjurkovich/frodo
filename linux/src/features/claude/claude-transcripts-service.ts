@@ -3,6 +3,7 @@ import Gio from 'gi://Gio';
 import System from 'system';
 
 import {ClaudeIndex} from './claude-index.js';
+import type {ConsumptionSummary, Period} from '../../shared/consumption.js';
 import {completeLines, parseAssistantLine} from './claude-transcript.js';
 import {Emitter} from '../../shared/emitter.js';
 import {Timer} from '../../shared/timer.js';
@@ -134,6 +135,10 @@ export class ClaudeTranscripts extends Emitter<{changed: []}> {
 
     get scanning(): boolean {
         return this.#running !== null;
+    }
+
+    summary(period: Period, now: Date): ConsumptionSummary {
+        return this.#index.summary(period, now);
     }
 
     setWanted(wanted: boolean): void {

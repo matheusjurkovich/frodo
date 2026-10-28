@@ -1,9 +1,9 @@
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 
-import type {ConsumptionSummary, Period, Share} from '../../features/claude/claude-index.js';
+import type {ConsumptionSource, ConsumptionSummary, Period, Share} from '../../shared/consumption.js';
+import type {AiProvider} from '../../shared/ai-provider.js';
 import {formatTokens} from '../../shared/format.js';
-import type {ClaudeTranscripts} from '../../features/claude/claude-transcripts-service.js';
 import {Disposables} from '../../shared/disposables.js';
 import {card, cardHeading, cardTitle} from '../../shared/ui/card.js';
 import {column, dimLabel, label, row} from '../../shared/ui/layout.js';
@@ -49,11 +49,11 @@ function legendItem({name, label: text, fraction}: Share): St.BoxLayout {
     return item;
 }
 
-function projectRow({name, tokens, fraction}: Share, largest: number): St.BoxLayout {
+function projectRow({name, tokens, fraction}: Share, largest: number, provider: AiProvider): St.BoxLayout {
     const item = row('frodo-project');
     item.add_child(label(name, 'frodo-project-name frodo-mono'));
     const bar = new SegmentBar();
-    bar.segments = [{fraction: largest > 0 ? tokens / largest : 0, styleClass: 'frodo-fill-claude'}];
+    bar.segments = [{fraction: largest > 0 ? tokens / largest : 0, styleClass: `frodo-fill-${provider}`}];
     item.add_child(bar.actor);
     item.add_child(label(`${formatTokens(tokens)} · ${percent(fraction)}`, 'frodo-project-value'));
     return item;
@@ -61,7 +61,8 @@ function projectRow({name, tokens, fraction}: Share, largest: number): St.BoxLay
 
 export class ConsumptionCard implements Component {
     readonly actor = card('frodo-consumption');
-    readonly #transcripts: ClaudeTranscripts;
+    readonly #transcripts: ConsumptionSource;
+    readonly #provider: AiProvider;
     readonly #period: Segmented<Period>;
     readonly #loading = dimLabel('Lendo histórico…');
     readonly #body = column('frodo-consumption-body');
@@ -77,8 +78,9 @@ export class ConsumptionCard implements Component {
     readonly #disposables = new Disposables();
     #selected: Period = 'today';
 
-    constructor(transcripts: ClaudeTranscripts) {
+    constructor(transcripts: ConsumptionSource, provider: AiProvider) {
         this.#transcripts = transcripts;
+        this.#provider = provider;
         this.#period = new Segmented(
             ORDER.map(id => ({id, label: PERIODS[id].label})),
             this.#selected,
@@ -145,9 +147,9 @@ export class ConsumptionCard implements Component {
 
     #render(): void {
         const now = new Date();
-        const {index, scanning} = this.#transcripts;
-        const summary = index.summary(this.#selected, now);
-        const reading = scanning && summary.sessions === 0 && index.summary('30d', now).sessions === 0;
+        const source = this.#transcripts;
+        const summary = source.summary(this.#selected, now);
+        const reading = source.scanning && summary.sessions === 0 && source.summary('30d', now).sessions === 0;
         this.#loading.visible = reading;
         this.#body.visible = !reading;
         if (reading) return;
@@ -166,7 +168,7 @@ export class ConsumptionCard implements Component {
         this.#projectsSection.visible = summary.projects.length > 0;
         this.#projects.destroy_all_children();
         const largest = Math.max(0, ...summary.projects.map(({tokens}) => tokens));
-        for (const project of summary.projects) this.#projects.add_child(projectRow(project, largest));
+        for (const project of summary.projects) this.#projects.add_child(projectRow(project, largest, this.#provider));
     }
 
     destroy(): void {

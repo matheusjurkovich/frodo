@@ -25,12 +25,21 @@ event() {
 }
 
 run_hook() {
-    env -u CLAUDE_PID -u CLAUDE_CODE_ENTRYPOINT FRODO_RUNTIME_DIR="$TMP/run dir" FRODO_TERMINAL_WAIT_SECONDS=5 sh "$HOOK"
+    env -u CLAUDE_PID -u CLAUDE_CODE_ENTRYPOINT FRODO_RUNTIME_DIR="$TMP/run dir" FRODO_TERMINAL_WAIT_SECONDS=5 sh "$HOOK" "$@"
 }
 
 event abc-123 SessionStart | run_hook
 check "grava o estado da sessao" "1" "$(grep -c '"hook_event_name":"SessionStart"' "$TMP/run dir/sessions/abc-123.json")"
 check "pid nulo sem CLAUDE_PID" "1" "$(grep -c '^{"pid":null,' "$TMP/run dir/sessions/abc-123.json")"
+
+check "provedor padrao e claude" "1" "$(grep -c '"provider":"claude"' "$TMP/run dir/sessions/abc-123.json")"
+
+event cdx-1 SessionStart | run_hook codex
+check "grava o provedor codex" "1" "$(grep -c '"provider":"codex"' "$TMP/run dir/sessions/cdx-1.json")"
+check "pid do agente vem da arvore de processos" "0" "$(grep -c '^{"pid":null,' "$TMP/run dir/sessions/cdx-1.json")"
+
+event gmn-1 BeforeAgent | run_hook gemini
+check "grava o provedor gemini" "1" "$(grep -c '"provider":"gemini"' "$TMP/run dir/sessions/gmn-1.json")"
 
 event def-456 SessionStart | env CLAUDE_PID=4242 FRODO_RUNTIME_DIR="$TMP/run dir" sh "$HOOK"
 check "grava o pid do claude" "1" "$(grep -c '^{"pid":4242,' "$TMP/run dir/sessions/def-456.json")"

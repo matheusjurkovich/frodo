@@ -12,6 +12,7 @@ import {iconButton, textButton} from '../shared/ui/buttons.js';
 import {column, label} from '../shared/ui/layout.js';
 import type {Component} from '../shared/ui/lifecycle.js';
 import {SegmentBar} from '../shared/ui/segment-bar.js';
+import {PROVIDER_ICONS} from '../shared/ui/provider-tile.js';
 import {frodoIcon} from '../shared/ui/icons.js';
 import {setSourceColor} from '../shared/ui/progress-ring.js';
 import type {PillActivity} from './activity-feed.js';
@@ -196,7 +197,7 @@ export class ActivityView implements Component {
 
     #permission({session, request}: Of<'claude-permission'>): void {
         this.#add(
-            icon(frodoIcon('claude'), 'frodo-pill-icon-waiting'),
+            icon(frodoIcon(PROVIDER_ICONS[session.provider]), 'frodo-pill-icon-waiting'),
             label(`${ellipsize(session.repo, REPO_CHARS)} precisa de permissão`, 'frodo-pill-title'),
             label(ellipsize(request.tool, STEP_CHARS), 'frodo-pill-detail'),
         );
@@ -218,7 +219,7 @@ export class ActivityView implements Component {
 
     #waiting({session}: Of<'claude-waiting'>): void {
         this.#add(
-            icon(frodoIcon('claude'), 'frodo-pill-icon-waiting'),
+            icon(frodoIcon(PROVIDER_ICONS[session.provider]), 'frodo-pill-icon-waiting'),
             label(`${ellipsize(session.repo, REPO_CHARS)} precisa de permissão`, 'frodo-pill-title'),
         );
         if (session.step !== '') this.#add(label(ellipsize(session.step, STEP_CHARS), 'frodo-pill-detail frodo-mono'));
@@ -278,7 +279,7 @@ export class ActivityView implements Component {
         this.#clickTab = 'claude';
         const span = label('', 'frodo-pill-span frodo-mono');
         this.#add(
-            icon(frodoIcon('claude'), 'frodo-pill-icon-claude'),
+            icon(frodoIcon(PROVIDER_ICONS[session.provider]), `frodo-pill-icon-${session.provider}`),
             label(ellipsize(session.repo, REPO_CHARS), 'frodo-pill-title frodo-mono'),
         );
         if (session.step !== '') this.#add(label(ellipsize(session.step, STEP_CHARS), 'frodo-pill-detail frodo-mono'));

@@ -1,6 +1,6 @@
 # Frodo para Linux
 
-Versão GNOME Shell do [Frodo](../README.md). Dynamic island leve para GNOME Shell 50. A pílula mostra hora, bateria, RAM e uso do Claude Code e muda conforme o que acontece no sistema; ao abrir, vira uma ilha com cinco abas.
+Versão GNOME Shell do [Frodo](../README.md). Dynamic island leve para GNOME Shell 50. A pílula mostra hora, bateria, RAM e uso do Claude Code, Codex e Gemini CLI e muda conforme o que acontece no sistema; ao abrir, vira uma ilha com cinco abas.
 
 Roda dentro do próprio gnome-shell (sem processo extra). Escrita em TypeScript e compilada para JavaScript.
 
@@ -11,31 +11,35 @@ Roda dentro do próprio gnome-shell (sem processo extra). Escrita em TypeScript 
 | Geral             | Controles do Quick Settings nativo (emprestados enquanto a ilha está aberta) ao lado de som, microfone e brilho com o dispositivo de cada um; embaixo, atalhos e programas abertos empilhados ao lado do player (capa grande, álbum, progresso), ou lado a lado quando nada toca |
 | Calendário        | Grade do mês e lista de eventos do calendário nativo                                                                                                                                                                                                                             |
 | Áreas de trabalho | Uma miniatura por área de trabalho, com as janelas abertas; clicar ativa a área, e há o card Nova área                                                                                                                                                                           |
-| Claude            | Limites de uso por perfil, consumo de tokens a partir das transcrições e sessões abertas do Claude Code                                                                                                                                                                          |
+| IA                | Claude Code, Codex e Gemini CLI. Em Todos, um card por assistente (plano, duas cotas e sessões ativas) e a lista única de sessões; em cada um, limites, consumo de tokens e as sessões dele. A cota do Gemini é estimada pelos pedidos do dia, porque o CLI não a informa        |
 | Notificações      | Lista de notificações, não perturbe e limpar tudo                                                                                                                                                                                                                                |
 
-A engrenagem do cabeçalho abre as configurações, todas dentro da ilha (pílula, comportamento, abas visíveis, monitores, fundo e barra superior, Claude e perfis, atalhos e integrações); não há janela de preferências separada. O botão ao lado dela abre o menu de energia (suspender, encerrar sessão, reiniciar e desligar). Durante uma gravação de tela, o cabeçalho mostra Parar gravação. Qualquer aba pode ser ocultada; se todas forem, a Geral continua visível.
+A engrenagem do cabeçalho abre as configurações, todas dentro da ilha, numa barra lateral com seis seções: Geral (comportamento e atalhos), Tela e posição (grade 3×3, monitores, fundo e barra superior), Pílula, Abas, IA (intervalo de atualização, restante ou usado, e um grupo por assistente com o switch Acompanhar, perfis do Claude, hooks do Codex e do Gemini e limite diário do Gemini) e Agenda (Google Agenda e aviso antes da reunião); não há janela de preferências separada. O botão ao lado dela abre o menu de energia (suspender, encerrar sessão, reiniciar e desligar). Durante uma gravação de tela, o cabeçalho mostra Parar gravação. Qualquer aba pode ser ocultada; se todas forem, a Geral continua visível.
 
 ## Estados da pílula
 
-Fechada, a pílula mostra hora, data, notificações, rede e bateria. Em Configurações › Pílula dá para escolher o modo (Mínimo, só o relógio; Compacto, tudo junto; Rotativo, com bateria, RAM e Claude revezando num espaço a cada poucos segundos), a posição no topo (centro, esquerda ou direita), a ordem dos itens e quais entram. Os ícones do sistema podem entrar separados (Bluetooth, Som, Microfone e Não perturbe, que só aparecem quando o GNOME os mostra) e o resto fica em "Outros ícones do sistema", sem repetir rede e bateria. Há também "Ícones de extensões": os indicadores que outras extensões põem na barra superior (AppIndicator, monitores de recurso e afins) aparecem na pílula, só para ver; clicar continua abrindo a ilha. Quando algo acontece, ela troca para uma atividade por no máximo 5 segundos e volta ao repouso; a mesma atividade só reaparece quando muda (gravação nova, outro passo do Claude, outra faixa, música retomada). Abrir a ilha dá como vistas as atividades em andamento. Com mais de uma ao mesmo tempo, vale esta ordem de prioridade, e a que foi interrompida volta depois com os 5 segundos inteiros:
+Fechada, a pílula mostra hora, data, notificações, rede e bateria. Em Configurações › Pílula dá para escolher o modo (Mínimo, só o relógio; Compacto, tudo junto; Rotativo, com bateria, RAM e as cotas de IA revezando num espaço a cada poucos segundos), a ordem dos itens e quais entram. Os ícones do sistema podem entrar separados (Bluetooth, Som, Microfone e Não perturbe, que só aparecem quando o GNOME os mostra) e o resto fica em "Outros ícones do sistema", sem repetir rede e bateria. Codex · 5 h, Codex · semana e Gemini · hoje entram com um anel na cor do assistente; itens de um assistente desligado em Configurações › IA somem. Há também "Ícones de extensões": os indicadores que outras extensões põem na barra superior (AppIndicator, monitores de recurso e afins) aparecem na pílula, só para ver; clicar continua abrindo a ilha. Quando algo acontece, ela troca para uma atividade por no máximo 5 segundos e volta ao repouso; a mesma atividade só reaparece quando muda (gravação nova, outro passo do Claude, outra faixa, música retomada). Abrir a ilha dá como vistas as atividades em andamento. Com mais de uma ao mesmo tempo, vale esta ordem de prioridade, e a que foi interrompida volta depois com os 5 segundos inteiros:
 
 1. Notificação recebida (qualquer uma que não seja crítica), por 3 segundos cada. Com a pílula flutuando, vira um card com o avatar arredondado, o app, o título e o corpo; na barra superior fica numa linha.
 2. Gravação de tela, com o tempo e o botão Parar (o cabeçalho da ilha também tem Parar gravação).
-3. Pedido de permissão do Claude, com a ferramenta e os botões Negar e Aprovar (o mais antigo, se houver vários).
-4. Sessão do Claude esperando permissão sem pedido aberto pela ilha, com o botão Abrir.
+3. Pedido de permissão do Claude Code ou do Codex, com a ferramenta e os botões Negar e Aprovar (o mais antigo, se houver vários).
+4. Sessão esperando permissão sem pedido aberto pela ilha (sempre o caso do Gemini CLI), com o botão Abrir.
 5. Reunião em breve, com a contagem regressiva e o botão Abrir.
 6. Volume alterado, por 1,5 segundo.
-7. Sessão do Claude trabalhando, a cada ferramenta nova, com o passo atual e o tempo.
+7. Sessão de IA trabalhando, a cada ferramenta nova, com o passo atual e o tempo.
 8. Música tocando, com capa redonda, título e botão de pausa.
 
-Clicar ou passar o mouse na pílula durante uma notificação abre a ilha na aba Notificações; durante uma sessão do Claude trabalhando, na aba Claude. Sem atividade, ela abre na Geral.
+Clicar ou passar o mouse na pílula durante uma notificação abre a ilha na aba Notificações; durante uma sessão de IA trabalhando, na aba IA. Sem atividade, ela abre na Geral.
 
 Em tela cheia a pílula some e fica só a lingueta no topo; passe o mouse ou clique nela para abrir a ilha. Com a barra superior oculta, o mesmo vale quando há uma janela maximizada ou encaixada na metade da tela visível no monitor, mesmo sem foco; nesse caso a pílula volta por cima da janela enquanto mostra uma notificação ou um pedido de permissão do Claude. Em tela cheia, e sempre que a barra superior está oculta, a ilha desliga o scanout direto do compositor, como o GNOME faz com banners e OSD, para a pílula e a dock não piscarem sobre o app.
 
+## Posição
+
+Em Configurações › Tela e posição, a grade 3×3 põe a ilha no topo ou embaixo, à esquerda, ao centro ou à direita; a linha do meio fica desligada para a ilha não abrir por cima das janelas. Embaixo, a ilha sempre flutua, fica acima da dock (respeita a área útil do monitor) e abre para cima. No topo, ela entra na barra superior, a menos que a barra esteja oculta.
+
 ## Fundo
 
-Em Configurações > Tela, "Fundo" escolhe o estilo da pílula e da ilha: Sólido (preto, o padrão), Fosco ou Translúcido. Nos dois últimos o fundo fica translúcido e o que está atrás aparece desfocado: papel de parede e janelas, com os cantos arredondados da forma. Com a pílula dentro da barra superior, só a ilha desfoca; a pílula fica translúcida sobre a barra, então o desfoque da barra feito pelo Blur my Shell aparece por trás dela. O desfoque é do próprio Frodo e não depende do Blur my Shell.
+Em Configurações › Tela e posição, "Fundo" escolhe o estilo da pílula e da ilha: Sólido (preto, o padrão), Fosco ou Translúcido. Nos dois últimos o fundo fica translúcido e o que está atrás aparece desfocado: papel de parede e janelas, com os cantos arredondados da forma. Com a pílula dentro da barra superior, só a ilha desfoca; a pílula fica translúcida sobre a barra, então o desfoque da barra feito pelo Blur my Shell aparece por trás dela. O desfoque é do próprio Frodo e não depende do Blur my Shell.
 
 ## Animações
 
@@ -188,9 +192,16 @@ Cada perfil do Claude Code (`CLAUDE_CONFIG_DIR`, como `~/.claude-trabalho`) tem 
 
 ### Aprovar pela ilha
 
-No `PermissionRequest`, o hook cria `$XDG_RUNTIME_DIR/frodo/pending/<session_id>.<pedido>.json` e espera a resposta em `decisions/` com o mesmo nome. A pílula e a linha expandida da sessão na aba Claude mostram Negar e Aprovar enquanto o processo do hook estiver vivo; o clique grava a decisão e o hook a devolve ao Claude Code (negar manda "Negado pela ilha do Frodo." e o Claude segue trabalhando). O diálogo do próprio Claude Code continua valendo: respondido lá, o hook percebe pelo próximo evento da sessão e sai.
+No `PermissionRequest`, o hook cria `$XDG_RUNTIME_DIR/frodo/pending/<session_id>.<pedido>.json` e espera a resposta em `decisions/` com o mesmo nome. A pílula e a linha expandida da sessão na aba Claude mostram Negar e Aprovar enquanto o processo do hook estiver vivo; o clique grava a decisão e o hook a devolve ao Claude Code (negar manda "Negado pela ilha do Frodo." e o Claude segue trabalhando). O Codex usa o mesmo protocolo (o hook recebe `codex` como argumento). O diálogo do próprio Claude Code continua valendo: respondido lá, o hook percebe pelo próximo evento da sessão e sai.
 
 O hook só espera se a extensão estiver ligada (ela grava o pid do shell em `$XDG_RUNTIME_DIR/frodo/alive`); desligada, o pedido segue só no diálogo, sem atraso. Ele espera até 590 s em sessões do Claude desktop (`CLAUDE_CODE_ENTRYPOINT=claude-desktop`) e 15 s nas demais. O `timeout` do `PermissionRequest` no `settings.json` precisa ficar ausente (padrão de 600 s) ou ser 600; com um valor menor, o Claude Code mata a espera antes do clique.
+
+### Codex e Gemini CLI
+
+Em Configurações › IA, "Instalar hook" acrescenta o mesmo `hooks/claude-session.sh` com o argumento `codex` em `~/.codex/hooks.json` (ou `$CODEX_HOME`) e com `gemini` em `~/.gemini/settings.json`, sem mexer nos hooks que já existem (o arquivo anterior fica em `<arquivo>.frodo.bak`). Reinicie o CLI depois; o Codex pede para confiar no hook novo.
+
+- **Codex:** sessões com status e pedidos de permissão aprovados ou negados pela ilha, como no Claude Code. Cotas (janela de 5 h e semana) e consumo vêm de `~/.codex/sessions/**/rollout-*.jsonl`.
+- **Gemini CLI:** só status. O Gemini não deixa responder pedidos por hook (`BeforeTool` com `allow` não pula a confirmação e `Notification` é só aviso), então a pílula avisa e oferece Abrir. Consumo vem de `~/.gemini/tmp/*/chats/`; a cota é estimada contando os pedidos desde a meia-noite do Pacífico contra o limite escolhido (1.000, 1.500 ou 2.000).
 
 ## Scripts
 
@@ -216,8 +227,8 @@ src/
                           (um por monitor), panel-content.ts, header.ts, tab-bar.ts, power-menu.ts,
                           top-bar-visibility.ts e monitors.ts
   pill/                   pílula: visão ociosa, visão de atividade, feed e prioridade das atividades
-  tabs/<aba>/             uma pasta por aba: general, calendar, workspaces, claude, notifications, settings
-  features/<domínio>/     regra pura e serviço de cada fonte de dados: claude, media, meetings,
+  tabs/<aba>/             uma pasta por aba: general, calendar, workspaces, claude (aba IA), notifications, settings
+  features/<domínio>/     regra pura e serviço de cada fonte de dados: claude, codex, gemini, media, meetings,
                           notifications, system, workspaces
   settings/               GSettings tipado, valores do schema, perfis do Claude, atalho e abas
   shared/                 Emitter, Disposables, Timer, formatação, geometria, curva de mola, leitura de arquivo, nível,
@@ -239,7 +250,9 @@ Fontes de dados em `src/features/`:
 - Notificações (`notifications/notification-bridge-service.ts`): fila do shell, contagem e avisos para a pílula.
 - Claude (`claude/claude-service.ts`, `claude/claude-client.ts`, `claude/claude-profiles-service.ts`): uso e limites por perfil, com renovação de token.
 - Transcrições do Claude (`claude/claude-transcripts-service.ts`): índice persistente em `$XDG_CACHE_HOME/frodo/claude-index.json`, lido em pedaços e só nos bytes novos.
-- Sessões do Claude (`claude/claude-sessions-service.ts`): estado vindo do hook, acompanhado com `Gio.FileMonitor`.
+- Sessões de IA (`claude/claude-sessions-service.ts`): estado vindo do hook (Claude Code, Codex e Gemini CLI, cada uma com o seu `provider`), acompanhado com `Gio.FileMonitor`; também instala os hooks do Codex e do Gemini.
+- Codex (`codex/codex-service.ts`): cotas pela cauda do rollout mais novo e consumo dos últimos 30 dias.
+- Gemini CLI (`gemini/gemini-service.ts`): pedidos do dia (cota estimada) e consumo dos últimos 30 dias.
 - Mídia (`media/media-service.ts`): MPRIS com proxies próprios.
 - Áreas de trabalho (`workspaces/workspaces-service.ts`), gravação de tela (`system/recording-service.ts`), volume (`system/volume-service.ts`) e reuniões (`meetings/meetings-service.ts`).
 

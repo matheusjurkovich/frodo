@@ -13,6 +13,7 @@ import {
     shownPercent,
     tierIcon,
     tierLabel,
+    claudeMeters,
 } from './claude-usage.js';
 import type {LevelInput} from './claude-usage.js';
 
@@ -222,5 +223,29 @@ describe('conta e erros', () => {
         expect(claudeErrorMessage(429, null)).toBe('Limite de requisições do Claude; tentando de novo em breve.');
         expect(claudeErrorMessage(null, null)).toBe('Não foi possível falar com o Claude.');
         expect(claudeErrorMessage(500, null)).toBe('Erro do Claude (HTTP 500).');
+    });
+
+    it('resume sessão e semana como medidores', () => {
+        const now = Date.UTC(2026, 9, 28, 12);
+        const window = {totalSeconds: null, apiLevel: 'ok', isActive: true} as const;
+        const meters = claudeMeters(
+            [
+                {
+                    ...window,
+                    key: 'five_hour',
+                    label: 'Sessão atual',
+                    role: 'session',
+                    utilization: 62,
+                    resetsAt: new Date(now + 3600e3).toISOString(),
+                },
+                {...window, key: 'opus', label: 'Opus', role: 'scoped', utilization: 90, resetsAt: null},
+                {...window, key: 'seven_day', label: 'Semana', role: 'weekly', utilization: 34, resetsAt: null},
+            ],
+            now,
+        );
+        expect(meters.map(({short, percent, note}) => [short, percent, note])).toEqual([
+            ['Sessão 5 h', 62, 'Reinicia em 1 h'],
+            ['Semana', 34, ''],
+        ]);
     });
 });

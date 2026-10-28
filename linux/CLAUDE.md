@@ -5,8 +5,8 @@ Guia deste repositório para o Claude Code.
 ## Propósito
 
 Extensão do GNOME Shell 50 (Wayland) em TypeScript: uma dynamic island no topo da tela. Fechada, é a pílula (hora, bateria,
-RAM, uso do Claude Code e atividades como gravação, reunião e música). Aberta, é a ilha com as abas Geral, Calendário, Áreas
-de trabalho, Claude e Notificações, mais configurações e menu de energia. Roda dentro do `gnome-shell`, sem processo extra.
+RAM, uso do Claude Code, Codex e Gemini CLI e atividades como gravação, reunião e música). Aberta, é a ilha com as abas
+Geral, Calendário, Áreas de trabalho, IA e Notificações, mais configurações e menu de energia. Roda dentro do `gnome-shell`, sem processo extra.
 Produto, abas e prioridade da pílula: `README.md` (desta pasta). Este diretório é a versão Linux do monorepo; o guia geral está
 em `../CLAUDE.md`.
 
@@ -14,24 +14,24 @@ em `../CLAUDE.md`.
 
 Código agrupado por camada e domínio. Import só desce: `app → pill, tabs → features → settings → shared`.
 
-| Caminho                   | Papel                                                                                                                                                                                                    |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/extension.ts`        | `enable`/`disable`: ícones, `createServices`, barra do topo, ilhas e atalhos                                                                                                                             |
-| `src/app/`                | A ilha: `services.ts` (`FrodoServices`, `createServices`), `island.ts`, `island-manager.ts`, cabeçalho, barra de abas, menu de energia, barra do topo, monitores                                         |
-| `src/pill/`               | Pílula: visão ociosa, visão de atividade, feed e prioridade das atividades                                                                                                                               |
-| `src/tabs/<aba>/`         | Uma pasta plana por aba: `general`, `calendar`, `workspaces`, `claude`, `notifications`, `settings`                                                                                                      |
-| `src/features/<domínio>/` | Regra pura (`<assunto>.ts`) e serviço (`<assunto>-service.ts`, `claude-client.ts`) de cada fonte de dados: `claude`, `media`, `meetings`, `notifications`, `system`, `workspaces`                        |
-| `src/settings/`           | GSettings tipado (`frodo-settings.ts`), valores do schema, perfis do Claude, atalho, abas                                                                                                                |
-| `src/shared/`             | `Emitter`, `Disposables`, `Timer`, formatação, geometria, curva de mola (`spring.ts`), `readTextFile`, `Level`, `IslandHandle`, `shell-internals.ts`                                                     |
-| `src/shared/ui/`          | Componentes St: botões, cards, layout, anel, barra de segmentos, segmentado, quebra de linha (`Wrap`), ícones, `ActorLoan`, movimento (`motion.ts`), vidro (`glass.ts`)                                  |
-| `src/types/`              | Declarações que faltam nos `@girs`                                                                                                                                                                       |
-| `tests/`                  | Runner Jasmine (`entry.js` acha todo `*.spec.ts`), polyfills e fixtures                                                                                                                                  |
-| `tools/`                  | `smoke.sh`: headless isolado liga, desliga e religa; `devkit.sh`: shell aninhado ao vivo                                                                                                                 |
-| `stylesheet.css`          | Todo o visual (cor só existe aqui)                                                                                                                                                                       |
-| `schemas/`                | Schema do GSettings                                                                                                                                                                                      |
-| `../shared/hooks/`        | `claude-session.sh`: hook do Claude Code que grava o estado de cada sessão e, no `PermissionRequest`, espera e devolve a decisão da ilha (compartilhado com o macOS; o build o copia para `dist/hooks/`) |
-| `../shared/icons/`        | SVG simbólicos (`frodo-<nome>-symbolic.svg`), compartilhados com o macOS                                                                                                                                 |
-| `../docs/superpowers/`    | Specs e planos (redesign, arquitetura)                                                                                                                                                                   |
+| Caminho                   | Papel                                                                                                                                                                                                                                                                               |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/extension.ts`        | `enable`/`disable`: ícones, `createServices`, barra do topo, ilhas e atalhos                                                                                                                                                                                                        |
+| `src/app/`                | A ilha: `services.ts` (`FrodoServices`, `createServices`), `island.ts`, `island-manager.ts`, cabeçalho, barra de abas, menu de energia, barra do topo, monitores                                                                                                                    |
+| `src/pill/`               | Pílula: visão ociosa, visão de atividade, feed e prioridade das atividades                                                                                                                                                                                                          |
+| `src/tabs/<aba>/`         | Uma pasta plana por aba: `general`, `calendar`, `workspaces`, `claude` (aba IA), `notifications`, `settings`                                                                                                                                                                        |
+| `src/features/<domínio>/` | Regra pura (`<assunto>.ts`) e serviço (`<assunto>-service.ts`, `claude-client.ts`) de cada fonte de dados: `claude`, `codex`, `gemini`, `media`, `meetings`, `notifications`, `system`, `workspaces`                                                                                |
+| `src/settings/`           | GSettings tipado (`frodo-settings.ts`), valores do schema, perfis do Claude, atalho, abas                                                                                                                                                                                           |
+| `src/shared/`             | `Emitter`, `Disposables`, `Timer`, formatação, geometria, curva de mola (`spring.ts`), `readTextFile`, `Level`, `IslandHandle`, `shell-internals.ts`, consumo (`consumption.ts`), cotas (`meter.ts`), provedores de IA (`ai-provider.ts`)                                           |
+| `src/shared/ui/`          | Componentes St: botões, cards, layout, anel, barra de segmentos, segmentado, switch, tile de provedor, quebra de linha (`Wrap`), ícones, `ActorLoan`, movimento (`motion.ts`), vidro (`glass.ts`)                                                                                   |
+| `src/types/`              | Declarações que faltam nos `@girs`                                                                                                                                                                                                                                                  |
+| `tests/`                  | Runner Jasmine (`entry.js` acha todo `*.spec.ts`), polyfills e fixtures                                                                                                                                                                                                             |
+| `tools/`                  | `smoke.sh`: headless isolado liga, desliga e religa; `devkit.sh`: shell aninhado ao vivo                                                                                                                                                                                            |
+| `stylesheet.css`          | Todo o visual (cor só existe aqui)                                                                                                                                                                                                                                                  |
+| `schemas/`                | Schema do GSettings                                                                                                                                                                                                                                                                 |
+| `../shared/hooks/`        | `claude-session.sh`: hook do Claude Code, Codex e Gemini CLI (argumento `codex` ou `gemini`; sem argumento, Claude) que grava o estado de cada sessão e, no `PermissionRequest`, espera e devolve a decisão da ilha (compartilhado com o macOS; o build o copia para `dist/hooks/`) |
+| `../shared/icons/`        | SVG simbólicos (`frodo-<nome>-symbolic.svg`), compartilhados com o macOS                                                                                                                                                                                                            |
+| `../docs/superpowers/`    | Specs e planos (redesign, arquitetura)                                                                                                                                                                                                                                              |
 
 ## Regras inegociáveis
 
@@ -67,6 +67,14 @@ Responda na ordem; o primeiro "sim" decide.
 
 Serviço novo: crie em `features/`, acrescente o campo em `FrodoServices` e a linha em `createServices` (`src/app/services.ts`).
 Quem precisa dele recebe pelo construtor.
+
+## Armadilhas do St
+
+- `min-height` no CSS **substitui** a altura mínima calculada, não é piso. Como o `St.Viewport` da ilha dimensiona o conteúdo
+  rolável pela altura mínima, uma caixa com `min-height` mais baixa que o conteúdo é esmagada quando a página rola. Para altura
+  mínima de linha, use um filho fixo (`frodo-settings-strut`), nunca `min-height` em caixa com conteúdo variável.
+- `St.PolicyType.EXTERNAL` esconde a barra de rolagem e mantém a rolagem; `AUTOMATIC` faz a barra aparecer e sumir quando a
+  altura muda (o pisca ao abrir um submenu).
 
 ## Padrões de código
 

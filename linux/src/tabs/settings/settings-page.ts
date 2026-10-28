@@ -2,25 +2,28 @@ import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import St from 'gi://St';
-import {CheckBox} from 'resource:///org/gnome/shell/ui/checkBox.js';
 
+import type {HookedAgent} from '../../features/claude/agent-hooks.js';
 import {isActiveProfile} from '../../features/claude/claude-profiles.js';
 import {profileFor} from '../../features/claude/claude-profiles-service.js';
+import type {ClaudeSessions} from '../../features/claude/claude-sessions-service.js';
+import {defaultConfigDir} from '../../features/claude/claude-client.js';
 import {expandHome} from '../../settings/claude-profile.js';
 import type {ClaudeProfile} from '../../settings/claude-profile.js';
 import {accelerator, shortcutLabel} from '../../settings/shortcut.js';
 import {TAB_LABELS, visibleTabs} from '../../settings/tabs.js';
-import {TAB_IDS} from '../../settings/schema-values.js';
-import type {ClosedItem, ClosedMode, MonitorMode, PillPosition, SurfaceStyle, TabId} from '../../settings/schema-values.js';
-import {defaultConfigDir} from '../../features/claude/claude-client.js';
-import type {FrodoSettings} from '../../settings/frodo-settings.js';
+import {GEMINI_DAILY_LIMITS, MEETING_NOTICE_MINUTES, TAB_IDS} from '../../settings/schema-values.js';
+import type {AiProvider, ClosedItem, ClosedMode, MonitorMode, PillPosition, SurfaceStyle} from '../../settings/schema-values.js';
+import type {FrodoSettings, SettingsKey} from '../../settings/frodo-settings.js';
 import {spawn} from '../../shared/shell-internals.js';
 import {Disposables} from '../../shared/disposables.js';
-import {backHeader, card, cardTitle} from '../../shared/ui/card.js';
+import {backHeader, card} from '../../shared/ui/card.js';
 import {chip, iconButton, textButton} from '../../shared/ui/buttons.js';
-import {column, dimLabel, label, row, spacer} from '../../shared/ui/layout.js';
+import {column, dimLabel, label, row} from '../../shared/ui/layout.js';
 import type {Component} from '../../shared/ui/lifecycle.js';
+import {providerTile} from '../../shared/ui/provider-tile.js';
 import {Segmented} from '../../shared/ui/segmented.js';
+import {Switch} from '../../shared/ui/switch.js';
 import {Wrap} from '../../shared/ui/wrap.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
 import type {FrodoIconName} from '../../shared/ui/icons.js';
@@ -65,15 +68,10 @@ const PILL_MODES: readonly {id: ClosedMode; label: string}[] = [
 const MODE_HINTS: Record<ClosedMode, string> = {
     minimal: 'Só o relógio, a pílula mais discreta.',
     compact: 'Todos os itens aparecem ao mesmo tempo.',
-    rotating: 'Bateria, RAM e Claude dividem um espaço e se revezam.',
+    rotating: 'Bateria, RAM e as cotas de IA dividem um espaço e se revezam.',
 };
 
-const PILL_POSITIONS: readonly {id: PillPosition; label: string}[] = [
-    {id: 'center', label: 'Centro'},
-    {id: 'left', label: 'Esquerda'},
-    {id: 'right', label: 'Direita'},
-];
-
+type SectionId = 'general' | 'screen' | 'pill' | 'tabs' | 'ai' | 'agenda';
 type ShortcutKey = 'toggle-shortcut' | 'claude-shortcut';
 
 interface Range {
@@ -87,45 +85,75 @@ export interface SettingsActions {
     readonly grabKeyboard: (focus: Clutter.Actor) => void;
 }
 
-function tile(child: Clutter.Actor, styleClass: string): St.Bin {
-    child.set({x_align: Clutter.ActorAlign.CENTER, y_align: Clutter.ActorAlign.CENTER, x_expand: true, y_expand: true});
-    return new St.Bin({style_class: `frodo-integration-icon ${styleClass}`, child, y_align: Clutter.ActorAlign.CENTER});
+const SECTIONS: readonly {id: SectionId; label: string; icon: FrodoIconName}[] = [
+    {id: 'general', label: 'Geral', icon: 'gear'},
+    {id: 'screen', label: 'Tela e posição', icon: 'expand'},
+    {id: 'pill', label: 'Pílula', icon: 'general'},
+    {id: 'tabs', label: 'Abas', icon: 'workspaces'},
+    {id: 'ai', label: 'IA', icon: 'claude'},
+    {id: 'agenda', label: 'Agenda', icon: 'calendar'},
+];
+
+const POSITION_GRID: readonly (readonly ({id: PillPosition; label: string} | null)[])[] = [
+    [
+        {id: 'left', label: 'Topo, à esquerda'},
+        {id: 'center', label: 'Topo, ao centro'},
+        {id: 'right', label: 'Topo, à direita'},
+    ],
+    [null, null, null],
+    [
+        {id: 'bottom-left', label: 'Embaixo, à esquerda'},
+        {id: 'bottom-center', label: 'Embaixo, ao centro'},
+        {id: 'bottom-right', label: 'Embaixo, à direita'},
+    ],
+];
+
+const GEMINI_LIMITS: readonly {id: string; label: string}[] = GEMINI_DAILY_LIMITS.map(limit => ({
+    id: String(limit),
+    label: limit.toLocaleString('pt-BR'),
+}));
+
+const NOTICES: readonly {id: string; label: string}[] = MEETING_NOTICE_MINUTES.map(minutes => ({
+    id: String(minutes),
+    label: minutes === 0 ? 'Não avisar' : `${minutes} min`,
+}));
+
+const HOOK_PATHS: Record<HookedAgent, string> = {codex: '~/.codex/hooks.json', gemini: '~/.gemini/settings.json'};
+
+function wrapped(text: string, styleClass: string): St.Label {
+    const result = label(text, styleClass);
+    result.clutter_text.line_wrap = true;
+    return result;
 }
 
-function integration(icon: St.Bin, title: string, subtitle: St.Widget, action?: St.Button): St.BoxLayout {
-    const item = row('frodo-integration');
-    const text = column('frodo-integration-text');
+function line(title: string | St.Widget, subtitle: string | St.Widget | null, ...controls: Clutter.Actor[]): St.BoxLayout {
+    const item = row('frodo-settings-line');
+    const text = column('frodo-settings-line-text');
+    text.x_expand = true;
     text.y_align = Clutter.ActorAlign.CENTER;
-    text.add_child(label(title, 'frodo-integration-title'));
-    text.add_child(subtitle);
-    item.add_child(icon);
+    text.add_child(typeof title === 'string' ? wrapped(title, 'frodo-settings-text') : title);
+    if (subtitle !== null) text.add_child(typeof subtitle === 'string' ? wrapped(subtitle, 'frodo-settings-subtitle') : subtitle);
     item.add_child(text);
-    if (action) item.add_child(action);
+    for (const control of controls) {
+        control.y_align = Clutter.ActorAlign.CENTER;
+        item.add_child(control);
+    }
+    item.add_child(strut());
     return item;
 }
 
-function settingsRow(text: string, ...controls: Clutter.Actor[]): St.BoxLayout {
-    const line = row('frodo-settings-row');
-    line.add_child(label(text, 'frodo-settings-text'));
-    line.add_child(spacer());
-    for (const control of controls) line.add_child(control);
-    return line;
+function strut(): St.Widget {
+    return new St.Widget({style_class: 'frodo-settings-strut'});
 }
 
-function stack(...cards: St.Widget[]): St.BoxLayout {
-    const side = column('frodo-section');
-    for (const child of cards) side.add_child(child);
-    const last = cards.at(-1);
-    if (last) last.y_expand = true;
-    return side;
-}
-
-function columns(left: St.BoxLayout, right: St.BoxLayout): St.BoxLayout {
-    const box = row('frodo-settings-columns');
-    box.layout_manager.homogeneous = true;
-    box.add_child(left);
-    box.add_child(right);
-    return box;
+function group(title: string, lines: readonly St.Widget[], hint?: string): St.BoxLayout {
+    const section = column('frodo-settings-group');
+    section.add_child(label(title, 'frodo-settings-group-title'));
+    const box = card('frodo-settings-group-card');
+    for (const child of lines) box.add_child(child);
+    section.add_child(box);
+    if (hint) section.add_child(wrapped(hint, 'frodo-settings-hint'));
+    return section;
 }
 
 function homePath(path: string): string {
@@ -136,62 +164,90 @@ function homePath(path: string): string {
 export class SettingsPage implements Component {
     readonly actor = column('frodo-section');
     readonly #settings: FrodoSettings;
+    readonly #sessions: ClaudeSessions;
+    readonly #actions: SettingsActions;
     readonly #interface = new Gio.Settings({schema_id: INTERFACE_SCHEMA});
     readonly #disposables = new Disposables();
     readonly #bindings: (() => void)[] = [];
-    readonly #tabBoxes = new Map<TabId, CheckBox>();
-    readonly #configDir = label('', 'frodo-integration-subtitle frodo-mono');
+    readonly #nav = new Map<SectionId, St.Button>();
+    readonly #sections = new Map<SectionId, St.BoxLayout>();
     readonly #profiles = column('frodo-settings-profiles');
     readonly #newProfile = new St.Entry({style_class: 'frodo-entry', hint_text: '~/.claude-trabalho', can_focus: true, x_expand: true});
     readonly #pillEditor = column('frodo-pill-editor');
-    readonly #grabKeyboard: (focus: Clutter.Actor) => void;
+    #section: SectionId = 'general';
     #pillSelected: ClosedItem | null = null;
     #capture: {readonly button: St.Button; readonly id: number} | null = null;
+    #destroyed = false;
 
-    constructor(settings: FrodoSettings, actions: SettingsActions) {
+    constructor(settings: FrodoSettings, sessions: ClaudeSessions, actions: SettingsActions) {
         this.#settings = settings;
-        this.#grabKeyboard = actions.grabKeyboard;
+        this.#sessions = sessions;
+        this.#actions = actions;
         this.#typing(this.#newProfile);
 
-        this.actor.add_child(backHeader('Configurações da ilha', actions.back));
-        this.actor.add_child(this.#pill());
-        this.actor.add_child(
-            columns(
-                stack(this.#behavior(), this.#screen(), this.#claude()),
-                stack(this.#tabs(), this.#shortcuts(), this.#integrations(actions)),
-            ),
-        );
+        this.actor.add_child(backHeader('Configurações', actions.back));
+        const body = row('frodo-settings-body');
+        const nav = column('frodo-settings-nav');
+        nav.x_expand = false;
+        nav.y_align = Clutter.ActorAlign.START;
+        const content = column('frodo-settings-content');
+        content.x_expand = true;
+        const builders: Record<SectionId, () => St.Widget[]> = {
+            general: () => [this.#behavior(), this.#shortcuts()],
+            screen: () => [this.#position(), this.#screen()],
+            pill: () => [this.#pill()],
+            tabs: () => [this.#tabs()],
+            ai: () => [this.#usage(), this.#claude(), this.#codex(), this.#gemini()],
+            agenda: () => [this.#agenda()],
+        };
+        for (const {id, label: text, icon} of SECTIONS) {
+            const item = row('frodo-settings-nav-content');
+            item.add_child(new St.Icon({gicon: frodoIcon(icon), style_class: 'frodo-settings-nav-icon'}));
+            item.add_child(label(text, 'frodo-settings-nav-label'));
+            const button = new St.Button({style_class: 'frodo-settings-nav-item', child: item, can_focus: true, accessible_name: text});
+            button.connect('clicked', () => {
+                this.#show(id);
+            });
+            this.#nav.set(id, button);
+            nav.add_child(button);
+            const section = column('frodo-settings-section');
+            for (const child of builders[id]()) section.add_child(child);
+            this.#sections.set(id, section);
+            content.add_child(section);
+        }
+        body.add_child(nav);
+        body.add_child(content);
+        this.actor.add_child(body);
 
         const sync = (): void => {
             this.#sync();
         };
-        this.#disposables.add(
-            settings.onChanged(
-                [
-                    'closed-mode',
-                    'rotate-seconds',
-                    'pill-position',
-                    'open-on-hover',
-                    'auto-close',
-                    'hidden-tabs',
-                    'monitors',
-                    'hide-top-bar',
-                    'surface-style',
-                    'claude-poll-minutes',
-                    'claude-show-remaining',
-                    'toggle-shortcut',
-                    'claude-shortcut',
-                ],
-                sync,
-            ),
-        );
+        const keys: SettingsKey[] = [
+            'closed-mode',
+            'rotate-seconds',
+            'pill-position',
+            'open-on-hover',
+            'auto-close',
+            'hidden-tabs',
+            'monitors',
+            'hide-top-bar',
+            'surface-style',
+            'claude-poll-minutes',
+            'claude-show-remaining',
+            'toggle-shortcut',
+            'claude-shortcut',
+            'disabled-ai',
+            'gemini-daily-limit',
+            'meeting-notice-minutes',
+        ];
+        this.#disposables.add(settings.onChanged(keys, sync));
         this.#disposables.add(
             settings.onChanged('claude-profiles', () => {
                 this.#renderProfiles();
             }),
         );
         this.#disposables.add(
-            settings.onChanged(['closed-mode', 'closed-items'], () => {
+            settings.onChanged(['closed-mode', 'closed-items', 'disabled-ai'], () => {
                 this.#renderPillEditor();
             }),
         );
@@ -201,7 +257,14 @@ export class SettingsPage implements Component {
         });
         this.#renderProfiles();
         this.#renderPillEditor();
+        this.#show(this.#section);
         this.#sync();
+    }
+
+    #show(id: SectionId): void {
+        this.#section = id;
+        for (const [other, button] of this.#nav) button.checked = other === id;
+        for (const [other, section] of this.#sections) section.visible = other === id;
     }
 
     #typing(entry: St.Entry): void {
@@ -210,16 +273,20 @@ export class SettingsPage implements Component {
         });
     }
 
-    #check(text: string, read: () => boolean, write: (checked: boolean) => void): CheckBox {
-        const box = new CheckBox(text);
-        box.add_style_class_name('frodo-check');
-        box.connect('notify::checked', () => {
-            if (box.checked !== read()) write(box.checked);
+    #grabKeyboard(focus: Clutter.Actor): void {
+        this.#actions.grabKeyboard(focus);
+    }
+
+    #switch(name: string, read: () => boolean, write: (checked: boolean) => void): St.Button {
+        const toggle = this.#disposables.own(new Switch(name));
+        toggle.checked = read();
+        toggle.on('toggled', checked => {
+            if (checked !== read()) write(checked);
         });
         this.#bindings.push(() => {
-            box.checked = read();
+            toggle.checked = read();
         });
-        return box;
+        return toggle.actor;
     }
 
     #segmented<T extends string>(options: readonly {id: T; label: string}[], read: () => T, write: (value: T) => void): St.BoxLayout {
@@ -252,12 +319,157 @@ export class SettingsPage implements Component {
         return stepper;
     }
 
+    #behavior(): St.BoxLayout {
+        const settings = this.#settings;
+        return group('Comportamento', [
+            line(
+                'Abrir ao passar o mouse',
+                null,
+                this.#switch(
+                    'Abrir ao passar o mouse',
+                    () => settings.openOnHover,
+                    checked => {
+                        settings.openOnHover = checked;
+                    },
+                ),
+            ),
+            line(
+                'Recolher sozinha após 5 s',
+                'Quando aberta por clique ou atalho',
+                this.#switch(
+                    'Recolher sozinha após 5 s',
+                    () => settings.autoClose,
+                    checked => {
+                        settings.autoClose = checked;
+                    },
+                ),
+            ),
+            line(
+                'Mostrar segundos no relógio',
+                null,
+                this.#switch(
+                    'Mostrar segundos no relógio',
+                    () => this.#interface.get_boolean(SHOW_SECONDS_KEY),
+                    checked => {
+                        this.#interface.set_boolean(SHOW_SECONDS_KEY, checked);
+                    },
+                ),
+            ),
+        ]);
+    }
+
+    #shortcuts(): St.BoxLayout {
+        return group(
+            'Atalhos',
+            [this.#shortcutRow('Abrir e fechar a ilha', 'toggle-shortcut'), this.#shortcutRow('Abrir na aba IA', 'claude-shortcut')],
+            'Clique em Alterar e pressione a nova combinação. Esc cancela.',
+        );
+    }
+
+    #position(): St.BoxLayout {
+        const settings = this.#settings;
+        const current = label('', 'frodo-settings-accent');
+        const text = column('frodo-settings-line-text');
+        text.x_expand = true;
+        text.y_align = Clutter.ActorAlign.CENTER;
+        text.add_child(label('Onde a ilha fica', 'frodo-settings-text'));
+        text.add_child(current);
+        text.add_child(
+            wrapped(
+                'Embaixo, a ilha abre para cima e sempre flutua. O meio da tela fica de fora para a ilha não abrir por cima das janelas.',
+                'frodo-settings-subtitle',
+            ),
+        );
+        const picker = column('frodo-position-grid');
+        picker.y_align = Clutter.ActorAlign.CENTER;
+        const cells: {id: PillPosition; label: string; button: St.Button}[] = [];
+        POSITION_GRID.forEach((cellsInRow, rowIndex) => {
+            const line = row('frodo-position-row');
+            line.layout_manager.homogeneous = true;
+            cellsInRow.forEach((cell, columnIndex) => {
+                if (!cell) {
+                    const screen = rowIndex === 1 && columnIndex === 1;
+                    line.add_child(new St.Widget({style_class: screen ? 'frodo-position-screen' : 'frodo-position-off', x_expand: true}));
+                    return;
+                }
+                const button = new St.Button({
+                    style_class: 'frodo-position-cell',
+                    can_focus: true,
+                    x_expand: true,
+                    accessible_name: cell.label,
+                    child: new St.Widget({
+                        style_class: 'frodo-position-mark',
+                        x_align: Clutter.ActorAlign.CENTER,
+                        y_align: Clutter.ActorAlign.CENTER,
+                    }),
+                });
+                button.connect('clicked', () => {
+                    settings.pillPosition = cell.id;
+                });
+                cells.push({...cell, button});
+                line.add_child(button);
+            });
+            picker.add_child(line);
+        });
+        this.#bindings.push(() => {
+            const position = settings.pillPosition;
+            for (const cell of cells) cell.button.checked = cell.id === position;
+            current.text = cells.find(cell => cell.id === position)?.label ?? '';
+        });
+        const item = row('frodo-settings-line');
+        item.add_child(text);
+        item.add_child(picker);
+        item.add_child(strut());
+        return group('Posição', [item]);
+    }
+
+    #screen(): St.BoxLayout {
+        const settings = this.#settings;
+        return group('Tela', [
+            line(
+                'Monitores',
+                'Em Ambos, cada tela tem a sua ilha',
+                this.#segmented(
+                    MONITORS,
+                    () => settings.monitors,
+                    mode => {
+                        settings.monitors = mode;
+                    },
+                ),
+            ),
+            line(
+                'Fundo',
+                'Fosco desfoca o que está atrás. Use Sólido se a abertura ficar pesada.',
+                this.#segmented(
+                    SURFACES,
+                    () => settings.surfaceStyle,
+                    style => {
+                        settings.surfaceStyle = style;
+                    },
+                ),
+            ),
+            line(
+                'Ocultar barra superior',
+                'Relógio, bandeja e indicadores passam a viver na ilha',
+                this.#switch(
+                    'Ocultar barra superior',
+                    () => settings.hideTopBar,
+                    checked => {
+                        settings.hideTopBar = checked;
+                    },
+                ),
+            ),
+        ]);
+    }
+
     #pill(): St.BoxLayout {
         const settings = this.#settings;
         const pill = card('frodo-settings-card');
         const header = row('frodo-settings-row');
-        header.add_child(cardTitle('Pílula'));
-        header.add_child(spacer());
+        const title = label('Pílula', 'frodo-card-title');
+        title.x_expand = true;
+        title.y_align = Clutter.ActorAlign.CENTER;
+        header.add_child(title);
         header.add_child(
             this.#segmented(
                 PILL_MODES,
@@ -273,20 +485,9 @@ export class SettingsPage implements Component {
         const hint = dimLabel();
         hint.clutter_text.line_wrap = true;
         options.add_child(hint);
-        options.add_child(
-            settingsRow(
-                'Posição na tela',
-                this.#segmented(
-                    PILL_POSITIONS,
-                    () => settings.pillPosition,
-                    position => {
-                        settings.pillPosition = position;
-                    },
-                ),
-            ),
-        );
-        const rotate = settingsRow(
+        const rotate = line(
             'Trocar a cada',
+            null,
             this.#stepper(
                 ROTATE_SECONDS,
                 's',
@@ -296,12 +497,17 @@ export class SettingsPage implements Component {
                 },
             ),
         );
+        rotate.add_style_class_name('frodo-settings-line-flat');
         options.add_child(rotate);
         this.#bindings.push(() => {
             hint.text = MODE_HINTS[settings.closedMode];
             rotate.visible = settings.closedMode === 'rotating';
         });
-        pill.add_child(columns(options, this.#pillEditor));
+        const columns = row('frodo-settings-columns');
+        columns.layout_manager.homogeneous = true;
+        columns.add_child(options);
+        columns.add_child(this.#pillEditor);
+        pill.add_child(columns);
         return pill;
     }
 
@@ -310,12 +516,12 @@ export class SettingsPage implements Component {
         const editor = this.#pillEditor;
         editor.destroy_all_children();
         if (settings.closedMode === 'minimal') {
-            const note = label(
-                'No modo Mínimo a pílula mostra só o relógio. Escolha Compacto ou Rotativo para montar os itens.',
-                'frodo-pill-note',
+            editor.add_child(
+                wrapped(
+                    'No modo Mínimo a pílula mostra só o relógio. Escolha Compacto ou Rotativo para montar os itens.',
+                    'frodo-pill-note',
+                ),
             );
-            note.clutter_text.line_wrap = true;
-            editor.add_child(note);
             return;
         }
 
@@ -347,7 +553,6 @@ export class SettingsPage implements Component {
 
         if (selected) {
             const index = items.indexOf(selected);
-            const toolbar: St.Button[] = [];
             const action = (
                 text: string,
                 enabled: boolean,
@@ -360,7 +565,7 @@ export class SettingsPage implements Component {
                 button.can_focus = enabled;
                 return button;
             };
-            toolbar.push(
+            const toolbar = [
                 action(
                     'Mover para a esquerda',
                     index > 0,
@@ -370,8 +575,6 @@ export class SettingsPage implements Component {
                     'control',
                     'back',
                 ),
-            );
-            toolbar.push(
                 action(
                     'Mover para a direita',
                     index < items.length - 1,
@@ -381,8 +584,6 @@ export class SettingsPage implements Component {
                     'control',
                     'forward',
                 ),
-            );
-            toolbar.push(
                 action(
                     'Tirar',
                     items.length > 1,
@@ -392,13 +593,13 @@ export class SettingsPage implements Component {
                     },
                     'danger',
                 ),
-            );
+            ];
             editor.add_child(new Wrap('frodo-pill-toolbar', toolbar).actor);
         } else {
             editor.add_child(dimLabel('Clique num item para movê-lo ou tirá-lo.'));
         }
 
-        const missing = missingItems(items);
+        const missing = missingItems(items, settings.enabledProviders);
         if (missing.length === 0) return;
         editor.add_child(label('Adicionar', 'frodo-settings-text'));
         const available = missing.map(item => {
@@ -418,46 +619,10 @@ export class SettingsPage implements Component {
         editor.add_child(new Wrap('frodo-pill-items', available).actor);
     }
 
-    #behavior(): St.BoxLayout {
-        const settings = this.#settings;
-        const behavior = card('frodo-settings-card');
-        behavior.add_child(cardTitle('Comportamento'));
-        behavior.add_child(
-            this.#check(
-                'Expandir ao passar o mouse',
-                () => settings.openOnHover,
-                checked => {
-                    settings.openOnHover = checked;
-                },
-            ),
-        );
-        behavior.add_child(
-            this.#check(
-                'Recolher sozinha após 5 s sem uso',
-                () => settings.autoClose,
-                checked => {
-                    settings.autoClose = checked;
-                },
-            ),
-        );
-        behavior.add_child(
-            this.#check(
-                'Mostrar segundos no relógio',
-                () => this.#interface.get_boolean(SHOW_SECONDS_KEY),
-                checked => {
-                    this.#interface.set_boolean(SHOW_SECONDS_KEY, checked);
-                },
-            ),
-        );
-        return behavior;
-    }
-
     #tabs(): St.BoxLayout {
         const settings = this.#settings;
-        const tabs = card('frodo-settings-card');
-        tabs.add_child(cardTitle('Abas visíveis'));
-        for (const id of TAB_IDS) {
-            const box = this.#check(
+        const lines = TAB_IDS.map(id => {
+            const toggle = this.#switch(
                 TAB_LABELS[id],
                 () => visibleTabs(settings.hiddenTabs).includes(id),
                 checked => {
@@ -466,59 +631,23 @@ export class SettingsPage implements Component {
                     settings.hiddenTabs = TAB_IDS.filter(tab => !visible.includes(tab));
                 },
             );
-            this.#tabBoxes.set(id, box);
-            tabs.add_child(box);
-        }
-        return tabs;
+            this.#bindings.push(() => {
+                const visible = visibleTabs(settings.hiddenTabs);
+                const locked = visible.length === 1 && visible.includes(id);
+                toggle.reactive = !locked;
+                toggle.can_focus = !locked;
+            });
+            return line(TAB_LABELS[id], null, toggle);
+        });
+        return group('Abas visíveis', lines, 'Uma aba escondida continua abrindo pelo atalho dela.');
     }
 
-    #screen(): St.BoxLayout {
+    #usage(): St.BoxLayout {
         const settings = this.#settings;
-        const screen = card('frodo-settings-card');
-        screen.add_child(cardTitle('Tela'));
-        screen.add_child(
-            settingsRow(
-                'Monitores',
-                this.#segmented(
-                    MONITORS,
-                    () => settings.monitors,
-                    mode => {
-                        settings.monitors = mode;
-                    },
-                ),
-            ),
-        );
-        screen.add_child(
-            settingsRow(
-                'Fundo',
-                this.#segmented(
-                    SURFACES,
-                    () => settings.surfaceStyle,
-                    style => {
-                        settings.surfaceStyle = style;
-                    },
-                ),
-            ),
-        );
-        screen.add_child(
-            this.#check(
-                'Ocultar barra superior',
-                () => settings.hideTopBar,
-                checked => {
-                    settings.hideTopBar = checked;
-                },
-            ),
-        );
-        return screen;
-    }
-
-    #claude(): St.BoxLayout {
-        const settings = this.#settings;
-        const claude = card('frodo-settings-card');
-        claude.add_child(cardTitle('Claude'));
-        claude.add_child(
-            settingsRow(
+        return group('Uso', [
+            line(
                 'Atualizar uso a cada',
+                null,
                 this.#stepper(
                     POLL_MINUTES,
                     'min',
@@ -528,28 +657,136 @@ export class SettingsPage implements Component {
                     },
                 ),
             ),
-        );
-        claude.add_child(
-            this.#check(
+            line(
                 'Mostrar uso restante em vez do usado',
-                () => settings.claudeShowRemaining,
+                null,
+                this.#switch(
+                    'Mostrar uso restante em vez do usado',
+                    () => settings.claudeShowRemaining,
+                    checked => {
+                        settings.claudeShowRemaining = checked;
+                    },
+                ),
+            ),
+        ]);
+    }
+
+    #follow(provider: AiProvider, title: string, subtitle: string): St.BoxLayout {
+        const settings = this.#settings;
+        const item = line(
+            label(title, 'frodo-settings-text frodo-settings-line-strong'),
+            subtitle,
+            this.#switch(
+                title,
+                () => settings.providerEnabled(provider),
                 checked => {
-                    settings.claudeShowRemaining = checked;
+                    settings.setProviderEnabled(provider, checked);
                 },
             ),
         );
-        claude.add_child(label('Perfis do Claude Code', 'frodo-settings-text'));
-        claude.add_child(this.#profiles);
+        item.insert_child_at_index(providerTile(provider, 32), 0);
+        return item;
+    }
 
+    #claude(): St.BoxLayout {
         const add = (): void => {
             this.#addProfile();
         };
         this.#newProfile.clutter_text.connect('activate', add);
         const adder = row('frodo-settings-row');
         adder.add_child(this.#newProfile);
-        adder.add_child(textButton('Adicionar', add, 'control', frodoIcon('plus')));
-        claude.add_child(adder);
-        return claude;
+        adder.add_child(textButton('Adicionar perfil', add, 'control', frodoIcon('plus')));
+        const profiles = column('frodo-settings-line frodo-settings-stack');
+        profiles.add_child(label('Perfis', 'frodo-settings-text'));
+        profiles.add_child(this.#profiles);
+        profiles.add_child(adder);
+        return group('Claude Code', [
+            this.#follow('claude', 'Acompanhar o Claude Code', 'Cotas pela conta, sessões pelo hook em ~/.claude/settings.json'),
+            profiles,
+        ]);
+    }
+
+    #codex(): St.BoxLayout {
+        return group('Codex', [
+            this.#follow('codex', 'Acompanhar o Codex', 'Cotas e consumo lidos de ~/.codex/sessions'),
+            this.#hookLine('codex', 'Sessões e permissões', 'Mostra o status e deixa aprovar ou negar pedidos pela ilha'),
+        ]);
+    }
+
+    #gemini(): St.BoxLayout {
+        const settings = this.#settings;
+        return group('Gemini CLI', [
+            this.#follow('gemini', 'Acompanhar o Gemini CLI', 'Tokens e sessões lidos de ~/.gemini/tmp'),
+            line(
+                'Limite diário de pedidos',
+                'O Gemini CLI não informa a cota; a ilha conta os pedidos do dia',
+                this.#segmented(
+                    GEMINI_LIMITS,
+                    () => String(settings.geminiDailyLimit),
+                    value => {
+                        settings.geminiDailyLimit = Number(value);
+                    },
+                ),
+            ),
+            this.#hookLine(
+                'gemini',
+                'Status das sessões',
+                'O Gemini CLI não deixa responder pedidos por hook: a ilha avisa e abre o terminal',
+            ),
+        ]);
+    }
+
+    #hookLine(agent: HookedAgent, title: string, subtitle: string): St.BoxLayout {
+        const status = wrapped('', 'frodo-settings-subtitle');
+        const button = textButton('Instalar hook', () => {
+            void this.#sessions.installAgentHooks(agent).then(ok => {
+                if (!ok) status.text = `Não deu para mesclar ${HOOK_PATHS[agent]}. Confira se o arquivo é JSON válido.`;
+                void refresh();
+            });
+        });
+        const refresh = async (): Promise<void> => {
+            const installed = await this.#sessions.agentHooksInstalled(agent);
+            if (this.#destroyed) return;
+            button.label = installed ? 'Instalado' : 'Instalar hook';
+            button.reactive = !installed;
+            button.can_focus = !installed;
+            if (installed)
+                status.text = `Hook em ${HOOK_PATHS[agent]}. Reinicie o ${agent === 'codex' ? 'Codex' : 'Gemini CLI'} para valer.`;
+        };
+        void refresh();
+        const text = column('frodo-settings-line-text');
+        text.add_child(wrapped(subtitle, 'frodo-settings-subtitle'));
+        text.add_child(status);
+        return line(title, text, button);
+    }
+
+    #agenda(): St.BoxLayout {
+        const settings = this.#settings;
+        const google = line(
+            'Google Agenda',
+            'Pelas Contas Online do GNOME',
+            textButton('Abrir Contas Online', () => {
+                this.#actions.close();
+                spawn(['gnome-control-center', 'online-accounts']);
+            }),
+        );
+        const icon = new St.Icon({gicon: frodoIcon('google'), icon_size: 18, x_expand: true, y_expand: true});
+        icon.set({x_align: Clutter.ActorAlign.CENTER, y_align: Clutter.ActorAlign.CENTER});
+        google.insert_child_at_index(new St.Bin({style_class: 'frodo-integration-icon frodo-integration-google', child: icon}), 0);
+        return group('Google Agenda', [
+            google,
+            line(
+                'Avisar na pílula antes da reunião',
+                'Mostra o título e o botão Entrar',
+                this.#segmented(
+                    NOTICES,
+                    () => String(settings.meetingNoticeMinutes),
+                    value => {
+                        settings.meetingNoticeMinutes = Number(value);
+                    },
+                ),
+            ),
+        ]);
     }
 
     #renderProfiles(): void {
@@ -557,9 +794,7 @@ export class SettingsPage implements Component {
         const profiles = this.#settings.claudeProfiles;
         const defaultDir = defaultConfigDir();
         for (const profile of profiles) this.#profiles.add_child(this.#profileRow(profile, isActiveProfile(profile, defaultDir)));
-        if (profiles.length === 0) this.#profiles.add_child(dimLabel('Abra a aba Claude uma vez para detectar os perfis'));
-        const active = profiles.find(profile => isActiveProfile(profile, defaultDir)) ?? profiles[0];
-        this.#configDir.text = homePath(active?.configDir ?? defaultDir);
+        if (profiles.length === 0) this.#profiles.add_child(dimLabel('Abra a aba IA uma vez para detectar os perfis'));
     }
 
     #profileRow(profile: ClaudeProfile, active: boolean): St.BoxLayout {
@@ -573,12 +808,13 @@ export class SettingsPage implements Component {
             );
         });
         const text = column('frodo-settings-profile');
+        text.x_expand = true;
         text.add_child(name);
         text.add_child(label(homePath(profile.configDir), 'frodo-integration-subtitle frodo-mono'));
-        const line = row('frodo-settings-row');
-        line.add_child(text);
-        if (active) line.add_child(chip('ativo', 'accent'));
-        line.add_child(
+        const item = row('frodo-settings-profile-row');
+        item.add_child(text);
+        if (active) item.add_child(chip('ativo', 'accent'));
+        item.add_child(
             iconButton(
                 frodoIcon('close'),
                 'Remover perfil',
@@ -589,7 +825,7 @@ export class SettingsPage implements Component {
                 32,
             ),
         );
-        return line;
+        return item;
     }
 
     #addProfile(): void {
@@ -604,17 +840,6 @@ export class SettingsPage implements Component {
         this.#settings.claudeProfiles = [...profiles, profileFor(path)];
     }
 
-    #shortcuts(): St.BoxLayout {
-        const shortcuts = card('frodo-settings-card');
-        shortcuts.add_child(cardTitle('Atalhos'));
-        shortcuts.add_child(this.#shortcutRow('Abrir e fechar a ilha', 'toggle-shortcut'));
-        shortcuts.add_child(this.#shortcutRow('Abrir na aba do Claude', 'claude-shortcut'));
-        const hint = dimLabel('Clique em Alterar e pressione a nova combinação. Esc cancela.');
-        hint.clutter_text.line_wrap = true;
-        shortcuts.add_child(hint);
-        return shortcuts;
-    }
-
     #shortcutRow(text: string, key: ShortcutKey): St.BoxLayout {
         const kbd = label('', 'frodo-kbd frodo-mono');
         const change = textButton('Alterar', () => {
@@ -623,7 +848,7 @@ export class SettingsPage implements Component {
         this.#bindings.push(() => {
             kbd.text = shortcutLabel(this.#shortcut(key)) || 'Nenhum';
         });
-        return settingsRow(text, kbd, change);
+        return line(text, null, kbd, change);
     }
 
     #shortcut(key: ShortcutKey): string {
@@ -662,42 +887,12 @@ export class SettingsPage implements Component {
         this.#capture = null;
     }
 
-    #integrations(actions: SettingsActions): St.BoxLayout {
-        const integrations = card('frodo-settings-card');
-        integrations.add_child(cardTitle('Integrações'));
-
-        integrations.add_child(
-            integration(
-                tile(new St.Icon({gicon: frodoIcon('google'), icon_size: 18}), 'frodo-integration-google'),
-                'Google Agenda',
-                label('Pelas Contas Online do GNOME', 'frodo-integration-subtitle'),
-                textButton('Abrir', () => {
-                    actions.close();
-                    spawn(['gnome-control-center', 'online-accounts']);
-                }),
-            ),
-        );
-
-        const usage = row('frodo-integration-usage');
-        usage.add_child(label('Lendo uso de ', 'frodo-integration-subtitle'));
-        usage.add_child(this.#configDir);
-        integrations.add_child(
-            integration(tile(new St.Icon({gicon: frodoIcon('claude'), icon_size: 18}), 'frodo-integration-claude'), 'Claude Code', usage),
-        );
-        return integrations;
-    }
-
     #sync(): void {
-        const visible = visibleTabs(this.#settings.hiddenTabs);
         for (const sync of this.#bindings) sync();
-        for (const [id, box] of this.#tabBoxes) {
-            const locked = visible.length === 1 && visible.includes(id);
-            box.reactive = !locked;
-            box.can_focus = !locked;
-        }
     }
 
     destroy(): void {
+        this.#destroyed = true;
         this.#disposables.dispose();
         this.actor.destroy();
     }

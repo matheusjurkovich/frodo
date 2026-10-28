@@ -1,7 +1,17 @@
 import type Gio from 'gi://Gio';
 
-import {CARD_IDS, CLOSED_ITEMS, CLOSED_MODES, MONITOR_MODES, PILL_POSITIONS, SURFACE_STYLES, TAB_IDS, isOneOf} from './schema-values.js';
-import type {CardId, ClosedItem, ClosedMode, MonitorMode, PillPosition, SurfaceStyle, TabId} from './schema-values.js';
+import {
+    AI_PROVIDERS,
+    CARD_IDS,
+    CLOSED_ITEMS,
+    CLOSED_MODES,
+    MONITOR_MODES,
+    PILL_POSITIONS,
+    SURFACE_STYLES,
+    TAB_IDS,
+    isOneOf,
+} from './schema-values.js';
+import type {AiProvider, CardId, ClosedItem, ClosedMode, MonitorMode, PillPosition, SurfaceStyle, TabId} from './schema-values.js';
 import {parseProfiles} from './claude-profile.js';
 import type {ClaudeProfile} from './claude-profile.js';
 import type {Disposer} from '../shared/disposables.js';
@@ -23,7 +33,10 @@ export type SettingsKey =
     | 'open-on-hover'
     | 'auto-close'
     | 'hidden-tabs'
-    | 'collapsed-cards';
+    | 'collapsed-cards'
+    | 'disabled-ai'
+    | 'gemini-daily-limit'
+    | 'meeting-notice-minutes';
 
 const known = <T extends string>(values: readonly T[], list: readonly string[]): T[] =>
     [...new Set(list)].filter((item): item is T => isOneOf(values, item));
@@ -169,6 +182,40 @@ export class FrodoSettings {
 
     set collapsedCards(cards: readonly CardId[]) {
         this.gsettings.set_strv('collapsed-cards', [...new Set(cards)]);
+    }
+
+    get enabledProviders(): AiProvider[] {
+        const disabled = this.gsettings.get_strv('disabled-ai');
+        return AI_PROVIDERS.filter(provider => !disabled.includes(provider));
+    }
+
+    providerEnabled(provider: AiProvider): boolean {
+        return this.enabledProviders.includes(provider);
+    }
+
+    setProviderEnabled(provider: AiProvider, enabled: boolean): void {
+        const enabledNow = this.enabledProviders.filter(other => other !== provider);
+        if (enabled) enabledNow.push(provider);
+        this.gsettings.set_strv(
+            'disabled-ai',
+            AI_PROVIDERS.filter(other => !enabledNow.includes(other)),
+        );
+    }
+
+    get geminiDailyLimit(): number {
+        return this.gsettings.get_int('gemini-daily-limit');
+    }
+
+    set geminiDailyLimit(value: number) {
+        this.gsettings.set_int('gemini-daily-limit', value);
+    }
+
+    get meetingNoticeMinutes(): number {
+        return this.gsettings.get_int('meeting-notice-minutes');
+    }
+
+    set meetingNoticeMinutes(value: number) {
+        this.gsettings.set_int('meeting-notice-minutes', value);
     }
 
     onChanged(keys: SettingsKey | readonly SettingsKey[], callback: () => void): Disposer {

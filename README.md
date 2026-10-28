@@ -1,6 +1,6 @@
 # Frodo
 
-Dynamic island para o desktop: uma pílula no topo da tela com hora, bateria, RAM e uso do Claude Code que muda conforme o que acontece no sistema e, ao abrir, vira uma ilha com abas (controles, calendário, Claude, notificações e mais).
+Dynamic island para o desktop: uma pílula no topo da tela com hora, bateria, RAM e uso do Claude Code, Codex e Gemini CLI que muda conforme o que acontece no sistema e, ao abrir, vira uma ilha com abas (controles, calendário, IA, notificações e mais).
 
 ## Plataformas
 
@@ -25,7 +25,7 @@ Cada plataforma tem versão e tag próprias, para um ajuste de uma não mexer na
 ```
 linux/                  extensão do GNOME Shell (TypeScript)
 macos/                  app macOS (Swift)
-shared/                 hook do Claude Code e ícones, comuns às duas
+shared/                 hook das sessões de IA (Claude Code, Codex, Gemini CLI) e ícones, comuns às duas
 docs/superpowers/       specs e planos de mudanças grandes
 .github/workflows/      CI e release de cada plataforma
 ```

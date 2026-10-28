@@ -1,5 +1,5 @@
-import {CLOSED_ITEMS} from '../../settings/schema-values.js';
-import type {ClosedItem} from '../../settings/schema-values.js';
+import {AI_PROVIDERS, CLOSED_ITEMS} from '../../settings/schema-values.js';
+import type {AiProvider, ClosedItem} from '../../settings/schema-values.js';
 
 export const ITEM_LABELS: Record<ClosedItem, string> = {
     clock: 'Relógio',
@@ -15,6 +15,9 @@ export const ITEM_LABELS: Record<ClosedItem, string> = {
     ram: 'RAM',
     'claude-session': 'Claude · sessão',
     'claude-weekly': 'Claude · semana',
+    'codex-session': 'Codex · 5 h',
+    'codex-weekly': 'Codex · semana',
+    'gemini-daily': 'Gemini · hoje',
     extensions: 'Ícones de extensões',
 };
 
@@ -26,6 +29,7 @@ export function moveItem(items: readonly ClosedItem[], item: ClosedItem, delta: 
     return next;
 }
 
-export function missingItems(items: readonly ClosedItem[]): ClosedItem[] {
-    return CLOSED_ITEMS.filter(item => !items.includes(item));
+export function missingItems(items: readonly ClosedItem[], providers: readonly AiProvider[] = AI_PROVIDERS): ClosedItem[] {
+    const off = AI_PROVIDERS.filter(provider => !providers.includes(provider));
+    return CLOSED_ITEMS.filter(item => !items.includes(item) && !off.some(provider => item.startsWith(`${provider}-`)));
 }

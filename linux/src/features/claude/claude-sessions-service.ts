@@ -2,6 +2,8 @@ import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import type Meta from 'gi://Meta';
 
+import {HOOK_SCRIPT_NAME, hasFrodoHooks, withFrodoHooks} from './agent-hooks.js';
+import type {HookedAgent} from './agent-hooks.js';
 import {decisionJson, nextState, oldestPending, parentPid, parseHookEvent, parsePending, parseShortstat} from './claude-sessions.js';
 import type {Decision, DiffStat, PendingRequest, SessionState} from './claude-sessions.js';
 import {Emitter} from '../../shared/emitter.js';
@@ -15,6 +17,14 @@ Gio._promisify(Gio.Subprocess.prototype, 'communicate_utf8_async', 'communicate_
 
 const HOOK_SCRIPT = 'hooks/claude-session.sh';
 const SWEEP_SECONDS = 60;
+const EXTENSION_UUID = 'frodo@matheusjurkovich';
+
+function agentConfigPath(agent: HookedAgent): string {
+    const home = GLib.get_home_dir();
+    return agent === 'codex'
+        ? GLib.build_filenamev([GLib.getenv('CODEX_HOME') ?? GLib.build_filenamev([home, '.codex']), 'hooks.json'])
+        : GLib.build_filenamev([home, '.gemini', 'settings.json']);
+}
 const BATCH = 64;
 
 function pidAlive(pid: number): boolean {
@@ -29,7 +39,7 @@ function readAlive(path: string): string | null {
     }
 }
 
-function isAlive(state: SessionState): boolean {
+function isAlive(state: Pick<SessionState, 'pid'>): boolean {
     return state.pid === null || pidAlive(state.pid);
 }
 
@@ -93,6 +103,7 @@ export class ClaudeSessions extends Emitter<{changed: []}> {
     readonly #monitorId: number;
     readonly #pendingMonitor: Gio.FileMonitor;
     readonly #pendingMonitorId: number;
+    readonly #disposeSettings: () => void;
     #queue: Promise<void> = Promise.resolve();
     #hooksInstalled = false;
     #checkingHooks = false;
@@ -127,10 +138,14 @@ export class ClaudeSessions extends Emitter<{changed: []}> {
             return this.#loadPending(pendingDirectory);
         });
         void this.#checkHooks();
+        this.#disposeSettings = settings.onChanged('disabled-ai', () => {
+            this.#changed();
+        });
     }
 
     get sessions(): readonly SessionState[] {
-        return [...this.#states.values()].filter(isAlive);
+        const enabled = this.#settings.enabledProviders;
+        return [...this.#states.values()].filter(state => isAlive(state) && enabled.includes(state.provider));
     }
 
     get pending(): readonly PendingRequest[] {
@@ -193,6 +208,35 @@ export class ClaudeSessions extends Emitter<{changed: []}> {
     hooksInstalled(): boolean {
         if (!this.#hooksInstalled) void this.#checkHooks();
         return this.#hooksInstalled;
+    }
+
+    async agentHooksInstalled(agent: HookedAgent): Promise<boolean> {
+        return hasFrodoHooks(await readTextFile(agentConfigPath(agent)));
+    }
+
+    async installAgentHooks(agent: HookedAgent): Promise<boolean> {
+        const path = agentConfigPath(agent);
+        const before = await readTextFile(path);
+        const script = GLib.build_filenamev([
+            GLib.get_user_data_dir(),
+            'gnome-shell',
+            'extensions',
+            EXTENSION_UUID,
+            'hooks',
+            HOOK_SCRIPT_NAME,
+        ]);
+        const after = withFrodoHooks(before, agent, script);
+        if (after === null) return false;
+        if (after === before) return true;
+        try {
+            GLib.mkdir_with_parents(GLib.path_get_dirname(path), 0o700);
+            if (before !== null) GLib.file_set_contents(`${path}.frodo.bak`, before);
+            GLib.file_set_contents(path, after);
+            return true;
+        } catch (error) {
+            logError(error as object);
+            return false;
+        }
     }
 
     async #checkHooks(): Promise<void> {
@@ -335,6 +379,7 @@ export class ClaudeSessions extends Emitter<{changed: []}> {
 
     destroy(): void {
         this.#destroyed = true;
+        this.#disposeSettings();
         this.#timer.stop();
         this.#cancellable.cancel();
         this.#monitor.disconnect(this.#monitorId);

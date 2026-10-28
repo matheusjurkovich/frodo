@@ -3,18 +3,24 @@ import type {Meeting} from './meetings.js';
 import {calendarEventSource} from '../../shared/shell-internals.js';
 import {Emitter} from '../../shared/emitter.js';
 import {Timer} from '../../shared/timer.js';
+import type {FrodoSettings} from '../../settings/frodo-settings.js';
 
-export const MEETING_LEAD_MS = 10 * 60e3;
 const CHECK_SECONDS = 30;
 
 export class UpcomingMeeting extends Emitter<{changed: []}> {
     readonly #source = calendarEventSource();
     readonly #sourceId: number | null;
     readonly #timer = new Timer();
+    readonly #settings: FrodoSettings;
+    readonly #disposeSettings: () => void;
     #next: Meeting | null = null;
 
-    constructor() {
+    constructor(settings: FrodoSettings) {
         super();
+        this.#settings = settings;
+        this.#disposeSettings = settings.onChanged('meeting-notice-minutes', () => {
+            this.#refresh();
+        });
         this.#sourceId =
             this.#source?.connect('changed', () => {
                 this.#refresh();
@@ -32,8 +38,10 @@ export class UpcomingMeeting extends Emitter<{changed: []}> {
 
     #find(): Meeting | null {
         if (!this.#source) return null;
+        const lead = this.#settings.meetingNoticeMinutes * 60e3;
+        if (lead <= 0) return null;
         const now = Date.now();
-        return nextMeeting(this.#source.getEvents(new Date(now), new Date(now + MEETING_LEAD_MS)), now, MEETING_LEAD_MS);
+        return nextMeeting(this.#source.getEvents(new Date(now), new Date(now + lead)), now, lead);
     }
 
     #refresh(): void {
@@ -44,6 +52,7 @@ export class UpcomingMeeting extends Emitter<{changed: []}> {
     }
 
     destroy(): void {
+        this.#disposeSettings();
         this.#timer.stop();
         if (this.#source && this.#sourceId !== null) this.#source.disconnect(this.#sourceId);
         this.clearListeners();

@@ -1,10 +1,13 @@
 import type {SessionStats} from './claude-index.js';
 import {contextWindow, modelDisplayName} from './claude-transcript.js';
 import {formatSpan, formatTokens} from '../../shared/format.js';
+import {AI_PROVIDERS, isOneOf} from '../../settings/schema-values.js';
+import type {AiProvider} from '../../settings/schema-values.js';
 
 export type SessionStatus = 'working' | 'waiting' | 'done' | 'idle';
 
 export interface HookEvent {
+    readonly provider: AiProvider;
     readonly sessionId: string;
     readonly cwd: string;
     readonly name: string;
@@ -15,6 +18,7 @@ export interface HookEvent {
 }
 
 export interface SessionState {
+    readonly provider: AiProvider;
     readonly sessionId: string;
     readonly cwd: string;
     readonly repo: string;
@@ -52,7 +56,15 @@ export interface ContextUsage {
 const IDLE_AFTER_MS = 30 * 60 * 1000;
 const CONTEXT_WARN_FRACTION = 0.85;
 const PENDING_FILE = /^([A-Za-z0-9-]+)\.([A-Za-z0-9-]+)\.json$/;
-const STEP_KEYS = ['command', 'file_path', 'notebook_path', 'pattern', 'description', 'url', 'query'] as const;
+const STEP_KEYS = ['command', 'file_path', 'notebook_path', 'absolute_path', 'pattern', 'description', 'url', 'query'] as const;
+const EVENT_ALIASES: Readonly<Record<string, string>> = {
+    BeforeAgent: 'UserPromptSubmit',
+    BeforeTool: 'PreToolUse',
+    AfterTool: 'PostToolUse',
+    AfterAgent: 'Stop',
+    PreCompress: 'PreCompact',
+};
+const NOTIFICATION_ALIASES: Readonly<Record<string, string>> = {ToolPermission: 'permission_prompt'};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -76,13 +88,15 @@ export function parseHookEvent(text: string): HookEvent | null {
     if (!isRecord(data) || !isRecord(data.event)) return null;
     const {session_id: sessionId, cwd, hook_event_name: name} = data.event;
     if (typeof sessionId !== 'string' || sessionId === '' || typeof cwd !== 'string' || typeof name !== 'string') return null;
+    const notificationType = optionalString(data.event.notification_type);
     return {
+        provider: typeof data.provider === 'string' && isOneOf(AI_PROVIDERS, data.provider) ? data.provider : 'claude',
         sessionId,
         cwd,
-        name,
+        name: EVENT_ALIASES[name] ?? name,
         tool: optionalString(data.event.tool_name),
         input: isRecord(data.event.tool_input) ? data.event.tool_input : {},
-        notificationType: optionalString(data.event.notification_type),
+        notificationType: notificationType === null ? null : (NOTIFICATION_ALIASES[notificationType] ?? notificationType),
         pid: typeof data.pid === 'number' && Number.isSafeInteger(data.pid) && data.pid > 0 ? data.pid : null,
     };
 }
@@ -107,6 +121,7 @@ export function nextState(previous: SessionState | null, event: HookEvent, atMs:
 function transition(previous: SessionState | null, event: HookEvent, atMs: number): Omit<SessionState, 'since'> | null {
     if (event.name === 'SessionEnd') return null;
     const base = {
+        provider: event.provider,
         sessionId: event.sessionId,
         cwd: event.cwd,
         repo: basename(event.cwd),

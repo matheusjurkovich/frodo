@@ -5,7 +5,7 @@ export const TAB_LABELS: Record<TabId, string> = {
     general: 'Geral',
     calendar: 'Calendário',
     workspaces: 'Áreas de trabalho',
-    claude: 'Claude',
+    claude: 'IA',
     notifications: 'Notificações',
 };
 

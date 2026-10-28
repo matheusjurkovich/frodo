@@ -11,6 +11,7 @@ import {column, label, row} from '../../shared/ui/layout.js';
 import {whileMapped} from '../../shared/ui/lifecycle.js';
 import type {Component} from '../../shared/ui/lifecycle.js';
 import {Segmented} from '../../shared/ui/segmented.js';
+import type {AiProvider} from '../../shared/ai-provider.js';
 import {SessionRow} from './session-row.js';
 import type {SessionRowActions} from './session-row.js';
 
@@ -53,11 +54,12 @@ export class SessionsCard implements Component {
     readonly #list = column('frodo-sessions-list');
     readonly #empty = column('frodo-sessions-empty');
     readonly #emptyText = emptyState('');
-    readonly #hint = emptyState('Configure os hooks do Claude Code (veja o README)');
+    readonly #hint = emptyState('');
     readonly #rows = new Map<string, SessionRow>();
     readonly #tick = new Timer();
     readonly #disposables = new Disposables();
     #selected: Filter = 'all';
+    #provider: AiProvider | null = null;
     #expanded: string | null = null;
     #diff: {readonly id: string; readonly stat: DiffStat | null} | null = null;
     #hooks = false;
@@ -124,9 +126,16 @@ export class SessionsCard implements Component {
         this.#render();
     }
 
+    showProvider(provider: AiProvider | null): void {
+        if (provider === this.#provider) return;
+        this.#provider = provider;
+        this.#render();
+    }
+
     #render(): void {
         const now = Date.now();
-        const states = this.#sessions.sessions;
+        const provider = this.#provider;
+        const states = this.#sessions.sessions.filter(state => provider === null || state.provider === provider);
         const counts = countByStatus(states, now);
         this.#filters.setCounts(counts);
         this.#summary.text = summary(counts.all, counts.working);
@@ -143,7 +152,11 @@ export class SessionsCard implements Component {
         this.#empty.visible = none;
         if (!none) return;
         this.#emptyText.text = states.length === 0 ? 'Nenhuma sessão ativa' : 'Nenhuma sessão neste filtro agora.';
-        this.#hint.visible = states.length === 0 && !this.#hooks;
+        this.#hint.text =
+            provider === null || provider === 'claude'
+                ? 'Configure os hooks do Claude Code (veja o README)'
+                : 'Instale o hook em Configurações › IA para ver as sessões aqui';
+        this.#hint.visible = states.length === 0 && (provider !== 'claude' || !this.#hooks);
     }
 
     #syncRows(shown: readonly Entry[], nowMs: number): void {
@@ -168,7 +181,7 @@ export class SessionsCard implements Component {
             current.update({
                 state,
                 status,
-                stats: index.session(id),
+                stats: state.provider === 'claude' ? index.session(id) : null,
                 expanded,
                 diff: expanded && this.#diff?.id === id ? this.#diff.stat : null,
                 pending: this.#sessions.pendingFor(id),

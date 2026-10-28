@@ -8,7 +8,7 @@ import {GrabHelper} from 'resource:///org/gnome/shell/ui/grabHelper.js';
 import type * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import {alignX, centerClamp, topEdgeSpan} from '../shared/geometry.js';
-import {SURFACE_STYLES} from '../settings/schema-values.js';
+import {SURFACE_STYLES, horizontalOf, isBottom} from '../settings/schema-values.js';
 import type {TabId} from '../settings/schema-values.js';
 import type {ClaudeService} from '../features/claude/claude-service.js';
 import type {FrodoSettings} from '../settings/frodo-settings.js';
@@ -84,6 +84,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
     readonly #closeTimer = new Timer();
     readonly #disposables = new Disposables();
     #placement: Placement | null = null;
+    #openEdge = 0;
     #dateMenu: Clutter.Actor | null = null;
     #covered = false;
     #unredirectDisabled = false;
@@ -202,6 +203,18 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         );
         this.#disposables.signal(
             this.panel,
+            this.panel.connect('notify::height', () => {
+                if (this.#isOpen && this.#bottom()) this.panel.y = this.#openEdge - this.panel.height;
+            }),
+        );
+        this.#disposables.signal(
+            this.pill.actor,
+            this.pill.actor.connect('notify::height', () => {
+                if (this.#bottom()) this.#positionFloating();
+            }),
+        );
+        this.#disposables.signal(
+            this.panel,
             this.panel.connect('notify::hover', () => {
                 this.#onPanelHover();
             }),
@@ -227,7 +240,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         this.#disposables.signal(
             global.display,
             global.display.connect('workareas-changed', () => {
-                if (this.#isOpen) this.#capHeight(this.panel.y);
+                if (this.#isOpen) this.#capHeight();
             }),
         );
         this.#disposables.add(
@@ -364,7 +377,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         anchor.get_allocation_box();
         const [anchorX, anchorY] = anchor.get_transformed_position();
         this.#pinBackdrop();
-        panel.set_pivot_point((anchorX + anchor.width / 2 - panel.x) / Math.max(1, panel.width), 0);
+        panel.set_pivot_point((anchorX + anchor.width / 2 - panel.x) / Math.max(1, panel.width), this.#bottom() ? 1 : 0);
         this.#clipping = true;
         this.#clipToBackdrop();
         this.#blurPanel(0, BLUR_RADIUS, CLOSE_FADE_MS);
@@ -452,7 +465,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         this.#edgeWatch = null;
         const {monitors} = Main.layoutManager;
         const monitor = monitors[this.monitorIndex];
-        const span = monitor ? topEdgeSpan(monitor, monitors, EDGE_SPAN, this.#settings.pillPosition) : null;
+        const span = monitor && !this.#bottom() ? topEdgeSpan(monitor, monitors, EDGE_SPAN, this.#side()) : null;
         if (!span) return;
         this.#edgeWatch = watchTopEdge(span, () => {
             if (this.#isOpen || this.#covered || this.pill.hasAction || !this.#settings.openOnHover) return;
@@ -478,13 +491,14 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         const visible = this.#covered && !this.#isOpen && !this.pill.actor.visible;
         if (tongue.visible !== visible) tongue.set({visible, hover: false});
         const monitor = this.#monitor();
-        if (tongue.visible && monitor)
-            tongue.set_position(alignX(this.#settings.pillPosition, tongue.width, monitor.x, monitor.width, FLOAT_EDGE), monitor.y);
+        if (!tongue.visible || !monitor) return;
+        const x = alignX(this.#side(), tongue.width, monitor.x, monitor.width, FLOAT_EDGE);
+        tongue.set_position(x, this.#bottom() ? this.#workBottom() - tongue.height : monitor.y);
     }
 
     #attachToBar(): void {
         const pill = this.pill.actor;
-        const position = this.#settings.pillPosition;
+        const position = this.#side();
         const center = panelBox('center');
         this.#dateMenu = dateMenuContainer();
         const index = this.#dateMenu ? center.get_children().indexOf(this.#dateMenu) : -1;
@@ -535,7 +549,21 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         const monitor = this.#monitor();
         if (this.#placement !== 'float' || !monitor) return;
         const pill = this.pill.actor;
-        pill.set_position(alignX(this.#settings.pillPosition, pill.width, monitor.x, monitor.width, FLOAT_EDGE), monitor.y + FLOAT_TOP);
+        const y = this.#bottom() ? this.#workBottom() - pill.height - FLOAT_TOP : monitor.y + FLOAT_TOP;
+        pill.set_position(alignX(this.#side(), pill.width, monitor.x, monitor.width, FLOAT_EDGE), y);
+    }
+
+    #side(): 'left' | 'center' | 'right' {
+        return horizontalOf(this.#settings.pillPosition);
+    }
+
+    #bottom(): boolean {
+        return this.#placement === 'float' && isBottom(this.#settings.pillPosition);
+    }
+
+    #workBottom(): number {
+        const area = Main.layoutManager.getWorkAreaForMonitor(this.monitorIndex);
+        return area.y + area.height;
     }
 
     #syncCovered(): void {
@@ -625,15 +653,21 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         panel.show();
 
         const [anchorX, anchorY] = anchor.get_transformed_position();
-        this.#capHeight(Math.round(anchorY));
+        const bottom = this.#bottom();
+        this.#openEdge = Math.round(bottom ? anchorY + anchor.height : anchorY);
+        this.#capHeight();
         const [, naturalWidth] = panel.get_preferred_width(-1);
         const monitor = this.#monitor();
-        if (monitor) panel.set_position(centerClamp(anchorX, anchor.width, naturalWidth, monitor.x, monitor.width), Math.round(anchorY));
         const area = Main.layoutManager.getWorkAreaForMonitor(this.monitorIndex);
-        const max = area.y + area.height - panel.y;
+        const max = bottom ? this.#openEdge - area.y : area.y + area.height - this.#openEdge;
         const [, naturalHeight] = panel.get_preferred_height(naturalWidth);
         const height = Math.min(naturalHeight, max);
-        panel.set_pivot_point((anchorX + anchor.width / 2 - panel.x) / Math.max(1, naturalWidth), 0);
+        if (monitor)
+            panel.set_position(
+                centerClamp(anchorX, anchor.width, naturalWidth, monitor.x, monitor.width),
+                bottom ? this.#openEdge - height : this.#openEdge,
+            );
+        panel.set_pivot_point((anchorX + anchor.width / 2 - panel.x) / Math.max(1, naturalWidth), bottom ? 1 : 0);
 
         this.#pinBackdrop();
         if (!backdrop.visible) {
@@ -656,9 +690,10 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         pill.ease({opacity: 0, duration: FADE_OUT_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
     }
 
-    #capHeight(top: number): void {
+    #capHeight(): void {
         const area = Main.layoutManager.getWorkAreaForMonitor(this.monitorIndex);
-        const content = this.panel.get_theme_node().adjust_for_height(area.y + area.height - top);
+        const available = this.#bottom() ? this.#openEdge - area.y : area.y + area.height - this.#openEdge;
+        const content = this.panel.get_theme_node().adjust_for_height(available);
         const scale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
         const height = Math.floor(content / scale);
         if (Number.isFinite(height)) this.panel.style = `max-height: ${Math.max(0, height)}px;`;
