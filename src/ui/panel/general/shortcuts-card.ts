@@ -72,6 +72,14 @@ export class ShortcutsCard implements Component {
             });
         };
 
+        const actions = powerActions();
+        const lock = shortcutButton(
+            'lock',
+            'Bloquear tela',
+            closeThen(() => {
+                actions.activateLockScreen();
+            }),
+        );
         this.#microphone = shortcutButton('mic-off', 'Silenciar microfone', () => {
             const source = this.#source;
             source?.change_is_muted(!source.is_muted);
@@ -94,20 +102,20 @@ export class ShortcutsCard implements Component {
                     openNewWindow(FILES);
                 }),
             ),
-            shortcutButton(
-                'lock',
-                'Bloquear tela',
-                closeThen(() => {
-                    powerActions().activateLockScreen();
-                }),
-            ),
+            lock,
         ];
 
         const container = grid(SPACING);
         this.#disposables.add(packGrid(container, buttons, COLUMNS));
         this.#card = new CollapsibleCard('shortcuts', 'Atalhos', settings);
-        this.#card.setCount(buttons.length);
         this.#card.body.add_child(container);
+
+        const syncLock = (): void => {
+            lock.visible = actions.canLockScreen;
+            this.#card.setCount(buttons.filter(button => button.visible).length);
+        };
+        this.#disposables.signal(actions, actions.connect('notify::can-lock-screen', syncLock));
+        syncLock();
 
         this.#disposables.signal(
             this.#mixer,
