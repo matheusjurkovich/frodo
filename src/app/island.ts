@@ -26,7 +26,7 @@ import type {Disposer} from '../shared/disposables.js';
 import {Emitter} from '../shared/emitter.js';
 import type {IslandHandle} from '../shared/island-handle.js';
 import type {FrodoServices} from './services.js';
-import {SOFT_SPRING, SPRING, springWithin} from '../shared/spring.js';
+import {GENTLE_SPRING, SOFT_SPRING, SPRING, springWithin} from '../shared/spring.js';
 import {Timer} from '../shared/timer.js';
 import {springEase} from '../shared/ui/motion.js';
 import type {ActivityFeed} from '../pill/activity-feed.js';
@@ -523,8 +523,8 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         }
         this.#clipping = true;
         this.#clipToBackdrop();
-        springEase(backdrop, {x: panel.x, width: naturalWidth}, SPRING);
-        springEase(backdrop, {y: panel.y, height}, springWithin(SPRING, backdrop.height, height, max), () => {
+        springEase(backdrop, {x: panel.x, width: naturalWidth}, GENTLE_SPRING);
+        springEase(backdrop, {y: panel.y, height}, springWithin(GENTLE_SPRING, backdrop.height, height, max), () => {
             this.#clipping = false;
             panel.remove_clip();
             backdrop.add_constraint_with_name(FOLLOW, new Clutter.BindConstraint({source: panel, coordinate: Clutter.BindCoordinate.ALL}));
