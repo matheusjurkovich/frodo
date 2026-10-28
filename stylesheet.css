@@ -332,8 +332,12 @@
 }
 
 .frodo-tab:checked {
-    background-color: #26262b;
     color: #fafafa;
+}
+
+.frodo-tab-indicator {
+    background-color: #26262b;
+    border-radius: 999px;
 }
 
 .frodo-tab-content {

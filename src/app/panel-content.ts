@@ -170,7 +170,7 @@ export class PanelContent {
                 settle(page);
                 page.visible = page === to;
             }
-        this.#tabBar.select(tab);
+        this.#tabBar.select(tab, animate);
         this.#header.setSettingsActive(view.kind === 'settings');
         this.#scrollToTop();
     }
