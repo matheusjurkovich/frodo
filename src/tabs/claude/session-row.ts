@@ -3,7 +3,7 @@ import St from 'gi://St';
 
 import type {SessionStats} from '../../features/claude/claude-index.js';
 import {contextUsage, sessionMeta} from '../../features/claude/claude-sessions.js';
-import type {DiffStat, SessionState, SessionStatus} from '../../features/claude/claude-sessions.js';
+import type {DiffStat, PendingRequest, SessionState, SessionStatus} from '../../features/claude/claude-sessions.js';
 import {formatTokens} from '../../shared/format.js';
 import type {Disposer} from '../../shared/disposables.js';
 import {textButton} from '../../shared/ui/buttons.js';
@@ -29,6 +29,8 @@ export interface SessionRowActions {
     readonly focus: () => void;
     readonly openPullRequest: () => void;
     readonly dismiss: () => void;
+    readonly approve: () => void;
+    readonly deny: () => void;
 }
 
 export interface SessionRowView {
@@ -37,6 +39,7 @@ export interface SessionRowView {
     readonly stats: SessionStats | null;
     readonly expanded: boolean;
     readonly diff: DiffStat | null;
+    readonly pending: PendingRequest | null;
     readonly canOpenPullRequest: () => boolean;
     readonly nowMs: number;
 }
@@ -99,6 +102,8 @@ export class SessionRow implements Component {
     readonly #last = label('', 'frodo-session-last frodo-mono');
     readonly #buttons: readonly St.Button[];
     readonly #open: St.Button;
+    readonly #deny: St.Button;
+    readonly #approve: St.Button;
     readonly #pullRequest: St.Button;
     readonly #resume: St.Button;
     readonly #dismiss: St.Button;
@@ -107,7 +112,7 @@ export class SessionRow implements Component {
     #shown: SessionStatus | null = null;
     #expanded: boolean | null = null;
 
-    constructor({toggle, focus, openPullRequest, dismiss}: SessionRowActions) {
+    constructor({toggle, focus, openPullRequest, dismiss, approve, deny}: SessionRowActions) {
         const top = row('frodo-session-top');
         this.#repo.x_expand = true;
         top.add_child(this.#repo);
@@ -124,10 +129,12 @@ export class SessionRow implements Component {
         this.#header.connect('clicked', toggle);
 
         this.#open = textButton('Abrir no terminal', focus, 'primary');
+        this.#deny = textButton('Negar', deny, 'control');
+        this.#approve = textButton('Aprovar', approve, 'primary');
         this.#pullRequest = textButton('Ver PR', openPullRequest, 'primary');
         this.#resume = textButton('Retomar', focus, 'control');
         this.#dismiss = textButton('Encerrar', dismiss, 'ghost');
-        this.#buttons = [this.#open, this.#pullRequest, this.#resume, this.#dismiss];
+        this.#buttons = [this.#open, this.#deny, this.#approve, this.#pullRequest, this.#resume, this.#dismiss];
         for (const button of this.#buttons) this.#actionsRow.add_child(button);
 
         const diff = row('frodo-session-diff');
@@ -146,7 +153,7 @@ export class SessionRow implements Component {
         this.#body.visible = false;
     }
 
-    update({state, status, stats, expanded, diff, canOpenPullRequest, nowMs}: SessionRowView): void {
+    update({state, status, stats, expanded, diff, pending, canOpenPullRequest, nowMs}: SessionRowView): void {
         this.#showStatus(status);
         this.#repo.text = state.repo;
         const meta = sessionMeta(state, stats, status, nowMs);
@@ -156,7 +163,7 @@ export class SessionRow implements Component {
         this.#step.visible = state.step !== '';
         this.#header.accessible_name = `${state.repo}, ${STATUS_LABELS[status]}`;
         this.#showExpanded(expanded);
-        if (expanded) this.#updateBody(state, status, stats, diff, canOpenPullRequest);
+        if (expanded) this.#updateBody(state, status, stats, diff, pending, canOpenPullRequest);
     }
 
     #showStatus(status: SessionStatus): void {
@@ -183,6 +190,7 @@ export class SessionRow implements Component {
         status: SessionStatus,
         stats: SessionStats | null,
         diff: DiffStat | null,
+        pending: PendingRequest | null,
         canOpenPullRequest: () => boolean,
     ): void {
         const todos = stats?.todos ?? null;
@@ -217,6 +225,8 @@ export class SessionRow implements Component {
 
         const live = status === 'working' || status === 'waiting';
         this.#open.visible = live;
+        this.#deny.visible = pending !== null;
+        this.#approve.visible = pending !== null;
         this.#pullRequest.visible = status === 'done' && canOpenPullRequest();
         this.#resume.visible = status === 'idle';
         this.#dismiss.visible = status === 'idle';
