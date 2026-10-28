@@ -1,5 +1,6 @@
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
+import type * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
 
 import type {NotificationBridge} from '../../features/notifications/notification-bridge-service.js';
 import {Disposables} from '../../shared/disposables.js';
@@ -9,6 +10,7 @@ import {column, label, row} from '../../shared/ui/layout.js';
 import {whileMapped} from '../../shared/ui/lifecycle.js';
 import type {Component} from '../../shared/ui/lifecycle.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
+import {fadeIn, reveal, slideOut} from '../../shared/ui/motion.js';
 import type {IslandHandle} from '../../shared/island-handle.js';
 import {notificationRow} from './notification-row.js';
 
@@ -30,6 +32,8 @@ export class NotificationsPage implements Component {
     readonly #clear: St.Button;
     readonly #disposables = new Disposables();
     readonly #running = new Disposables();
+    readonly #rows = new Map<MessageTray.Notification, St.Button>();
+    #leaving = 0;
 
     constructor(bridge: NotificationBridge, island: IslandHandle) {
         this.#bridge = bridge;
@@ -64,10 +68,10 @@ export class NotificationsPage implements Component {
                 () => {
                     this.#running.add(
                         bridge.on('changed', () => {
-                            this.#render();
+                            this.#render(true);
                         }),
                     );
-                    this.#render();
+                    this.#render(false);
                 },
                 () => {
                     this.#running.dispose();
@@ -76,26 +80,59 @@ export class NotificationsPage implements Component {
         );
     }
 
-    #render(): void {
+    #render(animate: boolean): void {
         const notifications = this.#bridge.list();
-        this.#list.destroy_all_children();
-        for (const notification of notifications)
-            this.#list.add_child(
-                notificationRow(notification, {
-                    dismiss: () => {
-                        this.#bridge.dismiss(notification);
-                    },
-                    open: () => {
-                        this.#island.close();
-                        notification.activate();
-                    },
-                }),
-            );
-        const any = notifications.length > 0;
+        for (const [notification, row] of [...this.#rows])
+            if (!notifications.includes(notification)) {
+                this.#rows.delete(notification);
+                if (animate) this.#dismissRow(row);
+                else row.destroy();
+            }
+        let previous: St.Button | null = null;
+        for (const notification of notifications) {
+            const row = notificationRow(notification, {
+                dismiss: () => {
+                    this.#bridge.dismiss(notification);
+                },
+                open: () => {
+                    this.#island.close();
+                    notification.activate();
+                },
+            });
+            const old = this.#rows.get(notification);
+            if (old) {
+                this.#list.replace_child(old, row);
+                old.destroy();
+            } else {
+                if (previous) this.#list.insert_child_above(row, previous);
+                else this.#list.insert_child_at_index(row, 0);
+                if (animate) fadeIn(row);
+            }
+            this.#rows.set(notification, row);
+            previous = row;
+        }
+        this.#syncEmpty();
+    }
+
+    #dismissRow(row: St.Button): void {
+        row.reactive = false;
+        this.#leaving++;
+        slideOut(row, -1, () => {
+            reveal(row, false, () => {
+                row.destroy();
+                this.#leaving--;
+                this.#syncEmpty();
+            });
+        });
+    }
+
+    #syncEmpty(): void {
+        this.#doNotDisturb.checked = this.#bridge.doNotDisturb;
+        if (this.#leaving > 0) return;
+        const any = this.#rows.size > 0;
         this.#scroll.visible = any;
         this.#clear.visible = any;
         this.#empty.visible = !any;
-        this.#doNotDisturb.checked = this.#bridge.doNotDisturb;
     }
 
     destroy(): void {
