@@ -19,6 +19,16 @@ export interface GeneralDependencies {
     readonly scrollToTop: () => void;
 }
 
+function columns(...sides: Clutter.Actor[]): St.BoxLayout {
+    const box = row('frodo-cols');
+    box.layout_manager.homogeneous = true;
+    for (const side of sides) {
+        side.y_align = Clutter.ActorAlign.START;
+        box.add_child(side);
+    }
+    return box;
+}
+
 export class GeneralPage implements Component {
     readonly actor = new St.Widget({style_class: 'frodo-general', layout_manager: new Clutter.BinLayout(), x_expand: true});
     readonly #controls: NativeControls;
@@ -40,15 +50,8 @@ export class GeneralPage implements Component {
         right.add_child(this.#sound.actor);
         right.add_child(this.#media.actor);
 
-        const columns = row('frodo-cols');
-        columns.layout_manager.homogeneous = true;
-        for (const side of [this.#controls.tiles, right]) {
-            side.y_align = Clutter.ActorAlign.START;
-            columns.add_child(side);
-        }
-        content.add_child(columns);
-        content.add_child(this.#shortcuts.actor);
-        content.add_child(this.#apps.actor);
+        content.add_child(columns(this.#controls.tiles, right));
+        content.add_child(columns(this.#shortcuts.actor, this.#apps.actor));
         this.actor.add_child(content);
         this.actor.add_child(overlayHost);
     }

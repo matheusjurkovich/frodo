@@ -220,6 +220,10 @@
     -minimum-hpadding: 4px;
 }
 
+.frodo-tray .panel-button StIcon {
+    icon-size: 16px;
+}
+
 .frodo-system-icons {
     padding: 0 2px;
 }
@@ -1058,9 +1062,35 @@
     min-width: auto;
     max-width: auto;
     min-height: 64px;
+    padding: 0;
+    border: none;
     border-radius: 18px;
+    box-shadow: none;
     background-color: #232327;
     color: #f4f4f5;
+}
+
+.frodo-general .quick-toggle > StBoxLayout {
+    padding: 0 14px;
+    spacing: 12px;
+}
+
+.frodo-general .quick-toggle .quick-toggle-icon {
+    icon-size: 20px;
+}
+
+.frodo-general .quick-toggle-has-menu .quick-toggle .quick-toggle-icon,
+.frodo-general .quick-toggle-has-menu .quick-toggle:hover .quick-toggle-icon,
+.frodo-general .quick-toggle-has-menu .quick-toggle:active .quick-toggle-icon,
+.frodo-general .quick-toggle-has-menu .quick-toggle:checked .quick-toggle-icon {
+    min-width: 0;
+    min-height: 0;
+    border-radius: 0;
+    background-color: transparent;
+}
+
+.frodo-general .quick-toggle-has-menu .quick-toggle:checked .quick-toggle-icon {
+    color: -st-accent-fg-color;
 }
 
 .frodo-general .quick-toggle:checked,
@@ -1086,7 +1116,12 @@
 }
 
 .frodo-general .quick-toggle-has-menu .quick-toggle {
+    padding: 0;
     border-radius: 18px 0 0 18px;
+}
+
+.frodo-general .quick-toggle-has-menu .quick-toggle > StBoxLayout {
+    padding: 0 6px 0 14px;
 }
 
 .frodo-general .quick-toggle-subtitle {
@@ -1099,6 +1134,11 @@
 
 .frodo-general .quick-toggle-has-menu .quick-toggle-menu-button {
     width: 40px;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    border: none;
     border-radius: 0 18px 18px 0;
     background-color: rgba(255, 255, 255, 0.05);
     color: #f4f4f5;
@@ -1126,11 +1166,46 @@
 }
 
 .frodo-general .quick-slider {
+    min-height: 0;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
     background-color: transparent;
+    color: #f4f4f5;
+}
+
+.frodo-general .quick-slider > StBoxLayout {
+    spacing: 6px;
+}
+
+.frodo-general .quick-slider .icon-button {
+    margin: 0;
+    padding: 6px;
+    background-color: transparent;
+    color: #f4f4f5;
+}
+
+.frodo-general .quick-slider .slider-bin {
+    min-height: 0;
+    padding: 6px;
+    border-radius: 999px;
+}
+
+.frodo-general .slider,
+.frodo-general .slider:hover {
+    height: 16px;
+    border-radius: 0;
+    color: #f4f4f5;
+    -slider-handle-radius: 8px;
+    -barlevel-height: 4px;
+    -barlevel-background-color: #2a2a2f;
+    -barlevel-active-background-color: -st-accent-color;
 }
 
 .frodo-general .quick-toggle-menu {
     margin: 0;
+    border: none;
+    box-shadow: none;
 }
 
 .frodo-general .frodo-sound {
