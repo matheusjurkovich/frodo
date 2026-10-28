@@ -9,7 +9,7 @@ import {
     formatUntil,
     secondsSince,
 } from '../src/core/format.js';
-import {barHeight, centerClamp, segmentWidths} from '../src/core/geometry.js';
+import {barHeight, centerClamp, segmentWidths, topEdgeSpan} from '../src/core/geometry.js';
 import {formatGb, parseMeminfo} from '../src/core/memory.js';
 import {latest, shouldIntercept} from '../src/core/notifications.js';
 import {parseMetadata, pickPlayer, trackFraction} from '../src/core/media.js';
@@ -63,6 +63,18 @@ describe('geometry', () => {
         expect(centerClamp(10, 120, 600, 0, 1920)).toBe(8);
         expect(centerClamp(1850, 60, 600, 0, 1920)).toBe(1312);
         expect(centerClamp(2800, 120, 600, 1920, 1920)).toBe(2560);
+    });
+
+    it('acha a faixa do topo onde a ilha abre', () => {
+        const main = {x: 0, y: 0, width: 1920, height: 1080};
+        expect(topEdgeSpan(main, [main], 900)).toEqual({x1: 510, x2: 1410, y: 0});
+        expect(topEdgeSpan({x: 1920, y: 200, width: 800, height: 600}, [], 900)).toEqual({x1: 1920, x2: 2720, y: 200});
+    });
+
+    it('não cria faixa com outro monitor logo acima', () => {
+        const below = {x: 0, y: 1080, width: 1920, height: 1080};
+        expect(topEdgeSpan(below, [{x: 0, y: 0, width: 1920, height: 1080}, below], 900)).toBeNull();
+        expect(topEdgeSpan(below, [{x: 0, y: 0, width: 400, height: 1080}, below], 900)).toEqual({x1: 510, x2: 1410, y: 1080});
     });
 });
 
@@ -123,6 +135,9 @@ describe('itens da ilha fechada', () => {
         expect(itemsForPreferences(['ram', 'clock'])).toEqual([
             {item: 'ram', enabled: true},
             {item: 'clock', enabled: true},
+            {item: 'date', enabled: false},
+            {item: 'notifications', enabled: false},
+            {item: 'network', enabled: false},
             {item: 'system', enabled: false},
             {item: 'battery', enabled: false},
             {item: 'claude-session', enabled: false},

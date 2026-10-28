@@ -2,6 +2,7 @@ import St from 'gi://St';
 
 import type {ActivityKind} from '../../core/pill-activity.js';
 import type {ClaudeService} from '../../services/claude-service.js';
+import type {NotificationBridge} from '../../services/notification-bridge.js';
 import type {FrodoSettings} from '../../services/settings.js';
 import type {SystemState} from '../../services/system-state.js';
 import {Disposables} from '../../util/disposables.js';
@@ -21,6 +22,7 @@ export interface PillDependencies extends ActivityServices {
     readonly settings: FrodoSettings;
     readonly state: SystemState;
     readonly claude: ClaudeService;
+    readonly bridge: NotificationBridge;
     readonly feed: ActivityFeed;
 }
 
@@ -33,10 +35,10 @@ export class Pill extends Emitter<{rebuilt: []}> {
     readonly #disposables = new Disposables();
     #bar = false;
 
-    constructor({settings, state, claude, feed, recording, sessions, media, actions}: PillDependencies) {
+    constructor({settings, state, claude, bridge, feed, recording, sessions, media, actions}: PillDependencies) {
         super();
         this.#feed = feed;
-        this.#idle = new IdleView(settings, state, claude);
+        this.#idle = new IdleView(settings, state, claude, bridge);
         this.#activity = new ActivityView({recording, sessions, media, actions});
         this.actor.add_child(this.#idle.actor);
         this.actor.add_child(this.#activity.actor);

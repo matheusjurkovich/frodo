@@ -3,6 +3,7 @@ import St from 'gi://St';
 
 import type {Bar} from '../../../core/claude-index.js';
 import {barHeight} from '../../../core/geometry.js';
+import {allocatedWidth} from '../../components/layout.js';
 
 const DENSE_FROM = 16;
 
@@ -54,7 +55,7 @@ export class BarChart {
 
     #place(): void {
         const labels = this.#axis.get_children();
-        const width = this.#axis.allocation.get_width();
+        const width = allocatedWidth(this.#axis);
         labels.forEach((text, index) => {
             text.translation_x = Math.round((width * (index + 0.5)) / labels.length - width / 2);
         });

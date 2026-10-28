@@ -3,26 +3,27 @@ import GLib from 'gi://GLib';
 import GnomeDesktop from 'gi://GnomeDesktop';
 import St from 'gi://St';
 
-import {batteryLevel} from '../../core/format.js';
+import {batteryLevel, formatDate} from '../../core/format.js';
 import {formatGb} from '../../core/memory.js';
 import type {ClosedItem} from '../../core/types.js';
 import {displayLevel, shownPercent} from '../../core/claude-usage.js';
 import type {UsageWindow} from '../../core/claude-usage.js';
 import type {ClaudeService} from '../../services/claude-service.js';
+import type {NotificationBridge} from '../../services/notification-bridge.js';
 import type {FrodoSettings} from '../../services/settings.js';
 import type {SystemState} from '../../services/system-state.js';
-import {quickSettings} from '../../shell/internals.js';
+import {networkIndicator, quickSettings} from '../../shell/internals.js';
 import {Disposables} from '../../util/disposables.js';
 import {Emitter} from '../../util/emitter.js';
 import {Timer} from '../../util/timer.js';
-import {dimLabel, separator} from '../components/layout.js';
+import {dimLabel, label} from '../components/layout.js';
 import type {Component} from '../components/lifecycle.js';
 import {ProgressRing} from '../components/progress-ring.js';
 import {frodoIcon} from '../icons.js';
 
 const FADE_MS = 150;
 
-type TextItem = Exclude<ClosedItem, 'clock' | 'system'>;
+type TextItem = Exclude<ClosedItem, 'clock' | 'date' | 'notifications' | 'network' | 'system'>;
 
 const TEXT_ITEMS: readonly ClosedItem[] = ['battery', 'ram', 'claude-session', 'claude-weekly'];
 
@@ -32,7 +33,6 @@ function isTextItem(item: ClosedItem): item is TextItem {
 
 interface Segment {
     readonly actor: Clutter.Actor;
-    readonly separator: St.Widget;
     readonly isVisible: () => boolean;
     readonly update: () => void;
 }
@@ -47,19 +47,22 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
     readonly #settings: FrodoSettings;
     readonly #state: SystemState;
     readonly #claude: ClaudeService;
+    readonly #bridge: NotificationBridge;
     readonly #clock = new GnomeDesktop.WallClock();
     readonly #rotateTimer = new Timer();
     readonly #disposables = new Disposables();
     #segments: Segment[] = [];
     #clockLabels: St.Label[] = [];
+    #dateLabels: St.Label[] = [];
     #rotateIndex = 0;
     #rotatingSlot: St.Label | null = null;
 
-    constructor(settings: FrodoSettings, state: SystemState, claude: ClaudeService) {
+    constructor(settings: FrodoSettings, state: SystemState, claude: ClaudeService, bridge: NotificationBridge) {
         super();
         this.#settings = settings;
         this.#state = state;
         this.#claude = claude;
+        this.#bridge = bridge;
 
         this.#disposables.signal(
             this.#clock,
@@ -74,6 +77,11 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
         );
         this.#disposables.add(
             claude.on('changed', () => {
+                this.#update();
+            }),
+        );
+        this.#disposables.add(
+            bridge.on('changed', () => {
                 this.#update();
             }),
         );
@@ -97,7 +105,9 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
 
     #syncClock(): void {
         const text = clockText();
-        for (const label of this.#clockLabels) label.text = text;
+        for (const clock of this.#clockLabels) clock.text = text;
+        const date = formatDate(new Date());
+        for (const day of this.#dateLabels) day.text = date;
     }
 
     #items(): ClosedItem[] {
@@ -114,6 +124,7 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
         this.actor.destroy_all_children();
         this.#segments = [];
         this.#clockLabels = [];
+        this.#dateLabels = [];
         this.#rotateIndex = 0;
         this.#rotatingSlot = null;
 
@@ -121,7 +132,6 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
         for (const item of this.#items()) {
             const segment = rotating && isTextItem(item) ? this.#rotatingSegment() : this.#segment(item);
             if (!segment) continue;
-            this.actor.add_child(segment.separator);
             this.actor.add_child(segment.actor);
             this.#segments.push(segment);
         }
@@ -139,6 +149,12 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
         switch (item) {
             case 'clock':
                 return this.#clockSegment();
+            case 'date':
+                return this.#dateSegment();
+            case 'notifications':
+                return this.#notificationsSegment();
+            case 'network':
+                return this.#networkSegment();
             case 'system':
                 return this.#systemSegment();
             case 'battery':
@@ -154,7 +170,35 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
     #clockSegment(): Segment {
         const label = new St.Label({style_class: 'frodo-clock', y_align: Clutter.ActorAlign.CENTER});
         this.#clockLabels.push(label);
-        return {actor: label, separator: separator(), isVisible: () => true, update: () => undefined};
+        return {actor: label, isVisible: () => true, update: () => undefined};
+    }
+
+    #dateSegment(): Segment {
+        const date = label('', 'frodo-pill-date');
+        this.#dateLabels.push(date);
+        return {actor: date, isVisible: () => true, update: () => undefined};
+    }
+
+    #notificationsSegment(): Segment {
+        const box = new St.BoxLayout({style_class: 'frodo-pill-notifications', y_align: Clutter.ActorAlign.CENTER});
+        const count = label('', 'frodo-pill-count');
+        box.add_child(new St.Icon({gicon: frodoIcon('bell'), style_class: 'frodo-pill-status-icon'}));
+        box.add_child(count);
+        return {
+            actor: box,
+            isVisible: () => this.#bridge.count > 0,
+            update: () => {
+                count.text = String(this.#bridge.count);
+            },
+        };
+    }
+
+    #networkSegment(): Segment | null {
+        const network = networkIndicator();
+        if (!network) return null;
+        const clone = new Clutter.Clone({source: network, y_align: Clutter.ActorAlign.CENTER});
+        const box = new St.Bin({style_class: 'frodo-system-icons', child: clone, y_align: Clutter.ActorAlign.CENTER});
+        return {actor: box, isVisible: () => true, update: () => undefined};
     }
 
     #systemSegment(): Segment | null {
@@ -162,7 +206,7 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
         if (!indicators) return null;
         const clone = new Clutter.Clone({source: indicators, y_align: Clutter.ActorAlign.CENTER});
         const box = new St.Bin({style_class: 'frodo-system-icons', child: clone, y_align: Clutter.ActorAlign.CENTER});
-        return {actor: box, separator: separator(), isVisible: () => true, update: () => undefined};
+        return {actor: box, isVisible: () => true, update: () => undefined};
     }
 
     #batterySegment(): Segment {
@@ -173,7 +217,6 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
         box.add_child(label);
         return {
             actor: box,
-            separator: separator(),
             isVisible: () => this.#state.battery !== null,
             update: () => {
                 const {battery} = this.#state;
@@ -188,7 +231,6 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
         const label = dimLabel();
         return {
             actor: label,
-            separator: separator(),
             isVisible: () => item !== 'battery' || this.#state.battery !== null,
             update: () => {
                 label.text = this.#itemText(item);
@@ -210,7 +252,6 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
         box.add_child(value);
         return {
             actor: box,
-            separator: separator(),
             isVisible: () => true,
             update: () => {
                 const window = this.#claudeWindow(item);
@@ -232,7 +273,6 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
         this.#rotatingSlot = label;
         return {
             actor: label,
-            separator: separator(),
             isVisible: () => this.#rotatingItems().length > 0,
             update: () => {
                 const items = this.#rotatingItems();
@@ -281,15 +321,10 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
     }
 
     #update(): void {
-        let anyVisibleBefore = false;
         for (const segment of this.#segments) {
             const visible = segment.isVisible();
             segment.actor.visible = visible;
-            segment.separator.visible = visible && anyVisibleBefore;
-            if (visible) {
-                segment.update();
-                anyVisibleBefore = true;
-            }
+            if (visible) segment.update();
         }
     }
 

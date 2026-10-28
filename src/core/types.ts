@@ -11,7 +11,17 @@ export interface BatteryInfo {
 export const CLOSED_MODES = ['minimal', 'compact', 'rotating'] as const;
 export type ClosedMode = (typeof CLOSED_MODES)[number];
 
-export const CLOSED_ITEMS = ['clock', 'system', 'battery', 'ram', 'claude-session', 'claude-weekly'] as const;
+export const CLOSED_ITEMS = [
+    'clock',
+    'date',
+    'notifications',
+    'network',
+    'system',
+    'battery',
+    'ram',
+    'claude-session',
+    'claude-weekly',
+] as const;
 export type ClosedItem = (typeof CLOSED_ITEMS)[number];
 
 export const MONITOR_MODES = ['primary', 'secondary', 'both'] as const;

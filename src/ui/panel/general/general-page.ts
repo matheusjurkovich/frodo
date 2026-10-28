@@ -46,12 +46,15 @@ export class GeneralPage implements Component {
         this.#shortcuts = new ShortcutsCard(island, settings);
         this.#apps = new AppsCard(island, settings);
 
+        const left = column('frodo-section');
+        left.add_child(this.#controls.tiles);
+        left.add_child(this.#shortcuts.actor);
         const right = column('frodo-section');
         right.add_child(this.#sound.actor);
         right.add_child(this.#media.actor);
+        right.add_child(this.#apps.actor);
 
-        content.add_child(columns(this.#controls.tiles, right));
-        content.add_child(columns(this.#shortcuts.actor, this.#apps.actor));
+        content.add_child(columns(left, right));
         this.actor.add_child(content);
         this.actor.add_child(overlayHost);
     }

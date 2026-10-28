@@ -1,6 +1,22 @@
+import type {Rect} from './workspaces.js';
+
+export interface EdgeSpan {
+    readonly x1: number;
+    readonly x2: number;
+    readonly y: number;
+}
+
 export function centerClamp(pillX: number, pillW: number, panelW: number, monX: number, monW: number, margin = 8): number {
     const x = Math.round(pillX + pillW / 2 - panelW / 2);
     return Math.max(monX + margin, Math.min(x, monX + monW - panelW - margin));
+}
+
+export function topEdgeSpan(monitor: Rect, monitors: readonly Rect[], span: number): EdgeSpan | null {
+    const width = Math.min(span, monitor.width);
+    const x1 = monitor.x + Math.round((monitor.width - width) / 2);
+    const x2 = x1 + width;
+    const covered = monitors.some(other => other.y + other.height === monitor.y && other.x < x2 && other.x + other.width > x1);
+    return covered ? null : {x1, x2, y: monitor.y};
 }
 
 export function segmentWidths(fractions: readonly number[], width: number): number[] {

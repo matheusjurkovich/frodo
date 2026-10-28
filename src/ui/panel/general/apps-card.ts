@@ -10,7 +10,6 @@ import {column, grid, label, packGrid} from '../../components/layout.js';
 import {whileMapped} from '../../components/lifecycle.js';
 import type {Component} from '../../components/lifecycle.js';
 import type {Island} from '../../island.js';
-import {StatusRow} from '../../status-row.js';
 
 const COLUMNS = 4;
 const SPACING = 6;
@@ -25,17 +24,14 @@ export class AppsCard implements Component {
     readonly #apps = Shell.AppSystem.get_default();
     readonly #card: CollapsibleCard;
     readonly #grid = grid(SPACING);
-    readonly #status: StatusRow;
     readonly #disposables = new Disposables();
     readonly #packing = new Disposables();
     readonly #running = new Disposables();
 
     constructor(island: Island, settings: FrodoSettings) {
         this.#island = island;
-        this.#status = new StatusRow(island);
         this.#card = new CollapsibleCard('apps', 'Programas abertos', settings);
         this.#card.body.add_child(this.#grid);
-        this.#card.body.add_child(this.#status.actor);
 
         this.#disposables.add(
             whileMapped(
@@ -65,15 +61,11 @@ export class AppsCard implements Component {
 
     #render(): void {
         const apps = this.#apps.get_running();
+        const cells: St.Widget[] = apps.map(app => this.#appButton(app));
+        while (cells.length > 0 && cells.length < COLUMNS) cells.push(new St.Widget({x_expand: true}));
         this.#packing.dispose();
         this.#grid.destroy_all_children();
-        this.#packing.add(
-            packGrid(
-                this.#grid,
-                apps.map(app => this.#appButton(app)),
-                COLUMNS,
-            ),
-        );
+        this.#packing.add(packGrid(this.#grid, cells, COLUMNS));
         this.#card.setCount(apps.length);
         this.#card.setSummary(apps.length > 0 ? this.#summary(apps) : null);
     }
@@ -129,7 +121,6 @@ export class AppsCard implements Component {
 
     destroy(): void {
         this.#disposables.dispose();
-        this.#status.destroy();
         this.#card.destroy();
     }
 }

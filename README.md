@@ -6,13 +6,13 @@ Roda dentro do próprio gnome-shell (sem processo extra). Escrita em TypeScript 
 
 ## Abas
 
-| Aba               | O que mostra                                                                                                                           |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Geral             | Controles do Quick Settings nativo (emprestados enquanto a ilha está aberta), som, tocando agora, atalhos, programas abertos e bandeja |
-| Calendário        | Grade do mês e lista de eventos do calendário nativo                                                                                   |
-| Áreas de trabalho | Uma miniatura por área de trabalho, com as janelas abertas; clicar ativa a área, e há o card Nova área                                 |
-| Claude            | Limites de uso por perfil, consumo de tokens a partir das transcrições e sessões abertas do Claude Code                                |
-| Notificações      | Lista de notificações, não perturbe e limpar tudo                                                                                      |
+| Aba               | O que mostra                                                                                                                  |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Geral             | Controles do Quick Settings nativo (emprestados enquanto a ilha está aberta), som, tocando agora, atalhos e programas abertos |
+| Calendário        | Grade do mês e lista de eventos do calendário nativo                                                                          |
+| Áreas de trabalho | Uma miniatura por área de trabalho, com as janelas abertas; clicar ativa a área, e há o card Nova área                        |
+| Claude            | Limites de uso por perfil, consumo de tokens a partir das transcrições e sessões abertas do Claude Code                       |
+| Notificações      | Lista de notificações, não perturbe e limpar tudo                                                                             |
 
 A engrenagem do cabeçalho abre as configurações dentro da ilha (comportamento, abas visíveis e integrações, com o botão Mais opções para as preferências completas) e o botão ao lado dela abre o menu de energia. Qualquer aba pode ser ocultada; se todas forem, a Geral continua visível.
 

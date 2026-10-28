@@ -13,6 +13,7 @@ import {Timer} from '../../util/timer.js';
 
 const FLASH_MS = 3000;
 const VOLUME_MS = 1500;
+const CLAUDE_STEP_MS = 5000;
 
 export type PillActivity =
     | {kind: 'recording'; startedAt: number}
@@ -62,6 +63,9 @@ export class ActivityFeed extends Emitter<{changed: []}> {
     readonly #disposables = new Disposables();
     readonly #notificationTimer = new Timer();
     readonly #volumeTimer = new Timer();
+    readonly #claudeTimer = new Timer();
+    readonly #steps = new Map<string, string>();
+    #claude: string | null = null;
     #queue: InterceptedNotification[] = [];
     #notification: InterceptedNotification | null = null;
     #volume: number | null = null;
@@ -74,7 +78,12 @@ export class ActivityFeed extends Emitter<{changed: []}> {
             this.#refresh();
         };
         this.#disposables.add(sources.recording.on('changed', refresh));
-        this.#disposables.add(sources.sessions.on('changed', refresh));
+        this.#disposables.add(
+            sources.sessions.on('changed', () => {
+                this.#trackSteps(true);
+                this.#refresh();
+            }),
+        );
         this.#disposables.add(sources.meetings.on('changed', refresh));
         this.#disposables.add(sources.media.on('changed', refresh));
         this.#disposables.add(
@@ -93,6 +102,7 @@ export class ActivityFeed extends Emitter<{changed: []}> {
                 this.#refresh();
             }),
         );
+        this.#trackSteps(false);
         this.#current = pickActivity(this.#candidates());
     }
 
@@ -103,10 +113,32 @@ export class ActivityFeed extends Emitter<{changed: []}> {
     cancelTransient(): void {
         this.#notificationTimer.stop();
         this.#volumeTimer.stop();
+        this.#claudeTimer.stop();
         this.#queue = [];
         this.#notification = null;
         this.#volume = null;
+        this.#claude = null;
         this.#refresh();
+    }
+
+    #trackSteps(flash: boolean): void {
+        const now = Date.now();
+        const working = this.#sources.sessions.sessions.filter(
+            session => session.tool !== null && displayStatus(session, now) === 'working',
+        );
+        const ids = new Set(working.map(({sessionId}) => sessionId));
+        for (const id of this.#steps.keys()) if (!ids.has(id)) this.#steps.delete(id);
+        for (const {sessionId, tool, step} of working) {
+            const key = `${tool}\u0000${step}`;
+            if (this.#steps.get(sessionId) === key) continue;
+            this.#steps.set(sessionId, key);
+            if (!flash) continue;
+            this.#claude = sessionId;
+            this.#claudeTimer.once(CLAUDE_STEP_MS, () => {
+                this.#claude = null;
+                this.#refresh();
+            });
+        }
     }
 
     #nextNotification(): void {
@@ -126,7 +158,7 @@ export class ActivityFeed extends Emitter<{changed: []}> {
         for (const session of sessions.sessions) {
             const status = displayStatus(session, now);
             if (status === 'waiting') candidates.push({kind: 'claude-waiting', session});
-            else if (status === 'working') candidates.push({kind: 'claude-working', session});
+            else if (status === 'working' && session.sessionId === this.#claude) candidates.push({kind: 'claude-working', session});
         }
         const meeting = meetings.next;
         if (meeting) candidates.push({kind: 'meeting', title: meeting.title, startsAt: meeting.startsAt});
@@ -146,6 +178,7 @@ export class ActivityFeed extends Emitter<{changed: []}> {
     destroy(): void {
         this.#notificationTimer.stop();
         this.#volumeTimer.stop();
+        this.#claudeTimer.stop();
         this.#disposables.dispose();
         this.clearListeners();
     }

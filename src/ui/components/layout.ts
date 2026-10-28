@@ -19,12 +19,13 @@ export function dimLabel(text = ''): St.Label {
     return label(text, 'frodo-dim');
 }
 
-export function spacer(): St.Widget {
-    return new St.Widget({x_expand: true});
+export function allocatedWidth(actor: Clutter.Actor): number {
+    const width = actor.allocation.get_width();
+    return Number.isFinite(width) ? width : 0;
 }
 
-export function separator(): St.Widget {
-    return new St.Widget({style_class: 'frodo-sep', y_align: Clutter.ActorAlign.CENTER});
+export function spacer(): St.Widget {
+    return new St.Widget({x_expand: true});
 }
 
 export function grid(spacing: number): St.Widget {

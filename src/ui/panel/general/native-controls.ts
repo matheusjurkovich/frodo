@@ -2,7 +2,7 @@ import Clutter from 'gi://Clutter';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
 import {PopupAnimation} from 'resource:///org/gnome/shell/ui/boxpointer.js';
-import type {QuickSlider} from 'resource:///org/gnome/shell/ui/quickSettings.js';
+import type {QuickSlider, QuickToggleMenu} from 'resource:///org/gnome/shell/ui/quickSettings.js';
 
 import {
     closeQuickSettingsMenu,
@@ -12,10 +12,12 @@ import {
     quickSettingsParts,
     quickSliderButtons,
     quickToggleMenuButton,
+    quickToggleMenuHeader,
 } from '../../../shell/internals.js';
 import {Disposables} from '../../../util/disposables.js';
 import type {Disposer} from '../../../util/disposables.js';
 import {ActorLoan} from '../../actor-loan.js';
+import {iconButton} from '../../components/buttons.js';
 import {packGrid} from '../../components/layout.js';
 import {frodoIcon} from '../../icons.js';
 import type {Island} from '../../island.js';
@@ -192,11 +194,32 @@ export class NativeControls {
         };
         for (const menu of menus) {
             this.#loan.add(detachConstraints(menu.actor));
+            this.#addBackButton(menu);
             const id = menu.connect('open-state-changed', sync);
             this.#loan.add(() => {
                 menu.disconnect(id);
             });
         }
+    }
+
+    #addBackButton(menu: QuickToggleMenu): void {
+        const {header, icon} = quickToggleMenuHeader(menu);
+        const layout = header.layout_manager;
+        if (!(layout instanceof Clutter.GridLayout)) return;
+        const back = iconButton(
+            frodoIcon('back'),
+            'Voltar',
+            () => {
+                menu.close(PopupAnimation.FULL);
+            },
+            'control',
+        );
+        layout.attach(back, 0, 0, 1, 2);
+        icon.hide();
+        this.#loan.add(() => {
+            back.destroy();
+            icon.show();
+        });
     }
 
     destroy(): void {

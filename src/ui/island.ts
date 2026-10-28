@@ -5,15 +5,23 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {GrabHelper} from 'resource:///org/gnome/shell/ui/grabHelper.js';
 import type * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
-import {centerClamp} from '../core/geometry.js';
+import {centerClamp, topEdgeSpan} from '../core/geometry.js';
 import type {TabId} from '../core/types.js';
 import type {ClaudeService} from '../services/claude-service.js';
 import type {ClaudeSessions} from '../services/claude-sessions.js';
 import type {MediaService} from '../services/media.js';
+import type {NotificationBridge} from '../services/notification-bridge.js';
 import type {Recording} from '../services/recording.js';
 import type {FrodoSettings} from '../services/settings.js';
 import type {SystemState} from '../services/system-state.js';
-import {dateMenuContainer, hasRealFullscreen, onFullscreenStateChanged, panelCenterBox, sessionPanelHas} from '../shell/internals.js';
+import {
+    dateMenuContainer,
+    hasRealFullscreen,
+    onFullscreenStateChanged,
+    panelCenterBox,
+    sessionPanelHas,
+    watchTopEdge,
+} from '../shell/internals.js';
 import {Disposables} from '../util/disposables.js';
 import type {Disposer} from '../util/disposables.js';
 import {Emitter} from '../util/emitter.js';
@@ -27,14 +35,23 @@ const AUTO_CLOSE_MS = 5000;
 const ANIMATION_MS = 250;
 const CLAUDE_MAX_AGE_SECONDS = 60;
 const FLOAT_TOP = 6;
+const EDGE_SPAN = 900;
+const EDGE_GRACE_MS = 1500;
 
 export type OpenReason = 'hover' | 'click' | 'key';
+
+function pressedButton(event: Clutter.Event, root: Clutter.Actor): boolean {
+    for (let actor: Clutter.Actor | null = global.stage.get_event_actor(event); actor && actor !== root; actor = actor.get_parent())
+        if (actor instanceof St.Button) return true;
+    return false;
+}
 export type Placement = 'bar' | 'float';
 
 export interface IslandDependencies {
     readonly settings: FrodoSettings;
     readonly state: SystemState;
     readonly claude: ClaudeService;
+    readonly bridge: NotificationBridge;
     readonly feed: ActivityFeed;
     readonly recording: Recording;
     readonly sessions: ClaudeSessions;
@@ -50,6 +67,7 @@ export interface IslandEvents {
 export class Island extends Emitter<IslandEvents> {
     readonly pill: Pill;
     readonly panel = new St.Bin({style_class: 'frodo-panel', reactive: true, track_hover: true, visible: false});
+    readonly #tongue = new St.Widget({style_class: 'frodo-tongue', reactive: true, track_hover: true, visible: false});
     readonly monitorIndex: number;
 
     readonly #settings: FrodoSettings;
@@ -84,6 +102,7 @@ export class Island extends Emitter<IslandEvents> {
             },
         });
         Main.layoutManager.addTopChrome(this.panel, {affectsStruts: false});
+        Main.layoutManager.addTopChrome(this.#tongue, {affectsStruts: false});
 
         const pill = this.pill.actor;
         this.#disposables.add(
@@ -106,14 +125,31 @@ export class Island extends Emitter<IslandEvents> {
         this.#disposables.signal(
             pill,
             pill.connect('button-press-event', (_actor, event) => {
+                if (pressedButton(event, pill)) return Clutter.EVENT_PROPAGATE;
                 if (event.get_button() === Clutter.BUTTON_PRIMARY && !this.pill.activate()) this.open('click');
                 return Clutter.EVENT_STOP;
             }),
         );
         this.#disposables.signal(
             pill,
-            pill.connect('button-release-event', () => Clutter.EVENT_STOP),
+            pill.connect('button-release-event', (_actor, event) =>
+                pressedButton(event, pill) ? Clutter.EVENT_PROPAGATE : Clutter.EVENT_STOP,
+            ),
         );
+        this.#disposables.signal(
+            this.#tongue,
+            this.#tongue.connect('notify::hover', () => {
+                this.#onTongueHover();
+            }),
+        );
+        this.#disposables.signal(
+            this.#tongue,
+            this.#tongue.connect('button-press-event', () => {
+                this.open('click');
+                return Clutter.EVENT_STOP;
+            }),
+        );
+        this.#watchTopEdge();
         this.#disposables.signal(
             this.panel,
             this.panel.connect('notify::width', () => {
@@ -181,7 +217,7 @@ export class Island extends Emitter<IslandEvents> {
     }
 
     open(reason: OpenReason): void {
-        if (this.#isOpen || this.#fullscreen) return;
+        if (this.#isOpen) return;
         this.#openTimer.stop();
         this.#feed.cancelTransient();
         this.#isOpen = true;
@@ -191,6 +227,7 @@ export class Island extends Emitter<IslandEvents> {
 
         this.emit('opening');
         this.#animateOpen();
+        this.#syncTongue();
         if (reason !== 'hover')
             this.#grab.grab({
                 actor: this.panel,
@@ -217,6 +254,7 @@ export class Island extends Emitter<IslandEvents> {
         this.#openTimer.stop();
         this.#closeTimer.stop();
         if (this.#grab.isActorGrabbed(this.panel)) this.#grab.ungrab({actor: this.panel});
+        this.#syncTongue();
         this.emit('closed');
 
         if (animate) this.#animateClose();
@@ -249,6 +287,33 @@ export class Island extends Emitter<IslandEvents> {
 
     #monitor(): {x: number; y: number; width: number} | null {
         return Main.layoutManager.monitors[this.monitorIndex] ?? null;
+    }
+
+    #anchor(): Clutter.Actor {
+        return this.#fullscreen ? this.#tongue : this.pill.actor;
+    }
+
+    #watchTopEdge(): void {
+        const {monitors} = Main.layoutManager;
+        const monitor = monitors[this.monitorIndex];
+        const span = monitor ? topEdgeSpan(monitor, monitors, EDGE_SPAN) : null;
+        if (!span) return;
+        this.#disposables.add(
+            watchTopEdge(span, () => {
+                if (this.#isOpen || this.#fullscreen || this.pill.hasAction || !this.#settings.openOnHover) return;
+                this.open('hover');
+                this.#closeTimer.once(EDGE_GRACE_MS, () => {
+                    if (!this.panel.hover && this.#holds === 0) this.close();
+                });
+            }),
+        );
+    }
+
+    #syncTongue(): void {
+        const tongue = this.#tongue;
+        tongue.visible = this.#fullscreen && !this.#isOpen;
+        const monitor = this.#monitor();
+        if (tongue.visible && monitor) tongue.set_position(Math.round(monitor.x + (monitor.width - tongue.width) / 2), monitor.y);
     }
 
     #attachToBar(): void {
@@ -302,27 +367,31 @@ export class Island extends Emitter<IslandEvents> {
     }
 
     #syncFullscreen(): void {
-        this.#fullscreen = this.#placement === 'float' && hasRealFullscreen(this.monitorIndex);
-        this.pill.actor.visible = !this.#fullscreen;
-        if (this.#fullscreen) {
+        const fullscreen = hasRealFullscreen(this.monitorIndex);
+        const entering = fullscreen && !this.#fullscreen;
+        this.#fullscreen = fullscreen;
+        this.pill.actor.visible = !fullscreen;
+        if (entering) {
             this.#feed.cancelTransient();
             this.close();
         }
+        this.#syncTongue();
     }
 
     #animateOpen(): void {
         const {panel} = this;
         const pill = this.pill.actor;
+        const anchor = this.#anchor();
         panel.remove_all_transitions();
         panel.opacity = 0;
         panel.show();
 
-        const [pillX, pillY] = pill.get_transformed_position();
-        this.#capHeight(Math.round(pillY));
+        const [anchorX, anchorY] = anchor.get_transformed_position();
+        this.#capHeight(Math.round(anchorY));
         const [, naturalWidth] = panel.get_preferred_width(-1);
         const monitor = this.#monitor();
-        if (monitor) panel.set_position(centerClamp(pillX, pill.width, naturalWidth, monitor.x, monitor.width), Math.round(pillY));
-        panel.set_pivot_point((pillX + pill.width / 2 - panel.x) / Math.max(1, naturalWidth), 0);
+        if (monitor) panel.set_position(centerClamp(anchorX, anchor.width, naturalWidth, monitor.x, monitor.width), Math.round(anchorY));
+        panel.set_pivot_point((anchorX + anchor.width / 2 - panel.x) / Math.max(1, naturalWidth), 0);
 
         const collapsed = this.#collapsedScale();
         panel.scale_x = collapsed.scaleX;
@@ -342,13 +411,13 @@ export class Island extends Emitter<IslandEvents> {
     #recenterPanel(): void {
         const monitor = this.#monitor();
         if (!this.#isOpen || !monitor) return;
-        const pill = this.pill.actor;
-        const [pillX] = pill.get_transformed_position();
-        this.panel.x = centerClamp(pillX, pill.width, this.panel.width, monitor.x, monitor.width);
+        const anchor = this.#anchor();
+        const [anchorX] = anchor.get_transformed_position();
+        this.panel.x = centerClamp(anchorX, anchor.width, this.panel.width, monitor.x, monitor.width);
     }
 
     #collapsedScale(): {scaleX: number; scaleY: number} {
-        const pill = this.pill.actor;
+        const pill = this.#anchor();
         const [, naturalWidth] = this.panel.get_preferred_width(-1);
         const [, naturalHeight] = this.panel.get_preferred_height(naturalWidth);
         return {
@@ -364,6 +433,15 @@ export class Island extends Emitter<IslandEvents> {
     #onPillHover(): void {
         if (this.#isOpen) return;
         if (this.pill.actor.hover && this.#settings.openOnHover && !this.pill.hasAction)
+            this.#openTimer.once(OPEN_DELAY_MS, () => {
+                this.open('hover');
+            });
+        else this.#openTimer.stop();
+    }
+
+    #onTongueHover(): void {
+        if (this.#isOpen) return;
+        if (this.#tongue.hover && this.#settings.openOnHover)
             this.#openTimer.once(OPEN_DELAY_MS, () => {
                 this.open('hover');
             });
@@ -396,6 +474,8 @@ export class Island extends Emitter<IslandEvents> {
         this.#flushPendingRelayout();
         this.#release();
         Main.layoutManager.untrackChrome(this.panel);
+        Main.layoutManager.removeChrome(this.#tongue);
+        this.#tongue.destroy();
         this.panel.set_child(null);
         this.pill.destroy();
         this.panel.destroy();

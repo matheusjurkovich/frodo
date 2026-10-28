@@ -10,7 +10,7 @@
       <default>'compact'</default>
     </key>
     <key name="closed-items" type="as">
-      <default>['clock', 'system', 'ram', 'claude-session']</default>
+      <default>['clock', 'date', 'notifications', 'network', 'battery']</default>
     </key>
     <key name="rotate-seconds" type="i">
       <range min="2" max="30"/>

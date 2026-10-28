@@ -4,7 +4,6 @@ import {targetMonitors} from '../core/monitors.js';
 import {tabToOpen, visibleTabs} from '../core/tabs.js';
 import type {TabId} from '../core/types.js';
 import type {ClaudeTranscripts} from '../services/claude-transcripts.js';
-import type {NotificationBridge} from '../services/notification-bridge.js';
 import type {Workspaces} from '../services/workspaces.js';
 import {Disposables} from '../util/disposables.js';
 import {Island} from './island.js';
@@ -13,7 +12,6 @@ import {PanelContent} from './panel/panel-content.js';
 
 export interface IslandManagerDependencies extends IslandDependencies {
     readonly transcripts: ClaudeTranscripts;
-    readonly bridge: NotificationBridge;
     readonly workspaces: Workspaces;
     readonly openPreferences: () => void;
 }

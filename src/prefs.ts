@@ -33,6 +33,9 @@ const MONITORS: readonly Option<MonitorMode>[] = [
 
 const ITEM_LABELS: Record<ClosedItem, {title: string; subtitle: string}> = {
     clock: {title: 'Relógio', subtitle: 'Hora atual'},
+    date: {title: 'Data', subtitle: 'Dia da semana, dia e mês'},
+    notifications: {title: 'Notificações', subtitle: 'Sino com a contagem, só quando há notificações'},
+    network: {title: 'Rede', subtitle: 'Ícone de rede do painel'},
     system: {title: 'Ícones do sistema', subtitle: 'Rede, som, Bluetooth, bateria e VPN, iguais aos do painel'},
     battery: {title: 'Bateria', subtitle: 'Ícone e porcentagem'},
     ram: {title: 'RAM', subtitle: 'Memória em uso'},

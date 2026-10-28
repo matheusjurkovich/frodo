@@ -3,6 +3,7 @@ import St from 'gi://St';
 
 import type {Level} from '../../core/claude-usage.js';
 import {segmentWidths} from '../../core/geometry.js';
+import {allocatedWidth} from './layout.js';
 
 export interface Segment {
     readonly fraction: number;
@@ -47,7 +48,7 @@ export class SegmentBar {
     }
 
     #layout(): void {
-        const width = this.actor.allocation.get_width();
+        const width = allocatedWidth(this.actor);
         const widths = segmentWidths(
             this.#segments.map(({fraction}) => fraction),
             width,

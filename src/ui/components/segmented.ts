@@ -2,7 +2,7 @@ import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 
 import {Emitter} from '../../util/emitter.js';
-import {label} from './layout.js';
+import {allocatedWidth, label} from './layout.js';
 
 const WRAP_SPACING = 6;
 
@@ -11,21 +11,24 @@ interface Item {
     readonly count: St.Label;
 }
 
+function rowBox(): St.BoxLayout {
+    return new St.BoxLayout({style_class: 'frodo-segmented-row', x_expand: true});
+}
+
 export class Segmented<T extends string> extends Emitter<{changed: [T]}> {
-    readonly actor: St.Widget;
+    readonly actor: St.BoxLayout;
     readonly #items = new Map<T, Item>();
+    readonly #wrap: boolean;
+    #rows: readonly number[] = [];
     #selected: T;
 
     constructor(options: readonly {id: T; label: string}[], selected: T, styleClass: string, wrap = false) {
         super();
         this.#selected = selected;
+        this.#wrap = wrap;
         const actorClass = `frodo-segmented ${styleClass}`.trim();
         this.actor = wrap
-            ? new St.Widget({
-                  style_class: actorClass,
-                  layout_manager: new Clutter.FlowLayout({column_spacing: WRAP_SPACING, row_spacing: WRAP_SPACING}),
-                  x_expand: true,
-              })
+            ? new St.BoxLayout({style_class: actorClass, orientation: Clutter.Orientation.VERTICAL, x_expand: true})
             : new St.BoxLayout({style_class: actorClass, y_align: Clutter.ActorAlign.CENTER});
         for (const {id, label: text} of options) {
             const count = label('', 'frodo-segmented-count frodo-mono');
@@ -44,8 +47,48 @@ export class Segmented<T extends string> extends Emitter<{changed: [T]}> {
             button.connect('clicked', () => {
                 this.#select(id);
             });
-            this.actor.add_child(button);
             this.#items.set(id, {button, count});
+        }
+        if (!wrap) {
+            for (const {button} of this.#items.values()) this.actor.add_child(button);
+            return;
+        }
+        const row = rowBox();
+        for (const {button} of this.#items.values()) row.add_child(button);
+        this.actor.add_child(row);
+        this.#rows = [this.#items.size];
+        this.actor.connect('notify::width', () => {
+            this.#reflow();
+        });
+    }
+
+    #reflow(): void {
+        if (!this.actor.mapped) return;
+        const buttons = [...this.#items.values()].map(({button}) => button);
+        const width = allocatedWidth(this.actor);
+        const rows: number[] = [];
+        let used = 0;
+        let size = 0;
+        for (const button of buttons) {
+            const [, natural] = button.get_preferred_width(-1);
+            if (size > 0 && width > 0 && used + WRAP_SPACING + natural > width) {
+                rows.push(size);
+                size = 0;
+            }
+            used = size === 0 ? natural : used + WRAP_SPACING + natural;
+            size++;
+        }
+        if (size > 0) rows.push(size);
+        if (rows.join() === this.#rows.join()) return;
+        this.#rows = rows;
+        for (const button of buttons) button.get_parent()?.remove_child(button);
+        this.actor.destroy_all_children();
+        let next = 0;
+        for (const size of rows) {
+            const row = rowBox();
+            for (const button of buttons.slice(next, next + size)) row.add_child(button);
+            next += size;
+            this.actor.add_child(row);
         }
     }
 
@@ -55,6 +98,7 @@ export class Segmented<T extends string> extends Emitter<{changed: [T]}> {
             count.visible = typeof value === 'number';
             count.text = typeof value === 'number' ? String(value) : '';
         }
+        if (this.#wrap) this.#reflow();
     }
 
     #select(id: T): void {

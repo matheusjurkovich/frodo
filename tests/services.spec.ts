@@ -122,7 +122,7 @@ describe('FrodoSettings', () => {
     it('expõe os padrões tipados', () => {
         const settings = createSettings();
         expect(settings.closedMode).toBe('compact');
-        expect(settings.closedItems).toEqual(['clock', 'system', 'ram', 'claude-session']);
+        expect(settings.closedItems).toEqual(['clock', 'date', 'notifications', 'network', 'battery']);
         expect(settings.monitors).toBe('primary');
         expect(settings.hideTopBar).toBeFalse();
         expect(settings.toggleShortcut).toBe('<Super>z');

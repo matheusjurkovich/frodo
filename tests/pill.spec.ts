@@ -114,13 +114,13 @@ class FakeMedia extends Emitter<{changed: []}> {
     }
 }
 
-function session(id: string, status: SessionStatus, step = ''): SessionState {
+function session(id: string, status: SessionStatus, step = '', tool: string | null = null): SessionState {
     return {
         sessionId: id,
         cwd: '/r',
         repo: 'r',
         status,
-        tool: null,
+        tool,
         step,
         pid: null,
         since: Date.now(),
@@ -216,20 +216,46 @@ describe('ActivityFeed', () => {
     });
 
     it('sessões entram pelo status e ignoram as concluídas', () => {
-        sessions.set([session('a', 'done'), session('b', 'working')]);
+        sessions.set([session('a', 'done'), session('b', 'working', 'Bash ls', 'Bash')]);
         expect(feed.current?.kind).toBe('claude-working');
-        sessions.set([session('a', 'done'), session('b', 'working'), session('c', 'waiting')]);
+        sessions.set([session('a', 'done'), session('b', 'working', 'Bash ls', 'Bash'), session('c', 'waiting')]);
         expect(feed.current?.kind).toBe('claude-waiting');
         sessions.set([session('a', 'done')]);
         expect(feed.current).toBeNull();
     });
 
     it('só emite quando o conteúdo muda', () => {
-        sessions.set([session('a', 'working', 'Bash ls')]);
-        sessions.set([session('a', 'working', 'Bash ls')]);
+        sessions.set([session('a', 'working', 'Bash ls', 'Bash')]);
+        sessions.set([session('a', 'working', 'Bash ls', 'Bash')]);
         expect(changes).toBe(1);
-        sessions.set([session('a', 'working', 'Edit x')]);
+        sessions.set([session('a', 'working', 'Edit x', 'Edit')]);
         expect(changes).toBe(2);
+    });
+
+    it('Claude trabalhando aparece 5 s a cada ferramenta nova e some', () => {
+        sessions.set([session('a', 'working', 'Bash ls', 'Bash')]);
+        expect(feed.current?.kind).toBe('claude-working');
+        expect(timers.onceMs()).toEqual([5000]);
+        timers.fire(5000);
+        expect(feed.current).toBeNull();
+        sessions.set([session('a', 'working', 'Bash ls', 'Bash')]);
+        expect(feed.current).toBeNull();
+        sessions.set([session('a', 'working', 'Edit x', 'Edit')]);
+        expect(feed.current?.kind).toBe('claude-working');
+        expect(timers.onceMs()).toEqual([5000, 5000]);
+    });
+
+    it('Claude pensando, sem ferramenta, não aparece', () => {
+        sessions.set([session('a', 'working', 'Pensando')]);
+        expect(feed.current).toBeNull();
+        expect(timers.armed.size).toBe(0);
+    });
+
+    it('sessão que já trabalhava ao ligar não pisca', () => {
+        sessions.set([session('a', 'working', 'Bash ls', 'Bash')]);
+        const later = new ActivityFeed({recording, sessions, meetings, bridge, volume, media});
+        expect(later.current).toBeNull();
+        later.destroy();
     });
 
     it('mídia só entra tocando', () => {
