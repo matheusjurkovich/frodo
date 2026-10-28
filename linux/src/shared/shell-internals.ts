@@ -16,8 +16,23 @@ import type {Disposer} from './disposables.js';
 const EDGE_PRESSURE = 100;
 const EDGE_TIMEOUT_MS = 1000;
 
+const NATIVE_INDICATORS: readonly string[] = [
+    'activities',
+    'quickSettings',
+    'dateMenu',
+    'a11y',
+    'keyboard',
+    'dwellClick',
+    'screenRecording',
+    'screenSharing',
+];
+
+export type PanelSide = 'left' | 'center' | 'right';
+
 interface PanelInternals {
+    readonly _leftBox: St.BoxLayout;
     readonly _centerBox: St.BoxLayout;
+    readonly _rightBox: St.BoxLayout;
     closeQuickSettings(): void;
 }
 
@@ -149,8 +164,36 @@ function panelInternals(): PanelInternals {
     return Main.panel as unknown as PanelInternals;
 }
 
-export function panelCenterBox(): St.BoxLayout {
-    return panelInternals()._centerBox;
+export function panelBox(side: PanelSide): St.BoxLayout {
+    const panel = panelInternals();
+    return {left: panel._leftBox, center: panel._centerBox, right: panel._rightBox}[side];
+}
+
+const PANEL_SIDES: readonly PanelSide[] = ['left', 'center', 'right'];
+
+export function extensionIndicators(): Clutter.Actor[] {
+    const statusArea = Main.panel.statusArea as Record<string, {readonly container?: Clutter.Actor} | undefined>;
+    const containers = Object.entries(statusArea)
+        .filter(([role]) => !NATIVE_INDICATORS.includes(role))
+        .map(([, indicator]) => indicator?.container);
+    return PANEL_SIDES.flatMap(side =>
+        panelBox(side)
+            .get_children()
+            .filter(child => containers.includes(child)),
+    );
+}
+
+export function onPanelIndicatorsChanged(callback: () => void): Disposer {
+    const ids = PANEL_SIDES.map(side => {
+        const box = panelBox(side);
+        return [box, box.connect('child-added', callback), box.connect('child-removed', callback)] as const;
+    });
+    return () => {
+        for (const [box, added, removed] of ids) {
+            box.disconnect(added);
+            box.disconnect(removed);
+        }
+    };
 }
 
 export function sessionPanelHas(role: string): boolean {

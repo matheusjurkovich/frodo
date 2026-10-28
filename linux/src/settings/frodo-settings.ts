@@ -1,7 +1,7 @@
 import type Gio from 'gi://Gio';
 
-import {CARD_IDS, CLOSED_ITEMS, CLOSED_MODES, MONITOR_MODES, SURFACE_STYLES, TAB_IDS, isOneOf} from './schema-values.js';
-import type {CardId, ClosedItem, ClosedMode, MonitorMode, SurfaceStyle, TabId} from './schema-values.js';
+import {CARD_IDS, CLOSED_ITEMS, CLOSED_MODES, MONITOR_MODES, PILL_POSITIONS, SURFACE_STYLES, TAB_IDS, isOneOf} from './schema-values.js';
+import type {CardId, ClosedItem, ClosedMode, MonitorMode, PillPosition, SurfaceStyle, TabId} from './schema-values.js';
 import {parseProfiles} from './claude-profile.js';
 import type {ClaudeProfile} from './claude-profile.js';
 import type {Disposer} from '../shared/disposables.js';
@@ -10,6 +10,7 @@ export type SettingsKey =
     | 'closed-mode'
     | 'closed-items'
     | 'rotate-seconds'
+    | 'pill-position'
     | 'monitors'
     | 'hide-top-bar'
     | 'surface-style'
@@ -49,6 +50,19 @@ export class FrodoSettings {
 
     get rotateSeconds(): number {
         return this.gsettings.get_int('rotate-seconds');
+    }
+
+    set rotateSeconds(value: number) {
+        this.gsettings.set_int('rotate-seconds', value);
+    }
+
+    get pillPosition(): PillPosition {
+        const value = this.gsettings.get_string('pill-position');
+        return isOneOf(PILL_POSITIONS, value) ? value : 'center';
+    }
+
+    set pillPosition(value: PillPosition) {
+        this.gsettings.set_string('pill-position', value);
     }
 
     get monitors(): MonitorMode {

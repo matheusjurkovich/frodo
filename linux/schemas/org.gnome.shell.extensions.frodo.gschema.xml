@@ -16,6 +16,14 @@
       <range min="2" max="30"/>
       <default>4</default>
     </key>
+    <key name="pill-position" type="s">
+      <choices>
+        <choice value="center"/>
+        <choice value="left"/>
+        <choice value="right"/>
+      </choices>
+      <default>'center'</default>
+    </key>
     <key name="monitors" type="s">
       <choices>
         <choice value="primary"/>

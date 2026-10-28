@@ -19,6 +19,13 @@ describe('FrodoSettings', () => {
         expect(settings.gsettings.get_strv('closed-items')).toEqual(['ram', 'clock']);
     });
 
+    it('lê e grava a posição da pílula, com centro como padrão', () => {
+        const settings = createSettings();
+        expect(settings.pillPosition).toBe('center');
+        settings.pillPosition = 'right';
+        expect(settings.gsettings.get_string('pill-position')).toBe('right');
+    });
+
     it('avisa mudanças e permite parar de ouvir', () => {
         const settings = createSettings();
         const spy = jasmine.createSpy('changed');

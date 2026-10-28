@@ -13,7 +13,7 @@ import type {ClaudeService} from '../features/claude/claude-service.js';
 import type {NotificationBridge} from '../features/notifications/notification-bridge-service.js';
 import type {FrodoSettings} from '../settings/frodo-settings.js';
 import type {SystemState} from '../features/system/system-state-service.js';
-import {networkIndicator, quickSettings} from '../shared/shell-internals.js';
+import {extensionIndicators, networkIndicator, onPanelIndicatorsChanged, quickSettings} from '../shared/shell-internals.js';
 import {Disposables} from '../shared/disposables.js';
 import {Emitter} from '../shared/emitter.js';
 import {Timer} from '../shared/timer.js';
@@ -24,7 +24,7 @@ import {frodoIcon} from '../shared/ui/icons.js';
 
 const FADE_MS = 150;
 
-type TextItem = Exclude<ClosedItem, 'clock' | 'date' | 'notifications' | 'network' | 'system'>;
+type TextItem = Exclude<ClosedItem, 'clock' | 'date' | 'notifications' | 'network' | 'system' | 'extensions'>;
 
 const TEXT_ITEMS: readonly ClosedItem[] = ['battery', 'ram', 'claude-session', 'claude-weekly'];
 
@@ -52,6 +52,7 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
     readonly #clock = new GnomeDesktop.WallClock();
     readonly #rotateTimer = new Timer();
     readonly #disposables = new Disposables();
+    readonly #built = new Disposables();
     #segments: Segment[] = [];
     #clockLabels: St.Label[] = [];
     #dateLabels: St.Label[] = [];
@@ -122,6 +123,7 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
 
     #build(): void {
         this.#rotateTimer.stop();
+        this.#built.dispose();
         this.actor.destroy_all_children();
         this.#segments = [];
         this.#clockLabels = [];
@@ -158,6 +160,8 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
                 return this.#networkSegment();
             case 'system':
                 return this.#systemSegment();
+            case 'extensions':
+                return this.#extensionsSegment();
             case 'battery':
                 return this.#batterySegment();
             case 'ram':
@@ -208,6 +212,35 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
         const clone = new Clutter.Clone({source: indicators, y_align: Clutter.ActorAlign.CENTER});
         const box = new St.Bin({style_class: 'frodo-system-icons', child: clone, y_align: Clutter.ActorAlign.CENTER});
         return {actor: box, isVisible: () => true, update: () => undefined};
+    }
+
+    #extensionsSegment(): Segment {
+        const sources = extensionIndicators();
+        const box = new St.BoxLayout({style_class: 'frodo-system-icons frodo-pill-extensions', y_align: Clutter.ActorAlign.CENTER});
+        const clones = sources.map(source => new Clutter.Clone({source, y_align: Clutter.ActorAlign.CENTER}));
+        for (const clone of clones) box.add_child(clone);
+        for (const source of sources)
+            this.#built.signal(
+                source,
+                source.connect('notify::visible', () => {
+                    this.#update();
+                }),
+            );
+        this.#built.add(
+            onPanelIndicatorsChanged(() => {
+                const current = extensionIndicators();
+                if (current.length !== sources.length || current.some((source, index) => source !== sources[index])) this.#build();
+            }),
+        );
+        return {
+            actor: box,
+            isVisible: () => sources.some(source => source.visible),
+            update: () => {
+                clones.forEach((clone, index) => {
+                    clone.visible = sources[index]?.visible ?? false;
+                });
+            },
+        };
     }
 
     #batterySegment(): Segment {
@@ -331,6 +364,7 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
 
     destroy(): void {
         this.#rotateTimer.stop();
+        this.#built.dispose();
         this.#disposables.dispose();
         this.clearListeners();
         this.actor.destroy();

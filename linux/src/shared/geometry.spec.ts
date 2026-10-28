@@ -1,4 +1,4 @@
-import {barHeight, centerClamp, segmentWidths, topEdgeSpan} from './geometry.js';
+import {alignX, barHeight, centerClamp, segmentWidths, topEdgeSpan} from './geometry.js';
 
 describe('geometry', () => {
     it('centraliza o painel na pílula dentro do monitor', () => {
@@ -12,6 +12,18 @@ describe('geometry', () => {
         const main = {x: 0, y: 0, width: 1920, height: 1080};
         expect(topEdgeSpan(main, [main], 900)).toEqual({x1: 510, x2: 1410, y: 0});
         expect(topEdgeSpan({x: 1920, y: 200, width: 800, height: 600}, [], 900)).toEqual({x1: 1920, x2: 2720, y: 200});
+    });
+
+    it('alinha no centro ou encosta na borda com margem', () => {
+        expect(alignX('center', 200, 0, 1920, 8)).toBe(860);
+        expect(alignX('left', 200, 1920, 1920, 8)).toBe(1928);
+        expect(alignX('right', 200, 0, 1920, 8)).toBe(1712);
+    });
+
+    it('leva a faixa do topo para o lado da pílula', () => {
+        const main = {x: 0, y: 0, width: 1920, height: 1080};
+        expect(topEdgeSpan(main, [main], 900, 'left')).toEqual({x1: 0, x2: 900, y: 0});
+        expect(topEdgeSpan(main, [main], 900, 'right')).toEqual({x1: 1020, x2: 1920, y: 0});
     });
 
     it('não cria faixa com outro monitor logo acima', () => {

@@ -11,8 +11,12 @@ export const CLOSED_ITEMS = [
     'ram',
     'claude-session',
     'claude-weekly',
+    'extensions',
 ] as const;
 export type ClosedItem = (typeof CLOSED_ITEMS)[number];
+
+export const PILL_POSITIONS = ['center', 'left', 'right'] as const;
+export type PillPosition = (typeof PILL_POSITIONS)[number];
 
 export const MONITOR_MODES = ['primary', 'secondary', 'both'] as const;
 export type MonitorMode = (typeof MONITOR_MODES)[number];

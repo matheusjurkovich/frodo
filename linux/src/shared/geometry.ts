@@ -11,14 +11,22 @@ export interface EdgeSpan {
     readonly y: number;
 }
 
+export type HorizontalAlign = 'center' | 'left' | 'right';
+
+export function alignX(align: HorizontalAlign, width: number, monX: number, monW: number, margin = 0): number {
+    if (align === 'left') return monX + margin;
+    if (align === 'right') return monX + monW - width - margin;
+    return monX + Math.round((monW - width) / 2);
+}
+
 export function centerClamp(pillX: number, pillW: number, panelW: number, monX: number, monW: number, margin = 8): number {
     const x = Math.round(pillX + pillW / 2 - panelW / 2);
     return Math.max(monX + margin, Math.min(x, monX + monW - panelW - margin));
 }
 
-export function topEdgeSpan(monitor: Rect, monitors: readonly Rect[], span: number): EdgeSpan | null {
+export function topEdgeSpan(monitor: Rect, monitors: readonly Rect[], span: number, align: HorizontalAlign = 'center'): EdgeSpan | null {
     const width = Math.min(span, monitor.width);
-    const x1 = monitor.x + Math.round((monitor.width - width) / 2);
+    const x1 = alignX(align, width, monitor.x, monitor.width);
     const x2 = x1 + width;
     const covered = monitors.some(other => other.y + other.height === monitor.y && other.x < x2 && other.x + other.width > x1);
     return covered ? null : {x1, x2, y: monitor.y};

@@ -966,6 +966,81 @@
     spacing: 10px;
 }
 
+.frodo-pill-editor {
+    spacing: 10px;
+}
+
+.frodo-wrap {
+    spacing: 6px;
+}
+
+.frodo-wrap-row {
+    spacing: 6px;
+}
+
+.frodo-pill-item {
+    height: 32px;
+    min-height: 32px;
+    padding: 0 12px 0 8px;
+    border-radius: 10px;
+    background-color: #232327;
+    color: #f4f4f5;
+    font-size: 13px;
+}
+
+.frodo-pill-item:hover {
+    background-color: #2a2a2f;
+}
+
+.frodo-pill-item:checked {
+    background-color: #2f2f35;
+    box-shadow: inset 0 0 0 1.5px -st-accent-color;
+}
+
+.frodo-pill-item-content {
+    spacing: 6px;
+}
+
+.frodo-pill-item-number {
+    min-width: 16px;
+    padding: 0 3px;
+    border-radius: 5px;
+    background-color: #3f3f46;
+    color: #e4e4e7;
+    font-size: 12px;
+    text-align: center;
+}
+
+.frodo-pill-toolbar .frodo-button {
+    height: 30px;
+    min-height: 30px;
+    padding: 0 10px;
+    font-size: 12px;
+}
+
+.frodo-pill-toolbar .frodo-button:insensitive {
+    color: #52525b;
+}
+
+.frodo-pill-add {
+    height: 32px;
+    min-height: 32px;
+    padding: 0 12px 0 8px;
+    border: 1px dashed #52525b;
+    border-radius: 10px;
+    color: #d4d4d8;
+    font-size: 13px;
+}
+
+.frodo-pill-note {
+    padding: 16px;
+    border: 1px dashed #3f3f46;
+    border-radius: 14px;
+    color: #a1a1aa;
+    font-size: 13px;
+    text-align: center;
+}
+
 .frodo-settings-text,
 .frodo-check {
     font-size: 14px;

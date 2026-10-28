@@ -11,7 +11,7 @@ import type {ClaudeProfile} from '../../settings/claude-profile.js';
 import {accelerator, shortcutLabel} from '../../settings/shortcut.js';
 import {TAB_LABELS, visibleTabs} from '../../settings/tabs.js';
 import {TAB_IDS} from '../../settings/schema-values.js';
-import type {MonitorMode, SurfaceStyle, TabId} from '../../settings/schema-values.js';
+import type {ClosedItem, ClosedMode, MonitorMode, PillPosition, SurfaceStyle, TabId} from '../../settings/schema-values.js';
 import {defaultConfigDir} from '../../features/claude/claude-client.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
 import {spawn} from '../../shared/shell-internals.js';
@@ -21,11 +21,15 @@ import {chip, iconButton, textButton} from '../../shared/ui/buttons.js';
 import {column, dimLabel, label, row, spacer} from '../../shared/ui/layout.js';
 import type {Component} from '../../shared/ui/lifecycle.js';
 import {Segmented} from '../../shared/ui/segmented.js';
+import {Wrap} from '../../shared/ui/wrap.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
+import type {FrodoIconName} from '../../shared/ui/icons.js';
+import {ITEM_LABELS, missingItems, moveItem} from './pill-items.js';
 
 const INTERFACE_SCHEMA = 'org.gnome.desktop.interface';
 const SHOW_SECONDS_KEY = 'clock-show-seconds';
 const POLL_MINUTES = {min: 1, max: 60} as const;
+const ROTATE_SECONDS = {min: 2, max: 30} as const;
 const MODIFIER_KEYS: readonly number[] = [
     Clutter.KEY_Shift_L,
     Clutter.KEY_Shift_R,
@@ -50,6 +54,24 @@ const SURFACES: readonly {id: SurfaceStyle; label: string}[] = [
     {id: 'solid', label: 'Sólido'},
     {id: 'frosted', label: 'Fosco'},
     {id: 'clear', label: 'Translúcido'},
+];
+
+const PILL_MODES: readonly {id: ClosedMode; label: string}[] = [
+    {id: 'minimal', label: 'Mínimo'},
+    {id: 'compact', label: 'Compacto'},
+    {id: 'rotating', label: 'Rotativo'},
+];
+
+const MODE_HINTS: Record<ClosedMode, string> = {
+    minimal: 'Só o relógio, a pílula mais discreta.',
+    compact: 'Todos os itens aparecem ao mesmo tempo.',
+    rotating: 'Bateria, RAM e Claude dividem um espaço e se revezam.',
+};
+
+const PILL_POSITIONS: readonly {id: PillPosition; label: string}[] = [
+    {id: 'center', label: 'Centro'},
+    {id: 'left', label: 'Esquerda'},
+    {id: 'right', label: 'Direita'},
 ];
 
 type ShortcutKey = 'toggle-shortcut' | 'claude-shortcut';
@@ -121,7 +143,9 @@ export class SettingsPage implements Component {
     readonly #configDir = label('', 'frodo-integration-subtitle frodo-mono');
     readonly #profiles = column('frodo-settings-profiles');
     readonly #newProfile = new St.Entry({style_class: 'frodo-entry', hint_text: '~/.claude-trabalho', can_focus: true, x_expand: true});
+    readonly #pillEditor = column('frodo-pill-editor');
     readonly #grabKeyboard: (focus: Clutter.Actor) => void;
+    #pillSelected: ClosedItem | null = null;
     #capture: {readonly button: St.Button; readonly id: number} | null = null;
 
     constructor(settings: FrodoSettings, actions: SettingsActions) {
@@ -130,6 +154,7 @@ export class SettingsPage implements Component {
         this.#typing(this.#newProfile);
 
         this.actor.add_child(backHeader('Configurações da ilha', actions.back));
+        this.actor.add_child(this.#pill());
         this.actor.add_child(
             columns(
                 stack(this.#behavior(), this.#screen(), this.#claude()),
@@ -143,6 +168,9 @@ export class SettingsPage implements Component {
         this.#disposables.add(
             settings.onChanged(
                 [
+                    'closed-mode',
+                    'rotate-seconds',
+                    'pill-position',
                     'open-on-hover',
                     'auto-close',
                     'hidden-tabs',
@@ -162,11 +190,17 @@ export class SettingsPage implements Component {
                 this.#renderProfiles();
             }),
         );
+        this.#disposables.add(
+            settings.onChanged(['closed-mode', 'closed-items'], () => {
+                this.#renderPillEditor();
+            }),
+        );
         this.#disposables.signal(this.#interface, this.#interface.connect(`changed::${SHOW_SECONDS_KEY}`, sync));
         this.#disposables.add(() => {
             this.#stopCapture();
         });
         this.#renderProfiles();
+        this.#renderPillEditor();
         this.#sync();
     }
 
@@ -216,6 +250,172 @@ export class SettingsPage implements Component {
             plus.reactive = current < range.max;
         });
         return stepper;
+    }
+
+    #pill(): St.BoxLayout {
+        const settings = this.#settings;
+        const pill = card('frodo-settings-card');
+        const header = row('frodo-settings-row');
+        header.add_child(cardTitle('Pílula'));
+        header.add_child(spacer());
+        header.add_child(
+            this.#segmented(
+                PILL_MODES,
+                () => settings.closedMode,
+                mode => {
+                    settings.closedMode = mode;
+                },
+            ),
+        );
+        pill.add_child(header);
+
+        const options = column('frodo-settings-card');
+        const hint = dimLabel();
+        hint.clutter_text.line_wrap = true;
+        options.add_child(hint);
+        options.add_child(
+            settingsRow(
+                'Posição na tela',
+                this.#segmented(
+                    PILL_POSITIONS,
+                    () => settings.pillPosition,
+                    position => {
+                        settings.pillPosition = position;
+                    },
+                ),
+            ),
+        );
+        const rotate = settingsRow(
+            'Trocar a cada',
+            this.#stepper(
+                ROTATE_SECONDS,
+                's',
+                () => settings.rotateSeconds,
+                value => {
+                    settings.rotateSeconds = value;
+                },
+            ),
+        );
+        options.add_child(rotate);
+        this.#bindings.push(() => {
+            hint.text = MODE_HINTS[settings.closedMode];
+            rotate.visible = settings.closedMode === 'rotating';
+        });
+        pill.add_child(columns(options, this.#pillEditor));
+        return pill;
+    }
+
+    #renderPillEditor(): void {
+        const settings = this.#settings;
+        const editor = this.#pillEditor;
+        editor.destroy_all_children();
+        if (settings.closedMode === 'minimal') {
+            const note = label(
+                'No modo Mínimo a pílula mostra só o relógio. Escolha Compacto ou Rotativo para montar os itens.',
+                'frodo-pill-note',
+            );
+            note.clutter_text.line_wrap = true;
+            editor.add_child(note);
+            return;
+        }
+
+        const items = settings.closedItems;
+        const selected = this.#pillSelected !== null && items.includes(this.#pillSelected) ? this.#pillSelected : null;
+        const select = (item: ClosedItem | null): void => {
+            this.#pillSelected = item;
+            this.#renderPillEditor();
+        };
+
+        editor.add_child(label('Itens, da esquerda para a direita', 'frodo-settings-text'));
+        const order = items.map((item, index) => {
+            const content = row('frodo-pill-item-content');
+            content.add_child(label(String(index + 1), 'frodo-pill-item-number frodo-mono'));
+            content.add_child(label(ITEM_LABELS[item], 'frodo-pill-item-name'));
+            const button = new St.Button({
+                style_class: 'frodo-pill-item',
+                child: content,
+                can_focus: true,
+                checked: item === selected,
+                accessible_name: ITEM_LABELS[item],
+            });
+            button.connect('clicked', () => {
+                select(item === selected ? null : item);
+            });
+            return button;
+        });
+        editor.add_child(new Wrap('frodo-pill-items', order).actor);
+
+        if (selected) {
+            const index = items.indexOf(selected);
+            const toolbar: St.Button[] = [];
+            const action = (
+                text: string,
+                enabled: boolean,
+                run: () => void,
+                variant: 'control' | 'danger',
+                icon?: FrodoIconName,
+            ): St.Button => {
+                const button = textButton(text, run, variant, icon ? frodoIcon(icon) : undefined);
+                button.reactive = enabled;
+                button.can_focus = enabled;
+                return button;
+            };
+            toolbar.push(
+                action(
+                    'Mover para a esquerda',
+                    index > 0,
+                    () => {
+                        settings.closedItems = moveItem(items, selected, -1);
+                    },
+                    'control',
+                    'back',
+                ),
+            );
+            toolbar.push(
+                action(
+                    'Mover para a direita',
+                    index < items.length - 1,
+                    () => {
+                        settings.closedItems = moveItem(items, selected, 1);
+                    },
+                    'control',
+                    'forward',
+                ),
+            );
+            toolbar.push(
+                action(
+                    'Tirar',
+                    items.length > 1,
+                    () => {
+                        this.#pillSelected = null;
+                        settings.closedItems = items.filter(item => item !== selected);
+                    },
+                    'danger',
+                ),
+            );
+            editor.add_child(new Wrap('frodo-pill-toolbar', toolbar).actor);
+        } else {
+            editor.add_child(dimLabel('Clique num item para movê-lo ou tirá-lo.'));
+        }
+
+        const missing = missingItems(items);
+        if (missing.length === 0) return;
+        editor.add_child(label('Adicionar', 'frodo-settings-text'));
+        const available = missing.map(item => {
+            const button = textButton(
+                ITEM_LABELS[item],
+                () => {
+                    this.#pillSelected = item;
+                    settings.closedItems = [...items, item];
+                },
+                'ghost',
+                frodoIcon('plus'),
+            );
+            button.add_style_class_name('frodo-pill-add');
+            button.accessible_name = `Adicionar ${ITEM_LABELS[item]} à pílula`;
+            return button;
+        });
+        editor.add_child(new Wrap('frodo-pill-items', available).actor);
     }
 
     #behavior(): St.BoxLayout {
