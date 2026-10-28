@@ -64,10 +64,11 @@ export class Workspaces extends Emitter<{changed: []}> {
                 const [rect] = thumbnailRects([window.get_frame_rect()], area, width, height);
                 if (rect) windows.push({rect, slot: colorSlot(app?.get_id() ?? window.get_wm_class() ?? '', WINDOW_COLOR_SLOTS)});
             }
+            const topFirst = appNames.toReversed();
             infos.push({
                 index,
-                title: workspaceTitle(names[index], appNames, index),
-                apps: appsSummary(appNames),
+                title: workspaceTitle(names[index], topFirst, index),
+                apps: appsSummary(topFirst),
                 active: index === active,
                 windows,
             });
