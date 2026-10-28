@@ -6,6 +6,7 @@ import {TAB_IDS} from '../settings/schema-values.js';
 import type {TabId} from '../settings/schema-values.js';
 import type {FrodoSettings} from '../settings/frodo-settings.js';
 import {Disposables} from '../shared/disposables.js';
+import {Timer} from '../shared/timer.js';
 import {SPRING} from '../shared/spring.js';
 import {column} from '../shared/ui/layout.js';
 import {HEIGHT_AXIS, morphSize, settle, slideIn, slideOut} from '../shared/ui/motion.js';
@@ -45,6 +46,7 @@ export class PanelContent {
         child: this.#stack,
     });
     readonly #disposables = new Disposables();
+    readonly #scrollbarTimer = new Timer();
     #power: PowerMenu | null = null;
     #view: PanelView = {kind: 'tab', tab: TAB_IDS[0]};
     #lastTab: TabId = TAB_IDS[0];
@@ -165,11 +167,13 @@ export class PanelContent {
         const tab = view.kind === 'tab' ? view.tab : null;
         if (tab) this.#lastTab = tab;
         if (animate && from !== to && this.actor.mapped) this.#slide(from, to, direction);
-        else
+        else {
+            this.#showScrollbar(true);
             for (const page of this.#allActors()) {
                 settle(page);
                 page.visible = page === to;
             }
+        }
         this.#tabBar.select(tab, animate);
         this.#header.setSettingsActive(view.kind === 'settings');
         this.#scrollToTop();
@@ -183,6 +187,10 @@ export class PanelContent {
             }
         settle(to);
         this.#scrollToTop();
+        this.#showScrollbar(false);
+        this.#scrollbarTimer.once(SPRING.ms, () => {
+            this.#showScrollbar(true);
+        });
         morphSize(
             this.#scroll,
             () => {
@@ -198,6 +206,11 @@ export class PanelContent {
             settle(from);
         });
         slideIn(to, direction);
+    }
+
+    #showScrollbar(show: boolean): void {
+        if (show) this.#scrollbarTimer.stop();
+        this.#scroll.vscrollbar_policy = show ? St.PolicyType.AUTOMATIC : St.PolicyType.NEVER;
     }
 
     #actorOf(view: PanelView): Clutter.Actor {
@@ -231,6 +244,7 @@ export class PanelContent {
     }
 
     destroy(): void {
+        this.#scrollbarTimer.stop();
         this.#disposables.dispose();
         this.#power?.destroy();
         this.#tabBar.destroy();
