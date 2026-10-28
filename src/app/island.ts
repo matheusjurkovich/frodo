@@ -177,6 +177,11 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
                 this.#syncCovered();
             }),
         );
+        this.#disposables.add(
+            this.#feed.on('changed', () => {
+                this.#syncCovered();
+            }),
+        );
         this.#disposables.signal(
             global.display,
             global.display.connect('workareas-changed', () => {
@@ -305,7 +310,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
     }
 
     #anchor(): Clutter.Actor {
-        return this.#covered ? this.#tongue : this.pill.actor;
+        return this.pill.actor.visible ? this.pill.actor : this.#tongue;
     }
 
     #watchTopEdge(): void {
@@ -326,7 +331,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
 
     #syncTongue(): void {
         const tongue = this.#tongue;
-        const visible = this.#covered && !this.#isOpen;
+        const visible = this.#covered && !this.#isOpen && !this.pill.actor.visible;
         if (tongue.visible !== visible) tongue.set({visible, hover: false});
         const monitor = this.#monitor();
         if (tongue.visible && monitor) tongue.set_position(Math.round(monitor.x + (monitor.width - tongue.width) / 2), monitor.y);
@@ -383,10 +388,13 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
     }
 
     #syncCovered(): void {
-        const covered = hasRealFullscreen(this.monitorIndex) || (this.#placement === 'float' && hasMaximizedWindow(this.monitorIndex));
+        const fullscreen = hasRealFullscreen(this.monitorIndex);
+        const covered = fullscreen || (this.#placement === 'float' && hasMaximizedWindow(this.monitorIndex));
+        const kind = this.#feed.current?.kind;
+        const alert = !fullscreen && (kind === 'notification' || kind === 'claude-permission');
         const entering = covered && !this.#covered;
         this.#covered = covered;
-        this.pill.actor.visible = !covered;
+        this.pill.actor.visible = !covered || alert;
         this.#syncUnredirect();
         if (entering) {
             this.#feed.cancelTransient();
