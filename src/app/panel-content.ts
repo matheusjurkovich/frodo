@@ -6,7 +6,9 @@ import {TAB_IDS} from '../settings/schema-values.js';
 import type {TabId} from '../settings/schema-values.js';
 import type {FrodoSettings} from '../settings/frodo-settings.js';
 import {Disposables} from '../shared/disposables.js';
+import {SPRING} from '../shared/spring.js';
 import {column} from '../shared/ui/layout.js';
+import {HEIGHT_AXIS, morphSize, settle, slideIn, slideOut} from '../shared/ui/motion.js';
 import type {Component} from '../shared/ui/lifecycle.js';
 import type {Island} from './island.js';
 import type {FrodoServices} from './services.js';
@@ -80,7 +82,7 @@ export class PanelContent {
                         settings,
                         actions: {
                             openSettings: () => {
-                                this.show({kind: 'settings'});
+                                this.show({kind: 'settings'}, true);
                             },
                             close: () => {
                                 island.close();
@@ -97,7 +99,7 @@ export class PanelContent {
             {
                 openSettings: () => {
                     if (this.#view.kind === 'settings') this.#leaveSettings();
-                    else this.show({kind: 'settings'});
+                    else this.show({kind: 'settings'}, true);
                 },
                 openPower: source => {
                     this.#power ??= new PowerMenu(source, island);
@@ -126,12 +128,13 @@ export class PanelContent {
             this.#stack.add_child(page.actor);
         }
         this.#stack.add_child(this.#settingsPage.actor);
+        this.actor.clip_to_allocation = true;
         this.actor.add_child(this.#header.actor);
         this.actor.add_child(this.#scroll);
 
         this.#disposables.add(
             this.#tabBar.on('selected', tab => {
-                this.show({kind: 'tab', tab});
+                this.show({kind: 'tab', tab}, true);
             }),
         );
         this.#disposables.add(
@@ -154,15 +157,59 @@ export class PanelContent {
         this.#syncTabs();
     }
 
-    show(view: PanelView): void {
+    show(view: PanelView, animate = false): void {
+        const from = this.#actorOf(this.#view);
+        const to = this.#actorOf(view);
+        const direction = this.#order(view) > this.#order(this.#view) ? 1 : -1;
         this.#view = view;
         const tab = view.kind === 'tab' ? view.tab : null;
         if (tab) this.#lastTab = tab;
-        for (const [id, page] of this.#pages) page.actor.visible = id === tab;
-        this.#settingsPage.actor.visible = view.kind === 'settings';
+        if (animate && from !== to && this.actor.mapped) this.#slide(from, to, direction);
+        else
+            for (const page of this.#allActors()) {
+                settle(page);
+                page.visible = page === to;
+            }
         this.#tabBar.select(tab);
         this.#header.setSettingsActive(view.kind === 'settings');
         this.#scrollToTop();
+    }
+
+    #slide(from: Clutter.Actor, to: Clutter.Actor, direction: 1 | -1): void {
+        for (const page of this.#allActors())
+            if (page !== from && page !== to) {
+                settle(page);
+                page.hide();
+            }
+        settle(to);
+        this.#scrollToTop();
+        morphSize(
+            this.#scroll,
+            () => {
+                from.hide();
+                to.show();
+            },
+            SPRING,
+            HEIGHT_AXIS,
+        );
+        from.show();
+        slideOut(from, direction, () => {
+            from.hide();
+            settle(from);
+        });
+        slideIn(to, direction);
+    }
+
+    #actorOf(view: PanelView): Clutter.Actor {
+        return view.kind === 'tab' ? (this.#pages.get(view.tab)?.actor ?? this.#settingsPage.actor) : this.#settingsPage.actor;
+    }
+
+    #order(view: PanelView): number {
+        return view.kind === 'tab' ? TAB_IDS.indexOf(view.tab) : TAB_IDS.length;
+    }
+
+    #allActors(): Clutter.Actor[] {
+        return [...[...this.#pages.values()].map(page => page.actor), this.#settingsPage.actor];
     }
 
     showOnNextOpen(tab: TabId): void {
@@ -174,7 +221,7 @@ export class PanelContent {
     }
 
     #leaveSettings(): void {
-        this.show({kind: 'tab', tab: tabToOpen(this.#lastTab, visibleTabs(this.#settings.hiddenTabs))});
+        this.show({kind: 'tab', tab: tabToOpen(this.#lastTab, visibleTabs(this.#settings.hiddenTabs))}, true);
     }
 
     #syncTabs(): void {
