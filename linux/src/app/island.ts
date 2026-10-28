@@ -85,7 +85,6 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
     #recenterLater = 0;
     #backdropGlass: Glass | null = null;
     #pillGlass: Glass | null = null;
-    #tongueGlass: Glass | null = null;
     #edgeWatch: Disposer | null = null;
 
     constructor(dependencies: FrodoServices, monitorIndex: number) {
@@ -257,7 +256,6 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         }
         for (const surface of surfaces) surface.add_style_class_name(`frodo-surface-${style}`);
         this.#backdropGlass ??= new Glass(backdrop);
-        this.#tongueGlass ??= new Glass(this.#tongue);
         if (this.#attached) this.#pillGlass ??= new Glass(this.pill.actor);
     }
 
@@ -266,8 +264,6 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         this.#backdropGlass = null;
         this.#pillGlass?.destroy();
         this.#pillGlass = null;
-        this.#tongueGlass?.destroy();
-        this.#tongueGlass = null;
     }
 
     attach(): void {

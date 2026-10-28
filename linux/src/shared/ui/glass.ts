@@ -9,6 +9,7 @@ import type {Component} from './lifecycle.js';
 
 const BLUR_RADIUS = 40;
 const MARGIN = BLUR_RADIUS;
+const BRIGHTNESS = 0.6;
 
 const MASK_DECLARATIONS = `
 uniform vec2 size;
@@ -60,7 +61,7 @@ export class Glass implements Component {
         const {actor} = this;
         actor.add_child(this.#scene);
         actor.add_effect(this.#mask);
-        actor.add_effect(new Shell.BlurEffect({mode: Shell.BlurMode.ACTOR, radius: BLUR_RADIUS, brightness: 1}));
+        actor.add_effect(new Shell.BlurEffect({mode: Shell.BlurMode.ACTOR, radius: BLUR_RADIUS, brightness: BRIGHTNESS}));
         actor.add_constraint(new Clutter.BindConstraint({source: host, coordinate: Clutter.BindCoordinate.POSITION, offset: -MARGIN}));
         actor.add_constraint(new Clutter.BindConstraint({source: host, coordinate: Clutter.BindCoordinate.SIZE, offset: 2 * MARGIN}));
         for (const property of ['visible', 'opacity']) {
@@ -107,12 +108,7 @@ export class Glass implements Component {
     #reshape(): void {
         const host = this.#host;
         if (!host.mapped) return;
-        const node = host.get_theme_node();
-        const radius = Math.max(
-            ...[St.Corner.TOPLEFT, St.Corner.TOPRIGHT, St.Corner.BOTTOMRIGHT, St.Corner.BOTTOMLEFT].map(corner =>
-                node.get_border_radius(corner),
-            ),
-        );
+        const radius = host.get_theme_node().get_border_radius(St.Corner.TOPLEFT);
         this.#mask.shape(this.actor.width, this.actor.height, Math.min(radius, host.width / 2, host.height / 2));
     }
 

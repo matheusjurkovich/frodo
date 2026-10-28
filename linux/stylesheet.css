@@ -2109,6 +2109,80 @@
     background-color: rgba(23, 23, 26, 0.25);
 }
 
+.frodo-surface-clear .frodo-settings-line,
+.frodo-surface-clear .frodo-overview-footer {
+    border-color: rgba(255, 255, 255, 0.06);
+}
+
+.frodo-surface-clear .frodo-button-control,
+.frodo-surface-clear .frodo-kbd,
+.frodo-surface-clear .frodo-chip-neutral,
+.frodo-surface-clear .frodo-entry,
+.frodo-surface-clear .frodo-segmented,
+.frodo-surface-clear .frodo-position-grid,
+.frodo-surface-clear .frodo-pill-item,
+.frodo-surface-clear .frodo-stat,
+.frodo-surface-clear .frodo-session,
+.frodo-surface-clear .frodo-notification,
+.frodo-surface-clear .frodo-settings-profile-row,
+.frodo-surface-clear .frodo-calendar .event-box,
+.frodo-surface-clear .frodo-general .quick-toggle,
+.frodo-surface-clear .frodo-general .quick-toggle-has-menu,
+.frodo-surface-clear .frodo-general .frodo-sound-icon .icon-button {
+    background-color: rgba(31, 31, 35, 0.45);
+}
+
+.frodo-surface-clear .frodo-settings-nav-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.frodo-surface-clear .frodo-button-ghost:checked,
+.frodo-surface-clear .frodo-button-control:hover,
+.frodo-surface-clear .frodo-segmented-item:checked,
+.frodo-surface-clear .frodo-pill-item:hover,
+.frodo-surface-clear .frodo-pill-item:checked,
+.frodo-surface-clear .frodo-position-cell,
+.frodo-surface-clear .frodo-settings-nav-item:checked,
+.frodo-surface-clear .frodo-session-header:hover,
+.frodo-surface-clear .frodo-notification:hover,
+.frodo-surface-clear .frodo-tab-indicator {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.frodo-surface-clear .frodo-position-cell:hover,
+.frodo-surface-clear .frodo-switch {
+    background-color: rgba(255, 255, 255, 0.14);
+}
+
+.frodo-surface-clear .frodo-switch:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.frodo-surface-clear .frodo-position-cell:checked,
+.frodo-surface-clear .frodo-switch:checked {
+    background-color: -st-accent-color;
+}
+
+.frodo-surface-clear .frodo-switch:checked:hover {
+    background-color: st-lighten(-st-accent-color, 4%);
+}
+
+.frodo-surface-clear .frodo-filters {
+    background-color: transparent;
+}
+
+.frodo-surface-clear .frodo-filters .frodo-segmented-item {
+    background-color: rgba(31, 31, 35, 0.45);
+}
+
+.frodo-surface-clear .frodo-filters .frodo-segmented-item:checked {
+    background-color: #f4f4f5;
+}
+
+.frodo-surface-clear .frodo-switch:insensitive {
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
 .frodo-settings-nav-item {
     height: 40px;
     min-height: 40px;
