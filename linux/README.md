@@ -39,7 +39,7 @@ Em Configurações › Tela e posição, a grade 3×3 põe a ilha no topo ou emb
 
 ## Fundo
 
-Em Configurações › Tela e posição, "Fundo" escolhe o estilo da pílula e da ilha: Sólido (preto, o padrão), Fosco ou Translúcido. Nos dois últimos o fundo fica translúcido e o que está atrás aparece desfocado: papel de parede e janelas, com os cantos arredondados da forma. O desfoque é do próprio Frodo e não depende do Blur my Shell.
+Em Configurações › Tela e posição, "Fundo" escolhe o estilo da pílula, da lingueta e da ilha: Sólido (preto, o padrão), Fosco ou Translúcido. Nos dois últimos o fundo fica translúcido e o que está atrás aparece desfocado: papel de parede e janelas, com os cantos arredondados da forma. No Translúcido, os blocos de dentro da ilha também ficam translúcidos. O desfoque é do próprio Frodo e não depende do Blur my Shell.
 
 ## Animações
 

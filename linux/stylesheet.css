@@ -64,6 +64,19 @@
     background-color: #26262b;
 }
 
+.frodo-tongue.frodo-surface-frosted {
+    background-color: rgba(10, 10, 11, 0.72);
+}
+
+.frodo-tongue.frodo-surface-clear {
+    background-color: rgba(10, 10, 11, 0.42);
+}
+
+.frodo-tongue.frodo-surface-frosted:hover,
+.frodo-tongue.frodo-surface-clear:hover {
+    background-color: rgba(38, 38, 43, 0.72);
+}
+
 .frodo-pill-action {
     min-height: 46px;
     padding-right: 7px;
@@ -2085,6 +2098,15 @@
     spacing: 2px;
     border-radius: 18px;
     background-color: #17171a;
+}
+
+.frodo-surface-clear .frodo-card,
+.frodo-surface-clear .frodo-workspace,
+.frodo-surface-clear .frodo-general .quick-toggle-menu,
+.frodo-surface-clear .frodo-calendar-month,
+.frodo-surface-clear .frodo-calendar-events,
+.frodo-surface-clear .frodo-settings-nav {
+    background-color: rgba(23, 23, 26, 0.25);
 }
 
 .frodo-settings-nav-item {

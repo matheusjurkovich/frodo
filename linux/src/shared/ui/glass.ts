@@ -107,7 +107,12 @@ export class Glass implements Component {
     #reshape(): void {
         const host = this.#host;
         if (!host.mapped) return;
-        const radius = host.get_theme_node().get_border_radius(St.Corner.TOPLEFT);
+        const node = host.get_theme_node();
+        const radius = Math.max(
+            ...[St.Corner.TOPLEFT, St.Corner.TOPRIGHT, St.Corner.BOTTOMRIGHT, St.Corner.BOTTOMLEFT].map(corner =>
+                node.get_border_radius(corner),
+            ),
+        );
         this.#mask.shape(this.actor.width, this.actor.height, Math.min(radius, host.width / 2, host.height / 2));
     }
 
