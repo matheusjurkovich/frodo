@@ -1,0 +1,6 @@
+message_file="$1"
+case $message_file in
+    /*) ;;
+    *) message_file="$PWD/$message_file" ;;
+esac
+cd linux && npx --no -- commitlint --edit "$message_file"
