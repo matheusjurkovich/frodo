@@ -457,6 +457,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
 
     #flushPendingRelayout(): void {
         this.pill.actor.get_allocation_box();
+        this.panel.get_allocation_box();
     }
 
     #release(): void {
@@ -662,6 +663,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         this.#closeTimer.stop();
         this.#disposables.dispose();
         this.clearListeners();
+        this.panel.set_child(null);
         this.#flushPendingRelayout();
         this.#release();
         this.#covered = false;
@@ -671,7 +673,6 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         Main.layoutManager.removeChrome(this.#backdrop);
         this.#backdrop.destroy();
         this.#tongue.destroy();
-        this.panel.set_child(null);
         this.pill.destroy();
         this.panel.destroy();
     }
