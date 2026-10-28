@@ -29,8 +29,8 @@ export interface SessionRowActions {
     readonly focus: () => void;
     readonly openPullRequest: () => void;
     readonly dismiss: () => void;
-    readonly approve: () => void;
-    readonly deny: () => void;
+    readonly approve: (request: PendingRequest) => void;
+    readonly deny: (request: PendingRequest) => void;
 }
 
 export interface SessionRowView {
@@ -109,6 +109,7 @@ export class SessionRow implements Component {
     readonly #dismiss: St.Button;
     readonly #actionsRow = row('frodo-session-actions');
     readonly #unpack: Disposer[] = [];
+    #pending: PendingRequest | null = null;
     #shown: SessionStatus | null = null;
     #expanded: boolean | null = null;
 
@@ -129,8 +130,20 @@ export class SessionRow implements Component {
         this.#header.connect('clicked', toggle);
 
         this.#open = textButton('Abrir no terminal', focus, 'primary');
-        this.#deny = textButton('Negar', deny, 'control');
-        this.#approve = textButton('Aprovar', approve, 'primary');
+        this.#deny = textButton(
+            'Negar',
+            () => {
+                if (this.#pending) deny(this.#pending);
+            },
+            'control',
+        );
+        this.#approve = textButton(
+            'Aprovar',
+            () => {
+                if (this.#pending) approve(this.#pending);
+            },
+            'primary',
+        );
         this.#pullRequest = textButton('Ver PR', openPullRequest, 'primary');
         this.#resume = textButton('Retomar', focus, 'control');
         this.#dismiss = textButton('Encerrar', dismiss, 'ghost');
@@ -159,8 +172,10 @@ export class SessionRow implements Component {
         const meta = sessionMeta(state, stats, status, nowMs);
         this.#meta.text = meta;
         this.#meta.visible = meta !== '';
-        this.#step.text = state.step;
-        this.#step.visible = state.step !== '';
+        this.#pending = pending;
+        const step = pending?.tool ?? state.step;
+        this.#step.text = step;
+        this.#step.visible = step !== '';
         this.#header.accessible_name = `${state.repo}, ${STATUS_LABELS[status]}`;
         this.#showExpanded(expanded);
         if (expanded) this.#updateBody(state, status, stats, diff, pending, canOpenPullRequest);
@@ -220,8 +235,9 @@ export class SessionRow implements Component {
         this.#toolField.visible = state.tool !== null && state.tool !== '';
         this.#facts.visible = this.#tokensField.visible || this.#filesField.visible || this.#toolField.visible;
         this.#tool.text = state.tool ?? '';
-        this.#last.visible = state.step !== '';
-        this.#last.text = state.step;
+        const step = pending?.tool ?? state.step;
+        this.#last.visible = step !== '';
+        this.#last.text = step;
 
         const live = status === 'working' || status === 'waiting';
         this.#open.visible = live;

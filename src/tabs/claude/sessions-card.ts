@@ -3,7 +3,6 @@ import Pango from 'gi://Pango';
 import {countByStatus, displayStatus} from '../../features/claude/claude-sessions.js';
 import type {DiffStat, SessionState, SessionStatus} from '../../features/claude/claude-sessions.js';
 import type {ClaudeSessions} from '../../features/claude/claude-sessions-service.js';
-import type {Decision} from '../../features/claude/claude-sessions.js';
 import type {ClaudeTranscripts} from '../../features/claude/claude-transcripts-service.js';
 import {Disposables} from '../../shared/disposables.js';
 import {Timer} from '../../shared/timer.js';
@@ -196,18 +195,13 @@ export class SessionsCard implements Component {
                 this.#close();
                 this.#sessions.dismiss(id);
             },
-            approve: () => {
-                this.#decide(id, 'allow');
+            approve: request => {
+                this.#sessions.decide(request, 'allow');
             },
-            deny: () => {
-                this.#decide(id, 'deny');
+            deny: request => {
+                this.#sessions.decide(request, 'deny');
             },
         };
-    }
-
-    #decide(id: string, decision: Decision): void {
-        const pending = this.#sessions.pendingFor(id);
-        if (pending) this.#sessions.decide(pending, decision);
     }
 
     #toggle(id: string): void {
