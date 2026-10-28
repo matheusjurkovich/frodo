@@ -1,5 +1,8 @@
+import GLib from 'gi://GLib';
 import System from 'system';
 
+const loop = new GLib.MainLoop(null, false);
+let code = 2;
 let failed = 0;
 let total = 0;
 
@@ -13,13 +16,17 @@ jasmine.getEnv().addReporter({
     },
     jasmineDone(result) {
         print(`${total - failed}/${total} ok (${result.overallStatus})`);
-        System.exit(result.overallStatus === 'passed' ? 0 : 1);
+        code = result.overallStatus === 'passed' ? 0 : 1;
+        loop.quit();
     },
 });
 
-try {
-    await jasmine.getEnv().execute();
-} catch (error) {
-    print(`ERRO ${String(error)}`);
-    System.exit(2);
-}
+jasmine
+    .getEnv()
+    .execute()
+    .catch((error: unknown) => {
+        print(`ERRO ${String(error)}`);
+        loop.quit();
+    });
+loop.run();
+System.exit(code);
