@@ -26,3 +26,16 @@ export function trackFraction(positionUs: number | null, lengthUs: number | null
     if (positionUs === null || lengthUs === null || lengthUs <= 0) return null;
     return Math.min(1, Math.max(0, positionUs / lengthUs));
 }
+
+const PLAYERCTLD = 'org.mpris.MediaPlayer2.playerctld';
+
+export interface PlayerCandidate {
+    readonly name: string;
+    readonly playing: boolean;
+    readonly title: string;
+}
+
+export function pickPlayer<Candidate extends PlayerCandidate>(players: readonly Candidate[]): Candidate | null {
+    const candidates = players.filter(player => player.name !== PLAYERCTLD);
+    return candidates.find(player => player.playing) ?? candidates.findLast(player => player.title !== '') ?? null;
+}

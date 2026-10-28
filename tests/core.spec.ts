@@ -12,7 +12,8 @@ import {
 import {barHeight, centerClamp, segmentWidths} from '../src/core/geometry.js';
 import {formatGb, parseMeminfo} from '../src/core/memory.js';
 import {latest, shouldIntercept} from '../src/core/notifications.js';
-import {parseMetadata, trackFraction} from '../src/core/media.js';
+import {parseMetadata, pickPlayer, trackFraction} from '../src/core/media.js';
+import type {PlayerCandidate} from '../src/core/media.js';
 import {isValidShortcut, shortcutLabel} from '../src/core/shortcut.js';
 import {tabToOpen, visibleTabs} from '../src/core/tabs.js';
 import {itemsForPreferences, moveItem} from '../src/core/items.js';
@@ -248,5 +249,22 @@ describe('mídia', () => {
         expect(trackFraction(10, null)).toBeNull();
         expect(trackFraction(null, 100)).toBeNull();
         expect(trackFraction(300, 100)).toBe(1);
+    });
+
+    it('escolhe o player tocando, senão o mais recente com título, e ignora o playerctld', () => {
+        const player = (name: string, playing: boolean, title: string): PlayerCandidate => ({
+            name: `org.mpris.MediaPlayer2.${name}`,
+            playing,
+            title,
+        });
+        const spotify = player('spotify', false, 'Faixa');
+        const firefox = player('firefox', true, 'Vídeo');
+        const vazio = player('vlc', false, '');
+        const ctld = player('playerctld', true, 'Faixa');
+        expect(pickPlayer([spotify, firefox, vazio])).toBe(firefox);
+        expect(pickPlayer([ctld, spotify, vazio])).toBe(spotify);
+        expect(pickPlayer([player('a', false, 'A'), player('b', false, 'B'), vazio])?.title).toBe('B');
+        expect(pickPlayer([vazio, ctld])).toBeNull();
+        expect(pickPlayer([])).toBeNull();
     });
 });

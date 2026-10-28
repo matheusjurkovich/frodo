@@ -2,7 +2,7 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import {loadInterfaceXML} from 'resource:///org/gnome/shell/misc/fileUtils.js';
 
-import {parseMetadata} from '../core/media.js';
+import {parseMetadata, pickPlayer} from '../core/media.js';
 import type {TrackMetadata} from '../core/media.js';
 import {Emitter} from '../util/emitter.js';
 
@@ -79,6 +79,10 @@ class Player {
 
     get playing(): boolean {
         return this.#controls.PlaybackStatus === 'Playing';
+    }
+
+    get title(): string {
+        return this.track().title;
     }
 
     track(): MediaTrack {
@@ -175,9 +179,8 @@ export class MediaService extends Emitter<{changed: []}> {
         }
     }
 
-    #currentPlayer(): Player | undefined {
-        const ready = [...this.#players.values()].filter(player => player.ready);
-        return ready.find(player => player.playing) ?? ready.at(-1);
+    #currentPlayer(): Player | null {
+        return pickPlayer([...this.#players.values()].filter(player => player.ready));
     }
 
     async #discover(): Promise<void> {
