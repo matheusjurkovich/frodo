@@ -11,70 +11,73 @@ Produto, abas e prioridade da pílula: `README.md`.
 
 ## Layout
 
-> A estrutura abaixo é a de hoje. O plano `docs/superpowers/plans/2026-10-28-arquitetura-por-camadas.md` reorganiza `src/`
-> por camada e domínio (`app/`, `pill/`, `tabs/`, `features/`, `settings/`, `shared/`); o último task dele reescreve esta
-> seção.
+Código agrupado por camada e domínio. Import só desce: `app → pill, tabs → features → settings → shared`.
 
-| Caminho                    | Papel                                                                                     |
-| -------------------------- | ----------------------------------------------------------------------------------------- |
-| `src/extension.ts`         | `enable`/`disable`: cria os serviços, a barra do topo, as ilhas e os atalhos              |
-| `src/prefs.ts`             | Janela de preferências (Adwaita). Roda no processo GTK, fora do shell                     |
-| `src/core/`                | Regra pura: parse, formatação, cálculo, prioridade. Sem nada do GNOME, coberta por testes |
-| `src/services/`            | Fontes de dados (GSettings, UPower, MPRIS, D-Bus, disco, HTTP). Avisam por `Emitter`      |
-| `src/shell/internals.ts`   | Único lugar que toca API privada do GNOME Shell                                           |
-| `src/ui/components/`       | Componentes St reaproveitados: botões, cards, layout, anel, barra de segmentos            |
-| `src/ui/island.ts`         | A ilha de um monitor (pílula + painel, abrir, fechar, posição)                            |
-| `src/ui/island-manager.ts` | Uma ilha por monitor                                                                      |
-| `src/ui/panel/`            | Ilha aberta: `panel-content.ts`, cabeçalho, barra de abas, menu de energia                |
-| `src/ui/panel/<aba>/`      | Uma pasta por aba: `general`, `calendar`, `workspaces`, `claude`, `notifications`         |
-| `src/ui/panel/settings/`   | Configurações dentro da ilha                                                              |
-| `src/ui/pill/`             | Pílula: visão ociosa, visão de atividade e o feed que escolhe a atividade                 |
-| `src/util/`                | `Emitter` tipado, `Disposables`, `Timer`                                                  |
-| `src/types/`               | Declarações que faltam nos `@girs`                                                        |
-| `tests/`                   | Specs Jasmine rodando no `gjs`, fixtures e runner                                         |
-| `stylesheet.css`           | Todo o visual (cor só existe aqui)                                                        |
-| `schemas/`                 | Schema do GSettings                                                                       |
-| `hooks/claude-session.sh`  | Hook do Claude Code que grava o estado de cada sessão para a aba Claude                   |
-| `icons/`                   | SVG simbólicos (`frodo-<nome>-symbolic.svg`)                                              |
-| `docs/superpowers/`        | Specs e planos (redesign, arquitetura)                                                    |
+| Caminho                   | Papel                                                                                                                                                                             |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/extension.ts`        | `enable`/`disable`: ícones, `createServices`, barra do topo, ilhas e atalhos                                                                                                      |
+| `src/prefs.ts`            | Janela de preferências (Adwaita). Roda no processo GTK, fora do shell                                                                                                             |
+| `src/app/`                | A ilha: `services.ts` (`FrodoServices`, `createServices`), `island.ts`, `island-manager.ts`, cabeçalho, barra de abas, menu de energia, barra do topo, monitores                  |
+| `src/pill/`               | Pílula: visão ociosa, visão de atividade, feed e prioridade das atividades                                                                                                        |
+| `src/tabs/<aba>/`         | Uma pasta plana por aba: `general`, `calendar`, `workspaces`, `claude`, `notifications`, `settings`                                                                               |
+| `src/features/<domínio>/` | Regra pura (`<assunto>.ts`) e serviço (`<assunto>-service.ts`, `claude-client.ts`) de cada fonte de dados: `claude`, `media`, `meetings`, `notifications`, `system`, `workspaces` |
+| `src/settings/`           | GSettings tipado (`frodo-settings.ts`), valores do schema, perfis do Claude, itens da pílula, atalho, abas                                                                        |
+| `src/shared/`             | `Emitter`, `Disposables`, `Timer`, formatação, geometria, `readTextFile`, `Level`, `IslandHandle`, `shell-internals.ts`                                                           |
+| `src/shared/ui/`          | Componentes St: botões, cards, layout, anel, barra de segmentos, segmentado, ícones, `ActorLoan`                                                                                  |
+| `src/types/`              | Declarações que faltam nos `@girs`                                                                                                                                                |
+| `tests/`                  | Runner Jasmine (`entry.js` acha todo `*.spec.ts`), polyfills e fixtures                                                                                                           |
+| `tools/smoke.sh`          | gnome-shell headless isolado: liga, desliga e religa a extensão                                                                                                                   |
+| `stylesheet.css`          | Todo o visual (cor só existe aqui)                                                                                                                                                |
+| `schemas/`                | Schema do GSettings                                                                                                                                                               |
+| `hooks/claude-session.sh` | Hook do Claude Code que grava o estado de cada sessão para a aba Claude                                                                                                           |
+| `icons/`                  | SVG simbólicos (`frodo-<nome>-symbolic.svg`)                                                                                                                                      |
+| `docs/superpowers/`       | Specs e planos (redesign, arquitetura)                                                                                                                                            |
 
 ## Regras inegociáveis
 
-| Regra                                                                                                                     | Onde é verificada                   |
-| ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| `core/` não importa `gi://` nem `resource://` e tem teste                                                                 | revisão                             |
-| `services/` não conhece a UI; a UI assina eventos tipados (`Emitter`)                                                     | revisão                             |
-| Todo `connect`, timer e patch do `enable()` é desfeito no `disable()` por `Disposables`                                   | revisão                             |
-| API privada do shell só em `src/shell/internals.ts`                                                                       | revisão                             |
-| Controle do sistema (Wi-Fi, Bluetooth, sliders, calendário) é o nativo emprestado (`ActorLoan`), nunca reimplementado     | revisão                             |
-| Cor só no `stylesheet.css`; desenho em Cairo lê do tema (`get_theme_node()`); destaque é `-st-accent-color`               | revisão                             |
-| Card que lê disco ou D-Bus periodicamente só roda visível (`whileMapped`)                                                 | revisão                             |
-| `prefs.ts` não importa `St`, `Clutter`, `Meta`, `Shell`, `resource:///org/gnome/shell/` nem `src/ui/`                     | revisão                             |
-| Sem comentário em código, teste, CSS, XML e shell script (só diretiva de ferramenta)                                      | revisão                             |
-| Texto de UI em pt-BR, direto no código                                                                                    | revisão                             |
-| Sem dependência npm em runtime e sem processo residente; processo curto só por ação do usuário (`git`, `gh`) ou pelo hook | revisão                             |
-| Tipos estritos, `import type` para tipo, sem `console`, `===`                                                             | `npm run typecheck`, `npm run lint` |
+| Regra                                                                                                                        | Onde é verificada                   |
+| ---------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| Import só desce: `app → pill, tabs → features → settings → shared`                                                           | ESLint (`no-restricted-imports`)    |
+| Em `features/`, só `*-service.ts` e `*-client.ts` importam `gi://` ou `resource://` (import de tipo pode); o resto tem teste | ESLint (`no-restricted-imports`)    |
+| Feature não importa outra feature; aba não importa outra aba (o comum vai para `shared/`)                                    | ESLint (`no-restricted-imports`)    |
+| Aba fala com a ilha só pelo `IslandHandle` (`src/shared/island-handle.ts`)                                                   | ESLint (aba não importa `app/`)     |
+| `prefs.ts` não importa `St`, `Clutter`, `Meta`, `Shell`, `resource:///org/gnome/shell/`, `shared/ui/` nem `shell-internals`  | ESLint (`no-restricted-imports`)    |
+| Serviço não conhece a UI; a UI assina eventos tipados (`Emitter`)                                                            | ESLint (camadas), revisão           |
+| Todo `connect`, timer e patch do `enable()` é desfeito no `disable()` por `Disposables`                                      | `npm run smoke` (religa), revisão   |
+| API privada do shell só em `src/shared/shell-internals.ts`                                                                   | revisão                             |
+| Controle do sistema (Wi-Fi, Bluetooth, sliders, calendário) é o nativo emprestado (`ActorLoan`), nunca reimplementado        | revisão                             |
+| Cor só no `stylesheet.css`; desenho em Cairo lê do tema (`get_theme_node()`); destaque é `-st-accent-color`                  | revisão                             |
+| Card que lê disco ou D-Bus periodicamente só roda visível (`whileMapped`)                                                    | revisão                             |
+| Sem comentário em código, teste, CSS, XML e shell script (só diretiva de ferramenta)                                         | revisão                             |
+| Texto de UI em pt-BR, direto no código                                                                                       | revisão                             |
+| Sem dependência npm em runtime e sem processo residente; processo curto só por ação do usuário (`git`, `gh`) ou pelo hook    | revisão                             |
+| Tipos estritos, `import type` para tipo, sem `console`, `===`                                                                | `npm run typecheck`, `npm run lint` |
 
 ## Onde mora
 
 Responda na ordem; o primeiro "sim" decide.
 
-1. Regra pura (parse, cálculo, formatação, prioridade)? → `src/core/<assunto>.ts` e um spec.
-2. Fala com GNOME, D-Bus, disco ou rede e avisa por evento? → `src/services/<assunto>.ts`.
-3. API privada do shell? → `src/shell/internals.ts`.
-4. Peça visual usada por duas ou mais telas? → `src/ui/components/`.
-5. Só uma aba usa? → `src/ui/panel/<aba>/`. Só a pílula? → `src/ui/pill/`.
-6. Casca da ilha (cabeçalho, abas, energia, posição, monitores)? → `src/ui/` e `src/ui/panel/`.
-7. Tipo que falta nos `@girs`? → `src/types/*.d.ts`.
+1. Regra pura de um domínio (parse, cálculo, prioridade)? → `src/features/<domínio>/<assunto>.ts` + `<assunto>.spec.ts`.
+2. Fala com GNOME, D-Bus, disco ou rede e avisa por evento? → `src/features/<domínio>/<assunto>-service.ts`.
+3. Chave do GSettings ou valor gravado nela? → `src/settings/`.
+4. Só uma aba usa? → `src/tabs/<aba>/`. Só a pílula? → `src/pill/`.
+5. Casca da ilha (cabeçalho, abas, menu de energia, posição, monitores, composição)? → `src/app/`.
+6. Genérico, sem domínio, usado por dois ou mais? → `src/shared/` (componente St em `src/shared/ui/`).
+7. API privada do shell? → `src/shared/shell-internals.ts`, e só lá.
+8. Tipo que falta nos `@girs`? → `src/types/*.d.ts`.
+
+Serviço novo: crie em `features/`, acrescente o campo em `FrodoServices` e a linha em `createServices` (`src/app/services.ts`).
+Quem precisa dele recebe pelo construtor.
 
 ## Padrões de código
 
-- **Componente:** classe com `readonly actor` e `destroy()` (`Component` em `src/ui/components/lifecycle.ts`). O pai destrói os
+- **Componente:** classe com `readonly actor` e `destroy()` (`Component` em `src/shared/ui/lifecycle.ts`). O pai destrói os
   filhos no próprio `destroy()`. Monte com as fábricas de `layout.ts`, `card.ts` e `buttons.ts` (`column`, `row`, `card`,
   `cardTitle`, `iconButton`, `textButton`, `chip`) antes de `new St.*` solto.
 - **Serviço:** `extends Emitter<{changed: []}>`, estado exposto por getter, `destroy()` que para timers, cancela I/O e chama
   `clearListeners()`. Flag `#destroyed` para descartar resposta assíncrona que chega depois.
-- **Descarte:** `Disposables` para tudo que precisa ser desfeito; sinal GObject com `disposables.signal(obj, obj.connect(…))`.
+- **Descarte:** `Disposables` para tudo que precisa ser desfeito; sinal GObject com `disposables.signal(obj, obj.connect(…))`;
+  objeto com `destroy()` com `disposables.own(new X())`.
   Timer com `Timer` (`once`, `every`), nunca `GLib.timeout_add` solto.
 - **Dependências:** por construtor, numa interface `<Nome>Dependencies`. Ações para cima por callback (`actions: {close,
 openTab}`). Nada global além de `Main` e `global` do shell.
@@ -87,8 +90,11 @@ openTab}`). Nada global além de `Main` e `global` do shell.
 
 ## Testes
 
-- Jasmine no `gjs`: o esbuild empacota `tests/run.ts` com os specs e o `gjs` executa. Spec novo entra no import de
-  `tests/run.ts`, senão não roda.
+- Jasmine no `gjs`: `tests/entry.js` lista todo `src/**/*.spec.ts`, o esbuild empacota e o `gjs` executa. Não há lista
+  para manter.
+- Spec ao lado do arquivo que testa, com o mesmo nome base (`claude-usage.ts` → `claude-usage.spec.ts`). Helper usado por dois
+  specs vai para `tests/fixtures.ts`.
+- `tsconfig.json` é o de desenvolvimento (código + specs, tipos do Jasmine); `tsconfig.build.json` compila só o código.
 - Regra pura testada direto. Serviço testado com fakes; `createSettings()` (`tests/fixtures.ts`) usa o schema compilado em
   `.build/` com backend em memória.
 - Nome de teste em pt-BR, descrevendo o comportamento.
@@ -102,13 +108,17 @@ npm ci
 npm run check        # typecheck + lint + prettier + testes
 npm test             # só os testes (Jasmine no gjs)
 npm run build        # src/ -> dist/, copia metadata, CSS, ícones, schemas e hooks
+npm run smoke        # build + gnome-shell headless isolado: liga, desliga e religa; falha se não ficar ACTIVE
 npm run format       # Prettier
 ./install.sh         # build e link de dist/ em ~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich
 ```
 
 ## Verificar no shell
 
-**Headless isolado** (o padrão para conferir mudança de UI ou de ciclo de vida):
+**Smoke:** `npm run smoke` (`tools/smoke.sh`) a cada mudança de composição, ciclo de vida ou caminho. O log fica no caminho
+que ele imprime.
+
+**Headless à mão** (para olhar a UI ou depurar):
 
 ```shell
 npm run build

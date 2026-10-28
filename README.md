@@ -168,53 +168,59 @@ Cada perfil do Claude Code (`CLAUDE_CONFIG_DIR`, como `~/.claude-trabalho`) tem 
 | ------------------- | -------------------------------------------------------------------------- |
 | `npm run build`     | Compila `src/` para `dist/` e copia metadata, CSS, ícones, schemas e hooks |
 | `npm run typecheck` | `tsc` em modo strict no código e nos testes                                |
-| `npm run lint`      | ESLint (typescript-eslint strict + stylistic)                              |
+| `npm run lint`      | ESLint (typescript-eslint strict + stylistic e fronteiras das camadas)     |
 | `npm run format`    | Prettier                                                                   |
-| `npm test`          | Jasmine rodando no `gjs`                                                   |
+| `npm test`          | Jasmine rodando no `gjs`, com todo `*.spec.ts` de `src/` e `tests/`        |
 | `npm run check`     | Tudo acima, menos o build                                                  |
+| `npm run smoke`     | Build e gnome-shell headless isolado: liga, desliga e religa a extensão    |
 
 ## Estrutura
 
+Código agrupado por camada e domínio. Import só desce: `app → pill, tabs → features → settings → shared`.
+
 ```
 src/
-  extension.ts        raiz de composição: liga serviços e UI no enable/disable
-  prefs.ts            janela de preferências (Adwaita)
-  core/               lógica pura, sem GNOME Shell: parsing, formatação, tipos
-  services/           fontes de dados, sem UI (lista abaixo)
-  shell/internals.ts  único lugar que toca APIs privadas do GNOME Shell
-  ui/
-    components/       componentes St reutilizáveis: botões, cards, anel de progresso, barra de segmentos
-    panel/            ilha aberta: cabeçalho, barra de abas, menu de energia
-      <aba>/          uma pasta por aba: general, calendar, workspaces, claude, notifications
-      settings/       tela de configurações dentro da ilha
-    pill/             pílula: visão ociosa, visão de atividade e o feed que escolhe a atividade
-    island.ts         ilha de um monitor; island-manager.ts cuida de uma por monitor
-  util/               Emitter tipado, Disposables e Timer
-  types/              declarações que faltam nos tipos @girs
-tests/                specs Jasmine: core (formatos, abas, mídia, monitores), Claude (limites, perfis,
-                      índice, transcrições e sessões), pílula (prioridade, reunião e feed),
-                      áreas de trabalho, serviços (memória, ClaudeClient, settings) e util
-hooks/                hook do Claude Code que grava o estado de cada sessão
-icons/                ícones SVG simbólicos (créditos em icons/README.md)
+  extension.ts            enable/disable: ícones, createServices, barra do topo, ilhas e atalhos
+  prefs.ts                janela de preferências (Adwaita, processo GTK)
+  app/                    a ilha: services.ts (cria os serviços), island.ts (um monitor), island-manager.ts
+                          (um por monitor), panel-content.ts, header.ts, tab-bar.ts, power-menu.ts,
+                          top-bar-visibility.ts e monitors.ts
+  pill/                   pílula: visão ociosa, visão de atividade, feed e prioridade das atividades
+  tabs/<aba>/             uma pasta por aba: general, calendar, workspaces, claude, notifications, settings
+  features/<domínio>/     regra pura e serviço de cada fonte de dados: claude, media, meetings,
+                          notifications, system, workspaces
+  settings/               GSettings tipado, valores do schema, perfis do Claude, itens da pílula, atalho e abas
+  shared/                 Emitter, Disposables, Timer, formatação, geometria, leitura de arquivo, nível,
+                          contrato da ilha para as abas (island-handle.ts) e shell-internals.ts
+    ui/                   componentes St: botões, cards, layout, anel, barra de segmentos, ícones, empréstimo de ator
+  types/                  declarações que faltam nos tipos @girs
+tests/                    runner Jasmine (entry.js acha todo *.spec.ts), polyfills e fixtures
+tools/smoke.sh            gnome-shell headless isolado: liga, desliga e religa a extensão
+hooks/                    hook do Claude Code que grava o estado de cada sessão
+icons/                    ícones SVG simbólicos (créditos em icons/README.md)
 ```
 
-Serviços em `src/services/`:
+Fontes de dados em `src/features/`:
 
-- Configurações (`settings`): GSettings tipado.
-- RAM e bateria (`system-state`, `memory`, `battery`): leitura de `/proc/meminfo` e UPower.
-- Notificações (`notification-bridge`): fila do shell, contagem e avisos para a pílula.
-- Claude (`claude-service`, `claude-client`, `claude-profiles`): uso e limites por perfil, com renovação de token.
-- Transcrições do Claude (`claude-transcripts`): índice persistente em `$XDG_CACHE_HOME/frodo/claude-index.json`, lido em pedaços e só nos bytes novos.
-- Sessões do Claude (`claude-sessions`): estado vindo do hook, acompanhado com `Gio.FileMonitor`.
-- Mídia (`media`): MPRIS com proxies próprios.
-- Áreas de trabalho (`workspaces`), gravação de tela (`recording`), volume (`volume`) e reuniões (`meetings`).
+- Configurações (`src/settings/frodo-settings.ts`): GSettings tipado.
+- RAM e bateria (`system/system-state-service.ts`, `system/memory-service.ts`, `system/battery-service.ts`): leitura de `/proc/meminfo` e UPower.
+- Notificações (`notifications/notification-bridge-service.ts`): fila do shell, contagem e avisos para a pílula.
+- Claude (`claude/claude-service.ts`, `claude/claude-client.ts`, `claude/claude-profiles-service.ts`): uso e limites por perfil, com renovação de token.
+- Transcrições do Claude (`claude/claude-transcripts-service.ts`): índice persistente em `$XDG_CACHE_HOME/frodo/claude-index.json`, lido em pedaços e só nos bytes novos.
+- Sessões do Claude (`claude/claude-sessions-service.ts`): estado vindo do hook, acompanhado com `Gio.FileMonitor`.
+- Mídia (`media/media-service.ts`): MPRIS com proxies próprios.
+- Áreas de trabalho (`workspaces/workspaces-service.ts`), gravação de tela (`system/recording-service.ts`), volume (`system/volume-service.ts`) e reuniões (`meetings/meetings-service.ts`).
 
 Regras da arquitetura:
 
-- `core/` não importa nada do GNOME e é coberto por testes.
-- `services/` não conhece a UI; a UI assina eventos tipados (`Emitter`).
-- Todo `connect`, timer e patch feito no `enable()` é desfeito no `disable()` através de `Disposables`.
-- Acesso a internals privados do shell fica isolado em `src/shell/internals.ts`.
+- Import só desce: `app → pill, tabs → features → settings → shared` (ESLint).
+- Em `features/`, só `*-service.ts` e `*-client.ts` falam com o GNOME; o resto é regra pura, coberta por testes (ESLint).
+- Feature não importa feature; aba não importa aba (ESLint). As abas falam com a ilha pelo `IslandHandle`.
+- `prefs.ts` roda no GTK: não importa `St`, `Clutter`, `Meta`, `Shell` nem componentes do shell (ESLint).
+- Spec ao lado do arquivo que testa (`<nome>.spec.ts`), descoberto sozinho pelo `npm test`.
+- Serviço não conhece a UI; a UI assina eventos tipados (`Emitter`).
+- Todo `connect`, timer e patch feito no `enable()` é desfeito no `disable()` através de `Disposables` (`npm run smoke` religa a extensão).
+- Acesso a internals privados do shell fica isolado em `src/shared/shell-internals.ts`.
 - Controles do sistema reaproveitam o Quick Settings nativo do GNOME (emprestado enquanto a ilha está aberta), em vez de reimplementá-los.
 - Cor só existe no `stylesheet.css`. O código TypeScript não guarda cor; o desenho em Cairo lê a cor do tema (`get_theme_node()`).
 - O destaque (tile ligado, dia selecionado, botão primário, contador, anel da área ativa) vem do accent do sistema (`-st-accent-color`), então trocar o accent do GNOME muda a ilha na hora. Só as cores de marca e de estado (Claude, modelos, ok, aviso e perigo) são fixas.
