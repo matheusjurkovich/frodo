@@ -149,7 +149,8 @@ Esperado: `State: ACTIVE` e nenhuma linha no `grep` final.
 - No headless, o menu de energia vem sem itens e tiles de Bluetooth e luz noturna podem faltar (sem gnome-session e gsd): é
   ambiente, não bug.
 
-**Ao vivo:** `npm run devkit` abre o shell aninhado numa janela, isolado como o smoke, e imprime o barramento D-Bus dele
+**Ao vivo:** `npm run devkit` abre o shell aninhado numa janela, isolado como o smoke (inclusive `FRODO_RUNTIME_DIR`, para não
+sobrescrever o `alive` da sessão real e quebrar o aprovar pela ilha), e imprime o barramento D-Bus dele
 (`env DBUS_SESSION_BUS_ADDRESS=<barramento> notify-send …`). Mantenha a janela visível, porque escondida ela congela as
 animações. Ele usa o D-Bus de sistema real: clicar no tile de Wi-Fi ou Bluetooth liga ou desliga o de verdade.
 

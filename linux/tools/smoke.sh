@@ -25,7 +25,7 @@ kill "$PID"
 wait "$PID" 2> /dev/null || true
 INNER
 chmod +x "$TMP/inner.sh"
-env HOME="$TMP" XDG_DATA_HOME="$TMP/data" XDG_CONFIG_HOME="$TMP/config" XDG_CACHE_HOME="$TMP/cache" GSETTINGS_BACKEND=memory TMP="$TMP" \
+env HOME="$TMP" XDG_DATA_HOME="$TMP/data" XDG_CONFIG_HOME="$TMP/config" XDG_CACHE_HOME="$TMP/cache" GSETTINGS_BACKEND=memory FRODO_RUNTIME_DIR="$TMP/frodo" TMP="$TMP" \
     dbus-run-session -- "$TMP/inner.sh" > /dev/null 2>&1
 STATE="$(sed -n 's/^ *State: //p' "$TMP/info.txt")"
 ERRORS="$(grep -v '^DING' "$TMP/shell.log" | grep -ciE 'frodo@matheusjurkovich/|(JS ERROR|JS WARNING|CRITICAL).*frodo' || true)"

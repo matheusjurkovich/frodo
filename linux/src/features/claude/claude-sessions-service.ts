@@ -111,7 +111,7 @@ export class ClaudeSessions extends Emitter<{changed: []}> {
 
     constructor(
         settings: FrodoSettings,
-        root = GLib.build_filenamev([GLib.get_user_runtime_dir(), 'frodo']),
+        root = GLib.getenv('FRODO_RUNTIME_DIR') ?? GLib.build_filenamev([GLib.get_user_runtime_dir(), 'frodo']),
         activate: ((window: Meta.Window) => void) | null = null,
     ) {
         super();
