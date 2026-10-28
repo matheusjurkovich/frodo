@@ -34,7 +34,13 @@ function thumbnail(windows: WorkspaceInfo['windows']): St.Widget {
 }
 
 export function workspaceCard(info: WorkspaceInfo, onActivate: () => void): St.Button {
-    const badge = label(String(info.index + 1), `frodo-workspace-badge${info.active ? ' frodo-workspace-badge-active' : ''}`);
+    const number = label(String(info.index + 1), '');
+    number.x_align = Clutter.ActorAlign.CENTER;
+    const badge = new St.Bin({
+        style_class: `frodo-workspace-badge${info.active ? ' frodo-workspace-badge-active' : ''}`,
+        child: number,
+        y_align: Clutter.ActorAlign.CENTER,
+    });
     const title = label(info.title, 'frodo-workspace-title');
     title.x_expand = true;
     const heading = row('frodo-workspace-heading');

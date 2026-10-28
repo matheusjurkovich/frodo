@@ -49,12 +49,12 @@ export class BarChart {
                 }),
             );
         }
-        if (this.#axis.mapped) this.#place();
+        this.#place();
     }
 
     #place(): void {
         const labels = this.#axis.get_children();
-        const width = this.#axis.width;
+        const width = this.#axis.allocation.get_width();
         labels.forEach((text, index) => {
             text.translation_x = Math.round((width * (index + 0.5)) / labels.length - width / 2);
         });

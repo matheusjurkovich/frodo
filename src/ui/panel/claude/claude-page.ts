@@ -31,12 +31,12 @@ export class ClaudePage implements Component {
         this.#sessions = new SessionsCard(sessions, transcripts, actions.close);
 
         const left = column('frodo-section');
-        const right = column('frodo-section');
+        const right = column('frodo-section frodo-claude-side');
+        right.x_expand = false;
         left.add_child(this.#limits.actor);
         left.add_child(this.#consumption.actor);
         right.add_child(this.#sessions.actor);
 
-        this.actor.layout_manager.homogeneous = true;
         for (const side of [left, right]) {
             side.y_align = Clutter.ActorAlign.START;
             this.actor.add_child(side);

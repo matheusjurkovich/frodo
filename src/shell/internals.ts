@@ -1,4 +1,4 @@
-import type Clutter from 'gi://Clutter';
+import Clutter from 'gi://Clutter';
 import type Meta from 'gi://Meta';
 import type St from 'gi://St';
 import * as SystemActions from 'resource:///org/gnome/shell/misc/systemActions.js';
@@ -42,6 +42,20 @@ interface InputSliderInternals extends QuickSlider {
     _maybeShowInput(): void;
 }
 
+interface QuickSliderInternals {
+    readonly _iconButton: St.Button;
+    readonly _menuButton: St.Button;
+}
+
+interface QuickMenuToggleInternals {
+    readonly _menuButton?: St.Button;
+}
+
+export interface QuickSliderButtons {
+    readonly icon: St.Button;
+    readonly menu: St.Button;
+}
+
 interface QuickSettingsIndicator<Item extends Clutter.Actor = Clutter.Actor> {
     readonly quickSettingsItems: readonly Item[];
 }
@@ -82,6 +96,18 @@ export interface CalendarEventSource {
     getEvents(begin: Date, end: Date): readonly CalendarEvent[];
     connect(signal: 'changed', callback: () => void): number;
     disconnect(id: number): void;
+}
+
+interface CalendarInternals {
+    _headerFormat: string;
+    _headerFormatWithoutYear: string;
+    readonly _topBox: St.BoxLayout;
+    readonly _monthLabel: St.Label;
+    readonly _backButton: St.Button;
+    readonly _buttons: readonly (St.Button & {readonly _date: Date})[];
+    readonly _selectedDate: Date;
+    _rebuildCalendar(): void;
+    _update(): void;
 }
 
 interface DateMenuInternals {
@@ -164,6 +190,15 @@ export function quickSettingsItemMenu(item: Clutter.Actor): QuickToggleMenu | nu
     return (item as {readonly menu?: QuickToggleMenu | null}).menu ?? null;
 }
 
+export function quickSliderButtons(slider: QuickSlider): QuickSliderButtons {
+    const {_iconButton: icon, _menuButton: menu} = slider as unknown as QuickSliderInternals;
+    return {icon, menu};
+}
+
+export function quickToggleMenuButton(tile: Clutter.Actor): St.Button | null {
+    return (tile as QuickMenuToggleInternals)._menuButton ?? null;
+}
+
 export function interceptCloseQuickSettings(onClose: () => void): Disposer {
     const panel = panelInternals();
     const descriptor = Object.getOwnPropertyDescriptor(panel, 'closeQuickSettings');
@@ -224,6 +259,63 @@ export function calendarParts(): CalendarParts | null {
             dateMenu._date.setDate(now);
             dateMenu._eventsItem.setDate(now);
         },
+    };
+}
+
+const WEEK = 7;
+const MONTH_HEADER = '%OB %Y';
+
+function trimMonth(calendar: CalendarInternals): void {
+    const month = calendar._selectedDate.getMonth();
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    calendar._buttons.forEach((button, index, buttons) => {
+        const date = button._date;
+        button.label = String(date.getDate());
+        if (date.getMonth() !== month) button.set({opacity: 0, reactive: false, can_focus: false});
+        else if (date < today) button.add_style_class_name('frodo-past');
+        if (index % WEEK === 0) {
+            const outside = buttons.slice(index, index + WEEK).every(day => day._date.getMonth() !== month);
+            for (const day of buttons.slice(index, index + WEEK)) day.visible = !outside;
+        }
+    });
+}
+
+export function styleCalendar(): Disposer {
+    const calendar = dateMenuInternals()?._calendar as unknown as CalendarInternals | undefined;
+    if (!calendar) return () => undefined;
+    const {_topBox: header, _monthLabel: title, _backButton: back} = calendar;
+    const {_headerFormat: withYear, _headerFormatWithoutYear: withoutYear} = calendar;
+    const descriptor = Object.getOwnPropertyDescriptor(calendar, '_rebuildCalendar');
+    const rebuild = calendar._rebuildCalendar.bind(calendar);
+
+    calendar._headerFormat = MONTH_HEADER;
+    calendar._headerFormatWithoutYear = MONTH_HEADER;
+    header.set_child_above_sibling(back, title);
+    title.x_align = Clutter.ActorAlign.START;
+    const titleId = title.connect('notify::text', () => {
+        const text = title.text.charAt(0).toLocaleUpperCase() + title.text.slice(1);
+        if (text !== title.text) title.text = text;
+    });
+    calendar._rebuildCalendar = (): void => {
+        rebuild();
+        trimMonth(calendar);
+    };
+    calendar._rebuildCalendar();
+    calendar._update();
+
+    return () => {
+        if (descriptor) Object.defineProperty(calendar, '_rebuildCalendar', descriptor);
+        else delete (calendar as Partial<CalendarInternals>)._rebuildCalendar;
+        calendar._headerFormat = withYear;
+        calendar._headerFormatWithoutYear = withoutYear;
+        if (calendar._monthLabel === title) {
+            title.disconnect(titleId);
+            title.x_align = Clutter.ActorAlign.CENTER;
+            header.set_child_below_sibling(back, title);
+        }
+        calendar._rebuildCalendar();
+        calendar._update();
     };
 }
 

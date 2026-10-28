@@ -75,6 +75,7 @@ const MAX_PROJECTS = 4;
 const FIRST_HOUR = 8;
 const LAST_HOUR = 18;
 const LABEL_EVERY = 7;
+const MAX_HOUR_LABELS = 12;
 
 const pad = (n: number): string => String(n).padStart(2, '0');
 
@@ -146,9 +147,12 @@ function hourBars(slots: ReadonlyMap<number, number>, now: Date): Bar[] {
     const used = [...slots].filter(([, value]) => value > 0).map(([hour]) => hour);
     const first = Math.min(FIRST_HOUR, ...used);
     const last = Math.max(LAST_HOUR, nowHour);
-    return Array.from({length: last - first + 1}, (_, i) => {
+    const length = last - first + 1;
+    const step = length > MAX_HOUR_LABELS ? 2 : 1;
+    return Array.from({length}, (_, i) => {
         const hour = first + i;
-        return {label: `${pad(hour)}h`, value: slots.get(hour) ?? 0, current: hour === nowHour, future: hour > nowHour};
+        const label = i % step === 0 ? `${pad(hour)}h` : '';
+        return {label, value: slots.get(hour) ?? 0, current: hour === nowHour, future: hour > nowHour};
     });
 }
 

@@ -1,3 +1,5 @@
+import St from 'gi://St';
+
 import type {Workspaces} from '../../../services/workspaces.js';
 import {Disposables} from '../../../util/disposables.js';
 import {column, dimLabel, grid, label, packGrid, row} from '../../components/layout.js';
@@ -50,7 +52,7 @@ export class WorkspacesPage implements Component {
     }
 
     #render(): void {
-        const cards = this.#workspaces.snapshot(SCREEN_WIDTH, SCREEN_HEIGHT).map(info =>
+        const cards: St.Widget[] = this.#workspaces.snapshot(SCREEN_WIDTH, SCREEN_HEIGHT).map(info =>
             workspaceCard(info, () => {
                 this.#island.close();
                 this.#workspaces.activate(info.index);
@@ -62,6 +64,7 @@ export class WorkspacesPage implements Component {
                 this.#workspaces.add();
             }),
         );
+        while (cards.length < COLUMNS) cards.push(new St.Widget({x_expand: true}));
         this.#packing.dispose();
         this.#grid.destroy_all_children();
         this.#packing.add(packGrid(this.#grid, cards, COLUMNS));

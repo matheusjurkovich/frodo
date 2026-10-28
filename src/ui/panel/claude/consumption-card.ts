@@ -5,7 +5,7 @@ import type {ConsumptionSummary, Period, Share} from '../../../core/claude-index
 import {formatTokens} from '../../../core/format.js';
 import type {ClaudeTranscripts} from '../../../services/claude-transcripts.js';
 import {Disposables} from '../../../util/disposables.js';
-import {card, cardTitle} from '../../components/card.js';
+import {card, cardHeading, cardTitle} from '../../components/card.js';
 import {column, dimLabel, label, row} from '../../components/layout.js';
 import {whileMapped} from '../../components/lifecycle.js';
 import type {Component} from '../../components/lifecycle.js';
@@ -85,7 +85,7 @@ export class ConsumptionCard implements Component {
             '',
         );
 
-        const title = cardTitle('Consumo');
+        const title = cardHeading('Consumo');
         title.x_expand = true;
         const header = row('frodo-consumption-header');
         header.add_child(title);

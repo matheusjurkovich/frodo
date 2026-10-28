@@ -54,6 +54,15 @@ describe('ClaudeIndex', () => {
         ]);
     });
 
+    it('rotula hora sim, hora não quando o dia passa de 12 horas', () => {
+        const late = new Date(2026, 9, 27, 23, 30);
+        const index = new ClaudeIndex();
+        feed(index, line({id: 'cedo', at: at(27, 6), session: 's9', input: 10}));
+        const labels = index.summary('today', late).bars.map(bar => bar.label);
+        expect(labels.length).toBe(18);
+        expect(labels.filter(Boolean)).toEqual(['06h', '08h', '10h', '12h', '14h', '16h', '18h', '20h', '22h']);
+    });
+
     it('resume 7 dias por dia', () => {
         const week = build().summary('7d', now);
         expect([week.input, week.output, week.sessions, week.total]).toEqual([600, 150, 3, 750]);

@@ -1,3 +1,4 @@
+import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import St from 'gi://St';
@@ -10,7 +11,7 @@ import type {FrodoSettings} from '../../../services/settings.js';
 import {Disposables} from '../../../util/disposables.js';
 import {Timer} from '../../../util/timer.js';
 import {chip, iconButton} from '../../components/buttons.js';
-import {card, cardTitle} from '../../components/card.js';
+import {card, cardHeading} from '../../components/card.js';
 import {column, dimLabel, label, row, spacer} from '../../components/layout.js';
 import {whileMapped} from '../../components/lifecycle.js';
 import type {Component} from '../../components/lifecycle.js';
@@ -112,9 +113,16 @@ export class LimitsCard implements Component {
     }
 
     #header(): St.BoxLayout {
-        const title = cardTitle('Limites de uso');
+        const title = cardHeading('Limites de uso');
         title.x_expand = true;
         const header = row('frodo-limits-header');
+        header.add_child(
+            new St.Bin({
+                style_class: 'frodo-claude-badge',
+                child: new St.Icon({gicon: frodoIcon('claude'), style_class: 'frodo-claude-badge-icon'}),
+                y_align: Clutter.ActorAlign.CENTER,
+            }),
+        );
         header.add_child(title);
         header.add_child(this.#updated);
         header.add_child(

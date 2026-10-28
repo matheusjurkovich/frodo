@@ -1,9 +1,10 @@
+import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 
 import type {NotificationBridge} from '../../../services/notification-bridge.js';
 import {Disposables} from '../../../util/disposables.js';
 import {textButton} from '../../components/buttons.js';
-import {card, emptyState} from '../../components/card.js';
+import {card} from '../../components/card.js';
 import {column, label, row} from '../../components/layout.js';
 import {whileMapped} from '../../components/lifecycle.js';
 import type {Component} from '../../components/lifecycle.js';
@@ -24,7 +25,7 @@ export class NotificationsPage implements Component {
         x_expand: true,
         child: this.#list,
     });
-    readonly #empty = emptyState('Tudo em dia');
+    readonly #empty = column('frodo-notifications-empty');
     readonly #doNotDisturb: St.Button;
     readonly #clear: St.Button;
     readonly #disposables = new Disposables();
@@ -49,6 +50,10 @@ export class NotificationsPage implements Component {
         title.x_expand = true;
         const header = row('frodo-notifications-header');
         for (const child of [title, this.#doNotDisturb, this.#clear]) header.add_child(child);
+        this.#empty.add_child(new St.Icon({gicon: frodoIcon('bell'), style_class: 'frodo-empty-icon'}));
+        this.#empty.add_child(label('Tudo em dia', 'frodo-empty-title'));
+        this.#empty.add_child(label('Novas notificações aparecem aqui e na ilha recolhida.', 'frodo-dim frodo-empty-text'));
+        for (const child of this.#empty.get_children()) child.x_align = Clutter.ActorAlign.CENTER;
         this.actor.add_child(header);
         this.actor.add_child(this.#scroll);
         this.actor.add_child(this.#empty);

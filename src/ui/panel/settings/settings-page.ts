@@ -1,5 +1,6 @@
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
 import St from 'gi://St';
 import {CheckBox} from 'resource:///org/gnome/shell/ui/checkBox.js';
 
@@ -100,7 +101,7 @@ export class SettingsPage implements Component {
         shortcut.add_child(spacer());
         shortcut.add_child(this.#shortcut);
 
-        const behavior = card();
+        const behavior = card('frodo-settings-card');
         behavior.add_child(cardTitle('Comportamento'));
         behavior.add_child(
             this.#check(
@@ -135,7 +136,7 @@ export class SettingsPage implements Component {
 
     #tabs(): St.BoxLayout {
         const settings = this.#settings;
-        const tabs = card();
+        const tabs = card('frodo-settings-card');
         tabs.add_child(cardTitle('Abas visíveis'));
         for (const id of TAB_IDS) {
             const box = this.#check(
@@ -154,7 +155,7 @@ export class SettingsPage implements Component {
     }
 
     #integrations(actions: SettingsActions): St.BoxLayout {
-        const integrations = card();
+        const integrations = card('frodo-settings-card');
         integrations.add_child(cardTitle('Integrações'));
 
         integrations.add_child(
@@ -195,7 +196,9 @@ export class SettingsPage implements Component {
         this.#shortcut.visible = this.#shortcut.text !== '';
         const profiles = this.#settings.claudeProfiles;
         const defaultDir = defaultConfigDir();
-        this.#configDir.text = (profiles.find(profile => isActiveProfile(profile, defaultDir)) ?? profiles[0])?.configDir ?? defaultDir;
+        const configDir = (profiles.find(profile => isActiveProfile(profile, defaultDir)) ?? profiles[0])?.configDir ?? defaultDir;
+        const home = GLib.get_home_dir();
+        this.#configDir.text = configDir.startsWith(`${home}/`) ? `~${configDir.slice(home.length)}` : configDir;
     }
 
     destroy(): void {

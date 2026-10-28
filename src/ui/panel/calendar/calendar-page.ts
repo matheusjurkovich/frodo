@@ -1,6 +1,6 @@
 import type Clutter from 'gi://Clutter';
 
-import {calendarParts, closeDateMenu} from '../../../shell/internals.js';
+import {calendarParts, closeDateMenu, styleCalendar} from '../../../shell/internals.js';
 import {Disposables} from '../../../util/disposables.js';
 import {ActorLoan} from '../../actor-loan.js';
 import {column, row} from '../../components/layout.js';
@@ -41,6 +41,7 @@ export class CalendarPage implements Component {
         parts.selectToday();
         this.#lend(parts.month, this.#month);
         this.#lend(parts.events, this.#events);
+        this.#loan.add(styleCalendar());
         this.#connect(parts.events, 'clicked', () => {
             this.#island.close();
         });

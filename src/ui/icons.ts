@@ -8,6 +8,7 @@ export type FrodoIconName =
     | 'calendar'
     | 'gear'
     | 'back'
+    | 'forward'
     | 'power'
     | 'suspend'
     | 'restart'

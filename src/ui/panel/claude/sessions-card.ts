@@ -6,7 +6,7 @@ import type {ClaudeSessions} from '../../../services/claude-sessions.js';
 import type {ClaudeTranscripts} from '../../../services/claude-transcripts.js';
 import {Disposables} from '../../../util/disposables.js';
 import {Timer} from '../../../util/timer.js';
-import {card, cardTitle, emptyState} from '../../components/card.js';
+import {card, cardHeading, emptyState} from '../../components/card.js';
 import {column, label, row} from '../../components/layout.js';
 import {whileMapped} from '../../components/lifecycle.js';
 import type {Component} from '../../components/lifecycle.js';
@@ -69,7 +69,7 @@ export class SessionsCard implements Component {
         this.#close = close;
         this.#filters = new Segmented(FILTERS, this.#selected, 'frodo-filters', true);
 
-        const title = cardTitle('Sessões');
+        const title = cardHeading('Sessões');
         title.x_expand = true;
         const header = row('frodo-sessions-header');
         header.add_child(title);

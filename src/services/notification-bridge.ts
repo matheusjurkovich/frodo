@@ -59,7 +59,7 @@ export class NotificationBridge extends Emitter<NotificationBridgeEvents> {
     }
 
     list(): MessageTray.Notification[] {
-        return latest(this.#all(), notification => notification.datetime.to_unix(), MAX_ITEMS);
+        return latest(this.#all(), notification => notification.datetime.to_unix_usec(), MAX_ITEMS);
     }
 
     get count(): number {

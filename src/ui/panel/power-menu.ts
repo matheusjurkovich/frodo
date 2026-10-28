@@ -55,7 +55,7 @@ export class PowerMenu {
     readonly #disposables = new Disposables();
 
     constructor(source: St.Button, island: Island) {
-        this.#menu = new PopupMenu.PopupMenu(source, 0.5, St.Side.TOP);
+        this.#menu = new PopupMenu.PopupMenu(source, 1, St.Side.TOP);
         this.#menu.box.add_style_class_name('frodo-power-menu');
         new PopupMenu.PopupMenuManager(source).addMenu(this.#menu);
         Main.layoutManager.uiGroup.add_child(this.#menu.actor);
@@ -86,6 +86,7 @@ export class PowerMenu {
         this.#menu.addMenuItem(this.#note);
 
         const openId = this.#menu.connect('open-state-changed', (_menu, open) => {
+            source.checked = open;
             if (open) this.#syncAvailability();
         });
         this.#disposables.add(() => {

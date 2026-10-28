@@ -732,9 +732,79 @@
 }
 
 .frodo-back-title,
-.frodo-notifications-title {
+.frodo-notifications-title,
+.frodo-card-heading {
     font-size: 15px;
     font-weight: 500;
+    color: #f4f4f5;
+}
+
+.frodo-back-title {
+    margin-left: 4px;
+}
+
+.frodo-back-button {
+    height: 36px;
+    min-height: 36px;
+    padding: 0 12px 0 8px;
+    font-size: 13px;
+}
+
+.frodo-back-button .frodo-button-icon {
+    icon-size: 16px;
+}
+
+.frodo-claude-badge {
+    width: 28px;
+    height: 28px;
+    min-height: 28px;
+    border-radius: 8px;
+    background-color: #2a1a14;
+    color: #d97757;
+}
+
+.frodo-claude-badge-icon {
+    icon-size: 16px;
+}
+
+.frodo-claude-side {
+    width: 448px;
+}
+
+.frodo-notifications-empty {
+    padding: 58px 0;
+    spacing: 6px;
+}
+
+.frodo-empty-icon {
+    icon-size: 28px;
+    color: #a1a1aa;
+}
+
+.frodo-empty-title {
+    font-size: 14px;
+    color: #e4e4e7;
+}
+
+.frodo-empty-text {
+    font-size: 12px;
+}
+
+.frodo-settings-card {
+    spacing: 12px;
+}
+
+.frodo-check StBoxLayout {
+    spacing: 10px;
+}
+
+.frodo-check StBin {
+    padding: 0;
+}
+
+.frodo-check StIcon {
+    icon-size: 12px;
+    border-radius: 5px;
 }
 
 .frodo-power-menu {
@@ -880,6 +950,10 @@
 
 .frodo-button-ghost.frodo-header-power {
     color: #fca5a5;
+}
+
+.frodo-button-ghost.frodo-header-power:checked {
+    background-color: #2a1414;
 }
 
 .frodo-button-control {
@@ -1126,6 +1200,15 @@
 
 .frodo-general .quick-toggle-subtitle {
     font-size: 12px;
+    color: #a1a1aa;
+}
+
+.frodo-general .quick-toggle:checked .quick-toggle-subtitle {
+    color: st-mix(-st-accent-color, #ffffff, 15%);
+}
+
+.frodo-general .quick-toggle-menu-button StIcon {
+    icon-size: 16px;
 }
 
 .frodo-general .quick-toggle-separator {
@@ -1187,7 +1270,7 @@
 
 .frodo-general .quick-slider .slider-bin {
     min-height: 0;
-    padding: 6px;
+    padding: 4px 0;
     border-radius: 999px;
 }
 
@@ -1195,17 +1278,104 @@
 .frodo-general .slider:hover {
     height: 16px;
     border-radius: 0;
-    color: #f4f4f5;
+    color: -st-accent-color;
     -slider-handle-radius: 8px;
-    -barlevel-height: 4px;
-    -barlevel-background-color: #2a2a2f;
+    -barlevel-height: 7px;
+    -barlevel-background-color: #efefef;
     -barlevel-active-background-color: -st-accent-color;
+}
+
+.frodo-general .frodo-sound-icon .icon-button {
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    border: none;
+    box-shadow: none;
+    background-color: transparent;
+    color: #f4f4f5;
+}
+
+.frodo-general .frodo-sound-icon StIcon {
+    icon-size: 18px;
+}
+
+.frodo-general .frodo-sound-menu .icon-button {
+    width: 32px;
+    height: 32px;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    border: none;
+    box-shadow: none;
+    border-radius: 999px;
+    background-color: #232327;
+    color: #e4e4e7;
+}
+
+.frodo-general .frodo-sound-menu .icon-button:hover {
+    background-color: st-lighten(#232327, 6%);
+}
+
+.frodo-general .frodo-sound-menu StIcon {
+    icon-size: 16px;
 }
 
 .frodo-general .quick-toggle-menu {
     margin: 0;
+    padding: 14px 16px;
     border: none;
     box-shadow: none;
+}
+
+.frodo-general .quick-toggle-menu .header {
+    spacing-columns: 10px;
+    padding-bottom: 10px;
+}
+
+.frodo-general .quick-toggle-menu .header .icon {
+    icon-size: 16px;
+    padding: 10px;
+    background-color: #232327;
+    color: #e4e4e7;
+}
+
+.frodo-general .quick-toggle-menu .header .icon.active {
+    background-color: -st-accent-color;
+    color: -st-accent-fg-color;
+}
+
+.frodo-general .quick-toggle-menu .header .title {
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.frodo-general .quick-toggle-menu .header .subtitle {
+    font-size: 12px;
+    font-weight: 400;
+    color: #a1a1aa;
+}
+
+.frodo-general .quick-toggle-menu .popup-menu-item {
+    padding: 12px;
+    spacing: 12px;
+    border-radius: 12px;
+    font-size: 14px;
+}
+
+.frodo-general .quick-toggle-menu .popup-menu-item:hover,
+.frodo-general .quick-toggle-menu .popup-menu-item:focus {
+    background-color: #26262b;
+}
+
+.frodo-general .quick-toggle-menu .popup-separator-menu-item {
+    min-height: 0;
+    padding: 4px 0;
+}
+
+.frodo-general .quick-toggle-menu .popup-separator-menu-item-separator {
+    background-color: #26262b;
 }
 
 .frodo-general .frodo-sound {
@@ -1366,8 +1536,8 @@
 }
 
 .frodo-calendar-month {
-    width: 280px;
-    padding: 14px 20px;
+    width: 292px;
+    padding: 14px;
 }
 
 .frodo-calendar-events {
@@ -1381,8 +1551,10 @@
     background-color: transparent;
 }
 
-.frodo-calendar .calendar-month-label {
+.frodo-calendar .calendar .calendar-month-header .calendar-month-label {
     padding: 6px 0;
+    margin-left: 4px;
+    text-align: left;
     background-color: transparent;
     color: #f4f4f5;
     font-size: 15px;
@@ -1415,7 +1587,7 @@
 }
 
 .frodo-calendar .calendar-day {
-    width: 36px;
+    width: 37px;
     height: 36px;
     min-height: 36px;
     margin: 1px;
@@ -1427,7 +1599,7 @@
     font-weight: 400;
 }
 
-.frodo-calendar .calendar-day.calendar-other-month {
+.frodo-calendar .calendar-day.frodo-past {
     color: #8b8b94;
 }
 
@@ -1442,6 +1614,7 @@
 }
 
 .frodo-calendar .calendar-day:selected {
+    border-color: transparent;
     background-color: -st-accent-color;
     color: -st-accent-fg-color;
 }
@@ -1551,11 +1724,14 @@
 
 .frodo-workspace {
     padding: 8px;
+}
+
+.frodo-workspace-thumb {
     border: 2px solid transparent;
 }
 
-.frodo-workspace:checked {
-    border: 2px solid -st-accent-color;
+.frodo-workspace:checked .frodo-workspace-thumb {
+    border-color: -st-accent-color;
 }
 
 .frodo-workspace-content {
@@ -1628,7 +1804,7 @@
 
 .frodo-workspace-new {
     min-height: 148px;
-    padding: 8px;
+    padding: 0;
     border-radius: 18px;
     font-size: 13px;
 }
