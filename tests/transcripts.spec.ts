@@ -206,6 +206,17 @@ describe('ClaudeTranscripts', () => {
         expect(last.index.summary('today', new Date()).input).toBe(19);
     });
 
+    it('lê a linha que cruza o pedaço de 1 MiB na mesma passada', async () => {
+        write([line({id: 'a', at: today, input: 10, cwd: `/${'x'.repeat(1024 * 1024 + 100)}`}), line({id: 'b', at: today, input: 5})]);
+        await service.scan();
+        expect(service.index.summary('today', new Date()).input).toBe(15);
+        await service.scan();
+        expect(service.index.summary('today', new Date()).input).toBe(15);
+        const again = new ClaudeTranscripts(settings, cachePath);
+        await again.scan();
+        expect(again.index.summary('today', new Date()).input).toBe(15);
+    });
+
     it('reaproveita a passada em curso', async () => {
         write([line({id: 'a', at: today, input: 10})]);
         const first = service.scan();
