@@ -26,7 +26,7 @@ import type {Disposer} from '../shared/disposables.js';
 import {Emitter} from '../shared/emitter.js';
 import type {IslandHandle} from '../shared/island-handle.js';
 import type {FrodoServices} from './services.js';
-import {FIRM_SPRING, SOFT_SPRING, SPRING} from '../shared/spring.js';
+import {GENTLE_SPRING, SOFT_SPRING, SPRING, springWithin} from '../shared/spring.js';
 import {Timer} from '../shared/timer.js';
 import {springEase} from '../shared/ui/motion.js';
 import type {ActivityFeed} from '../pill/activity-feed.js';
@@ -304,6 +304,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         anchor.get_allocation_box();
         const [anchorX, anchorY] = anchor.get_transformed_position();
         this.#pinBackdrop();
+        panel.set_pivot_point((anchorX + anchor.width / 2 - panel.x) / Math.max(1, panel.width), 0);
         this.#clipping = true;
         this.#clipToBackdrop();
         panel.ease({opacity: 0, duration: FADE_OUT_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
@@ -311,6 +312,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
             backdrop.hide();
             panel.hide();
             panel.remove_clip();
+            panel.set_scale(1, 1);
             this.#clipping = false;
         });
         pill.ease({opacity: 255, duration: FADE_IN_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
@@ -327,6 +329,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         backdrop.hide();
         this.#clipping = false;
         panel.remove_clip();
+        panel.set_scale(1, 1);
         panel.opacity = 0;
         panel.hide();
         pill.opacity = 255;
@@ -344,7 +347,17 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
     #clipToBackdrop(): void {
         const {panel} = this;
         const backdrop = this.#backdrop;
-        panel.set_clip(backdrop.x - panel.x, backdrop.y - panel.y, backdrop.width, backdrop.height);
+        const [, preferred] = panel.get_preferred_width(-1);
+        const width = Math.max(1, panel.allocation.get_width() || preferred);
+        const scale = Math.max(0.01, backdrop.width / width);
+        const pivotX = panel.pivot_point.x * width;
+        panel.set_scale(scale, scale);
+        panel.set_clip(
+            pivotX + (backdrop.x - panel.x - pivotX) / scale,
+            (backdrop.y - panel.y) / scale,
+            backdrop.width / scale,
+            backdrop.height / scale,
+        );
     }
 
     #monitor(): {x: number; y: number; width: number} | null {
@@ -514,6 +527,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         const max = area.y + area.height - panel.y;
         const [, naturalHeight] = panel.get_preferred_height(naturalWidth);
         const height = Math.min(naturalHeight, max);
+        panel.set_pivot_point((anchorX + anchor.width / 2 - panel.x) / Math.max(1, naturalWidth), 0);
 
         this.#pinBackdrop();
         if (!backdrop.visible) {
@@ -523,10 +537,11 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         }
         this.#clipping = true;
         this.#clipToBackdrop();
-        springEase(backdrop, {x: panel.x, width: naturalWidth}, FIRM_SPRING);
-        springEase(backdrop, {y: panel.y, height}, FIRM_SPRING, () => {
+        springEase(backdrop, {x: panel.x, width: naturalWidth}, GENTLE_SPRING);
+        springEase(backdrop, {y: panel.y, height}, springWithin(GENTLE_SPRING, backdrop.height, height, max), () => {
             this.#clipping = false;
             panel.remove_clip();
+            panel.set_scale(1, 1);
             backdrop.add_constraint_with_name(FOLLOW, new Clutter.BindConstraint({source: panel, coordinate: Clutter.BindCoordinate.ALL}));
         });
         panel.ease({opacity: 255, duration: FADE_IN_MS, delay: FADE_IN_DELAY_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
