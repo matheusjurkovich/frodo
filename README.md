@@ -29,7 +29,7 @@ Fechada, a pílula mostra hora, data, notificações, rede e bateria. Quando alg
 7. Sessão do Claude trabalhando, com o passo atual e o tempo.
 8. Música que começou a tocar, por 5 segundos, com capa redonda, título e botão de pausa.
 
-Em tela cheia a pílula some e fica só a lingueta no topo; enquanto isso a ilha desliga o scanout direto do compositor, como o GNOME faz com banners e OSD, para não piscar sobre o app.
+Em tela cheia a pílula some e fica só a lingueta no topo. Em tela cheia, e sempre que a barra superior está oculta (a pílula flutua sobre janelas maximizadas que cobrem o monitor inteiro), a ilha desliga o scanout direto do compositor, como o GNOME faz com banners e OSD, para a pílula e a dock não piscarem sobre o app.
 
 ## Requisitos
 

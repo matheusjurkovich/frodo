@@ -382,9 +382,10 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
     }
 
     #syncUnredirect(): void {
-        if (this.#fullscreen === this.#unredirectDisabled) return;
-        this.#unredirectDisabled = this.#fullscreen;
-        if (this.#fullscreen) global.compositor.disable_unredirect();
+        const disable = this.#fullscreen || this.#placement === 'float';
+        if (disable === this.#unredirectDisabled) return;
+        this.#unredirectDisabled = disable;
+        if (disable) global.compositor.disable_unredirect();
         else global.compositor.enable_unredirect();
     }
 
