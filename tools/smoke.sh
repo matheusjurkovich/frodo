@@ -28,7 +28,7 @@ chmod +x "$TMP/inner.sh"
 env HOME="$TMP" XDG_DATA_HOME="$TMP/data" XDG_CONFIG_HOME="$TMP/config" XDG_CACHE_HOME="$TMP/cache" GSETTINGS_BACKEND=memory TMP="$TMP" \
     dbus-run-session -- "$TMP/inner.sh" > /dev/null 2>&1
 STATE="$(sed -n 's/^ *State: //p' "$TMP/info.txt")"
-ERRORS="$(grep -E 'JS ERROR|JS WARNING|CRITICAL' "$TMP/shell.log" | grep -v '^DING' | grep -ci frodo || true)"
+ERRORS="$(grep -v '^DING' "$TMP/shell.log" | grep -ciE 'frodo@matheusjurkovich/|(JS ERROR|JS WARNING|CRITICAL).*frodo' || true)"
 echo "estado: $STATE"
 echo "erros do frodo: $ERRORS"
 echo "log: $TMP/shell.log"

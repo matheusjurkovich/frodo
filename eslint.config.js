@@ -8,13 +8,13 @@ const pure = {
     message: 'Regra pura não fala com o GNOME; isso vai para um *-service.ts.',
 };
 const above = (...layers) => ({regex: `(^|/)(${layers.join('|')})/`, message: `Esta camada não importa ${layers.join(', ')}.`});
-const sibling = message => ({regex: '^\\.\\./[^.]', message});
+const sibling = (layer, message) => ({regex: `^\\.\\./[^.]|(^|/)${layer}/`, message});
 const restrict = (files, patterns, ignores = []) => ({
     files,
     ignores,
     rules: {'@typescript-eslint/no-restricted-imports': ['error', {patterns}]},
 });
-const otherFeature = sibling('Feature não importa outra feature; o que é comum vai para shared/.');
+const otherFeature = sibling('features', 'Feature não importa outra feature; o que é comum vai para shared/.');
 
 export default tseslint.config(
     {ignores: ['dist/', '.build/', 'node_modules/', '.superpowers/', 'docs/']},
@@ -51,7 +51,7 @@ export default tseslint.config(
     ),
     restrict(['src/features/**/*-service.ts', 'src/features/**/*-client.ts'], [above('pill', 'tabs', 'app'), otherFeature]),
     restrict(['src/pill/**/*.ts'], [above('tabs', 'app')]),
-    restrict(['src/tabs/**/*.ts'], [above('pill', 'app'), sibling('Aba não importa outra aba.')]),
+    restrict(['src/tabs/**/*.ts'], [above('pill', 'app'), sibling('tabs', 'Aba não importa outra aba.')]),
     restrict(
         ['src/prefs.ts'],
         [
