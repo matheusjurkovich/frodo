@@ -16,6 +16,16 @@
     transition-duration: 220ms;
 }
 
+.frodo-pill.frodo-surface-frosted,
+.frodo-panel-backdrop.frodo-surface-frosted {
+    background-color: rgba(10, 10, 11, 0.72);
+}
+
+.frodo-pill.frodo-surface-clear,
+.frodo-panel-backdrop.frodo-surface-clear {
+    background-color: rgba(10, 10, 11, 0.42);
+}
+
 .frodo-tongue {
     width: 120px;
     height: 8px;

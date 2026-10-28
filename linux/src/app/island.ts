@@ -8,6 +8,7 @@ import {GrabHelper} from 'resource:///org/gnome/shell/ui/grabHelper.js';
 import type * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 import {centerClamp, topEdgeSpan} from '../shared/geometry.js';
+import {SURFACE_STYLES} from '../settings/schema-values.js';
 import type {TabId} from '../settings/schema-values.js';
 import type {ClaudeService} from '../features/claude/claude-service.js';
 import type {FrodoSettings} from '../settings/frodo-settings.js';
@@ -28,6 +29,7 @@ import type {IslandHandle} from '../shared/island-handle.js';
 import type {FrodoServices} from './services.js';
 import {GENTLE_SPRING, SOFT_SPRING, SPRING, springWithin} from '../shared/spring.js';
 import {Timer} from '../shared/timer.js';
+import {Glass} from '../shared/ui/glass.js';
 import {settle, springEase} from '../shared/ui/motion.js';
 import type {ActivityFeed} from '../pill/activity-feed.js';
 import {Pill} from '../pill/pill.js';
@@ -90,6 +92,8 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
     #openedBy: OpenReason | null = null;
     #holds = 0;
     #recenterLater = 0;
+    #backdropGlass: Glass | null = null;
+    #pillGlass: Glass | null = null;
 
     constructor(dependencies: FrodoServices, monitorIndex: number) {
         super();
@@ -215,7 +219,36 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
                 if (this.#isOpen) this.#capHeight(this.panel.y);
             }),
         );
+        this.#disposables.add(
+            settings.onChanged('surface-style', () => {
+                this.#syncSurface();
+            }),
+        );
+        this.#disposables.add(() => {
+            this.#dropGlass();
+        });
+        this.#syncSurface();
         this.#syncMemoryNeed();
+    }
+
+    #syncSurface(): void {
+        const style = this.#settings.surfaceStyle;
+        const backdrop = this.#backdrop;
+        for (const other of SURFACE_STYLES) backdrop.remove_style_class_name(`frodo-surface-${other}`);
+        if (style === 'solid') {
+            this.#dropGlass();
+            return;
+        }
+        backdrop.add_style_class_name(`frodo-surface-${style}`);
+        this.#backdropGlass ??= new Glass(backdrop);
+        if (this.#placement === 'float') this.#pillGlass ??= new Glass(this.pill.actor);
+    }
+
+    #dropGlass(): void {
+        this.#backdropGlass?.destroy();
+        this.#backdropGlass = null;
+        this.#pillGlass?.destroy();
+        this.#pillGlass = null;
     }
 
     setPlacement(placement: Placement): void {
@@ -224,6 +257,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         this.pill.setBar(placement === 'bar');
         if (placement === 'bar') this.#attachToBar();
         else this.#attachFloating();
+        this.#syncSurface();
         this.#syncCovered();
     }
 
@@ -443,6 +477,8 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
     }
 
     #detach(): void {
+        this.#pillGlass?.destroy();
+        this.#pillGlass = null;
         const pill = this.pill.actor;
         const placement = this.#placement;
         this.#placement = null;

@@ -11,7 +11,7 @@ import type {ClaudeProfile} from '../../settings/claude-profile.js';
 import {accelerator, shortcutLabel} from '../../settings/shortcut.js';
 import {TAB_LABELS, visibleTabs} from '../../settings/tabs.js';
 import {TAB_IDS} from '../../settings/schema-values.js';
-import type {MonitorMode, TabId} from '../../settings/schema-values.js';
+import type {MonitorMode, SurfaceStyle, TabId} from '../../settings/schema-values.js';
 import {defaultConfigDir} from '../../features/claude/claude-client.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
 import {spawn} from '../../shared/shell-internals.js';
@@ -44,6 +44,12 @@ const MONITORS: readonly {id: MonitorMode; label: string}[] = [
     {id: 'primary', label: 'Principal'},
     {id: 'secondary', label: 'Secundário'},
     {id: 'both', label: 'Ambos'},
+];
+
+const SURFACES: readonly {id: SurfaceStyle; label: string}[] = [
+    {id: 'solid', label: 'Sólido'},
+    {id: 'frosted', label: 'Fosco'},
+    {id: 'clear', label: 'Translúcido'},
 ];
 
 type ShortcutKey = 'toggle-shortcut' | 'claude-shortcut';
@@ -142,6 +148,7 @@ export class SettingsPage implements Component {
                     'hidden-tabs',
                     'monitors',
                     'hide-top-bar',
+                    'surface-style',
                     'claude-poll-minutes',
                     'claude-show-remaining',
                     'toggle-shortcut',
@@ -277,6 +284,18 @@ export class SettingsPage implements Component {
                     () => settings.monitors,
                     mode => {
                         settings.monitors = mode;
+                    },
+                ),
+            ),
+        );
+        screen.add_child(
+            settingsRow(
+                'Fundo',
+                this.#segmented(
+                    SURFACES,
+                    () => settings.surfaceStyle,
+                    style => {
+                        settings.surfaceStyle = style;
                     },
                 ),
             ),

@@ -46,6 +46,7 @@ export class Pill extends Emitter<{rebuilt: []}> {
     });
 
     readonly #feed: ActivityFeed;
+    readonly #settings: FrodoSettings;
     readonly #idle: IdleView;
     readonly #activity: ActivityView;
     readonly #disposables = new Disposables();
@@ -55,6 +56,7 @@ export class Pill extends Emitter<{rebuilt: []}> {
     constructor({settings, state, claude, bridge, feed, recording, sessions, media, actions}: PillDependencies) {
         super();
         this.#feed = feed;
+        this.#settings = settings;
         this.#idle = new IdleView(settings, state, claude, bridge);
         this.#activity = new ActivityView({recording, sessions, media, actions});
         this.actor.add_child(this.#idle.actor);
@@ -68,6 +70,11 @@ export class Pill extends Emitter<{rebuilt: []}> {
         this.#disposables.add(
             feed.on('changed', () => {
                 this.#sync();
+            }),
+        );
+        this.#disposables.add(
+            settings.onChanged('surface-style', () => {
+                this.#syncStyle();
             }),
         );
         this.#sync();
@@ -131,6 +138,8 @@ export class Pill extends Emitter<{rebuilt: []}> {
         const state = kind === undefined ? undefined : STATE_CLASSES[kind];
         if (state) classes.push(state);
         if (this.#activity.hasAction) classes.push('frodo-pill-action');
+        const surface = this.#settings.surfaceStyle;
+        if (surface !== 'solid') classes.push(`frodo-surface-${surface}`);
         this.actor.style_class = classes.join(' ');
     }
 

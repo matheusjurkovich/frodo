@@ -7,6 +7,7 @@ describe('FrodoSettings', () => {
         expect(settings.closedItems).toEqual(['clock', 'date', 'notifications', 'network', 'battery']);
         expect(settings.monitors).toBe('primary');
         expect(settings.hideTopBar).toBeFalse();
+        expect(settings.surfaceStyle).toBe('solid');
         expect(settings.toggleShortcut).toBe('<Super>z');
     });
 
@@ -59,5 +60,12 @@ describe('FrodoSettings', () => {
         expect(settings.claudeShowRemaining).toBeTrue();
         expect(settings.gsettings.get_strv('toggle-shortcut')).toEqual(['<Super>x']);
         expect(settings.claudeShortcut).toBe('<Control><Alt>c');
+    });
+
+    it('lê e grava o estilo do fundo', () => {
+        const settings = createSettings();
+        settings.surfaceStyle = 'clear';
+        expect(settings.gsettings.get_string('surface-style')).toBe('clear');
+        expect(settings.surfaceStyle).toBe('clear');
     });
 });

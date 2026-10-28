@@ -14,7 +14,7 @@ Roda dentro do próprio gnome-shell (sem processo extra). Escrita em TypeScript 
 | Claude            | Limites de uso por perfil, consumo de tokens a partir das transcrições e sessões abertas do Claude Code                                                                                                                                                                          |
 | Notificações      | Lista de notificações, não perturbe e limpar tudo                                                                                                                                                                                                                                |
 
-A engrenagem do cabeçalho abre as configurações, todas dentro da ilha (comportamento, abas visíveis, monitores e barra superior, Claude e perfis, atalhos e integrações); não há janela de preferências separada. O botão ao lado dela abre o menu de energia (suspender, encerrar sessão, reiniciar e desligar). Durante uma gravação de tela, o cabeçalho mostra Parar gravação. Qualquer aba pode ser ocultada; se todas forem, a Geral continua visível.
+A engrenagem do cabeçalho abre as configurações, todas dentro da ilha (comportamento, abas visíveis, monitores, fundo e barra superior, Claude e perfis, atalhos e integrações); não há janela de preferências separada. O botão ao lado dela abre o menu de energia (suspender, encerrar sessão, reiniciar e desligar). Durante uma gravação de tela, o cabeçalho mostra Parar gravação. Qualquer aba pode ser ocultada; se todas forem, a Geral continua visível.
 
 ## Estados da pílula
 
@@ -30,6 +30,10 @@ Fechada, a pílula mostra hora, data, notificações, rede e bateria. Quando alg
 8. Música tocando, com capa redonda, título e botão de pausa.
 
 Em tela cheia a pílula some e fica só a lingueta no topo; passe o mouse ou clique nela para abrir a ilha. Com a barra superior oculta, o mesmo vale quando há uma janela maximizada ou encaixada na metade da tela visível no monitor, mesmo sem foco; nesse caso a pílula volta por cima da janela enquanto mostra uma notificação ou um pedido de permissão do Claude. Em tela cheia, e sempre que a barra superior está oculta, a ilha desliga o scanout direto do compositor, como o GNOME faz com banners e OSD, para a pílula e a dock não piscarem sobre o app.
+
+## Fundo
+
+Em Configurações > Tela, "Fundo" escolhe o estilo da pílula e da ilha: Sólido (preto, o padrão), Fosco ou Translúcido. Nos dois últimos o fundo fica translúcido e o que está atrás aparece desfocado: papel de parede e janelas, com os cantos arredondados da forma. Com a pílula dentro da barra superior, só a ilha desfoca; a pílula fica translúcida sobre a barra, então o desfoque da barra feito pelo Blur my Shell aparece por trás dela. O desfoque é do próprio Frodo e não depende do Blur my Shell.
 
 ## Animações
 

@@ -1,7 +1,7 @@
 import type Gio from 'gi://Gio';
 
-import {CARD_IDS, CLOSED_ITEMS, CLOSED_MODES, MONITOR_MODES, TAB_IDS, isOneOf} from './schema-values.js';
-import type {CardId, ClosedItem, ClosedMode, MonitorMode, TabId} from './schema-values.js';
+import {CARD_IDS, CLOSED_ITEMS, CLOSED_MODES, MONITOR_MODES, SURFACE_STYLES, TAB_IDS, isOneOf} from './schema-values.js';
+import type {CardId, ClosedItem, ClosedMode, MonitorMode, SurfaceStyle, TabId} from './schema-values.js';
 import {parseProfiles} from './claude-profile.js';
 import type {ClaudeProfile} from './claude-profile.js';
 import type {Disposer} from '../shared/disposables.js';
@@ -12,6 +12,7 @@ export type SettingsKey =
     | 'rotate-seconds'
     | 'monitors'
     | 'hide-top-bar'
+    | 'surface-style'
     | 'claude-poll-minutes'
     | 'claude-show-remaining'
     | 'claude-profiles'
@@ -65,6 +66,15 @@ export class FrodoSettings {
 
     set hideTopBar(value: boolean) {
         this.gsettings.set_boolean('hide-top-bar', value);
+    }
+
+    get surfaceStyle(): SurfaceStyle {
+        const value = this.gsettings.get_string('surface-style');
+        return isOneOf(SURFACE_STYLES, value) ? value : 'solid';
+    }
+
+    set surfaceStyle(value: SurfaceStyle) {
+        this.gsettings.set_string('surface-style', value);
     }
 
     get claudePollMinutes(): number {

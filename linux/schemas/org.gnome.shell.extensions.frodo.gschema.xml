@@ -27,6 +27,14 @@
     <key name="hide-top-bar" type="b">
       <default>false</default>
     </key>
+    <key name="surface-style" type="s">
+      <choices>
+        <choice value="solid"/>
+        <choice value="frosted"/>
+        <choice value="clear"/>
+      </choices>
+      <default>'solid'</default>
+    </key>
     <key name="claude-poll-minutes" type="i">
       <range min="1" max="60"/>
       <default>5</default>
