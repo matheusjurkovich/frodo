@@ -1,5 +1,4 @@
 node_modules/
 dist/
 .build/
-.superpowers/
 schemas/gschemas.compiled
