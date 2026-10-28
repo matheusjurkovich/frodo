@@ -99,7 +99,8 @@ function setAxis(actor: Clutter.Actor, axis: Axis, value: number): void {
 
 export function morphSize(actor: Clutter.Actor, change: () => void, spring: Spring, axes: Axes = BOTH_AXES): void {
     const animate = actor.mapped;
-    const from = animate ? {width: actor.width, height: actor.height} : {width: 0, height: 0};
+    const box = actor.allocation;
+    const from = animate ? {width: box.get_width(), height: box.get_height()} : {width: 0, height: 0};
     const listed = axesOf(axes);
     for (const axis of listed) {
         actor.remove_transition(axis);
