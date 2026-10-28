@@ -21,6 +21,14 @@ function pidAlive(pid: number): boolean {
     return GLib.file_test(`/proc/${pid}`, GLib.FileTest.EXISTS);
 }
 
+function readAlive(path: string): string | null {
+    try {
+        return new TextDecoder().decode(GLib.file_get_contents(path)[1]).trim();
+    } catch {
+        return null;
+    }
+}
+
 function isAlive(state: SessionState): boolean {
     return state.pid === null || pidAlive(state.pid);
 }
@@ -74,6 +82,8 @@ export class ClaudeSessions extends Emitter<{changed: []}> {
     readonly #dir: string;
     readonly #pendingDir: string;
     readonly #decisionsDir: string;
+    readonly #alive: string;
+    readonly #pid = GLib.file_read_link('/proc/self');
     readonly #activate: ((window: Meta.Window) => void) | null;
     readonly #states = new Map<string, SessionState>();
     readonly #pending = new Map<string, PendingRequest>();
@@ -100,6 +110,8 @@ export class ClaudeSessions extends Emitter<{changed: []}> {
         this.#decisionsDir = GLib.build_filenamev([root, 'decisions']);
         this.#activate = activate;
         for (const dir of [this.#dir, this.#pendingDir, this.#decisionsDir]) GLib.mkdir_with_parents(dir, 0o700);
+        this.#alive = GLib.build_filenamev([root, 'alive']);
+        GLib.file_set_contents(this.#alive, `${this.#pid}\n`);
         const directory = Gio.File.new_for_path(this.#dir);
         this.#monitor = directory.monitor_directory(Gio.FileMonitorFlags.WATCH_MOVES, this.#cancellable);
         this.#monitorId = this.#monitor.connect('changed', (_monitor, file, other, type) => {
@@ -329,6 +341,7 @@ export class ClaudeSessions extends Emitter<{changed: []}> {
         this.#monitor.cancel();
         this.#pendingMonitor.disconnect(this.#pendingMonitorId);
         this.#pendingMonitor.cancel();
+        if (readAlive(this.#alive) === this.#pid) GLib.unlink(this.#alive);
         this.clearListeners();
     }
 }

@@ -13,6 +13,9 @@ printf '{"pid":%s,"event":%s}\n' "$pid" "$input" > "$tmp" && mv -f "$tmp" "$sess
 printf '%s' "$input" | grep -q '"hook_event_name" *: *"PermissionRequest"' || exit 0
 tool=$(printf '%s' "$input" | grep -o '"tool_name" *: *"[A-Za-z0-9_.:-]*"' | head -n 1 | sed 's/.*"\([A-Za-z0-9_.:-]*\)"$/\1/')
 [ -n "$tool" ] || exit 0
+alive=$(cat "$root/alive" 2>/dev/null)
+case $alive in '' | *[!0-9]*) exit 0 ;; esac
+[ -d "/proc/$alive" ] || exit 0
 mkdir -p "$root/pending" "$root/decisions" || exit 0
 request="$$-$(date +%s%N)"
 pending="$root/pending/$id.$request.json"

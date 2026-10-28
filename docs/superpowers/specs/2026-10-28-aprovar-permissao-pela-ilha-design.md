@@ -88,6 +88,9 @@ hook lê, apaga os dois arquivos, ◀───┘ imprime a decisão e sai
 
 Para todo evento, continua gravando `sessions/<id>.json` como hoje. No `PermissionRequest`, depois disso:
 
+0. Só segue se `$XDG_RUNTIME_DIR/frodo/alive` tiver o pid de um processo vivo. A extensão grava ali o pid do shell ao ligar e
+   apaga ao desligar; sem ela, o hook sai na hora e o pedido fica só no app, sem atraso nenhum.
+
 1. Gera um `request` único para o pedido (só `[A-Za-z0-9-]`, ex.: `$$` com o horário).
 2. Cria de forma atômica `pending/<id>.<request>.json` com `{"pid":<$$>,"tool":"<tool_name>","since":<epoch ms ou s>}`.
 3. Instala `trap` em `EXIT`, `INT`, `TERM` e `HUP` que apaga o seu `pending/` e o seu `decisions/`.
@@ -168,6 +171,12 @@ seu `pending/` e o seu `decisions/`.
 - `npm run smoke`.
 - Ponta a ponta numa sessão real: um pedido no terminal e um no desktop, aprovados pela pílula e negados pela linha; um
   respondido no app com a ilha mostrando os botões (os botões somem e o hook sai).
+
+## Limite conhecido
+
+No desktop, responder no app não mata o hook, e o único sinal de que a sessão seguiu é o próximo evento. Depois de aprovar no
+app, esse evento é o `PostToolUse`, que só chega quando a ferramenta termina. Enquanto uma ferramenta longa roda, a ilha
+continua mostrando Negar e Aprovar para aquele pedido. Clicar nesses botões não muda nada, porque o Claude Code já decidiu.
 
 ## Decisões que ficaram comigo
 

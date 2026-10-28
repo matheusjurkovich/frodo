@@ -174,4 +174,21 @@ describe('ClaudeSessions', () => {
         expect(GLib.file_test(`${dir}/decisions/s.r1.json`, GLib.FileTest.EXISTS)).toBeFalse();
         sessions.destroy();
     });
+
+    it('marca a extensão viva com o pid do shell e desmarca ao destruir', () => {
+        const dir = tmp();
+        const sessions = new ClaudeSessions(settings, dir);
+        const [, bytes] = GLib.file_get_contents(`${dir}/alive`);
+        expect(new TextDecoder().decode(bytes).trim()).toBe(String(self));
+        sessions.destroy();
+        expect(GLib.file_test(`${dir}/alive`, GLib.FileTest.EXISTS)).toBeFalse();
+    });
+
+    it('não apaga a marca de outro shell ao destruir', () => {
+        const dir = tmp();
+        const sessions = new ClaudeSessions(settings, dir);
+        GLib.file_set_contents(`${dir}/alive`, '1\n');
+        sessions.destroy();
+        expect(GLib.file_test(`${dir}/alive`, GLib.FileTest.EXISTS)).toBeTrue();
+    });
 });
