@@ -1,10 +1,10 @@
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 
-import {ClaudeTranscripts} from '../src/features/claude/claude-transcripts-service.js';
-import {Timer} from '../src/shared/timer.js';
-import type {FrodoSettings} from '../src/settings/frodo-settings.js';
-import {createSettings, line} from './fixtures.js';
+import {ClaudeTranscripts} from './claude-transcripts-service.js';
+import {Timer} from '../../shared/timer.js';
+import type {FrodoSettings} from '../../settings/frodo-settings.js';
+import {createSettings, line} from '../../../tests/fixtures.js';
 
 describe('ClaudeTranscripts', () => {
     const today = new Date();

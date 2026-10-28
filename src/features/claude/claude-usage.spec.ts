@@ -13,13 +13,11 @@ import {
     shownPercent,
     tierIcon,
     tierLabel,
-} from '../src/features/claude/claude-usage.js';
-import type {LevelInput} from '../src/features/claude/claude-usage.js';
-import {needsRefresh, parseCredentials} from '../src/features/claude/claude-credentials.js';
-import {isActiveProfile, labelForDirName, profileChip} from '../src/features/claude/claude-profiles.js';
-import {parseProfiles} from '../src/settings/claude-profile.js';
+} from './claude-usage.js';
+import type {LevelInput} from './claude-usage.js';
 
 const NOW = Date.UTC(2026, 9, 24, 12, 0);
+
 const iso = (offsetSeconds: number): string => new Date(NOW + offsetSeconds * 1000).toISOString();
 
 describe('normalizeWindows', () => {
@@ -196,48 +194,6 @@ describe('tempos', () => {
         expect(relativeReset(iso(7800), NOW)).toBe('reinicia em 2h 10m');
         expect(relativeReset(iso(266400), NOW)).toBe('reinicia em 3d 2h');
         expect(relativeReset(null, NOW)).toBe('');
-    });
-});
-
-describe('perfis', () => {
-    it('nomeia pelo diretório', () => {
-        expect(labelForDirName('.claude')).toBe('Claude');
-        expect(labelForDirName('.claude-work')).toBe('Work');
-        expect(labelForDirName('.claude-my_client')).toBe('My Client');
-    });
-
-    it('gera a sigla do perfil', () => {
-        expect(profileChip('Work Stuff')).toBe('WS');
-        expect(profileChip('Claude')).toBe('CL');
-    });
-
-    it('lê a lista salva ignorando lixo', () => {
-        expect(parseProfiles('[{"id":"a","label":"X","configDir":"/x"},{"bad":1}]')).toEqual([{id: 'a', label: 'X', configDir: '/x'}]);
-        expect(parseProfiles('lixo')).toEqual([]);
-    });
-
-    it('marca como ativo o perfil do diretório padrão', () => {
-        expect(isActiveProfile({id: 'a', label: 'A', configDir: '/home/u/.claude/'}, '/home/u/.claude')).toBeTrue();
-        expect(isActiveProfile({id: 'b', label: 'B', configDir: '/home/u/.claude-work'}, '/home/u/.claude')).toBeFalse();
-    });
-});
-
-describe('credenciais', () => {
-    it('lê o token e o plano do arquivo do Claude Code', () => {
-        expect(
-            parseCredentials(
-                '{"claudeAiOauth":{"accessToken":"a","refreshToken":"r","expiresAt":5,"subscriptionType":"max","rateLimitTier":"x_20x"}}',
-            ),
-        ).toEqual({accessToken: 'a', refreshToken: 'r', expiresAt: 5, subscriptionType: 'max', rateLimitTier: 'x_20x'});
-        expect(parseCredentials('{"claudeAiOauth":{}}')).toBeNull();
-        expect(parseCredentials('{quebrado')).toBeNull();
-        expect(parseCredentials(null)).toBeNull();
-    });
-
-    it('renova cinco minutos antes de expirar', () => {
-        expect(needsRefresh(0, NOW)).toBeFalse();
-        expect(needsRefresh(NOW + 10 * 60e3, NOW)).toBeFalse();
-        expect(needsRefresh(NOW + 2 * 60e3, NOW)).toBeTrue();
     });
 });
 

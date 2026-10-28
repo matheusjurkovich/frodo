@@ -1,0 +1,46 @@
+import {barHeight, centerClamp, segmentWidths, topEdgeSpan} from './geometry.js';
+
+describe('geometry', () => {
+    it('centraliza o painel na pílula dentro do monitor', () => {
+        expect(centerClamp(900, 120, 600, 0, 1920)).toBe(660);
+        expect(centerClamp(10, 120, 600, 0, 1920)).toBe(8);
+        expect(centerClamp(1850, 60, 600, 0, 1920)).toBe(1312);
+        expect(centerClamp(2800, 120, 600, 1920, 1920)).toBe(2560);
+    });
+
+    it('acha a faixa do topo onde a ilha abre', () => {
+        const main = {x: 0, y: 0, width: 1920, height: 1080};
+        expect(topEdgeSpan(main, [main], 900)).toEqual({x1: 510, x2: 1410, y: 0});
+        expect(topEdgeSpan({x: 1920, y: 200, width: 800, height: 600}, [], 900)).toEqual({x1: 1920, x2: 2720, y: 200});
+    });
+
+    it('não cria faixa com outro monitor logo acima', () => {
+        const below = {x: 0, y: 1080, width: 1920, height: 1080};
+        expect(topEdgeSpan(below, [{x: 0, y: 0, width: 1920, height: 1080}, below], 900)).toBeNull();
+        expect(topEdgeSpan(below, [{x: 0, y: 0, width: 400, height: 1080}, below], 900)).toEqual({x1: 510, x2: 1410, y: 1080});
+    });
+});
+
+describe('segmentWidths', () => {
+    it('divide a largura pelas frações', () => {
+        expect(segmentWidths([0.58, 0.36, 0.06], 200)).toEqual([116, 72, 12]);
+    });
+
+    it('não passa da largura total', () => {
+        expect(segmentWidths([0.8, 0.5], 100)).toEqual([80, 20]);
+        expect(segmentWidths([-1, 2], 50)).toEqual([0, 50]);
+    });
+});
+
+describe('barHeight', () => {
+    it('escala pela maior barra com piso de 3px', () => {
+        expect(barHeight(900, 900, false)).toBe(64);
+        expect(barHeight(450, 900, false)).toBe(32);
+        expect(barHeight(1, 900, false)).toBe(3);
+        expect(barHeight(0, 0, false)).toBe(3);
+    });
+
+    it('barra futura fica no piso', () => {
+        expect(barHeight(900, 900, true)).toBe(3);
+    });
+});

@@ -1,9 +1,11 @@
-import {ClaudeIndex} from '../src/features/claude/claude-index.js';
-import {completeLines, contextWindow, modelDisplayName, modelFamily, parseAssistantLine} from '../src/features/claude/claude-transcript.js';
-import {line} from './fixtures.js';
+import {ClaudeIndex} from './claude-index.js';
+import {parseAssistantLine} from './claude-transcript.js';
+import {line} from '../../../tests/fixtures.js';
 
 const now = new Date(2026, 9, 27, 10, 30);
+
 const at = (day: number, hour: number, month = 9): Date => new Date(2026, month, day, hour, 5);
+
 const first = line({
     id: 'm1',
     at: at(27, 9),
@@ -14,6 +16,7 @@ const first = line({
     cacheRead: 1000,
     cacheWrite: 10,
 });
+
 const lines = [
     first,
     first,
@@ -224,28 +227,5 @@ describe('ClaudeIndex', () => {
         if (entry) index.add(entry);
         expect(JSON.stringify(live)).toBe(snapshot);
         expect(JSON.stringify(index.toJSON())).not.toBe(snapshot);
-    });
-});
-
-describe('transcrição', () => {
-    it('separa só linhas completas em bytes', () => {
-        const result = completeLines(new TextEncoder().encode('a\nbé\npar'));
-        expect(result).toEqual({text: 'a\nbé\n', consumed: 6});
-    });
-
-    it('ignora linhas que não são de uso', () => {
-        expect(parseAssistantLine('{"type":"user"}')).toBeNull();
-        expect(parseAssistantLine('{quebrado')).toBeNull();
-    });
-
-    it('nomeia modelos e janelas de contexto', () => {
-        expect(modelFamily('claude-3-5-haiku-20241022')).toBe('Haiku');
-        expect(modelFamily('gpt-x')).toBe('Outro');
-        expect(modelDisplayName('claude-opus-5-5')).toBe('Opus 5.5');
-        expect(modelDisplayName('claude-sonnet-4-5-20250929')).toBe('Sonnet 4.5');
-        expect(modelDisplayName('claude-3-5-haiku-20241022')).toBe('Haiku 3.5');
-        expect(modelDisplayName('gpt-x')).toBe('gpt-x');
-        expect(contextWindow(62_000)).toBe(200_000);
-        expect(contextWindow(250_000)).toBe(1_000_000);
     });
 });

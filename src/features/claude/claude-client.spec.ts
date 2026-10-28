@@ -1,26 +1,7 @@
 import GLib from 'gi://GLib';
 
-import {
-    CLIENT_ID,
-    ClaudeApiError,
-    ClaudeClient,
-    PROFILE_URL,
-    SignedOutError,
-    TOKEN_URL,
-    USAGE_URL,
-} from '../src/features/claude/claude-client.js';
-import type {HttpRequest, HttpResponse, Transport} from '../src/features/claude/claude-client.js';
-import {readMemory} from '../src/features/system/memory-service.js';
-import {createSettings} from './fixtures.js';
-
-describe('readMemory', () => {
-    it('lê /proc/meminfo', async () => {
-        const memory = await readMemory();
-        expect(memory).not.toBeNull();
-        expect(memory?.usedKb).toBeGreaterThan(0);
-        expect(memory?.usedKb).toBeLessThan(memory?.totalKb ?? 0);
-    });
-});
+import {CLIENT_ID, ClaudeApiError, ClaudeClient, PROFILE_URL, SignedOutError, TOKEN_URL, USAGE_URL} from './claude-client.js';
+import type {HttpRequest, HttpResponse, Transport} from './claude-client.js';
 
 describe('ClaudeClient', () => {
     const NOW = Date.now();
@@ -123,53 +104,5 @@ describe('ClaudeClient', () => {
         writeCredentials({accessToken: 'a', subscriptionType: 'max', rateLimitTier: 'default_claude_max_20x'});
         const client = new ClaudeClient(dir, transport({}));
         expect(await client.readTier()).toEqual({subscriptionType: 'max', rateLimitTier: 'default_claude_max_20x'});
-    });
-});
-
-describe('FrodoSettings', () => {
-    it('expõe os padrões tipados', () => {
-        const settings = createSettings();
-        expect(settings.closedMode).toBe('compact');
-        expect(settings.closedItems).toEqual(['clock', 'date', 'notifications', 'network', 'battery']);
-        expect(settings.monitors).toBe('primary');
-        expect(settings.hideTopBar).toBeFalse();
-        expect(settings.toggleShortcut).toBe('<Super>z');
-    });
-
-    it('ignora itens desconhecidos e repetidos e preserva a ordem escolhida', () => {
-        const settings = createSettings();
-        settings.gsettings.set_strv('closed-items', ['claude-weekly', 'xyz', 'battery', 'battery']);
-        expect(settings.closedItems).toEqual(['claude-weekly', 'battery']);
-        settings.closedItems = ['ram', 'clock', 'ram'];
-        expect(settings.gsettings.get_strv('closed-items')).toEqual(['ram', 'clock']);
-    });
-
-    it('avisa mudanças e permite parar de ouvir', () => {
-        const settings = createSettings();
-        const spy = jasmine.createSpy('changed');
-        const off = settings.onChanged(['closed-mode', 'monitors'], spy);
-        settings.closedMode = 'minimal';
-        off();
-        settings.monitors = 'both';
-        expect(spy).toHaveBeenCalledTimes(1);
-    });
-
-    it('lê e grava as chaves do redesign', () => {
-        const settings = createSettings();
-        expect(settings.openOnHover).toBeTrue();
-        expect(settings.autoClose).toBeFalse();
-        expect(settings.hiddenTabs).toEqual([]);
-        settings.gsettings.set_strv('hidden-tabs', ['claude', 'xyz', 'claude']);
-        expect(settings.hiddenTabs).toEqual(['claude']);
-        settings.collapsedCards = ['apps', 'apps'];
-        expect(settings.gsettings.get_strv('collapsed-cards')).toEqual(['apps']);
-    });
-
-    it('grava expandir ao passar o mouse e recolher sozinha', () => {
-        const settings = createSettings();
-        settings.openOnHover = false;
-        settings.autoClose = true;
-        expect(settings.gsettings.get_boolean('open-on-hover')).toBeFalse();
-        expect(settings.gsettings.get_boolean('auto-close')).toBeTrue();
     });
 });
