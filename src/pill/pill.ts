@@ -14,6 +14,7 @@ import {IdleView} from './idle-view.js';
 
 const STATE_CLASSES: Partial<Record<ActivityKind, string>> = {
     recording: 'frodo-pill-recording',
+    'claude-permission': 'frodo-pill-waiting',
     'claude-waiting': 'frodo-pill-waiting',
     meeting: 'frodo-pill-meeting',
 };

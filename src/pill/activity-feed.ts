@@ -1,5 +1,5 @@
-import {displayStatus} from '../features/claude/claude-sessions.js';
-import type {SessionState} from '../features/claude/claude-sessions.js';
+import {displayStatus, oldestPending} from '../features/claude/claude-sessions.js';
+import type {PendingRequest, SessionState} from '../features/claude/claude-sessions.js';
 import {pickActivity} from './activity-priority.js';
 import type {ClaudeSessions} from '../features/claude/claude-sessions-service.js';
 import type {MediaService, MediaTrack} from '../features/media/media-service.js';
@@ -17,6 +17,7 @@ const CLAUDE_STEP_MS = 5000;
 
 export type PillActivity =
     | {kind: 'recording'; startedAt: number}
+    | {kind: 'claude-permission'; session: SessionState; request: PendingRequest}
     | {kind: 'claude-waiting'; session: SessionState}
     | {kind: 'meeting'; title: string; startsAt: number}
     | {kind: 'notification'; item: InterceptedNotification}
@@ -26,7 +27,7 @@ export type PillActivity =
 
 export interface FeedSources {
     readonly recording: Pick<Recording, 'startedAt' | 'on'>;
-    readonly sessions: Pick<ClaudeSessions, 'sessions' | 'on'>;
+    readonly sessions: Pick<ClaudeSessions, 'sessions' | 'pending' | 'on'>;
     readonly meetings: Pick<UpcomingMeeting, 'next' | 'on'>;
     readonly bridge: Pick<NotificationBridge, 'on'>;
     readonly volume: Pick<VolumeWatch, 'on'>;
@@ -37,6 +38,8 @@ function identity(activity: PillActivity): readonly unknown[] {
     switch (activity.kind) {
         case 'recording':
             return [activity.kind, activity.startedAt];
+        case 'claude-permission':
+            return [activity.kind, activity.session.sessionId, activity.request.key];
         case 'claude-waiting':
         case 'claude-working':
             return [activity.kind, activity.session.sessionId, activity.session.status, activity.session.step];
@@ -155,8 +158,13 @@ export class ActivityFeed extends Emitter<{changed: []}> {
         const now = Date.now();
         const candidates: PillActivity[] = [];
         if (recording.startedAt !== null) candidates.push({kind: 'recording', startedAt: recording.startedAt});
+        const known = new Set(sessions.sessions.map(({sessionId}) => sessionId));
+        const request = oldestPending(sessions.pending.filter(({sessionId}) => known.has(sessionId)));
+        const asking = request ? sessions.sessions.find(({sessionId}) => sessionId === request.sessionId) : undefined;
+        if (request && asking) candidates.push({kind: 'claude-permission', session: asking, request});
         for (const session of sessions.sessions) {
             const status = displayStatus(session, now);
+            if (session === asking) continue;
             if (status === 'waiting') candidates.push({kind: 'claude-waiting', session});
             else if (status === 'working' && session.sessionId === this.#claude) candidates.push({kind: 'claude-working', session});
         }

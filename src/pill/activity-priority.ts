@@ -1,4 +1,13 @@
-export const ACTIVITY_KINDS = ['recording', 'claude-waiting', 'meeting', 'notification', 'volume', 'claude-working', 'media'] as const;
+export const ACTIVITY_KINDS = [
+    'recording',
+    'claude-permission',
+    'claude-waiting',
+    'meeting',
+    'notification',
+    'volume',
+    'claude-working',
+    'media',
+] as const;
 
 export type ActivityKind = (typeof ACTIVITY_KINDS)[number];
 

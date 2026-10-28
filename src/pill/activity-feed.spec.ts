@@ -1,4 +1,4 @@
-import type {SessionState, SessionStatus} from '../features/claude/claude-sessions.js';
+import type {PendingRequest, SessionState, SessionStatus} from '../features/claude/claude-sessions.js';
 import type {MediaTrack} from '../features/media/media-service.js';
 import type {NotificationBridgeEvents} from '../features/notifications/notification-bridge-service.js';
 import {ActivityFeed} from './activity-feed.js';
@@ -17,9 +17,11 @@ class FakeRecording extends Emitter<{changed: []}> {
 
 class FakeSessions extends Emitter<{changed: []}> {
     sessions: readonly SessionState[] = [];
+    pending: readonly PendingRequest[] = [];
 
-    set(sessions: readonly SessionState[]): void {
+    set(sessions: readonly SessionState[], pending: readonly PendingRequest[] = []): void {
         this.sessions = sessions;
+        this.pending = pending;
         this.emit('changed');
     }
 }
@@ -66,6 +68,10 @@ function session(id: string, status: SessionStatus, step = '', tool: string | nu
         since: Date.now(),
         updatedAt: Date.now(),
     };
+}
+
+function request(sessionId: string, name: string, since: number): PendingRequest {
+    return {key: `${sessionId}.${name}`, sessionId, request: name, pid: 1, tool: 'Bash', since};
 }
 
 function track(playing: boolean): MediaTrack {
@@ -161,6 +167,29 @@ describe('ActivityFeed', () => {
         sessions.set([session('a', 'done'), session('b', 'working', 'Bash ls', 'Bash'), session('c', 'waiting')]);
         expect(feed.current?.kind).toBe('claude-waiting');
         sessions.set([session('a', 'done')]);
+        expect(feed.current).toBeNull();
+    });
+
+    it('pedido pendente vira pedido de permissão com botões', () => {
+        sessions.set([session('a', 'waiting')], [request('a', 'r1', 10)]);
+        const current = feed.current;
+        expect(current?.kind).toBe('claude-permission');
+        expect(current?.kind === 'claude-permission' ? current.request.key : null).toBe('a.r1');
+    });
+
+    it('com vários pedidos vence o mais antigo', () => {
+        sessions.set([session('a', 'waiting'), session('b', 'waiting')], [request('a', 'r1', 20), request('b', 'r2', 10)]);
+        const current = feed.current;
+        expect(current?.kind === 'claude-permission' ? current.request.key : null).toBe('b.r2');
+    });
+
+    it('sessão esperando sem pedido continua só com Abrir', () => {
+        sessions.set([session('a', 'waiting')]);
+        expect(feed.current?.kind).toBe('claude-waiting');
+    });
+
+    it('pedido de sessão desconhecida é ignorado', () => {
+        sessions.set([], [request('x', 'r1', 10)]);
         expect(feed.current).toBeNull();
     });
 

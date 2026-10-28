@@ -32,7 +32,7 @@ export interface PillActions {
 
 export interface ActivityServices {
     readonly recording: Pick<Recording, 'stop'>;
-    readonly sessions: Pick<ClaudeSessions, 'focus'>;
+    readonly sessions: Pick<ClaudeSessions, 'focus' | 'decide'>;
     readonly media: Pick<MediaService, 'playPause'>;
     readonly actions: PillActions;
 }
@@ -73,6 +73,9 @@ export class ActivityView implements Component {
         switch (activity.kind) {
             case 'recording':
                 this.#recording(activity);
+                break;
+            case 'claude-permission':
+                this.#permission(activity);
                 break;
             case 'claude-waiting':
                 this.#waiting(activity);
@@ -136,6 +139,28 @@ export class ActivityView implements Component {
         this.#tick(() => {
             elapsed.text = formatTimer(secondsSince(startedAt, Date.now()));
         });
+    }
+
+    #permission({session, request}: Of<'claude-permission'>): void {
+        this.#add(
+            icon(frodoIcon('claude'), 'frodo-pill-icon-waiting'),
+            label(`${ellipsize(session.repo, REPO_CHARS)} precisa de permissão`, 'frodo-pill-title'),
+            label(ellipsize(request.tool, STEP_CHARS), 'frodo-pill-detail'),
+        );
+        this.#addAction(
+            textButton('Negar', () => {
+                this.#services.sessions.decide(request, 'deny');
+            }),
+        );
+        this.#addAction(
+            textButton(
+                'Aprovar',
+                () => {
+                    this.#services.sessions.decide(request, 'allow');
+                },
+                'primary',
+            ),
+        );
     }
 
     #waiting({session}: Of<'claude-waiting'>): void {

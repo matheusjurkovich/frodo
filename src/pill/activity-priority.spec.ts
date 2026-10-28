@@ -7,6 +7,11 @@ describe('prioridade da pílula', () => {
         expect(pickActivity([{kind: 'claude-working'}, {kind: 'notification'}])?.kind).toBe('notification');
     });
 
+    it('pedido de permissão vence o Claude esperando e perde da gravação', () => {
+        expect(pickActivity([{kind: 'claude-waiting'}, {kind: 'claude-permission'}])?.kind).toBe('claude-permission');
+        expect(pickActivity([{kind: 'claude-permission'}, {kind: 'recording'}])?.kind).toBe('recording');
+    });
+
     it('mantém a ordem de chegada entre iguais', () => {
         expect(
             pickActivity([
