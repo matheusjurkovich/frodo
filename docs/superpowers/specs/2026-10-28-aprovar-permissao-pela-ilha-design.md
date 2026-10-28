@@ -53,22 +53,16 @@ Fonte: https://code.claude.com/docs/en/hooks.
 - No desktop (que usa `canUseTool`), o hook e o diálogo correm juntos e vale quem decidir primeiro.
 - Timeout padrão de hook de comando: 600 s. Hooks do mesmo evento rodam em paralelo.
 
-### Pontos a confirmar
+### Pontos confirmados (teste de 2026-10-28)
 
-Não documentados. O passo 1 da implementação é um hook de teste que só dorme 30 s no `PermissionRequest`, numa sessão do
-terminal e numa do desktop, para responder:
+Hook de teste que só dormia 30 s no `PermissionRequest`, numa sessão do desktop:
 
-1. No terminal, o diálogo aparece enquanto o hook ainda roda, ou só depois que ele termina?
-2. Quando o usuário responde no app, o Claude Code mata o hook que ainda espera? Se não mata, que sinal o hook tem para sair
-   (ex.: `PostToolUse` ou `PostToolUseFailure` da mesma ferramenta gravado em `sessions/<id>.json` depois do seu `since`)?
-   O critério escolhido entra no passo 5 do hook.
-3. Com dois hooks no `PermissionRequest` (o do Frodo e o do `pixel-agents` no `settings.json` do usuário), a decisão de um
-   vale quando o outro sai sem decidir?
-
-Se (1) for "só depois", vale a **espera curta** (decisão do usuário): em sessão de terminal, o hook espera
-`TERMINAL_WAIT_SECONDS = 15` pelo clique na ilha e depois sai sem decisão, liberando o diálogo; no desktop, continua a espera
-longa. O hook de teste também grava o `env` que recebe, para achar o que separa terminal de desktop (candidato:
-`CLAUDE_CODE_ENTRYPOINT`). Se nada no ambiente ou no evento separar os dois, a espera curta vale para todos.
+1. **Desktop:** o diálogo aparece junto com o hook; aprovado no app, o comando rodou 8,5 s depois do início do hook, que
+   ainda esperava. O teste no terminal não foi feito: no terminal vale a espera curta (`TERMINAL_WAIT_SECONDS = 15`).
+2. **Resposta no app não mata o hook:** ele seguiu até o fim. Critério de saída do hook: `sessions/<id>.json` mais novo que o
+   seu `pending/` com um evento que não é `PermissionRequest` nem `Notification` (a sessão seguiu em frente).
+3. **Origem:** `CLAUDE_CODE_ENTRYPOINT=claude-desktop` no ambiente do hook separa desktop de terminal.
+4. **Convívio com o hook do `pixel-agents`:** a conferir na ponta a ponta.
 
 ## Desenho
 
