@@ -125,11 +125,6 @@ export class PanelContent {
             }),
         );
         this.#disposables.add(
-            island.on('closed', () => {
-                if (this.#view.kind === 'settings') this.#leaveSettings();
-            }),
-        );
-        this.#disposables.add(
             bridge.on('changed', () => {
                 this.#tabBar.setBadge('notifications', bridge.count);
             }),

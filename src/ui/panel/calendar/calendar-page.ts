@@ -27,6 +27,7 @@ export class CalendarPage implements Component {
         );
         this.#disposables.add(
             island.on('closed', () => {
+                calendarParts()?.selectToday();
                 this.#loan.dispose();
             }),
         );
