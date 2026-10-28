@@ -5,6 +5,7 @@ import {PopupAnimation} from 'resource:///org/gnome/shell/ui/boxpointer.js';
 import type {QuickSlider} from 'resource:///org/gnome/shell/ui/quickSettings.js';
 
 import {
+    closeQuickSettingsMenu,
     interceptCloseQuickSettings,
     keepMicrophoneSliderVisible,
     quickSettingsItemMenu,
@@ -64,6 +65,7 @@ export class NativeControls {
 
     #borrow(): void {
         this.#loan.dispose();
+        closeQuickSettingsMenu();
         const parts = quickSettingsParts();
         if (!parts || parts.menu._overlay.get_parent() !== parts.menu.actor) return;
         const {menu} = parts;

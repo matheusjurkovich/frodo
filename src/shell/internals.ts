@@ -3,6 +3,7 @@ import type Meta from 'gi://Meta';
 import type St from 'gi://St';
 import * as SystemActions from 'resource:///org/gnome/shell/misc/systemActions.js';
 import * as Util from 'resource:///org/gnome/shell/misc/util.js';
+import {PopupAnimation} from 'resource:///org/gnome/shell/ui/boxpointer.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import type * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
 import type * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
@@ -32,6 +33,7 @@ export interface QuickSettingsMenuInternals {
     readonly _grid: St.Widget;
     readonly _overlay: Clutter.Actor;
     readonly _activeMenu?: QuickToggleMenu | null;
+    close(animate: PopupAnimation): void;
 }
 
 interface InputSliderInternals extends QuickSlider {
@@ -148,6 +150,10 @@ export function quickSettingsParts(): QuickSettingsParts | null {
         input: first(quick._volumeInput),
         brightness: first(quick._brightness),
     };
+}
+
+export function closeQuickSettingsMenu(): void {
+    quickSettings()?.menu.close(PopupAnimation.NONE);
 }
 
 export function quickSettingsItemMenu(item: Clutter.Actor): QuickToggleMenu | null {
