@@ -209,7 +209,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         this.#feed.cancelTransient();
         this.#isOpen = true;
         this.#openedBy = reason;
-        this.pill.actor.reactive = false;
+        this.pill.actor.set({reactive: false, hover: false});
         this.#claude.refreshIfStale(CLAUDE_MAX_AGE_SECONDS);
 
         this.emit('opening');
@@ -236,7 +236,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         if (!this.#isOpen) return;
         this.#isOpen = false;
         this.#openedBy = null;
-        this.pill.actor.reactive = true;
+        this.pill.actor.set({reactive: true, hover: false});
         this.#feed.cancelTransient();
         this.#openTimer.stop();
         this.#closeTimer.stop();
@@ -298,7 +298,8 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
 
     #syncTongue(): void {
         const tongue = this.#tongue;
-        tongue.visible = this.#fullscreen && !this.#isOpen;
+        const visible = this.#fullscreen && !this.#isOpen;
+        if (tongue.visible !== visible) tongue.set({visible, hover: false});
         const monitor = this.#monitor();
         if (tongue.visible && monitor) tongue.set_position(Math.round(monitor.x + (monitor.width - tongue.width) / 2), monitor.y);
     }
