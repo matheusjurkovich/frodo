@@ -36,6 +36,30 @@
     background-color: #0a0a0b;
 }
 
+.frodo-tongue.frodo-tongue-bottom {
+    border-top-width: 1px;
+    border-bottom-width: 0;
+    border-radius: 10px 10px 0 0;
+}
+
+.frodo-tongue.frodo-tongue-left,
+.frodo-tongue.frodo-tongue-right {
+    width: 8px;
+    height: 120px;
+    min-height: 120px;
+    border-top-width: 1px;
+}
+
+.frodo-tongue.frodo-tongue-left {
+    border-left-width: 0;
+    border-radius: 0 10px 10px 0;
+}
+
+.frodo-tongue.frodo-tongue-right {
+    border-right-width: 0;
+    border-radius: 10px 0 0 10px;
+}
+
 .frodo-tongue:hover {
     background-color: #26262b;
 }
@@ -45,25 +69,11 @@
     padding-right: 7px;
 }
 
-.frodo-pill-bar {
-    min-height: 0;
-}
-
-.frodo-pill-bar.frodo-pill-action {
-    padding-right: 4px;
-}
-
 .frodo-pill-notification {
     width: 420px;
     padding: 10px;
     border-radius: 24px;
     spacing: 12px;
-}
-
-.frodo-pill-bar.frodo-pill-notification {
-    width: auto;
-    padding: 0 16px 0 18px;
-    border-radius: 999px;
 }
 
 .frodo-pill-recording {
@@ -117,21 +127,6 @@
 .frodo-mono,
 .frodo-calendar .event-time {
     font-family: 'Ubuntu Mono', monospace;
-}
-
-.frodo-battery {
-    spacing: 4px;
-}
-
-.frodo-battery .frodo-dim {
-    font-size: 12px;
-    font-weight: 400;
-    color: #d4d4d8;
-}
-
-.frodo-battery-icon {
-    icon-size: 18px;
-    color: #d4d4d8;
 }
 
 .frodo-ring {
@@ -191,6 +186,15 @@
 
 .frodo-pill-content {
     spacing: 14px;
+}
+
+.frodo-pill.frodo-pill-vertical {
+    padding: 16px 12px;
+    border-radius: 24px;
+}
+
+.frodo-pill-vertical .frodo-pill-content {
+    spacing: 10px;
 }
 
 .frodo-pill-icon {
@@ -257,19 +261,6 @@
     color: #0a0a0b;
 }
 
-.frodo-pill-bar .frodo-pill-avatar {
-    width: 20px;
-    height: 20px;
-}
-
-.frodo-pill-bar .frodo-pill-avatar-icon {
-    icon-size: 20px;
-}
-
-.frodo-pill-bar .frodo-pill-avatar-corners {
-    border-radius: 6px;
-}
-
 .frodo-pill-notification .frodo-pill-content {
     spacing: 12px;
 }
@@ -309,19 +300,6 @@
 .frodo-pill .frodo-text-button {
     height: 32px;
     min-height: 32px;
-}
-
-.frodo-pill-bar .frodo-text-button {
-    height: 24px;
-    min-height: 24px;
-    padding: 0 10px;
-    font-size: 12px;
-}
-
-.frodo-pill-bar .frodo-icon-button-32 {
-    width: 24px;
-    height: 24px;
-    min-height: 24px;
 }
 
 .frodo-system-icons {
@@ -393,11 +371,6 @@
 
 .frodo-claude-header {
     spacing: 8px;
-}
-
-.frodo-claude-logo {
-    icon-size: 18px;
-    color: #d97757;
 }
 
 .frodo-claude-name {
@@ -860,19 +833,6 @@
 }
 
 .frodo-back-button .frodo-button-icon {
-    icon-size: 16px;
-}
-
-.frodo-claude-badge {
-    width: 28px;
-    height: 28px;
-    min-height: 28px;
-    border-radius: 8px;
-    background-color: #2a1a14;
-    color: #d97757;
-}
-
-.frodo-claude-badge-icon {
     icon-size: 16px;
 }
 
@@ -1542,6 +1502,19 @@
     padding: 14px 16px;
     border: none;
     box-shadow: none;
+    color: #f4f4f5;
+}
+
+.frodo-general .quick-toggle-menu .header .title,
+.frodo-general .quick-toggle-menu .popup-menu-item,
+.frodo-general .quick-toggle-menu .popup-menu-item StIcon,
+.frodo-general .quick-toggle-menu .popup-menu-ornament {
+    color: #f4f4f5;
+}
+
+.frodo-general .quick-toggle-menu .popup-menu-item:insensitive,
+.frodo-general .quick-toggle-menu .popup-inactive-menu-item {
+    color: #a1a1aa;
 }
 
 .frodo-general .quick-toggle-menu .header {
@@ -2261,7 +2234,6 @@
 }
 
 .frodo-position-cell,
-.frodo-position-off,
 .frodo-position-screen {
     height: 32px;
     min-height: 32px;
@@ -2278,10 +2250,6 @@
 
 .frodo-position-cell:checked {
     background-color: -st-accent-color;
-}
-
-.frodo-position-off {
-    background-color: rgba(42, 42, 47, 0.3);
 }
 
 .frodo-position-screen {

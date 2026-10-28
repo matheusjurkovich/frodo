@@ -22,7 +22,16 @@ export const CLOSED_ITEMS = [
 ] as const;
 export type ClosedItem = (typeof CLOSED_ITEMS)[number];
 
-export const PILL_POSITIONS = ['left', 'center', 'right', 'bottom-left', 'bottom-center', 'bottom-right'] as const;
+export const PILL_POSITIONS = [
+    'left',
+    'center',
+    'right',
+    'middle-left',
+    'middle-right',
+    'bottom-left',
+    'bottom-center',
+    'bottom-right',
+] as const;
 export type PillPosition = (typeof PILL_POSITIONS)[number];
 export type HorizontalPosition = 'left' | 'center' | 'right';
 
@@ -30,8 +39,12 @@ export function isBottom(position: PillPosition): boolean {
     return position.startsWith('bottom-');
 }
 
+export function isMiddle(position: PillPosition): boolean {
+    return position.startsWith('middle-');
+}
+
 export function horizontalOf(position: PillPosition): HorizontalPosition {
-    const side = position.replace('bottom-', '');
+    const side = position.replace(/^(bottom|middle)-/, '');
     return side === 'left' || side === 'right' ? side : 'center';
 }
 

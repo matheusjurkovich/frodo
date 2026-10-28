@@ -1,4 +1,3 @@
-import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import St from 'gi://St';
@@ -20,6 +19,7 @@ import {Disposables} from '../../shared/disposables.js';
 import {Timer} from '../../shared/timer.js';
 import {chip, iconButton} from '../../shared/ui/buttons.js';
 import {card, cardHeading} from '../../shared/ui/card.js';
+import {providerTile} from '../../shared/ui/provider-tile.js';
 import {column, dimLabel, label, row, spacer} from '../../shared/ui/layout.js';
 import {whileMapped} from '../../shared/ui/lifecycle.js';
 import type {Component} from '../../shared/ui/lifecycle.js';
@@ -126,13 +126,7 @@ export class LimitsCard implements Component {
         const title = cardHeading('Limites de uso');
         title.x_expand = true;
         const header = row('frodo-limits-header');
-        header.add_child(
-            new St.Bin({
-                style_class: 'frodo-claude-badge',
-                child: new St.Icon({gicon: frodoIcon('claude'), style_class: 'frodo-claude-badge-icon'}),
-                y_align: Clutter.ActorAlign.CENTER,
-            }),
-        );
+        header.add_child(providerTile('claude', 28));
         header.add_child(title);
         header.add_child(this.#updated);
         header.add_child(
@@ -180,8 +174,7 @@ export class LimitsCard implements Component {
     #profileBlock(usage: ProfileUsage, multiple: boolean, now: number): St.BoxLayout {
         const block = column('frodo-claude-profile');
         const header = row('frodo-claude-header');
-        header.add_child(new St.Icon({gicon: frodoIcon('claude'), style_class: 'frodo-claude-logo'}));
-        header.add_child(label(usage.profile.label, 'frodo-claude-name'));
+        if (multiple) header.add_child(label(usage.profile.label, 'frodo-claude-name'));
         if (multiple) header.add_child(chip(profileChip(usage.profile.label)));
         if (multiple && usage.active) header.add_child(chip('ativo', 'accent'));
         header.add_child(spacer());

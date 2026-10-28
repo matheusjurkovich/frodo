@@ -5,7 +5,7 @@ import type {AiProvider} from '../ai-provider.js';
 import {frodoIcon} from './icons.js';
 import type {FrodoIconName} from './icons.js';
 
-export const PROVIDER_ICONS: Record<AiProvider, FrodoIconName> = {claude: 'claude', codex: 'terminal', gemini: 'gemini'};
+export const PROVIDER_ICONS: Record<AiProvider, FrodoIconName> = {claude: 'claude', codex: 'codex', gemini: 'gemini'};
 
 export function providerIcon(provider: AiProvider, styleClass = ''): St.Icon {
     return new St.Icon({

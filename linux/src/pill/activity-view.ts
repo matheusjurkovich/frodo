@@ -21,7 +21,6 @@ const TICK_SECONDS = 1;
 const REPO_CHARS = 24;
 const STEP_CHARS = 40;
 const TITLE_CHARS = 40;
-const BODY_CHARS = 40;
 const APP_CHARS = 20;
 const TRACK_CHARS = 30;
 const ARTIST_CHARS = 24;
@@ -113,9 +112,13 @@ export class ActivityView implements Component {
         return true;
     }
 
-    show(activity: PillActivity, bar: boolean): void {
+    show(activity: PillActivity, vertical: boolean): void {
         this.clear();
-        this.#content = new St.BoxLayout({style_class: 'frodo-pill-content', x_expand: true});
+        this.#content = new St.BoxLayout({
+            style_class: 'frodo-pill-content',
+            x_expand: true,
+            orientation: vertical ? Clutter.Orientation.VERTICAL : Clutter.Orientation.HORIZONTAL,
+        });
         this.actor.add_child(this.#content);
         switch (activity.kind) {
             case 'recording':
@@ -131,7 +134,7 @@ export class ActivityView implements Component {
                 this.#meeting(activity);
                 break;
             case 'notification':
-                this.#notification(activity, bar);
+                this.#notification(activity);
                 break;
             case 'volume':
                 this.#volume(activity);
@@ -143,6 +146,7 @@ export class ActivityView implements Component {
                 this.#media(activity);
                 break;
         }
+        if (vertical) for (const child of this.#content.get_children()) child.x_align = Clutter.ActorAlign.CENTER;
     }
 
     takeContent(): St.BoxLayout | null {
@@ -251,16 +255,11 @@ export class ActivityView implements Component {
         });
     }
 
-    #notification({item}: Of<'notification'>, bar: boolean): void {
+    #notification({item}: Of<'notification'>): void {
         this.#clickTab = 'notifications';
         const app = item.app === '' ? 'agora' : `${ellipsize(item.app, APP_CHARS)} · agora`;
         const body = item.body.replace(/\s+/g, ' ').trim();
         const gicon = item.gicon ?? frodoIcon('info');
-        if (bar) {
-            this.#add(avatar(gicon), label(app, 'frodo-pill-detail'), label(ellipsize(item.title, TITLE_CHARS), 'frodo-pill-title'));
-            if (body !== '') this.#add(label(ellipsize(body, BODY_CHARS), 'frodo-pill-detail'));
-            return;
-        }
         const text = column('frodo-pill-notification-text');
         text.y_align = Clutter.ActorAlign.CENTER;
         text.add_child(label(app, 'frodo-pill-detail'));

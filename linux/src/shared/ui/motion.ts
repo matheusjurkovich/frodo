@@ -25,7 +25,6 @@ export interface Axes {
 }
 
 export const BOTH_AXES: Axes = {width: true, height: true};
-export const WIDTH_AXIS: Axes = {width: true, height: false};
 export const HEIGHT_AXIS: Axes = {width: false, height: true};
 
 const SPRING_KEYS = 24;

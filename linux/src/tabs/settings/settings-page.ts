@@ -31,6 +31,7 @@ import {ITEM_LABELS, missingItems, moveItem} from './pill-items.js';
 
 const INTERFACE_SCHEMA = 'org.gnome.desktop.interface';
 const SHOW_SECONDS_KEY = 'clock-show-seconds';
+const BATTERY_PERCENT_KEY = 'show-battery-percentage';
 const POLL_MINUTES = {min: 1, max: 60} as const;
 const ROTATE_SECONDS = {min: 2, max: 30} as const;
 const MODIFIER_KEYS: readonly number[] = [
@@ -100,7 +101,7 @@ const POSITION_GRID: readonly (readonly ({id: PillPosition; label: string} | nul
         {id: 'center', label: 'Topo, ao centro'},
         {id: 'right', label: 'Topo, à direita'},
     ],
-    [null, null, null],
+    [{id: 'middle-left', label: 'Meio, à esquerda'}, null, {id: 'middle-right', label: 'Meio, à direita'}],
     [
         {id: 'bottom-left', label: 'Embaixo, à esquerda'},
         {id: 'bottom-center', label: 'Embaixo, ao centro'},
@@ -251,7 +252,8 @@ export class SettingsPage implements Component {
                 this.#renderPillEditor();
             }),
         );
-        this.#disposables.signal(this.#interface, this.#interface.connect(`changed::${SHOW_SECONDS_KEY}`, sync));
+        for (const key of [SHOW_SECONDS_KEY, BATTERY_PERCENT_KEY])
+            this.#disposables.signal(this.#interface, this.#interface.connect(`changed::${key}`, sync));
         this.#disposables.add(() => {
             this.#stopCapture();
         });
@@ -376,20 +378,19 @@ export class SettingsPage implements Component {
         text.add_child(current);
         text.add_child(
             wrapped(
-                'Embaixo, a ilha abre para cima e sempre flutua. O meio da tela fica de fora para a ilha não abrir por cima das janelas.',
+                'A ilha flutua logo abaixo da barra superior. Nos cantos e no meio das laterais, encosta na borda; embaixo, abre para cima.',
                 'frodo-settings-subtitle',
             ),
         );
         const picker = column('frodo-position-grid');
         picker.y_align = Clutter.ActorAlign.CENTER;
         const cells: {id: PillPosition; label: string; button: St.Button}[] = [];
-        POSITION_GRID.forEach((cellsInRow, rowIndex) => {
+        POSITION_GRID.forEach(cellsInRow => {
             const line = row('frodo-position-row');
             line.layout_manager.homogeneous = true;
-            cellsInRow.forEach((cell, columnIndex) => {
+            cellsInRow.forEach(cell => {
                 if (!cell) {
-                    const screen = rowIndex === 1 && columnIndex === 1;
-                    line.add_child(new St.Widget({style_class: screen ? 'frodo-position-screen' : 'frodo-position-off', x_expand: true}));
+                    line.add_child(new St.Widget({style_class: 'frodo-position-screen', x_expand: true}));
                     return;
                 }
                 const button = new St.Button({
@@ -499,6 +500,19 @@ export class SettingsPage implements Component {
         );
         rotate.add_style_class_name('frodo-settings-line-flat');
         options.add_child(rotate);
+        const percent = line(
+            'Mostrar porcentagem da bateria',
+            'Vale para a pílula e para a barra superior',
+            this.#switch(
+                'Mostrar porcentagem da bateria',
+                () => this.#interface.get_boolean(BATTERY_PERCENT_KEY),
+                checked => {
+                    this.#interface.set_boolean(BATTERY_PERCENT_KEY, checked);
+                },
+            ),
+        );
+        percent.add_style_class_name('frodo-settings-line-flat');
+        options.add_child(percent);
         this.#bindings.push(() => {
             hint.text = MODE_HINTS[settings.closedMode];
             rotate.visible = settings.closedMode === 'rotating';

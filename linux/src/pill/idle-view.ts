@@ -1,9 +1,9 @@
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import GnomeDesktop from 'gi://GnomeDesktop';
+import Pango from 'gi://Pango';
 import St from 'gi://St';
 
-import {batteryLevel} from '../features/system/battery.js';
 import {formatDate} from '../shared/format.js';
 import {formatGb} from '../features/system/memory.js';
 import type {ClosedItem} from '../settings/schema-values.js';
@@ -101,6 +101,7 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
     #dateLabels: St.Label[] = [];
     #rotateIndex = 0;
     #rotatingSlot: St.Label | null = null;
+    #vertical = false;
 
     constructor({settings, state, claude, codex, gemini, bridge}: IdleViewDependencies) {
         super();
@@ -157,6 +158,13 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
         this.#build();
     }
 
+    setVertical(vertical: boolean): void {
+        if (vertical === this.#vertical) return;
+        this.#vertical = vertical;
+        this.actor.orientation = vertical ? Clutter.Orientation.VERTICAL : Clutter.Orientation.HORIZONTAL;
+        this.#build();
+    }
+
     get wantsMemory(): boolean {
         return this.#settings.closedMode !== 'minimal' && this.#settings.closedItems.includes('ram');
     }
@@ -191,6 +199,8 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
         for (const item of this.#items()) {
             const segment = rotating && isTextItem(item) ? this.#rotatingSegment() : this.#segment(item);
             if (!segment) continue;
+            if (this.#vertical) segment.actor.x_align = Clutter.ActorAlign.CENTER;
+            if (this.#vertical && segment.actor instanceof St.Label) segment.actor.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
             this.actor.add_child(segment.actor);
             this.#segments.push(segment);
         }
@@ -224,7 +234,7 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
             case 'extensions':
                 return this.#cloneSegment(extensionIndicators);
             case 'battery':
-                return this.#batterySegment();
+                return this.#cloneSegment(() => present(systemIndicator('battery')));
             case 'ram':
                 return this.#textSegment('ram');
             case 'claude-session':
@@ -303,12 +313,13 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
         const clones = sources.map(source => new Clutter.Clone({source, y_align: Clutter.ActorAlign.CENTER}));
         for (const clone of clones) box.add_child(clone);
         for (const source of sources)
-            this.#built.signal(
-                source,
-                source.connect('notify::visible', () => {
-                    this.#update();
-                }),
-            );
+            for (const property of ['visible', 'width', 'height'])
+                this.#built.signal(
+                    source,
+                    source.connect(`notify::${property}`, () => {
+                        this.#update();
+                    }),
+                );
         this.#built.add(
             onIndicatorsChanged(() => {
                 const current = read();
@@ -320,26 +331,11 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
             isVisible: () => sources.some(source => source.visible),
             update: () => {
                 clones.forEach((clone, index) => {
-                    clone.visible = sources[index]?.visible ?? false;
+                    const source = sources[index];
+                    clone.visible = source?.visible ?? false;
+                    if (source && source.width > 0 && source.height > 0) clone.set_size(source.width, source.height);
+                    else clone.set_size(-1, -1);
                 });
-            },
-        };
-    }
-
-    #batterySegment(): Segment {
-        const box = new St.BoxLayout({style_class: 'frodo-battery', y_align: Clutter.ActorAlign.CENTER});
-        const icon = new St.Icon({style_class: 'frodo-battery-icon'});
-        const label = dimLabel();
-        box.add_child(icon);
-        box.add_child(label);
-        return {
-            actor: box,
-            isVisible: () => this.#state.battery !== null,
-            update: () => {
-                const {battery} = this.#state;
-                if (!battery) return;
-                icon.gicon = frodoIcon(`battery-${batteryLevel(battery)}`);
-                label.text = `${battery.percent}%`;
             },
         };
     }

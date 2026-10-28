@@ -36,10 +36,6 @@ interface PanelInternals {
     closeQuickSettings(): void;
 }
 
-interface SessionModeInternals {
-    readonly panel: Record<string, readonly string[]>;
-}
-
 export interface QuickSettingsMenuInternals {
     readonly actor: St.Widget;
     readonly _grid: St.Widget;
@@ -208,15 +204,6 @@ export function onIndicatorsChanged(callback: () => void): Disposer {
     };
 }
 
-export function sessionPanelHas(role: string): boolean {
-    const {panel} = Main.sessionMode as SessionModeInternals;
-    return Object.values(panel).some(roles => roles.includes(role));
-}
-
-export function dateMenuContainer(): Clutter.Actor | null {
-    return Main.panel.statusArea.dateMenu?.container ?? null;
-}
-
 export function quickSettings(): QuickSettingsInternals | null {
     return (Main.panel.statusArea.quickSettings as unknown as QuickSettingsInternals | undefined) ?? null;
 }
@@ -225,16 +212,17 @@ export function networkIndicator(): Clutter.Actor | null {
     return quickSettings()?._network ?? null;
 }
 
-export type SystemIndicatorName = 'bluetooth' | 'volume' | 'microphone' | 'do-not-disturb';
+export type SystemIndicatorName = 'bluetooth' | 'volume' | 'microphone' | 'do-not-disturb' | 'battery';
 
 const SYSTEM_INDICATOR_FIELDS: Record<SystemIndicatorName, string> = {
     bluetooth: '_bluetooth',
     volume: '_volumeOutput',
     microphone: '_volumeInput',
     'do-not-disturb': '_doNotDisturb',
+    battery: '_system',
 };
 
-const OWN_INDICATOR_FIELDS: readonly string[] = [...Object.values(SYSTEM_INDICATOR_FIELDS), '_network', '_system'];
+const OWN_INDICATOR_FIELDS: readonly string[] = [...Object.values(SYSTEM_INDICATOR_FIELDS), '_network'];
 
 function quickSettingsFields(): Record<string, Clutter.Actor | null | undefined> | null {
     return quickSettings() as unknown as Record<string, Clutter.Actor | null | undefined> | null;

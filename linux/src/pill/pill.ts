@@ -11,7 +11,7 @@ import type {TabId} from '../settings/schema-values.js';
 import {Disposables} from '../shared/disposables.js';
 import {Emitter} from '../shared/emitter.js';
 import {SOFT_SPRING, SPRING} from '../shared/spring.js';
-import {BOTH_AXES, WIDTH_AXIS, fadeIn, fadeOut, morphSize, settle} from '../shared/ui/motion.js';
+import {BOTH_AXES, fadeIn, fadeOut, morphSize, settle} from '../shared/ui/motion.js';
 import type {ActivityFeed, PillActivity} from './activity-feed.js';
 import {ActivityView} from './activity-view.js';
 import type {ActivityServices} from './activity-view.js';
@@ -55,8 +55,8 @@ export class Pill extends Emitter<{rebuilt: []}> {
     readonly #idle: IdleView;
     readonly #activity: ActivityView;
     readonly #disposables = new Disposables();
-    #bar = false;
     #shown: PillActivity | null = null;
+    #vertical = false;
 
     constructor({settings, state, claude, codex, gemini, bridge, feed, recording, sessions, media, actions}: PillDependencies) {
         super();
@@ -97,9 +97,13 @@ export class Pill extends Emitter<{rebuilt: []}> {
         return this.#activity.clickTab;
     }
 
-    setBar(bar: boolean): void {
-        this.#bar = bar;
-        this.#sync();
+    setVertical(vertical: boolean): void {
+        if (vertical === this.#vertical) return;
+        this.#vertical = vertical;
+        this.#idle.setVertical(vertical);
+        const current = this.#feed.current;
+        if (current) this.#activity.show(current, vertical);
+        this.#syncStyle();
     }
 
     activate(): boolean {
@@ -110,19 +114,18 @@ export class Pill extends Emitter<{rebuilt: []}> {
         const next = this.#feed.current;
         const previous = this.#shown;
         this.#shown = next;
-        const axes = this.#bar ? WIDTH_AXIS : BOTH_AXES;
         const apply = (): void => {
             this.#idle.actor.visible = next === null;
-            if (next) this.#activity.show(next, this.#bar);
+            if (next) this.#activity.show(next, this.#vertical);
             else this.#activity.clear();
             this.#syncStyle();
         };
         if (sameSubject(previous, next)) {
-            morphSize(this.actor, apply, SOFT_SPRING, axes);
+            morphSize(this.actor, apply, SOFT_SPRING, BOTH_AXES);
             return;
         }
         const outgoing = previous === null ? this.#idle.actor : this.#activity.takeContent();
-        morphSize(this.actor, apply, SPRING, axes);
+        morphSize(this.actor, apply, SPRING, BOTH_AXES);
         if (outgoing === this.#idle.actor) {
             outgoing.show();
             fadeOut(outgoing, () => {
@@ -143,7 +146,7 @@ export class Pill extends Emitter<{rebuilt: []}> {
     #syncStyle(): void {
         const kind = this.#feed.current?.kind;
         const classes = ['frodo-pill'];
-        if (this.#bar) classes.push('frodo-pill-bar');
+        if (this.#vertical) classes.push('frodo-pill-vertical');
         const state = kind === undefined ? undefined : STATE_CLASSES[kind];
         if (state) classes.push(state);
         if (this.#activity.hasAction) classes.push('frodo-pill-action');

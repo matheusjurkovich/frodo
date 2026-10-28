@@ -21,6 +21,8 @@
         <choice value="center"/>
         <choice value="left"/>
         <choice value="right"/>
+        <choice value="middle-left"/>
+        <choice value="middle-right"/>
         <choice value="bottom-left"/>
         <choice value="bottom-center"/>
         <choice value="bottom-right"/>

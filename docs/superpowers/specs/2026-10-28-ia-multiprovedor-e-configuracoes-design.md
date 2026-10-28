@@ -32,8 +32,10 @@ configurações saem da página única em duas colunas para uma barra lateral co
 - **Ligar/desligar assistente.** Chave `disabled-ai`; desligado some do seletor, da visão geral, das sessões, da pílula e da
   lista de itens para adicionar.
 - **Posição 3×3.** `pill-position` ganha `bottom-left|center|right` (as antigas continuam sendo o topo, sem migração).
-  Embaixo a ilha sempre flutua, fica dentro da área útil (acima da dock) e abre para cima, mantendo a borda de baixo fixa
-  quando a altura muda.
+  A ilha sempre flutua dentro da área útil: no topo, logo abaixo da barra superior visível; embaixo, acima da dock,
+  abrindo para cima com a borda de baixo fixa. Nos cantos e no meio das laterais (`middle-left|right`, centrada na pílula) encosta na borda da área útil; ao centro fica a 6 px. O modo
+  "dentro da barra" saiu. A lingueta segue a mesma regra quando há janela maximizada.
+- **Menu emprestado.** O texto do menu do Quick Settings tem cor fixa no CSS do Frodo; com o Yaru ele herdava texto escuro.
 - **Agenda.** `meeting-notice-minutes` (0, 5, 10, 15) define quando a reunião aparece na pílula; 0 desliga.
 - **Rolagem.** As barras de rolagem viram `St.PolicyType.EXTERNAL`: some o pisca de quando a altura muda e a rolagem fica.
 
