@@ -25,7 +25,7 @@ Código agrupado por camada e domínio. Import só desce: `app → pill, tabs �
 | `src/shared/ui/`          | Componentes St: botões, cards, layout, anel, barra de segmentos, segmentado, ícones, `ActorLoan`                                                                                  |
 | `src/types/`              | Declarações que faltam nos `@girs`                                                                                                                                                |
 | `tests/`                  | Runner Jasmine (`entry.js` acha todo `*.spec.ts`), polyfills e fixtures                                                                                                           |
-| `tools/smoke.sh`          | gnome-shell headless isolado: liga, desliga e religa a extensão                                                                                                                   |
+| `tools/`                  | `smoke.sh`: headless isolado liga, desliga e religa; `devkit.sh`: shell aninhado ao vivo                                                                                          |
 | `stylesheet.css`          | Todo o visual (cor só existe aqui)                                                                                                                                                |
 | `schemas/`                | Schema do GSettings                                                                                                                                                               |
 | `hooks/claude-session.sh` | Hook do Claude Code que grava o estado de cada sessão e, no `PermissionRequest`, espera e devolve a decisão da ilha                                                               |
@@ -137,8 +137,10 @@ Esperado: `State: ACTIVE` e nenhuma linha no `grep` final.
   `button.emit('clicked', 1)`.
 - No headless, o menu de energia vem sem itens e tiles de Bluetooth e luz noturna podem faltar (sem gnome-session e gsd): é
   ambiente, não bug.
-- O tema do usuário (`user-theme` com MacTahoe-Dark-orange) restiliza `.quick-toggle`, `.quick-slider` e afins. Para
-  reproduzir bug visual de widget emprestado, ligue o `user-theme` no shell isolado.
+
+**Ao vivo:** `npm run devkit` abre o shell aninhado numa janela, isolado como o smoke, e imprime o barramento D-Bus dele
+(`env DBUS_SESSION_BUS_ADDRESS=<barramento> notify-send …`). Mantenha a janela visível, porque escondida ela congela as
+animações. Ele usa o D-Bus de sistema real: clicar no tile de Wi-Fi ou Bluetooth liga ou desliga o de verdade.
 
 **Sessão real:** `./install.sh` e **saia da sessão logo em seguida**, sem desligar nem religar a extensão antes. O Wayland
 guarda os módulos antigos em memória; religar com o schema novo quebra a extensão e pode esconder a barra do topo.
