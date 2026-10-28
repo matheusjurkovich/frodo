@@ -1,0 +1,52 @@
+name: release-please
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-24.04
+    outputs:
+      linux-created: ${{ steps.release.outputs['linux--release_created'] }}
+      linux-tag: ${{ steps.release.outputs['linux--tag_name'] }}
+      linux-version: ${{ steps.release.outputs['linux--version'] }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+
+  linux:
+    needs: release-please
+    if: needs.release-please.outputs.linux-created == 'true'
+    runs-on: ubuntu-24.04
+    env:
+      HUSKY: "0"
+      TAG: ${{ needs.release-please.outputs.linux-tag }}
+      VERSION: ${{ needs.release-please.outputs.linux-version }}
+    defaults:
+      run:
+        working-directory: linux
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-please.outputs.linux-tag }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: linux/package-lock.json
+      - name: Instala gjs e typelibs
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends gjs gir1.2-soup-3.0 libglib2.0-bin zip unzip
+      - run: npm ci
+      - run: npm run check
+      - run: npm run build
+      - name: Empacota a extensão
+        run: sh tools/pack.sh "$VERSION"
+      - name: Anexa o zip à release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "$TAG" "frodo-linux-$VERSION.zip" --clobber

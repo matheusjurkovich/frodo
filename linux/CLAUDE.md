@@ -120,7 +120,22 @@ npm run build        # src/ -> dist/, copia metadata, CSS, ícones, schemas e ho
 npm run smoke        # build + gnome-shell headless isolado: liga, desliga e religa; falha se não ficar ACTIVE
 npm run format       # Prettier
 ./install.sh         # build e link de dist/ em ~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich.github.io
+npm run pack -- 1.2.3  # build + frodo-linux-1.2.3.zip pronto para o extensions.gnome.org (sem gschemas.compiled)
 ```
+
+## Release
+
+- A versão sai dos commits: o `release-please.yml` (raiz) mantém aberto o PR `chore: release linux X.Y.Z` com a versão do
+  `package.json` e o `CHANGELOG.md`. `fix:` sobe patch, `feat:` sobe minor, `!` ou `BREAKING CHANGE` sobe major. Só conta commit
+  que toca `linux/` (o release-please não aceita caminho extra, então mudança só em `shared/` não gera versão).
+- Lançar é fazer merge desse PR: cria a tag `linux-vX.Y.Z`, a release e anexa o zip do `tools/pack.sh`.
+- O PR de release não roda o `ci-linux.yml` (PR aberto pelo `GITHUB_TOKEN` não dispara workflow); o job de release roda
+  `npm run check` antes de empacotar e não anexa nada se falhar.
+- Config em `release-please-config.json` e `.release-please-manifest.json` na raiz. A primeira versão é 1.0.0
+  (`initial-version`), com o changelog contado a partir do `bootstrap-sha`.
+- O repositório precisa de Settings › Actions › General › "Allow GitHub Actions to create and approve pull requests" ligado.
+- O zip é o que vai para o extensions.gnome.org. Os logos do Claude, Codex e Google ficam no pacote por escolha do dono, mesmo
+  que a revisão de lá possa pedir a troca.
 
 ## Verificar no shell
 

@@ -61,6 +61,8 @@ Baixe o `frodo-linux-<versão>.zip` da [página de releases](https://github.com/
 gnome-extensions install --force frodo-linux-<versão>.zip
 ```
 
+O mesmo zip é o pacote para enviar ao [extensions.gnome.org](https://extensions.gnome.org/upload/): leva só o que roda, com o schema em XML e sem o compilado.
+
 ### Do código-fonte
 
 ```bash

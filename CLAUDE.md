@@ -10,13 +10,13 @@ Guia do monorepo para o Claude Code. Cada plataforma tem o próprio guia; leia o
 | `macos/`             | App macOS em Swift. Guia: `macos/CLAUDE.md`                                   |
 | `shared/`            | Hook do Claude Code (`hooks/`) e ícones (`icons/`), usados pelas duas         |
 | `docs/superpowers/`  | Specs (`specs/`) e planos (`plans/`) de mudanças grandes, com prefixo de data |
-| `.github/workflows/` | `ci-<plataforma>.yml` e `release-<plataforma>.yml`                            |
+| `.github/workflows/` | `ci-<plataforma>.yml`, `release-please.yml` (Linux) e `release-macos.yml`     |
 | `LICENSE`            | GPL-2.0                                                                       |
 
 ## Regras do monorepo
 
 - Cada plataforma é independente: build, testes, versão e tag próprios. Nada em `linux/` ou `macos/` importa da outra; o que é comum fica em `shared/`.
-- Tags de release por plataforma: `linux-vX.Y.Z` e `macos-vX.Y.Z`. O workflow `release-<plataforma>.yml` roda na tag e anexa o artefato à release.
+- Tags de release por plataforma: `linux-vX.Y.Z` e `macos-vX.Y.Z`. No Linux, o release-please abre o PR de release a partir dos commits e o merge cria a tag, a release e o zip (`linux/CLAUDE.md`, seção Release). No macOS, a tag é manual e o `release-macos.yml` roda nela.
 - Workflow de CI filtra por `paths`: só roda quando a pasta da plataforma (ou o próprio workflow) muda.
 - Mudança grande começa por spec e plano em `docs/superpowers/`.
 - Mudou comportamento visível ou estrutura: atualize o `README.md` e o `CLAUDE.md` da plataforma, e o da raiz quando a mudança aparecer aqui.
