@@ -1,17 +1,5 @@
 import System from 'system';
 
-import './polyfills.js';
-import './setup.js';
-import './core.spec.js';
-import './claude.spec.js';
-import './util.spec.js';
-import './services.spec.js';
-import './workspaces.spec.js';
-import './claude-index.spec.js';
-import './transcripts.spec.js';
-import './sessions.spec.js';
-import './pill.spec.js';
-
 let failed = 0;
 let total = 0;
 
