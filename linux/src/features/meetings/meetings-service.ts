@@ -1,3 +1,4 @@
+import {MeetLinkClient} from './meet-link-client.js';
 import {nextMeeting} from './meetings.js';
 import type {Meeting} from './meetings.js';
 import {calendarEventSource} from '../../shared/shell-internals.js';
@@ -13,7 +14,9 @@ export class UpcomingMeeting extends Emitter<{changed: []}> {
     readonly #timer = new Timer();
     readonly #settings: FrodoSettings;
     readonly #disposeSettings: () => void;
+    readonly #links = new MeetLinkClient();
     #next: Meeting | null = null;
+    #destroyed = false;
 
     constructor(settings: FrodoSettings) {
         super();
@@ -27,6 +30,7 @@ export class UpcomingMeeting extends Emitter<{changed: []}> {
             }) ?? null;
         if (!this.#source) return;
         this.#next = this.#find();
+        this.#lookUpLink();
         this.#timer.every(CHECK_SECONDS, () => {
             this.#refresh();
         });
@@ -49,9 +53,22 @@ export class UpcomingMeeting extends Emitter<{changed: []}> {
         if (next?.title === this.#next?.title && next?.startsAt === this.#next?.startsAt) return;
         this.#next = next;
         this.emit('changed');
+        this.#lookUpLink();
+    }
+
+    #lookUpLink(): void {
+        const meeting = this.#next;
+        if (!meeting) return;
+        void this.#links.find(meeting.title, meeting.startsAt).then(url => {
+            if (this.#destroyed || url === null || this.#next !== meeting) return;
+            this.#next = {...meeting, url};
+            this.emit('changed');
+        });
     }
 
     destroy(): void {
+        this.#destroyed = true;
+        this.#links.destroy();
         this.#disposeSettings();
         this.#timer.stop();
         if (this.#source && this.#sourceId !== null) this.#source.disconnect(this.#sourceId);

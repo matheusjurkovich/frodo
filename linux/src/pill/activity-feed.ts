@@ -19,7 +19,7 @@ export type PillActivity =
     | {kind: 'recording'; startedAt: number}
     | {kind: 'claude-permission'; session: SessionState; request: PendingRequest}
     | {kind: 'claude-waiting'; session: SessionState}
-    | {kind: 'meeting'; title: string; startsAt: number}
+    | {kind: 'meeting'; title: string; startsAt: number; url: string | null}
     | {kind: 'notification'; item: InterceptedNotification}
     | {kind: 'volume'; percent: number}
     | {kind: 'claude-working'; session: SessionState}
@@ -44,7 +44,7 @@ function identity(activity: PillActivity): readonly unknown[] {
         case 'claude-working':
             return [activity.kind, activity.session.sessionId, activity.session.status, activity.session.step];
         case 'meeting':
-            return [activity.kind, activity.title, activity.startsAt];
+            return [activity.kind, activity.title, activity.startsAt, activity.url];
         case 'notification':
             return [activity.kind, activity.item];
         case 'volume':
@@ -142,7 +142,7 @@ export class ActivityFeed extends Emitter<{changed: []}> {
             else if (status === 'working' && session.tool !== null) candidates.push({kind: 'claude-working', session});
         }
         const meeting = meetings.next;
-        if (meeting) candidates.push({kind: 'meeting', title: meeting.title, startsAt: meeting.startsAt});
+        if (meeting) candidates.push({kind: 'meeting', title: meeting.title, startsAt: meeting.startsAt, url: meeting.url ?? null});
         if (this.#notification) candidates.push({kind: 'notification', item: this.#notification});
         if (this.#volume !== null) candidates.push({kind: 'volume', percent: this.#volume});
         const track = media.current;

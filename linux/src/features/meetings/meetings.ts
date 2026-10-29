@@ -7,6 +7,7 @@ export interface MeetingEvent {
 export interface Meeting {
     readonly title: string;
     readonly startsAt: number;
+    readonly url?: string;
 }
 
 function atMidnight(date: Date): boolean {

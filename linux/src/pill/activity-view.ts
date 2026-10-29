@@ -238,17 +238,25 @@ export class ActivityView implements Component {
         );
     }
 
-    #meeting({title, startsAt}: Of<'meeting'>): void {
+    #meeting({title, startsAt, url}: Of<'meeting'>): void {
         const until = label('', 'frodo-pill-detail');
         this.#add(icon(frodoIcon('calendar')), label(ellipsize(title, TITLE_CHARS), 'frodo-pill-title'), until);
         this.#addAction(
-            textButton(
-                'Abrir',
-                () => {
-                    this.#services.actions.openTab('calendar');
-                },
-                'primary',
-            ),
+            url === null
+                ? textButton(
+                      'Abrir',
+                      () => {
+                          this.#services.actions.openTab('calendar');
+                      },
+                      'primary',
+                  )
+                : textButton(
+                      'Entrar',
+                      () => {
+                          Gio.AppInfo.launch_default_for_uri(url, null);
+                      },
+                      'primary',
+                  ),
         );
         this.#tick(() => {
             until.text = formatUntil(startsAt, Date.now());
