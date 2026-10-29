@@ -21,6 +21,7 @@ import {PowerMenu} from './power-menu.js';
 import {SettingsPage} from '../tabs/settings/settings-page.js';
 import {TabBar} from './tab-bar.js';
 import type {TabSpec} from './tab-bar.js';
+import {IdleView} from '../pill/idle-view.js';
 import {WorkspacesPage} from '../tabs/workspaces/workspaces-page.js';
 
 export type PanelView = {readonly kind: 'tab'; readonly tab: TabId} | {readonly kind: 'settings'};
@@ -36,6 +37,7 @@ export class PanelContent {
     readonly #header: Header;
     readonly #pages = new Map<TabId, Component>();
     readonly #settingsPage: Component;
+    readonly #preview: IdleView;
     readonly #stack = new St.Viewport({style_class: 'frodo-pages', layout_manager: new Clutter.BinLayout(), x_expand: true});
     readonly #scroll = new St.ScrollView({
         hscrollbar_policy: St.PolicyType.NEVER,
@@ -49,7 +51,20 @@ export class PanelContent {
     #lastTab: TabId = TAB_IDS[0];
     #nextTab: TabId = TAB_IDS[0];
 
-    constructor({island, claude, transcripts, sessions, codex, gemini, settings, bridge, media, workspaces, recording}: PanelDependencies) {
+    constructor({
+        island,
+        claude,
+        transcripts,
+        sessions,
+        codex,
+        gemini,
+        settings,
+        state,
+        bridge,
+        media,
+        workspaces,
+        recording,
+    }: PanelDependencies) {
         this.#settings = settings;
 
         const specs: readonly TabSpec[] = [
@@ -112,7 +127,8 @@ export class PanelContent {
             },
             recording,
         );
-        this.#settingsPage = new SettingsPage(settings, sessions, {
+        this.#preview = new IdleView({settings, state, claude, codex, gemini, bridge});
+        this.#settingsPage = new SettingsPage(settings, sessions, this.#preview.actor, {
             back: () => {
                 this.#leaveSettings();
             },
@@ -238,6 +254,7 @@ export class PanelContent {
         this.#tabBar.destroy();
         this.#header.destroy();
         this.#settingsPage.destroy();
+        this.#preview.destroy();
         for (const page of this.#pages.values()) page.destroy();
         this.actor.destroy();
     }

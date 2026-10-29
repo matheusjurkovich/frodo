@@ -98,6 +98,12 @@
     background-color: -st-accent-color;
 }
 
+.frodo-pill-preview {
+    background-color: #2b0b23;
+    border-radius: 14px;
+    padding: 16px 14px;
+}
+
 .frodo-pill-action {
     min-height: 46px;
     padding-right: 7px;
