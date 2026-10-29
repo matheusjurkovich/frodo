@@ -496,7 +496,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
 
     #syncTongue(): void {
         const tongue = this.#tongue;
-        const visible = this.#covered && !this.#isOpen && !this.pill.actor.visible;
+        const visible = this.#covered && !this.#fullscreen && !this.#isOpen && !this.pill.actor.visible;
         if (tongue.visible !== visible) tongue.set({visible, hover: false});
         const monitor = this.#monitor();
         const edge = this.#middle() ? this.#side() : this.#bottom() ? 'bottom' : 'top';
@@ -582,7 +582,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         const fullscreen = hasRealFullscreen(this.monitorIndex);
         const covered = fullscreen || hasMaximizedWindow(this.monitorIndex);
         const kind = this.#feed.current?.kind;
-        const alert = !fullscreen && (kind === 'notification' || kind === 'claude-permission');
+        const alert = kind === 'claude-permission' || kind === 'claude-waiting' || (!fullscreen && kind === 'notification');
         const entering = covered && !this.#covered;
         this.#covered = covered;
         this.#fullscreen = fullscreen;
