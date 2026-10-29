@@ -42,3 +42,5 @@ jobs:
       - name: Testa o protocolo do hook
         working-directory: .
         run: sh shared/hooks/claude-session.test.sh
+      - name: Testa o get.sh
+        run: sh tools/get.test.sh
