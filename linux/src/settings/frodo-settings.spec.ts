@@ -55,6 +55,13 @@ describe('FrodoSettings', () => {
         expect(settings.gsettings.get_boolean('auto-close')).toBeTrue();
     });
 
+    it('pílula sempre à mostra começa desligada e grava', () => {
+        const settings = createSettings();
+        expect(settings.alwaysShowPill).toBeFalse();
+        settings.alwaysShowPill = true;
+        expect(settings.gsettings.get_boolean('always-show-pill')).toBeTrue();
+    });
+
     it('grava as chaves que eram das preferências', () => {
         const settings = createSettings();
         settings.hideTopBar = true;

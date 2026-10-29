@@ -33,6 +33,7 @@ export type SettingsKey =
     | 'toggle-shortcut'
     | 'open-on-hover'
     | 'auto-close'
+    | 'always-show-pill'
     | 'hidden-tabs'
     | 'collapsed-cards'
     | 'disabled-ai'
@@ -171,6 +172,14 @@ export class FrodoSettings {
 
     set autoClose(value: boolean) {
         this.gsettings.set_boolean('auto-close', value);
+    }
+
+    get alwaysShowPill(): boolean {
+        return this.gsettings.get_boolean('always-show-pill');
+    }
+
+    set alwaysShowPill(value: boolean) {
+        this.gsettings.set_boolean('always-show-pill', value);
     }
 
     get hiddenTabs(): TabId[] {

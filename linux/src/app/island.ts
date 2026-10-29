@@ -242,6 +242,11 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
             }),
         );
         this.#disposables.add(
+            settings.onChanged('always-show-pill', () => {
+                this.#syncCovered();
+            }),
+        );
+        this.#disposables.add(
             settings.onChanged('surface-style', () => {
                 this.#syncSurface();
             }),
@@ -580,7 +585,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
 
     #syncCovered(): void {
         const fullscreen = hasRealFullscreen(this.monitorIndex);
-        const covered = fullscreen || hasMaximizedWindow(this.monitorIndex);
+        const covered = fullscreen || (!this.#settings.alwaysShowPill && hasMaximizedWindow(this.monitorIndex));
         const kind = this.#feed.current?.kind;
         const alert = kind === 'claude-permission' || kind === 'claude-waiting' || (!fullscreen && kind === 'notification');
         const entering = covered && !this.#covered;
