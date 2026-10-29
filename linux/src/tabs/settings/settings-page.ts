@@ -12,11 +12,12 @@ import {expandHome} from '../../settings/claude-profile.js';
 import type {ClaudeProfile} from '../../settings/claude-profile.js';
 import {accelerator, shortcutLabel} from '../../settings/shortcut.js';
 import {TAB_LABELS, visibleTabs} from '../../settings/tabs.js';
-import {GEMINI_DAILY_LIMITS, MEETING_NOTICE_MINUTES, TAB_IDS} from '../../settings/schema-values.js';
+import {GEMINI_DAILY_LIMITS, MEETING_NOTICE_MINUTES, PEEK_EVERY_MINUTES, PEEK_SECONDS, TAB_IDS} from '../../settings/schema-values.js';
 import type {AiProvider, ClosedItem, ClosedMode, MonitorMode, PillPosition, SurfaceStyle} from '../../settings/schema-values.js';
 import type {FrodoSettings, SettingsKey} from '../../settings/frodo-settings.js';
 import {spawn} from '../../shared/shell-internals.js';
 import {Disposables} from '../../shared/disposables.js';
+import {nextPeek} from '../../shared/peek.js';
 import {backHeader, card} from '../../shared/ui/card.js';
 import {chip, iconButton, textButton} from '../../shared/ui/buttons.js';
 import {column, dimLabel, label, row} from '../../shared/ui/layout.js';
@@ -120,6 +121,13 @@ const NOTICES: readonly {id: string; label: string}[] = MEETING_NOTICE_MINUTES.m
     label: minutes === 0 ? 'Não avisar' : `${minutes} min`,
 }));
 
+const PEEK_EVERY: readonly {id: string; label: string}[] = PEEK_EVERY_MINUTES.map(minutes => ({
+    id: String(minutes),
+    label: `${minutes} min`,
+}));
+
+const PEEK_FOR: readonly {id: string; label: string}[] = PEEK_SECONDS.map(seconds => ({id: String(seconds), label: `${seconds} s`}));
+
 const HOOK_PATHS: Record<HookedAgent, string> = {codex: '~/.codex/hooks.json', gemini: '~/.gemini/settings.json'};
 
 function wrapped(text: string, styleClass: string): St.Label {
@@ -198,7 +206,7 @@ export class SettingsPage implements Component {
         const builders: Record<SectionId, () => St.Widget[]> = {
             general: () => [this.#behavior(), this.#shortcuts()],
             screen: () => [this.#position(), this.#screen()],
-            pill: () => [this.#pill()],
+            pill: () => [this.#pill(), this.#peek()],
             tabs: () => [this.#tabs()],
             ai: () => [this.#usage(), this.#claude(), this.#codex(), this.#gemini()],
             agenda: () => [this.#agenda()],
@@ -242,6 +250,9 @@ export class SettingsPage implements Component {
             'disabled-ai',
             'gemini-daily-limit',
             'meeting-notice-minutes',
+            'peek-clock',
+            'peek-every-minutes',
+            'peek-seconds',
         ];
         this.#disposables.add(settings.onChanged(keys, sync));
         this.#disposables.add(
@@ -532,6 +543,55 @@ export class SettingsPage implements Component {
         columns.add_child(this.#pillEditor);
         pill.add_child(columns);
         return pill;
+    }
+
+    #peek(): St.BoxLayout {
+        const settings = this.#settings;
+        const every = this.#segmented(
+            PEEK_EVERY,
+            () => String(settings.peekEveryMinutes),
+            value => {
+                settings.peekEveryMinutes = Number(value);
+            },
+        );
+        const lasts = this.#segmented(
+            PEEK_FOR,
+            () => String(settings.peekSeconds),
+            value => {
+                settings.peekSeconds = Number(value);
+            },
+        );
+        const section = group('Tela cheia', [
+            line(
+                'Mostrar a hora de tempos em tempos',
+                'Em tela cheia a pílula some. Ligado, ela volta por alguns segundos só com o relógio.',
+                this.#switch(
+                    'Mostrar a hora de tempos em tempos',
+                    () => settings.peekClock,
+                    checked => {
+                        settings.peekClock = checked;
+                    },
+                ),
+            ),
+            line('A cada', null, every),
+            line('Fica visível por', null, lasts),
+        ]);
+        const hint = wrapped('', 'frodo-settings-hint');
+        section.add_child(hint);
+        const refresh = (): void => {
+            const on = settings.peekClock;
+            for (const control of [every, lasts]) {
+                control.reactive = on;
+                control.opacity = on ? 255 : 115;
+            }
+            const next = GLib.DateTime.new_from_unix_local(Math.floor(nextPeek(new Date(), settings.peekEveryMinutes).getTime() / 1000));
+            hint.text = on
+                ? `Próxima vez às ${next.format('%H:%M') ?? ''}, por ${settings.peekSeconds} s. Passar o mouse na pílula abre a ilha.`
+                : 'Desligado: em tela cheia a pílula fica escondida.';
+        };
+        this.#bindings.push(refresh);
+        section.connect('notify::mapped', refresh);
+        return section;
     }
 
     #renderPillEditor(): void {

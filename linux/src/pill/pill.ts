@@ -18,6 +18,7 @@ import type {ActivityServices} from './activity-view.js';
 import type {CodexUsage} from '../features/codex/codex-service.js';
 import type {GeminiUsage} from '../features/gemini/gemini-service.js';
 import {IdleView} from './idle-view.js';
+import {PeekView} from './peek-view.js';
 
 const STATE_CLASSES: Partial<Record<ActivityKind, string>> = {
     recording: 'frodo-pill-recording',
@@ -54,9 +55,11 @@ export class Pill extends Emitter<{rebuilt: []}> {
     readonly #settings: FrodoSettings;
     readonly #idle: IdleView;
     readonly #activity: ActivityView;
+    readonly #peek = new PeekView();
     readonly #disposables = new Disposables();
     #shown: PillActivity | null = null;
     #vertical = false;
+    #peeking = false;
 
     constructor({settings, state, claude, codex, gemini, bridge, feed, recording, sessions, media, actions}: PillDependencies) {
         super();
@@ -66,6 +69,7 @@ export class Pill extends Emitter<{rebuilt: []}> {
         this.#activity = new ActivityView({recording, sessions, media, actions});
         this.actor.add_child(this.#idle.actor);
         this.actor.add_child(this.#activity.actor);
+        this.actor.add_child(this.#peek.actor);
 
         this.#disposables.add(
             this.#idle.on('rebuilt', () => {
@@ -106,6 +110,17 @@ export class Pill extends Emitter<{rebuilt: []}> {
         this.#syncStyle();
     }
 
+    setPeek(seconds: number | null): void {
+        const peeking = seconds !== null;
+        if (!peeking && !this.#peeking) return;
+        this.#peeking = peeking;
+        if (peeking) this.#peek.start(seconds);
+        else this.#peek.stop();
+        this.#idle.actor.visible = !peeking && this.#feed.current === null;
+        this.#activity.actor.visible = !peeking;
+        this.#syncStyle();
+    }
+
     activate(): boolean {
         return this.#activity.activate();
     }
@@ -115,7 +130,7 @@ export class Pill extends Emitter<{rebuilt: []}> {
         const previous = this.#shown;
         this.#shown = next;
         const apply = (): void => {
-            this.#idle.actor.visible = next === null;
+            this.#idle.actor.visible = next === null && !this.#peeking;
             if (next) this.#activity.show(next, this.#vertical);
             else this.#activity.clear();
             this.#syncStyle();
@@ -149,7 +164,8 @@ export class Pill extends Emitter<{rebuilt: []}> {
         if (this.#vertical) classes.push('frodo-pill-vertical');
         const state = kind === undefined ? undefined : STATE_CLASSES[kind];
         if (state) classes.push(state);
-        if (this.#activity.hasAction) classes.push('frodo-pill-action');
+        if (this.#activity.hasAction && !this.#peeking) classes.push('frodo-pill-action');
+        if (this.#peeking) classes.push('frodo-pill-peeking');
         const surface = this.#settings.surfaceStyle;
         if (surface !== 'solid') classes.push(`frodo-surface-${surface}`);
         this.actor.style_class = classes.join(' ');
@@ -159,6 +175,7 @@ export class Pill extends Emitter<{rebuilt: []}> {
         this.#disposables.dispose();
         this.#idle.destroy();
         this.#activity.destroy();
+        this.#peek.destroy();
         this.clearListeners();
         this.actor.destroy();
     }

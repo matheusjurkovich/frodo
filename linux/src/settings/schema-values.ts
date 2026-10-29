@@ -53,6 +53,8 @@ export type {AiProvider} from '../shared/ai-provider.js';
 
 export const GEMINI_DAILY_LIMITS = [1000, 1500, 2000] as const;
 export const MEETING_NOTICE_MINUTES = [0, 5, 10, 15] as const;
+export const PEEK_EVERY_MINUTES = [5, 10, 15, 30] as const;
+export const PEEK_SECONDS = [5, 10, 15, 30] as const;
 
 export const MONITOR_MODES = ['primary', 'secondary', 'both'] as const;
 export type MonitorMode = (typeof MONITOR_MODES)[number];
