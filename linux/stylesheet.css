@@ -2569,3 +2569,184 @@
 .frodo-settings-line.frodo-drop-after {
     border-bottom: 2px solid -st-accent-color;
 }
+
+.frodo-performance {
+    spacing: 10px;
+}
+
+.frodo-perf-card {
+    spacing: 8px;
+}
+
+.frodo-perf-card-header,
+.frodo-perf-card-footer {
+    spacing: 8px;
+}
+
+.frodo-perf-card-footer {
+    font-size: 12px;
+}
+
+.frodo-perf-figure {
+    spacing: 6px;
+}
+
+.frodo-perf-value {
+    font-size: 26px;
+    font-weight: 500;
+    color: #f4f4f5;
+}
+
+.frodo-perf-unit {
+    font-size: 13px;
+    color: #a1a1aa;
+    padding-bottom: 4px;
+}
+
+.frodo-perf-spark {
+    height: 40px;
+    spacing: 2px;
+}
+
+.frodo-perf-spark-bar {
+    border-radius: 1px;
+    background-color: -st-accent-color;
+}
+
+.frodo-perf-bar {
+    margin: 17px 0;
+}
+
+.frodo-perf-bar .frodo-segment {
+    background-color: -st-accent-color;
+}
+
+.frodo-perf-bar .frodo-segment.frodo-perf-high {
+    background-color: #f59e0b;
+}
+
+.frodo-perf-processes {
+    spacing: 6px;
+}
+
+.frodo-perf-processes-header {
+    spacing: 12px;
+    padding-bottom: 6px;
+}
+
+.frodo-perf-row {
+    spacing: 12px;
+    padding: 6px 0;
+    border-top: 1px solid #232327;
+}
+
+.frodo-perf-head {
+    font-size: 12px;
+    color: #a1a1aa;
+    border-top-width: 0;
+}
+
+.frodo-perf-col {
+    width: 84px;
+    text-align: right;
+    font-size: 13px;
+    color: #a1a1aa;
+}
+
+.frodo-perf-col-active {
+    color: #f4f4f5;
+}
+
+.frodo-perf-col-action {
+    width: 48px;
+    text-align: right;
+}
+
+.frodo-perf-who {
+    spacing: 10px;
+}
+
+.frodo-perf-who-text {
+    spacing: 5px;
+}
+
+.frodo-perf-names {
+    spacing: 8px;
+}
+
+.frodo-perf-badge {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background-color: #232327;
+}
+
+.frodo-perf-monogram {
+    font-size: 12px;
+    font-weight: 700;
+    color: #e4e4e7;
+}
+
+.frodo-perf-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: #f4f4f5;
+}
+
+.frodo-perf-pid {
+    font-size: 12px;
+    color: #71717a;
+}
+
+.frodo-perf-share {
+    height: 3px;
+    min-height: 3px;
+}
+
+.frodo-perf-share .frodo-segment {
+    background-color: st-transparentize(-st-accent-color, 0.4);
+}
+
+.frodo-perf-lock {
+    color: #71717a;
+    padding: 0 8px;
+}
+
+.frodo-perf-asking {
+    background-color: #3a1c1c;
+    color: #fca5a5;
+}
+
+.frodo-perf-confirm {
+    spacing: 8px;
+    padding: 8px 10px;
+    border-radius: 12px;
+    background-color: #2a1414;
+}
+
+.frodo-perf-confirm-text {
+    font-size: 13px;
+    color: #fde2e2;
+}
+
+.frodo-perf-footer {
+    font-size: 12px;
+    padding-top: 4px;
+}
+
+.frodo-perf-footer.frodo-perf-footer-ok {
+    color: #86efac;
+}
+
+.frodo-perf-footer.frodo-perf-footer-error {
+    color: #fca5a5;
+}
+
+.frodo-button.frodo-perf-kill {
+    background-color: #b42318;
+    color: #ffffff;
+}
+
+.frodo-button.frodo-perf-kill:hover {
+    background-color: #c8321f;
+}

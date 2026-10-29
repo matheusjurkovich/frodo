@@ -91,7 +91,7 @@
       <default>10</default>
     </key>
     <key name="tab-order" type="as">
-      <default>['general', 'calendar', 'workspaces', 'claude', 'notifications']</default>
+      <default>['general', 'calendar', 'workspaces', 'claude', 'notifications', 'performance']</default>
     </key>
     <key name="peek-clock" type="b">
       <default>true</default>

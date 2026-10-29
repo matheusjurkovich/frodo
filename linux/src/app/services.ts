@@ -9,6 +9,7 @@ import {GeminiUsage} from '../features/gemini/gemini-service.js';
 import {MediaService} from '../features/media/media-service.js';
 import {UpcomingMeeting} from '../features/meetings/meetings-service.js';
 import {NotificationBridge} from '../features/notifications/notification-bridge-service.js';
+import {PerformanceMonitor} from '../features/system/performance-service.js';
 import {Recording} from '../features/system/recording-service.js';
 import {SystemState} from '../features/system/system-state-service.js';
 import {VolumeWatch} from '../features/system/volume-service.js';
@@ -31,6 +32,7 @@ export interface FrodoServices {
     readonly recording: Recording;
     readonly volume: VolumeWatch;
     readonly meetings: UpcomingMeeting;
+    readonly performance: PerformanceMonitor;
     readonly feed: ActivityFeed;
 }
 
@@ -52,6 +54,23 @@ export function createServices(gsettings: Gio.Settings, disposables: Disposables
     const recording = disposables.own(new Recording());
     const volume = disposables.own(new VolumeWatch());
     const meetings = disposables.own(new UpcomingMeeting(settings));
+    const performance = disposables.own(new PerformanceMonitor());
     const feed = disposables.own(new ActivityFeed({recording, sessions, meetings, bridge, volume, media}));
-    return {settings, state, claude, transcripts, sessions, codex, gemini, media, workspaces, bridge, recording, volume, meetings, feed};
+    return {
+        settings,
+        state,
+        claude,
+        transcripts,
+        sessions,
+        codex,
+        gemini,
+        media,
+        workspaces,
+        bridge,
+        recording,
+        volume,
+        meetings,
+        performance,
+        feed,
+    };
 }

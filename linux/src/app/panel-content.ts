@@ -17,6 +17,7 @@ import {ClaudePage} from '../tabs/claude/claude-page.js';
 import {GeneralPage} from '../tabs/general/general-page.js';
 import {Header} from './header.js';
 import {NotificationsPage} from '../tabs/notifications/notifications-page.js';
+import {PerformancePage} from '../tabs/performance/performance-page.js';
 import {PowerMenu} from './power-menu.js';
 import {SettingsPage} from '../tabs/settings/settings-page.js';
 import {TabBar} from './tab-bar.js';
@@ -64,6 +65,7 @@ export class PanelContent {
         media,
         workspaces,
         recording,
+        performance,
     }: PanelDependencies) {
         this.#settings = settings;
 
@@ -83,7 +85,7 @@ export class PanelContent {
                     }),
             },
             {id: 'calendar', icon: 'calendar', label: TAB_LABELS.calendar, create: () => new CalendarPage(island)},
-            {id: 'workspaces', icon: 'workspaces', label: TAB_LABELS.workspaces, create: () => new WorkspacesPage(workspaces, island)},
+            {id: 'workspaces', icon: 'workspaces', label: 'Áreas', create: () => new WorkspacesPage(workspaces, island)},
             {
                 id: 'claude',
                 icon: 'claude',
@@ -107,6 +109,7 @@ export class PanelContent {
                     }),
             },
             {id: 'notifications', icon: 'bell', label: TAB_LABELS.notifications, create: () => new NotificationsPage(bridge, island)},
+            {id: 'performance', icon: 'performance', label: TAB_LABELS.performance, create: () => new PerformancePage(performance, island)},
         ];
 
         this.#tabBar = new TabBar(specs);
