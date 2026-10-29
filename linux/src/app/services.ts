@@ -19,6 +19,7 @@ import {Workspaces} from '../features/workspaces/workspaces-service.js';
 import {ActivityFeed} from '../pill/activity-feed.js';
 import {FrodoSettings} from '../settings/frodo-settings.js';
 import type {Disposables} from '../shared/disposables.js';
+import {QuotaAlerts} from './quota-alerts.js';
 
 export interface FrodoServices {
     readonly settings: FrodoSettings;
@@ -59,6 +60,7 @@ export function createServices(gsettings: Gio.Settings, disposables: Disposables
     const performance = disposables.own(new PerformanceMonitor());
     disposables.own(new MemoryAlert());
     disposables.own(new DoneAlert(settings, sessions));
+    disposables.own(new QuotaAlerts({settings, claude, codex, gemini}));
     const feed = disposables.own(new ActivityFeed({recording, sessions, meetings, bridge, volume, media, settings}));
     return {
         settings,
