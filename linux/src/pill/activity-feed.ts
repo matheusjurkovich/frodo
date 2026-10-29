@@ -11,7 +11,7 @@ import {Disposables} from '../shared/disposables.js';
 import {Emitter} from '../shared/emitter.js';
 import {Timer} from '../shared/timer.js';
 
-const FLASH_MS = 3000;
+const FLASH_MS = 5000;
 const VOLUME_MS = 1500;
 const SHOWN_MS = 5000;
 
