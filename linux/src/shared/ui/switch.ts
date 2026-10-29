@@ -2,6 +2,8 @@ import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 
 import {Emitter} from '../emitter.js';
+import {SOFT_SPRING} from '../spring.js';
+import {springEase} from './motion.js';
 
 export class Switch extends Emitter<{toggled: [boolean]}> {
     readonly actor: St.Button;
@@ -33,7 +35,13 @@ export class Switch extends Emitter<{toggled: [boolean]}> {
     }
 
     #sync(): void {
-        this.#knob.x_align = this.actor.checked ? Clutter.ActorAlign.END : Clutter.ActorAlign.START;
+        const knob = this.#knob;
+        const from = knob.x + knob.translation_x;
+        knob.x_align = this.actor.checked ? Clutter.ActorAlign.END : Clutter.ActorAlign.START;
+        if (!this.actor.mapped) return;
+        this.actor.get_allocation_box();
+        knob.translation_x = from - knob.x;
+        springEase(knob, {translationX: 0}, SOFT_SPRING);
     }
 
     destroy(): void {
