@@ -1,12 +1,14 @@
 import {displayStatus, oldestPending} from '../features/claude/claude-sessions.js';
 import type {PendingRequest, SessionState} from '../features/claude/claude-sessions.js';
 import {pickActivity} from './activity-priority.js';
+import {STEP_SHOWN_MS, StepGate} from './step-gate.js';
 import type {ClaudeSessions} from '../features/claude/claude-sessions-service.js';
 import type {MediaService, MediaTrack} from '../features/media/media-service.js';
 import type {UpcomingMeeting} from '../features/meetings/meetings-service.js';
 import type {InterceptedNotification, NotificationBridge} from '../features/notifications/notification-bridge-service.js';
 import type {Recording} from '../features/system/recording-service.js';
 import type {VolumeWatch} from '../features/system/volume-service.js';
+import type {FrodoSettings} from '../settings/frodo-settings.js';
 import {Disposables} from '../shared/disposables.js';
 import {Emitter} from '../shared/emitter.js';
 import {Timer} from '../shared/timer.js';
@@ -32,6 +34,7 @@ export interface FeedSources {
     readonly bridge: Pick<NotificationBridge, 'on'>;
     readonly volume: Pick<VolumeWatch, 'on'>;
     readonly media: Pick<MediaService, 'current' | 'on'>;
+    readonly settings: Pick<FrodoSettings, 'pillAiActivity' | 'onChanged'>;
 }
 
 function identity(activity: PillActivity): readonly unknown[] {
@@ -67,6 +70,7 @@ export class ActivityFeed extends Emitter<{changed: []}> {
     readonly #notificationTimer = new Timer();
     readonly #volumeTimer = new Timer();
     readonly #shownTimer = new Timer();
+    readonly #gate = new StepGate();
     #seen: PillActivity[] = [];
     #queue: InterceptedNotification[] = [];
     #notification: InterceptedNotification | null = null;
@@ -99,7 +103,14 @@ export class ActivityFeed extends Emitter<{changed: []}> {
                 this.#refresh();
             }),
         );
-        this.#seen = this.#candidates().filter(({kind}) => kind === 'claude-working' || kind === 'media');
+        this.#disposables.add(
+            sources.settings.onChanged('pill-ai-activity', () => {
+                this.#shownTimer.stop();
+                this.#current = null;
+                this.#refresh();
+            }),
+        );
+        this.#seen = this.#transient().filter(({kind}) => kind === 'claude-working' || kind === 'media');
         this.#refresh();
     }
 
@@ -113,8 +124,13 @@ export class ActivityFeed extends Emitter<{changed: []}> {
         this.#queue = [];
         this.#notification = null;
         this.#volume = null;
-        this.#seen = this.#candidates();
+        this.#seen = this.#transient();
         this.#refresh();
+    }
+
+    #transient(): PillActivity[] {
+        const always = this.#sources.settings.pillAiActivity === 'always';
+        return this.#candidates().filter(({kind}) => !always || kind !== 'claude-working');
     }
 
     #nextNotification(): void {
@@ -135,11 +151,13 @@ export class ActivityFeed extends Emitter<{changed: []}> {
         const request = oldestPending(sessions.pending.filter(({sessionId}) => known.has(sessionId)));
         const asking = request ? sessions.sessions.find(({sessionId}) => sessionId === request.sessionId) : undefined;
         if (request && asking) candidates.push({kind: 'claude-permission', session: asking, request});
-        for (const session of sessions.sessions) {
+        const recent = [...sessions.sessions].sort((a, b) => b.updatedAt - a.updatedAt);
+        for (const session of recent) {
             const status = displayStatus(session, now);
             if (session === asking) continue;
             if (status === 'waiting') candidates.push({kind: 'claude-waiting', session});
-            else if (status === 'working' && session.tool !== null) candidates.push({kind: 'claude-working', session});
+            else if (status === 'working' && session.tool !== null && this.#showsWorking(session, now))
+                candidates.push({kind: 'claude-working', session});
         }
         const meeting = meetings.next;
         if (meeting) candidates.push({kind: 'meeting', title: meeting.title, startsAt: meeting.startsAt, url: meeting.url ?? null});
@@ -150,15 +168,31 @@ export class ActivityFeed extends Emitter<{changed: []}> {
         return candidates;
     }
 
+    #showsWorking(session: SessionState, nowMs: number): boolean {
+        switch (this.#sources.settings.pillAiActivity) {
+            case 'always':
+                return true;
+            case 'never':
+                return false;
+            case 'change':
+                return this.#gate.admits(session.sessionId, session.step, nowMs);
+        }
+    }
+
     #refresh(): void {
+        this.#gate.retain(new Set(this.#sources.sessions.sessions.map(({sessionId}) => sessionId)));
         const candidates = this.#candidates();
         this.#seen = this.#seen.filter(seen => candidates.some(candidate => same(seen, candidate)));
         const previous = this.#current;
         const current = pickActivity(candidates.filter(candidate => !this.#seen.some(seen => same(seen, candidate))));
         this.#current = current;
         if (same(previous, current)) return;
-        if (current && current.kind !== 'notification' && current.kind !== 'volume')
-            this.#shownTimer.once(SHOWN_MS, () => {
+        const mode = this.#sources.settings.pillAiActivity;
+        if (mode === 'change' && previous?.kind === 'claude-working' && current?.kind === 'claude-working') this.#seen.push(previous);
+        if (current?.kind === 'claude-working' && mode === 'change') this.#gate.shown(current.session.sessionId, Date.now());
+        if (current?.kind === 'claude-working' && mode === 'always') this.#shownTimer.stop();
+        else if (current && current.kind !== 'notification' && current.kind !== 'volume')
+            this.#shownTimer.once(current.kind === 'claude-working' ? STEP_SHOWN_MS : SHOWN_MS, () => {
                 this.#seen.push(current);
                 this.#refresh();
             });

@@ -76,6 +76,14 @@
     <key name="always-show-pill" type="b">
       <default>false</default>
     </key>
+    <key name="pill-ai-activity" type="s">
+      <choices>
+        <choice value="always"/>
+        <choice value="change"/>
+        <choice value="never"/>
+      </choices>
+      <default>'change'</default>
+    </key>
     <key name="ram-percent" type="b">
       <default>false</default>
     </key>
