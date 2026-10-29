@@ -4,6 +4,15 @@ Versão GNOME Shell do [Frodo](../README.md). Dynamic island leve para GNOME She
 
 Roda dentro do próprio gnome-shell (sem processo extra). Escrita em TypeScript e compilada para JavaScript.
 
+<p align="center"><img src="docs/demo.gif" alt="Pílula recebendo uma notificação e mostrando o Claude trabalhando; depois a ilha abre e passa pelas abas" width="720"></p>
+
+- [Abas](#abas)
+- [Estados da pílula](#estados-da-pílula)
+- [Posição](#posição), [Fundo](#fundo) e [Animações](#animações)
+- [Instalação](#instalação)
+- [Sessões do Claude Code](#sessões-do-claude-code), [Codex e Gemini CLI](#codex-e-gemini-cli)
+- [Scripts](#scripts), [Imagens](#imagens) e [Estrutura](#estrutura)
+
 ## Abas
 
 | Aba               | O que mostra                                                                                                                                                                                                                                                                                               |
@@ -15,9 +24,28 @@ Roda dentro do próprio gnome-shell (sem processo extra). Escrita em TypeScript 
 | Notificações      | Lista de notificações, não perturbe e limpar tudo                                                                                                                                                                                                                                                          |
 | Desempenho        | CPU, memória, GPU e disco, com histórico de 60 s; os 5 processos que mais gastam, ordenáveis por CPU, RAM ou GPU, com botão para encerrar (pede confirmação; processos de outro usuário ou essenciais à sessão têm cadeado). Só lê `/proc` com a aba aberta                                                |
 
+<table>
+  <tr>
+    <td width="50%"><img src="docs/geral.png" alt="Aba Geral: Wi-Fi, modo de energia, não perturbe, estilo escuro, volume, microfone, atalhos e o player tocando"><br><sub>Geral</sub></td>
+    <td width="50%"><img src="docs/calendario.png" alt="Aba Calendário: grade do mês e eventos de hoje"><br><sub>Calendário</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/ia.png" alt="Aba IA: cards do Claude, Codex e Gemini e a lista de sessões"><br><sub>IA</sub></td>
+    <td><img src="docs/notificacoes.png" alt="Aba Notificações com três notificações"><br><sub>Notificações</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/desempenho.png" alt="Aba Desempenho: CPU, memória, GPU, disco e processos"><br><sub>Desempenho</sub></td>
+    <td><img src="docs/areas.png" alt="Aba Áreas de trabalho com duas áreas e o card Nova área"><br><sub>Áreas de trabalho</sub></td>
+  </tr>
+</table>
+
 A engrenagem do cabeçalho abre as configurações, todas dentro da ilha, numa barra lateral com seis seções: Geral (comportamento e atalhos), Tela e posição (grade 3×3, monitores, fundo e barra superior), Pílula, Abas, IA (intervalo de atualização, restante ou usado, e um grupo por assistente com o switch Acompanhar, perfis do Claude, hooks do Codex e do Gemini e limite diário do Gemini) e Agenda (Google Agenda e aviso antes da reunião); não há janela de preferências separada. O botão ao lado dela abre o menu de energia (suspender, encerrar sessão, reiniciar e desligar). Durante uma gravação de tela, o cabeçalho mostra Parar gravação. Em Configurações › Abas dá para ocultar cada aba e mudar a ordem delas arrastando pela alça (ou com ↑ ↓ na alça focada); a ilha abre na primeira aba visível. Se todas forem ocultadas, a primeira continua visível.
 
+<p align="center"><img src="docs/configuracoes.png" alt="Configurações dentro da ilha: barra lateral com seções e a seção Geral aberta" width="640"></p>
+
 ## Estados da pílula
+
+<p align="center"><img src="docs/pilula-repouso.png" alt="Pílula em repouso com hora, data, notificações, rede e bateria"></p>
 
 Fechada, a pílula mostra hora, data, notificações, rede e bateria. Em Configurações › Pílula dá para escolher o modo (Mínimo, só o relógio; Compacto, tudo junto; Rotativo, com bateria, RAM e as cotas de IA revezando num espaço a cada poucos segundos), a ordem dos itens (arrastando o chip pela alça, ou com ← → na alça focada) e quais entram, com uma prévia da pílula de verdade no topo. Os ícones do sistema podem entrar separados (Bluetooth, Som, Microfone, Não perturbe e Bateria, os mesmos da barra superior, que só aparecem quando o GNOME os mostra; "Mostrar porcentagem da bateria" em Configurações › Pílula liga a porcentagem nativa do GNOME) e o resto fica em "Outros ícones do sistema", sem repetir rede e bateria. Codex · 5 h, Codex · semana e Gemini · hoje entram com um anel na cor do assistente; itens de um assistente desligado em Configurações › IA somem. Há também "Ícones de extensões": os indicadores que outras extensões põem na barra superior (AppIndicator, monitores de recurso e afins) aparecem na pílula, só para ver; clicar continua abrindo a ilha. Quando algo acontece, ela troca para uma atividade por no máximo 5 segundos e volta ao repouso; a mesma atividade só reaparece quando muda (gravação nova, outro passo do Claude, outra faixa, música retomada). Abrir a ilha dá como vistas as atividades em andamento. Com mais de uma ao mesmo tempo, vale esta ordem de prioridade, e a que foi interrompida volta depois com os 5 segundos inteiros:
 
@@ -29,6 +57,10 @@ Fechada, a pílula mostra hora, data, notificações, rede e bateria. Em Configu
 6. Volume alterado, por 1,5 segundo.
 7. Sessão de IA trabalhando, a cada ferramenta nova, com o passo atual e o tempo.
 8. Música tocando, com capa redonda, título e botão de pausa.
+
+| Notificação                                                              | Pedido de permissão                                                    | Sessão trabalhando                                                          |
+| ------------------------------------------------------------------------ | ---------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| <img src="docs/pilula-notificacao.png" alt="Pílula com uma notificação"> | <img src="docs/pilula-permissao.png" alt="Pílula com Negar e Aprovar"> | <img src="docs/pilula-claude.png" alt="Pílula com o passo atual do Claude"> |
 
 Clicar ou passar o mouse na pílula durante uma notificação abre a ilha na aba Notificações; durante uma sessão de IA trabalhando, na aba IA. Sem atividade, ela abre na Geral.
 
@@ -80,9 +112,12 @@ gnome-extensions enable frodo@matheusjurkovich.github.io
 
 ## Sessões do Claude Code
 
-A aba Claude mostra as sessões abertas do Claude Code a partir de um hook. A cada evento, `hooks/claude-session.sh` grava o último evento da sessão em `$XDG_RUNTIME_DIR/frodo/sessions/<session_id>.json`, junto com o pid do Claude (`$CLAUDE_PID`). A extensão acompanha essa pasta com `Gio.FileMonitor` e tira da lista a sessão que acabou (`SessionEnd`) ou cujo processo morreu.
+A aba IA mostra as sessões abertas do Claude Code a partir de um hook. A cada evento, `hooks/claude-session.sh` grava o último evento da sessão em `$XDG_RUNTIME_DIR/frodo/sessions/<session_id>.json`, junto com o pid do Claude (`$CLAUDE_PID`). A extensão acompanha essa pasta com `Gio.FileMonitor` e tira da lista a sessão que acabou (`SessionEnd`) ou cujo processo morreu.
 
-Acrescente o bloco abaixo ao `~/.claude/settings.json`, junto com o que já houver em `hooks`:
+Acrescente o bloco abaixo ao `~/.claude/settings.json`, junto com o que já houver em `hooks`. É o mesmo comando em todos os eventos.
+
+<details>
+<summary>Bloco <code>hooks</code> para o <code>settings.json</code></summary>
 
 ```json
 {
@@ -191,11 +226,13 @@ Acrescente o bloco abaixo ao `~/.claude/settings.json`, junto com o que já houv
 }
 ```
 
+</details>
+
 Cada perfil do Claude Code (`CLAUDE_CONFIG_DIR`, como `~/.claude-trabalho`) tem o próprio `settings.json` e precisa do mesmo bloco. Sem ele, as sessões daquele perfil não aparecem.
 
 ### Aprovar pela ilha
 
-No `PermissionRequest`, o hook cria `$XDG_RUNTIME_DIR/frodo/pending/<session_id>.<pedido>.json` e espera a resposta em `decisions/` com o mesmo nome. A pílula e a linha expandida da sessão na aba Claude mostram Negar e Aprovar enquanto o processo do hook estiver vivo; o clique grava a decisão e o hook a devolve ao Claude Code (negar manda "Negado pela ilha do Frodo." e o Claude segue trabalhando). O Codex usa o mesmo protocolo (o hook recebe `codex` como argumento). O diálogo do próprio Claude Code continua valendo: respondido lá, o hook percebe pelo próximo evento da sessão e sai.
+No `PermissionRequest`, o hook cria `$XDG_RUNTIME_DIR/frodo/pending/<session_id>.<pedido>.json` e espera a resposta em `decisions/` com o mesmo nome. A pílula e a linha expandida da sessão na aba IA mostram Negar e Aprovar enquanto o processo do hook estiver vivo; o clique grava a decisão e o hook a devolve ao Claude Code (negar manda "Negado pela ilha do Frodo." e o Claude segue trabalhando). O Codex usa o mesmo protocolo (o hook recebe `codex` como argumento). O diálogo do próprio Claude Code continua valendo: respondido lá, o hook percebe pelo próximo evento da sessão e sai.
 
 O hook só espera se a extensão estiver ligada (ela grava o pid do shell em `$XDG_RUNTIME_DIR/frodo/alive`); desligada, o pedido segue só no diálogo, sem atraso. Ele espera até 590 s em sessões do Claude desktop (`CLAUDE_CODE_ENTRYPOINT=claude-desktop`) e 15 s nas demais. O `timeout` do `PermissionRequest` no `settings.json` precisa ficar ausente (padrão de 600 s) ou ser 600; com um valor menor, o Claude Code mata a espera antes do clique.
 
@@ -208,16 +245,24 @@ Em Configurações › IA, "Instalar hook" acrescenta o mesmo `hooks/claude-sess
 
 ## Scripts
 
-| Comando             | O que faz                                                                  |
-| ------------------- | -------------------------------------------------------------------------- |
-| `npm run build`     | Compila `src/` para `dist/` e copia metadata, CSS, ícones, schemas e hooks |
-| `npm run typecheck` | `tsc` em modo strict no código e nos testes                                |
-| `npm run lint`      | ESLint (typescript-eslint strict + stylistic e fronteiras das camadas)     |
-| `npm run format`    | Prettier                                                                   |
-| `npm test`          | Jasmine rodando no `gjs`, com todo `*.spec.ts` de `src/` e `tests/`        |
-| `npm run check`     | Tudo acima, menos o build                                                  |
-| `npm run smoke`     | Build e gnome-shell headless isolado: liga, desliga e religa a extensão    |
-| `npm run devkit`    | Build e gnome-shell aninhado numa janela para conferir ao vivo             |
+| Comando                 | O que faz                                                                               |
+| ----------------------- | --------------------------------------------------------------------------------------- |
+| `npm run build`         | Compila `src/` para `dist/` e copia metadata, CSS, ícones, schemas e hooks              |
+| `npm run typecheck`     | `tsc` em modo strict no código e nos testes                                             |
+| `npm run lint`          | ESLint (typescript-eslint strict + stylistic e fronteiras das camadas)                  |
+| `npm run format`        | Prettier                                                                                |
+| `npm test`              | Jasmine rodando no `gjs`, com todo `*.spec.ts` de `src/` e `tests/`                     |
+| `npm run check`         | Tudo acima, menos o build                                                               |
+| `npm run smoke`         | Build e gnome-shell headless isolado: liga, desliga e religa a extensão                 |
+| `npm run devkit`        | Build e gnome-shell aninhado numa janela para conferir ao vivo                          |
+| `npm run screenshots`   | Build e gnome-shell headless com dados de exemplo; grava `docs/*.png` e `docs/demo.gif` |
+| `npm run pack -- X.Y.Z` | Build e `frodo-linux-X.Y.Z.zip` para a release e o extensions.gnome.org                 |
+
+## Imagens
+
+As imagens deste README e do da raiz saem de `npm run screenshots` (`tools/screenshots/run.sh`). Ele sobe um gnome-shell headless isolado, como o smoke, com dados de exemplo: sessões do Claude Code pelo hook de verdade, cotas do Codex num rollout falso, eventos num calendário local, notificações por `notify-send` e um player MPRIS (`tools/screenshots/mpris.js`). Uma extensão auxiliar (`tools/screenshots/probe/`) libera o `Eval` do shell e move um ponteiro virtual só para passar o mouse na pílula; abas e botões são acionados com `emit('clicked')`, sem clique de verdade, para não mexer no Wi-Fi ou Bluetooth reais. O nome da rede no tile de Wi-Fi vira "Casa".
+
+O GIF é gravado pelo `org.gnome.Shell.Screencast`, convertido em quadros pelo GStreamer e montado pelo `tools/screenshots/gif.py` (Pillow). Precisa de `gst-launch-1.0` com o decodificador do MP4 e de `python3-pil`. Rode de novo quando a UI mudar e confira as imagens antes do commit.
 
 ## Estrutura
 
@@ -242,6 +287,8 @@ src/
 tests/                    runner Jasmine (entry.js acha todo *.spec.ts), polyfills e fixtures
 tools/smoke.sh            gnome-shell headless isolado: liga, desliga e religa a extensão
 tools/devkit.sh           gnome-shell aninhado numa janela, isolado, para conferir ao vivo
+tools/screenshots/        imagens da doc: run.sh (headless com dados de exemplo), probe, player MPRIS e GIF
+docs/                     imagens geradas por npm run screenshots
 ../shared/hooks/          hook do Claude Code que grava o estado de cada sessão (o build copia para dist/hooks/)
 ../shared/icons/          ícones SVG simbólicos (créditos em ../shared/icons/README.md)
 ```

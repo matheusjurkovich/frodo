@@ -42,6 +42,10 @@ export default tseslint.config(
         extends: [tseslint.configs.disableTypeChecked],
         rules: {'@typescript-eslint/explicit-function-return-type': 'off'},
     },
+    {
+        files: ['tools/**/*.js'],
+        languageOptions: {globals: {global: 'readonly', ARGV: 'readonly'}},
+    },
     restrict(['src/shared/**/*.ts'], [above('settings', 'features', 'pill', 'tabs', 'app')]),
     restrict(['src/settings/**/*.ts'], [above('features', 'pill', 'tabs', 'app'), pure], ['src/settings/**/*.spec.ts']),
     restrict(

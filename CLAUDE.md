@@ -27,7 +27,7 @@ Conventional Commits em pt-BR, minúsculos (`fix: calendário volta ao mês atua
 
 ## Comandos
 
-Dentro de `linux/`: `npm ci`, `npm run check`, `npm test`, `npm run build`, `npm run smoke`, `./install.sh` (detalhes em `linux/CLAUDE.md`).
+Dentro de `linux/`: `npm ci`, `npm run check`, `npm test`, `npm run build`, `npm run smoke`, `npm run screenshots` (imagens do README), `./install.sh` (detalhes em `linux/CLAUDE.md`).
 
 Dentro de `macos/`: `swift test`, `swift build`, `swift run Frodo --demo`, `sh scripts/bundle.sh` (detalhes em `macos/CLAUDE.md`).
 
