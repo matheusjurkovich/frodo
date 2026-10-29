@@ -268,25 +268,25 @@ describe('ActivityFeed', () => {
         recording.set(1000);
         bridge.push('Oi');
         expect(notificationTitle()).toBe('Oi');
-        timers.fire(3000);
+        timers.fire(5000);
         expect(feed.current).toEqual({kind: 'recording', startedAt: 1000});
     });
 
-    it('a fila de notificações avança de 3 s em 3 s e recomeça depois de esvaziar', () => {
+    it('a fila de notificações avança de 5 s em 5 s e recomeça depois de esvaziar', () => {
         bridge.push('a');
-        expect(timers.onceMs()).toEqual([3000]);
+        expect(timers.onceMs()).toEqual([5000]);
         bridge.push('b');
-        expect(timers.onceMs()).toEqual([3000]);
+        expect(timers.onceMs()).toEqual([5000]);
         expect(notificationTitle()).toBe('a');
-        timers.fire(3000);
+        timers.fire(5000);
         expect(notificationTitle()).toBe('b');
-        expect(timers.onceMs()).toEqual([3000, 3000]);
-        timers.fire(3000);
+        expect(timers.onceMs()).toEqual([5000, 5000]);
+        timers.fire(5000);
         expect(feed.current).toBeNull();
         expect(timers.armed.size).toBe(0);
         bridge.push('c');
         expect(notificationTitle()).toBe('c');
-        expect(timers.onceMs()).toEqual([3000, 3000, 3000]);
+        expect(timers.onceMs()).toEqual([5000, 5000, 5000]);
         expect(changes).toBe(4);
     });
 
@@ -304,9 +304,9 @@ describe('ActivityFeed', () => {
     it('notificação e volume têm relógios independentes', () => {
         bridge.push('a');
         volume.set(40);
-        expect(timers.onceMs()).toEqual([3000, 1500]);
+        expect(timers.onceMs()).toEqual([5000, 1500]);
         expect(feed.current?.kind).toBe('notification');
-        timers.fire(3000);
+        timers.fire(5000);
         expect(feed.current).toEqual({kind: 'volume', percent: 40});
         timers.fire(1500);
         expect(feed.current).toBeNull();
@@ -323,7 +323,7 @@ describe('ActivityFeed', () => {
         expect(timers.armed.size).toBe(0);
         bridge.push('c');
         expect(notificationTitle()).toBe('c');
-        timers.fire(3000);
+        timers.fire(5000);
         expect(feed.current).toBeNull();
     });
 
@@ -387,9 +387,9 @@ describe('ActivityFeed', () => {
     it('atividade interrompida volta com 5 s inteiros', () => {
         recording.set(1000);
         bridge.push('Oi');
-        timers.fire(3000);
+        timers.fire(5000);
         expect(feed.current?.kind).toBe('recording');
-        expect(timers.onceMs()).toEqual([5000, 3000, 5000]);
+        expect(timers.onceMs()).toEqual([5000, 5000, 5000]);
     });
 
     it('abrir a ilha dá como vista a gravação em andamento', () => {
