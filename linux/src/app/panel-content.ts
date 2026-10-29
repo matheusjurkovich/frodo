@@ -49,7 +49,7 @@ export class PanelContent {
     #power: PowerMenu | null = null;
     #view: PanelView = {kind: 'tab', tab: TAB_IDS[0]};
     #lastTab: TabId = TAB_IDS[0];
-    #nextTab: TabId = TAB_IDS[0];
+    #nextTab: TabId | null = null;
 
     constructor({
         island,
@@ -141,8 +141,9 @@ export class PanelContent {
         });
         this.#disposables.add(
             island.on('opening', () => {
-                this.show({kind: 'tab', tab: tabToOpen(this.#nextTab, visibleTabs(settings.hiddenTabs))});
-                this.#nextTab = TAB_IDS[0];
+                const visible = visibleTabs(settings.hiddenTabs, settings.tabOrder);
+                this.show({kind: 'tab', tab: tabToOpen(this.#nextTab ?? visible[0] ?? TAB_IDS[0], visible)});
+                this.#nextTab = null;
             }),
         );
         for (const spec of specs) {
@@ -161,7 +162,7 @@ export class PanelContent {
             }),
         );
         this.#disposables.add(
-            settings.onChanged('hidden-tabs', () => {
+            settings.onChanged(['hidden-tabs', 'tab-order'], () => {
                 this.#syncTabs();
             }),
         );
@@ -223,7 +224,7 @@ export class PanelContent {
     }
 
     #order(view: PanelView): number {
-        return view.kind === 'tab' ? TAB_IDS.indexOf(view.tab) : TAB_IDS.length;
+        return view.kind === 'tab' ? this.#settings.tabOrder.indexOf(view.tab) : TAB_IDS.length;
     }
 
     #allActors(): Clutter.Actor[] {
@@ -239,11 +240,11 @@ export class PanelContent {
     }
 
     #leaveSettings(): void {
-        this.show({kind: 'tab', tab: tabToOpen(this.#lastTab, visibleTabs(this.#settings.hiddenTabs))}, true);
+        this.show({kind: 'tab', tab: tabToOpen(this.#lastTab, visibleTabs(this.#settings.hiddenTabs, this.#settings.tabOrder))}, true);
     }
 
     #syncTabs(): void {
-        const visible = visibleTabs(this.#settings.hiddenTabs);
+        const visible = visibleTabs(this.#settings.hiddenTabs, this.#settings.tabOrder);
         this.#tabBar.setVisible(visible);
         this.show(this.#view.kind === 'tab' ? {kind: 'tab', tab: tabToOpen(this.#view.tab, visible)} : this.#view);
     }

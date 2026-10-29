@@ -21,14 +21,6 @@ export const ITEM_LABELS: Record<ClosedItem, string> = {
     extensions: 'Ícones de extensões',
 };
 
-export function moveItem(items: readonly ClosedItem[], item: ClosedItem, delta: -1 | 1): ClosedItem[] {
-    const next = items.filter(other => other !== item);
-    const from = items.indexOf(item);
-    if (from < 0) return [...items];
-    next.splice(Math.min(next.length, Math.max(0, from + delta)), 0, item);
-    return next;
-}
-
 export function missingItems(items: readonly ClosedItem[], providers: readonly AiProvider[] = AI_PROVIDERS): ClosedItem[] {
     const off = AI_PROVIDERS.filter(provider => !providers.includes(provider));
     return CLOSED_ITEMS.filter(item => !items.includes(item) && !off.some(provider => item.startsWith(`${provider}-`)));

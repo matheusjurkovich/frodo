@@ -1,6 +1,7 @@
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
+import Pango from 'gi://Pango';
 import St from 'gi://St';
 
 import type {HookedAgent} from '../../features/claude/agent-hooks.js';
@@ -20,10 +21,12 @@ import {
     TAB_IDS,
     horizontalOf,
 } from '../../settings/schema-values.js';
-import type {AiProvider, ClosedItem, ClosedMode, MonitorMode, PillPosition, SurfaceStyle} from '../../settings/schema-values.js';
+import type {AiProvider, ClosedItem, ClosedMode, MonitorMode, PillPosition, SurfaceStyle, TabId} from '../../settings/schema-values.js';
 import type {FrodoSettings, SettingsKey} from '../../settings/frodo-settings.js';
 import {spawn} from '../../shared/shell-internals.js';
 import {Disposables} from '../../shared/disposables.js';
+import {moveTo} from '../../shared/reorder.js';
+import {dragReorder} from '../../shared/ui/drag-reorder.js';
 import {nextPeek} from '../../shared/peek.js';
 import {backHeader, card} from '../../shared/ui/card.js';
 import {chip, iconButton, textButton} from '../../shared/ui/buttons.js';
@@ -36,7 +39,7 @@ import {Switch} from '../../shared/ui/switch.js';
 import {Wrap} from '../../shared/ui/wrap.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
 import type {FrodoIconName} from '../../shared/ui/icons.js';
-import {ITEM_LABELS, missingItems, moveItem} from './pill-items.js';
+import {ITEM_LABELS, missingItems} from './pill-items.js';
 
 const INTERFACE_SCHEMA = 'org.gnome.desktop.interface';
 const SHOW_SECONDS_KEY = 'clock-show-seconds';
@@ -192,9 +195,13 @@ export class SettingsPage implements Component {
     readonly #profiles = column('frodo-settings-profiles');
     readonly #newProfile = new St.Entry({style_class: 'frodo-entry', hint_text: '~/.claude-trabalho', can_focus: true, x_expand: true});
     readonly #pillEditor = column('frodo-pill-editor');
+    readonly #pillBuilt = new Disposables();
+    readonly #tabList = card('frodo-settings-group-card');
+    readonly #tabsBuilt = new Disposables();
     readonly #preview: Clutter.Actor;
     #section: SectionId = 'general';
-    #pillSelected: ClosedItem | null = null;
+    #pillFocus: ClosedItem | null = null;
+    #tabFocus: TabId | null = null;
     #capture: {readonly button: St.Button; readonly id: number} | null = null;
     #destroyed = false;
 
@@ -279,8 +286,18 @@ export class SettingsPage implements Component {
         this.#disposables.add(() => {
             this.#stopCapture();
         });
+        this.#disposables.add(
+            settings.onChanged(['hidden-tabs', 'tab-order'], () => {
+                this.#renderTabs();
+            }),
+        );
+        this.#disposables.add(() => {
+            this.#pillBuilt.dispose();
+            this.#tabsBuilt.dispose();
+        });
         this.#renderProfiles();
         this.#renderPillEditor();
+        this.#renderTabs();
         this.#show(this.#section);
         this.#sync();
     }
@@ -620,6 +637,7 @@ export class SettingsPage implements Component {
     #renderPillEditor(): void {
         const settings = this.#settings;
         const editor = this.#pillEditor;
+        this.#pillBuilt.dispose();
         editor.destroy_all_children();
         if (settings.closedMode === 'minimal') {
             editor.add_child(
@@ -632,78 +650,51 @@ export class SettingsPage implements Component {
         }
 
         const items = settings.closedItems;
-        const selected = this.#pillSelected !== null && items.includes(this.#pillSelected) ? this.#pillSelected : null;
-        const select = (item: ClosedItem | null): void => {
-            this.#pillSelected = item;
-            this.#renderPillEditor();
-        };
-
         editor.add_child(label('Itens, da esquerda para a direita', 'frodo-settings-text'));
-        const order = items.map((item, index) => {
-            const content = row('frodo-pill-item-content');
-            content.add_child(label(String(index + 1), 'frodo-pill-item-number frodo-mono'));
-            content.add_child(label(ITEM_LABELS[item], 'frodo-pill-item-name'));
-            const button = new St.Button({
-                style_class: 'frodo-pill-item',
-                child: content,
-                can_focus: true,
-                checked: item === selected,
-                accessible_name: ITEM_LABELS[item],
-            });
-            button.connect('clicked', () => {
-                select(item === selected ? null : item);
-            });
-            return button;
+        const handles: St.Button[] = [];
+        const chips = items.map((item, index) => {
+            const chipBox = row('frodo-pill-item');
+            const grip = this.#grip(`Reordenar ${ITEM_LABELS[item]}: arraste ou use as setas`);
+            handles.push(grip);
+            chipBox.add_child(grip);
+            chipBox.add_child(label(String(index + 1), 'frodo-pill-item-number frodo-mono'));
+            chipBox.add_child(label(ITEM_LABELS[item], 'frodo-pill-item-name'));
+            const remove = iconButton(
+                frodoIcon('close'),
+                `Tirar ${ITEM_LABELS[item]} da pílula`,
+                () => {
+                    settings.closedItems = items.filter(other => other !== item);
+                },
+                'ghost',
+                32,
+            );
+            remove.add_style_class_name('frodo-pill-item-remove');
+            remove.reactive = items.length > 1;
+            remove.can_focus = items.length > 1;
+            chipBox.add_child(remove);
+            for (const child of chipBox.get_children()) child.y_align = Clutter.ActorAlign.CENTER;
+            return chipBox;
         });
-        editor.add_child(new Wrap('frodo-pill-items', order).actor);
-
-        if (selected) {
-            const index = items.indexOf(selected);
-            const action = (
-                text: string,
-                enabled: boolean,
-                run: () => void,
-                variant: 'control' | 'danger',
-                icon?: FrodoIconName,
-            ): St.Button => {
-                const button = textButton(text, run, variant, icon ? frodoIcon(icon) : undefined);
-                button.reactive = enabled;
-                button.can_focus = enabled;
-                return button;
-            };
-            const toolbar = [
-                action(
-                    'Mover para a esquerda',
-                    index > 0,
-                    () => {
-                        settings.closedItems = moveItem(items, selected, -1);
-                    },
-                    'control',
-                    'back',
-                ),
-                action(
-                    'Mover para a direita',
-                    index < items.length - 1,
-                    () => {
-                        settings.closedItems = moveItem(items, selected, 1);
-                    },
-                    'control',
-                    'forward',
-                ),
-                action(
-                    'Tirar',
-                    items.length > 1,
-                    () => {
-                        this.#pillSelected = null;
-                        settings.closedItems = items.filter(item => item !== selected);
-                    },
-                    'danger',
-                ),
-            ];
-            editor.add_child(new Wrap('frodo-pill-toolbar', toolbar).actor);
-        } else {
-            editor.add_child(dimLabel('Clique num item para movê-lo ou tirá-lo.'));
-        }
+        editor.add_child(new Wrap('frodo-pill-items', chips).actor);
+        this.#pillBuilt.add(
+            dragReorder({
+                axis: 'x',
+                items: chips,
+                handles,
+                onMove: (from, to) => {
+                    const item = items[from];
+                    if (item === undefined) return;
+                    this.#pillFocus = item;
+                    settings.closedItems = moveTo(items, item, to);
+                },
+            }),
+        );
+        const focus = this.#pillFocus === null ? -1 : items.indexOf(this.#pillFocus);
+        this.#pillFocus = null;
+        handles[focus]?.grab_key_focus();
+        const hint = wrapped('Arraste os itens para mudar a ordem. Pelo teclado, foque a alça e use ← →.', 'frodo-settings-hint');
+        hint.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
+        editor.add_child(hint);
 
         const missing = missingItems(items, settings.enabledProviders);
         if (missing.length === 0) return;
@@ -712,7 +703,6 @@ export class SettingsPage implements Component {
             const button = textButton(
                 ITEM_LABELS[item],
                 () => {
-                    this.#pillSelected = item;
                     settings.closedItems = [...items, item];
                 },
                 'ghost',
@@ -726,26 +716,74 @@ export class SettingsPage implements Component {
     }
 
     #tabs(): St.BoxLayout {
-        const settings = this.#settings;
-        const lines = TAB_IDS.map(id => {
-            const toggle = this.#switch(
-                TAB_LABELS[id],
-                () => visibleTabs(settings.hiddenTabs).includes(id),
-                checked => {
-                    const visible = visibleTabs(settings.hiddenTabs).filter(tab => tab !== id);
-                    if (checked) visible.push(id);
-                    settings.hiddenTabs = TAB_IDS.filter(tab => !visible.includes(tab));
-                },
-            );
-            this.#bindings.push(() => {
-                const visible = visibleTabs(settings.hiddenTabs);
-                const locked = visible.length === 1 && visible.includes(id);
-                toggle.reactive = !locked;
-                toggle.can_focus = !locked;
-            });
-            return line(TAB_LABELS[id], null, toggle);
+        const section = column('frodo-settings-group');
+        section.add_child(label('Abas visíveis', 'frodo-settings-group-title'));
+        section.add_child(this.#tabList);
+        section.add_child(
+            wrapped(
+                'Arraste para mudar a ordem das abas na ilha. Pelo teclado, foque a alça e use ↑ ↓. Uma aba escondida continua abrindo pelo atalho dela.',
+                'frodo-settings-hint',
+            ),
+        );
+        return section;
+    }
+
+    #grip(accessibleName: string): St.Button {
+        return new St.Button({
+            style_class: 'frodo-grip',
+            child: new St.Icon({gicon: frodoIcon('grip'), style_class: 'frodo-grip-icon'}),
+            can_focus: true,
+            y_align: Clutter.ActorAlign.CENTER,
+            accessible_name: accessibleName,
         });
-        return group('Abas visíveis', lines, 'Uma aba escondida continua abrindo pelo atalho dela.');
+    }
+
+    #renderTabs(): void {
+        const settings = this.#settings;
+        const list = this.#tabList;
+        this.#tabsBuilt.dispose();
+        list.destroy_all_children();
+        const order = settings.tabOrder;
+        const visible = visibleTabs(settings.hiddenTabs, order);
+        const handles: St.Button[] = [];
+        const lines = order.map((id, index) => {
+            const toggle = this.#tabsBuilt.own(new Switch(`Mostrar a aba ${TAB_LABELS[id]}`));
+            toggle.checked = visible.includes(id);
+            const locked = visible.length === 1 && visible.includes(id);
+            toggle.actor.reactive = !locked;
+            toggle.actor.can_focus = !locked;
+            toggle.on('toggled', checked => {
+                const shown = visibleTabs(settings.hiddenTabs, settings.tabOrder).filter(tab => tab !== id);
+                if (checked) shown.push(id);
+                settings.hiddenTabs = TAB_IDS.filter(tab => !shown.includes(tab));
+            });
+            const title = row('frodo-tab-order-title');
+            const grip = this.#grip(`Reordenar a aba ${TAB_LABELS[id]}: arraste ou use as setas`);
+            handles.push(grip);
+            title.add_child(grip);
+            title.add_child(label(String(index + 1), 'frodo-pill-item-number frodo-mono'));
+            title.add_child(label(TAB_LABELS[id], 'frodo-settings-text'));
+            for (const child of title.get_children()) child.y_align = Clutter.ActorAlign.CENTER;
+            const item = line(title, null, toggle.actor);
+            list.add_child(item);
+            return item;
+        });
+        this.#tabsBuilt.add(
+            dragReorder({
+                axis: 'y',
+                items: lines,
+                handles,
+                onMove: (from, to) => {
+                    const id = order[from];
+                    if (id === undefined) return;
+                    this.#tabFocus = id;
+                    settings.tabOrder = moveTo(order, id, to);
+                },
+            }),
+        );
+        const focus = this.#tabFocus === null ? -1 : order.indexOf(this.#tabFocus);
+        this.#tabFocus = null;
+        handles[focus]?.grab_key_focus();
     }
 
     #usage(): St.BoxLayout {

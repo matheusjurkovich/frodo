@@ -13,6 +13,7 @@ import {
 } from './schema-values.js';
 import type {AiProvider, CardId, ClosedItem, ClosedMode, MonitorMode, PillPosition, SurfaceStyle, TabId} from './schema-values.js';
 import {parseProfiles} from './claude-profile.js';
+import {orderedTabs} from './tabs.js';
 import type {ClaudeProfile} from './claude-profile.js';
 import type {Disposer} from '../shared/disposables.js';
 
@@ -37,6 +38,7 @@ export type SettingsKey =
     | 'disabled-ai'
     | 'gemini-daily-limit'
     | 'meeting-notice-minutes'
+    | 'tab-order'
     | 'peek-clock'
     | 'peek-every-minutes'
     | 'peek-seconds';
@@ -177,6 +179,14 @@ export class FrodoSettings {
 
     set hiddenTabs(tabs: readonly TabId[]) {
         this.gsettings.set_strv('hidden-tabs', [...new Set(tabs)]);
+    }
+
+    get tabOrder(): TabId[] {
+        return orderedTabs(this.gsettings.get_strv('tab-order'));
+    }
+
+    set tabOrder(tabs: readonly TabId[]) {
+        this.gsettings.set_strv('tab-order', orderedTabs(tabs));
     }
 
     get collapsedCards(): CardId[] {

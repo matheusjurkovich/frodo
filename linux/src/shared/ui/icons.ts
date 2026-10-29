@@ -42,7 +42,8 @@ export type FrodoIconName =
     | 'lock'
     | 'expand'
     | 'plus'
-    | 'minus';
+    | 'minus'
+    | 'grip';
 
 let directory: Gio.File | null = null;
 

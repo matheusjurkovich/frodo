@@ -40,7 +40,9 @@ export class IslandManager {
     }
 
     show(tab: TabId): void {
-        this.#currentEntry()?.island.openTab(tabToOpen(tab, visibleTabs(this.#dependencies.settings.hiddenTabs)));
+        this.#currentEntry()?.island.openTab(
+            tabToOpen(tab, visibleTabs(this.#dependencies.settings.hiddenTabs, this.#dependencies.settings.tabOrder)),
+        );
     }
 
     #currentEntry(): Entry | undefined {

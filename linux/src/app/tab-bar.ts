@@ -65,6 +65,10 @@ export class TabBar extends Emitter<{selected: [TabId]}> {
 
     setVisible(ids: readonly TabId[]): void {
         for (const [id, {button}] of this.#items) button.visible = ids.includes(id);
+        ids.forEach((id, index) => {
+            const button = this.#items.get(id)?.button;
+            if (button) this.#row.set_child_at_index(button, index);
+        });
     }
 
     select(id: TabId | null, animate = false): void {

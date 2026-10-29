@@ -983,13 +983,45 @@
     font-size: 13px;
 }
 
-.frodo-pill-item:hover {
-    background-color: #2a2a2f;
+.frodo-pill-item {
+    spacing: 6px;
+    padding: 0 2px 0 4px;
 }
 
-.frodo-pill-item:checked {
+.frodo-pill-item.frodo-drop-before {
+    box-shadow: inset 2px 0 0 0 -st-accent-color;
+}
+
+.frodo-pill-item.frodo-drop-after {
+    box-shadow: inset -2px 0 0 0 -st-accent-color;
+}
+
+.frodo-pill-item .frodo-pill-item-remove {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    min-height: 24px;
+    color: #a1a1aa;
+}
+
+.frodo-grip {
+    padding: 4px;
+    border-radius: 6px;
+    color: #a1a1aa;
+}
+
+.frodo-grip:hover,
+.frodo-grip:focus {
     background-color: #2f2f35;
-    box-shadow: inset 0 0 0 1.5px -st-accent-color;
+    color: #f4f4f5;
+}
+
+.frodo-grip-icon {
+    icon-size: 14px;
+}
+
+.frodo-tab-order-title {
+    spacing: 8px;
 }
 
 .frodo-pill-item-content {
@@ -2170,8 +2202,6 @@
 .frodo-surface-clear .frodo-button-ghost:checked,
 .frodo-surface-clear .frodo-button-control:hover,
 .frodo-surface-clear .frodo-segmented-indicator,
-.frodo-surface-clear .frodo-pill-item:hover,
-.frodo-surface-clear .frodo-pill-item:checked,
 .frodo-surface-clear .frodo-position-cell,
 .frodo-surface-clear .frodo-settings-nav-item:checked,
 .frodo-surface-clear .frodo-session-header:hover,
@@ -2529,4 +2559,13 @@
 
 .frodo-session-top .frodo-provider-tile {
     margin-right: 8px;
+}
+
+.frodo-settings-line.frodo-drop-before,
+.frodo-settings-line.frodo-drop-before:first-child {
+    border-top: 2px solid -st-accent-color;
+}
+
+.frodo-settings-line.frodo-drop-after {
+    border-bottom: 2px solid -st-accent-color;
 }
