@@ -257,8 +257,8 @@ export class PanelContent {
         this.#power?.destroy();
         this.#tabBar.destroy();
         this.#header.destroy();
-        this.#settingsPage.destroy();
         this.#preview.destroy();
+        this.#settingsPage.destroy();
         for (const page of this.#pages.values()) page.destroy();
         this.actor.destroy();
     }
