@@ -48,6 +48,7 @@ export type SettingsKey =
     | 'ram-percent'
     | 'pill-ai-activity'
     | 'notify-done'
+    | 'notify-quota'
     | 'hidden-tabs'
     | 'collapsed-cards'
     | 'disabled-ai'
@@ -211,6 +212,14 @@ export class FrodoSettings {
 
     set notifyDone(value: boolean) {
         this.gsettings.set_boolean('notify-done', value);
+    }
+
+    get notifyQuota(): boolean {
+        return this.gsettings.get_boolean('notify-quota');
+    }
+
+    set notifyQuota(value: boolean) {
+        this.gsettings.set_boolean('notify-quota', value);
     }
 
     get ramPercent(): boolean {

@@ -39,3 +39,43 @@ export function shownMeterPercent(percent: number, remaining: boolean): number {
     const clamped = Math.min(100, Math.max(0, percent));
     return remaining ? 100 - clamped : clamped;
 }
+
+export interface QuotaReading {
+    readonly id: string;
+    readonly name: string;
+    readonly window: string;
+    readonly percent: number;
+}
+
+export interface QuotaNotice {
+    readonly title: string;
+    readonly body: string;
+}
+
+const LEVEL_RANK: Record<Level, number> = {ok: 0, warn: 1, crit: 2};
+const LEVEL_PERCENT: Record<Level, number> = {ok: 0, warn: WARN_PERCENT, crit: CRIT_PERCENT};
+
+export function quotaNotices(
+    previous: ReadonlyMap<string, Level>,
+    readings: readonly QuotaReading[],
+): {states: Map<string, Level>; notices: QuotaNotice[]} {
+    const states = new Map<string, Level>();
+    const notices: QuotaNotice[] = [];
+    for (const {id, name, window, percent} of readings) {
+        const next = meterLevel(percent);
+        const before = previous.get(id);
+        if (before === undefined) {
+            states.set(id, next);
+        } else if (LEVEL_RANK[next] > LEVEL_RANK[before]) {
+            const limit = LEVEL_PERCENT[next];
+            notices.push({title: `Cota em ${limit}%`, body: `${name}: ${limit}% da cota de ${window}`});
+            states.set(id, next);
+        } else if (next === 'ok' && before !== 'ok') {
+            notices.push({title: 'Cota renovada', body: `${name}: cota de ${window} renovada`});
+            states.set(id, 'ok');
+        } else {
+            states.set(id, before);
+        }
+    }
+    return {states, notices};
+}

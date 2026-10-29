@@ -871,6 +871,17 @@ export class SettingsPage implements Component {
                 ),
             ),
             line(
+                'Avisar cota em 80% e 95%',
+                'E quando a cota renova',
+                this.#switch(
+                    'Avisar cota em 80% e 95%',
+                    () => settings.notifyQuota,
+                    checked => {
+                        settings.notifyQuota = checked;
+                    },
+                ),
+            ),
+            line(
                 'Mostrar uso restante em vez do usado',
                 null,
                 this.#switch(
