@@ -1,4 +1,4 @@
-import {alignX, barHeight, centerClamp, segmentWidths, topEdgeSpan} from './geometry.js';
+import {alignX, anchorCenter, barHeight, centerClamp, segmentWidths, topEdgeSpan} from './geometry.js';
 
 describe('geometry', () => {
     it('centraliza o painel na pílula dentro do monitor', () => {
@@ -6,6 +6,18 @@ describe('geometry', () => {
         expect(centerClamp(10, 120, 600, 0, 1920)).toBe(8);
         expect(centerClamp(1850, 60, 600, 0, 1920)).toBe(1312);
         expect(centerClamp(2800, 120, 600, 1920, 1920)).toBe(2560);
+    });
+
+    it('pílula centralizada ancora o painel no centro da faixa, não na largura animada dela', () => {
+        const span = {x: 0, width: 1440};
+        expect(anchorCenter('center', span, 604, 234.8)).toBe(720);
+        expect(anchorCenter('center', span, 584, 272.9)).toBe(720);
+        expect(anchorCenter('center', {x: 1920, width: 1920}, 2800, 120)).toBe(2880);
+    });
+
+    it('pílula encostada na borda ancora o painel no centro dela', () => {
+        expect(anchorCenter('left', {x: 0, width: 1440}, 8, 200)).toBe(108);
+        expect(anchorCenter('right', {x: 0, width: 1440}, 1232, 200)).toBe(1332);
     });
 
     it('acha a faixa do topo onde a ilha abre', () => {
