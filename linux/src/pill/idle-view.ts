@@ -5,7 +5,7 @@ import Pango from 'gi://Pango';
 import St from 'gi://St';
 
 import {formatDate} from '../shared/format.js';
-import {formatGb} from '../features/system/memory.js';
+import {formatRam} from '../features/system/memory.js';
 import type {ClosedItem} from '../settings/schema-values.js';
 import {displayLevel, shownPercent} from '../features/claude/claude-usage.js';
 import type {UsageWindow} from '../features/claude/claude-usage.js';
@@ -145,7 +145,7 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
             }),
         );
         this.#disposables.add(
-            settings.onChanged('claude-show-remaining', () => {
+            settings.onChanged(['claude-show-remaining', 'ram-percent'], () => {
                 this.#update();
             }),
         );
@@ -408,7 +408,7 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
             case 'battery':
                 return battery ? `Bat ${battery.percent}%` : 'Bat —';
             case 'ram':
-                return memory ? `RAM ${formatGb(memory.usedKb)}` : 'RAM —';
+                return formatRam(memory, this.#settings.ramPercent);
             case 'claude-session':
             case 'claude-weekly': {
                 const window = this.#claudeWindow(item);

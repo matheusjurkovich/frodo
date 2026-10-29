@@ -15,6 +15,11 @@ export function formatGb(kb: number): string {
     return `${(kb / 1048576).toFixed(1)}G`;
 }
 
+export function formatRam(memory: MemoryInfo | null, percent: boolean): string {
+    if (!memory) return 'RAM —';
+    return percent ? `RAM ${usedPercent(memory)}%` : `RAM ${formatGb(memory.usedKb)}`;
+}
+
 const HIGH_MEMORY_PERCENT = 90;
 const MEMORY_REARM_PERCENT = 80;
 

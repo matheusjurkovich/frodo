@@ -76,6 +76,9 @@
     <key name="always-show-pill" type="b">
       <default>false</default>
     </key>
+    <key name="ram-percent" type="b">
+      <default>false</default>
+    </key>
     <key name="hidden-tabs" type="as">
       <default>[]</default>
     </key>

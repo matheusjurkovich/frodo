@@ -575,6 +575,19 @@ export class SettingsPage implements Component {
         );
         percent.add_style_class_name('frodo-settings-line-flat');
         options.add_child(percent);
+        const ram = line(
+            'RAM em porcentagem',
+            null,
+            this.#switch(
+                'RAM em porcentagem',
+                () => settings.ramPercent,
+                checked => {
+                    settings.ramPercent = checked;
+                },
+            ),
+        );
+        ram.add_style_class_name('frodo-settings-line-flat');
+        options.add_child(ram);
         const always = line(
             'Sempre à mostra',
             'Com janela maximizada a pílula fica no lugar, sem virar lingueta',
