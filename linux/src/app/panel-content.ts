@@ -123,6 +123,12 @@ export class PanelContent {
                 island.grabKeyboard(focus);
             },
         });
+        this.#disposables.add(
+            island.on('opening', () => {
+                this.show({kind: 'tab', tab: tabToOpen(this.#nextTab, visibleTabs(settings.hiddenTabs))});
+                this.#nextTab = TAB_IDS[0];
+            }),
+        );
         for (const spec of specs) {
             const page = spec.create();
             this.#pages.set(spec.id, page);
@@ -146,12 +152,6 @@ export class PanelContent {
         this.#disposables.add(
             bridge.on('changed', () => {
                 this.#tabBar.setBadge('notifications', bridge.count);
-            }),
-        );
-        this.#disposables.add(
-            island.on('opening', () => {
-                this.show({kind: 'tab', tab: tabToOpen(this.#nextTab, visibleTabs(settings.hiddenTabs))});
-                this.#nextTab = TAB_IDS[0];
             }),
         );
         this.#tabBar.setBadge('notifications', bridge.count);

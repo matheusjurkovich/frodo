@@ -4,6 +4,7 @@ import {calendarParts, closeDateMenu, styleCalendar} from '../../shared/shell-in
 import {Disposables} from '../../shared/disposables.js';
 import {ActorLoan} from '../../shared/ui/actor-loan.js';
 import {column, row} from '../../shared/ui/layout.js';
+import {whileShown} from '../../shared/ui/lifecycle.js';
 import type {Component} from '../../shared/ui/lifecycle.js';
 import type {IslandHandle} from '../../shared/island-handle.js';
 
@@ -21,15 +22,17 @@ export class CalendarPage implements Component {
         this.actor.add_child(this.#month);
         this.actor.add_child(this.#events);
         this.#disposables.add(
-            island.on('opening', () => {
-                this.#borrow();
-            }),
-        );
-        this.#disposables.add(
-            island.on('closed', () => {
-                calendarParts()?.selectToday();
-                this.#loan.dispose();
-            }),
+            whileShown(
+                this.actor,
+                island,
+                () => {
+                    this.#borrow();
+                },
+                () => {
+                    calendarParts()?.selectToday();
+                    this.#loan.dispose();
+                },
+            ),
         );
     }
 
