@@ -7,6 +7,7 @@ export const TAB_LABELS: Record<TabId, string> = {
     workspaces: 'Áreas de trabalho',
     claude: 'IA',
     notifications: 'Notificações',
+    performance: 'Desempenho',
 };
 
 export function orderedTabs(order: readonly string[]): TabId[] {

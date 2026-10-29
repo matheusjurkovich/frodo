@@ -62,7 +62,7 @@ export type MonitorMode = (typeof MONITOR_MODES)[number];
 export const SURFACE_STYLES = ['solid', 'frosted', 'clear'] as const;
 export type SurfaceStyle = (typeof SURFACE_STYLES)[number];
 
-export const TAB_IDS = ['general', 'calendar', 'workspaces', 'claude', 'notifications'] as const;
+export const TAB_IDS = ['general', 'calendar', 'workspaces', 'claude', 'notifications', 'performance'] as const;
 export type TabId = (typeof TAB_IDS)[number];
 
 export const CARD_IDS = ['shortcuts', 'apps'] as const;
