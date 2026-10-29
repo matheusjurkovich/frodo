@@ -45,12 +45,11 @@ export function packGrid(container: St.Widget, children: readonly Clutter.Actor[
         packing = true;
         try {
             for (const child of children) if (child.get_parent() === container) container.remove_child(child);
-            let index = 0;
-            for (const child of children) {
-                if (!child.visible && !child.show_on_set_parent) continue;
-                layout.attach(child, index % columns, Math.floor(index / columns), 1, 1);
-                index++;
-            }
+            const shown = children.filter(child => child.visible || child.show_on_set_parent);
+            shown.forEach((child, index) => {
+                const alone = index === shown.length - 1 && index % columns === 0;
+                layout.attach(child, index % columns, Math.floor(index / columns), alone ? columns : 1, 1);
+            });
         } finally {
             packing = false;
         }

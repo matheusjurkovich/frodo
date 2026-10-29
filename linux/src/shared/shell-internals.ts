@@ -95,6 +95,7 @@ export interface QuickSettingsInternals {
     readonly _powerProfiles?: QuickSettingsIndicator;
     readonly _doNotDisturb?: QuickSettingsIndicator;
     readonly _nightLight?: QuickSettingsIndicator;
+    readonly _darkMode?: QuickSettingsIndicator;
     readonly _volumeOutput?: QuickSettingsIndicator<QuickSlider>;
     readonly _volumeInput?: QuickSettingsIndicator<QuickSlider>;
     readonly _brightness?: QuickSettingsIndicator<QuickSlider>;
@@ -252,6 +253,7 @@ export function quickSettingsParts(): QuickSettingsParts | null {
         first(quick._powerProfiles),
         first(quick._doNotDisturb),
         first(quick._nightLight),
+        first(quick._darkMode),
     ].filter(tile => tile !== null);
     return {
         menu: quick.menu,
