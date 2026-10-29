@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.2.0](https://github.com/matheusjurkovich/frodo/compare/linux-v1.1.0...linux-v1.2.0) (2026-10-29)
+
+
+### Novidades
+
+* notificação de memória alta ([c3d5649](https://github.com/matheusjurkovich/frodo/commit/c3d56493bbdb58bfeedb902e2a6c1fb7faafd0fb))
+* opção sempre à mostra mantém a pílula sem lingueta ([017eddb](https://github.com/matheusjurkovich/frodo/commit/017eddb86dac9a4393760e1457fbacc4f0fbba18))
+* pílula e lingueta somem em tela cheia, exceto para aprovar ([141967b](https://github.com/matheusjurkovich/frodo/commit/141967b7f7c398a836469179d555da313ee4cdad))
+* switches animam a bolinha e a cor ([43a0e3a](https://github.com/matheusjurkovich/frodo/commit/43a0e3a8b952cbe161ae272a13327f3ba97ce11c))
+
+
+### Correções
+
+* botão entrar do meet volta depois que o evolution reinicia ([2a6298b](https://github.com/matheusjurkovich/frodo/commit/2a6298be0fabcb61a50f680e7a5cf8e3a996802c))
+* notificação fica 5 s na pílula ([5552a2d](https://github.com/matheusjurkovich/frodo/commit/5552a2d682c60f0d57b380b6ae289fb32c0851a6))
+* notificações recebidas com a tela bloqueada não saem mais pelo banner do gnome ([a519e71](https://github.com/matheusjurkovich/frodo/commit/a519e71df4fc785f54d33f5b3f8a7feea3857c76))
+
 ## [1.1.0](https://github.com/matheusjurkovich/frodo/compare/linux-v1.0.0...linux-v1.1.0) (2026-10-29)
 
 
