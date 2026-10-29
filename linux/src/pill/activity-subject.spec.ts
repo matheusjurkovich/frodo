@@ -41,8 +41,12 @@ describe('sameSubject', () => {
     });
 
     it('reunião compara título e horário', () => {
-        expect(sameSubject({kind: 'meeting', title: 'x', startsAt: 1}, {kind: 'meeting', title: 'x', startsAt: 1})).toBeTrue();
-        expect(sameSubject({kind: 'meeting', title: 'x', startsAt: 1}, {kind: 'meeting', title: 'x', startsAt: 2})).toBeFalse();
+        expect(
+            sameSubject({kind: 'meeting', title: 'x', startsAt: 1, url: null}, {kind: 'meeting', title: 'x', startsAt: 1, url: null}),
+        ).toBeTrue();
+        expect(
+            sameSubject({kind: 'meeting', title: 'x', startsAt: 1, url: null}, {kind: 'meeting', title: 'x', startsAt: 2, url: null}),
+        ).toBeFalse();
     });
 
     it('notificação compara o próprio item', () => {
