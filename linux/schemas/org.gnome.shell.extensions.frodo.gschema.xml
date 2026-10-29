@@ -84,6 +84,9 @@
       </choices>
       <default>'change'</default>
     </key>
+    <key name="notify-done" type="b">
+      <default>true</default>
+    </key>
     <key name="ram-percent" type="b">
       <default>false</default>
     </key>

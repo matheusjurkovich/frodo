@@ -47,6 +47,7 @@ export type SettingsKey =
     | 'always-show-pill'
     | 'ram-percent'
     | 'pill-ai-activity'
+    | 'notify-done'
     | 'hidden-tabs'
     | 'collapsed-cards'
     | 'disabled-ai'
@@ -202,6 +203,14 @@ export class FrodoSettings {
 
     set pillAiActivity(value: PillAiActivity) {
         this.gsettings.set_string('pill-ai-activity', value);
+    }
+
+    get notifyDone(): boolean {
+        return this.gsettings.get_boolean('notify-done');
+    }
+
+    set notifyDone(value: boolean) {
+        this.gsettings.set_boolean('notify-done', value);
     }
 
     get ramPercent(): boolean {
