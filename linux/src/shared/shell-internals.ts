@@ -441,6 +441,28 @@ export function messageTray(): MessageTray.MessageTray & MessageTrayInternals {
     return Main.messageTray as MessageTray.MessageTray & MessageTrayInternals;
 }
 
+interface SessionModeInternals {
+    readonly isLocked: boolean;
+    connect(signal: 'updated', callback: () => void): number;
+    disconnect(id: number): void;
+}
+
+function sessionMode(): SessionModeInternals {
+    return Main.sessionMode as SessionModeInternals;
+}
+
+export function isScreenLocked(): boolean {
+    return sessionMode().isLocked;
+}
+
+export function onSessionModeChanged(callback: () => void): Disposer {
+    const mode = sessionMode();
+    const id = mode.connect('updated', callback);
+    return () => {
+        mode.disconnect(id);
+    };
+}
+
 function isVisibleOnActiveWorkspace(window: Meta.Window): boolean {
     const active = global.workspace_manager.get_active_workspace();
     return !window.minimized && (window.is_on_all_workspaces() || window.get_workspace() === active);

@@ -6,7 +6,9 @@ import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import {IslandManager} from './app/island-manager.js';
 import {createServices} from './app/services.js';
 import {TopBarVisibility} from './app/top-bar-visibility.js';
+import type {FrodoServices} from './app/services.js';
 import {Disposables} from './shared/disposables.js';
+import {isScreenLocked, onSessionModeChanged} from './shared/shell-internals.js';
 import {setIconsDirectory} from './shared/ui/icons.js';
 
 const TOGGLE_KEYBINDING = 'toggle-shortcut';
@@ -34,6 +36,25 @@ export default class FrodoExtension extends Extension {
         });
 
         const services = createServices(this.getSettings(), disposables);
+        let ui: Disposables | null = null;
+        const sync = (): void => {
+            if (isScreenLocked()) {
+                ui?.dispose();
+                ui = null;
+            } else if (!ui) {
+                ui = new Disposables();
+                this.#startUi(services, ui);
+            }
+        };
+        disposables.add(onSessionModeChanged(sync));
+        disposables.add(() => {
+            ui?.dispose();
+            ui = null;
+        });
+        sync();
+    }
+
+    #startUi(services: FrodoServices, disposables: Disposables): void {
         disposables.own(new TopBarVisibility(services.settings));
         const islands = disposables.own(new IslandManager(services));
 
