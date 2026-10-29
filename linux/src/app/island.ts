@@ -7,7 +7,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {GrabHelper} from 'resource:///org/gnome/shell/ui/grabHelper.js';
 import type * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
-import {alignX, centerClamp, topEdgeSpan} from '../shared/geometry.js';
+import {alignX, anchorCenter, centerClamp, topEdgeSpan} from '../shared/geometry.js';
 import {SURFACE_STYLES, horizontalOf, isBottom, isMiddle} from '../settings/schema-values.js';
 import type {TabId} from '../settings/schema-values.js';
 import type {ClaudeService} from '../features/claude/claude-service.js';
@@ -720,7 +720,11 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         const max = this.#available();
         const [, naturalHeight] = panel.get_preferred_height(naturalWidth);
         const height = Math.min(naturalHeight, max);
-        if (monitor) panel.set_position(centerClamp(anchorX, anchor.width, naturalWidth, area.x, area.width), this.#panelY(height));
+        if (monitor)
+            panel.set_position(
+                centerClamp(anchorCenter(this.#side(), this.#span(monitor), anchorX, anchor.width), 0, naturalWidth, area.x, area.width),
+                this.#panelY(height),
+            );
         panel.set_pivot_point((anchorX + anchor.width / 2 - panel.x) / Math.max(1, naturalWidth), this.#pivotY(panel.y, height));
 
         this.#pinBackdrop();
@@ -766,7 +770,13 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         const anchor = this.#anchor();
         const [anchorX] = anchor.get_transformed_position();
         const area = this.#workArea();
-        this.panel.x = centerClamp(anchorX, anchor.width, this.panel.width, area.x, area.width);
+        this.panel.x = centerClamp(
+            anchorCenter(this.#side(), this.#span(monitor), anchorX, anchor.width),
+            0,
+            this.panel.width,
+            area.x,
+            area.width,
+        );
     }
 
     #syncMemoryNeed(): void {
