@@ -12,7 +12,14 @@ import {expandHome} from '../../settings/claude-profile.js';
 import type {ClaudeProfile} from '../../settings/claude-profile.js';
 import {accelerator, shortcutLabel} from '../../settings/shortcut.js';
 import {TAB_LABELS, visibleTabs} from '../../settings/tabs.js';
-import {GEMINI_DAILY_LIMITS, MEETING_NOTICE_MINUTES, PEEK_EVERY_MINUTES, PEEK_SECONDS, TAB_IDS} from '../../settings/schema-values.js';
+import {
+    GEMINI_DAILY_LIMITS,
+    MEETING_NOTICE_MINUTES,
+    PEEK_EVERY_MINUTES,
+    PEEK_SECONDS,
+    TAB_IDS,
+    horizontalOf,
+} from '../../settings/schema-values.js';
 import type {AiProvider, ClosedItem, ClosedMode, MonitorMode, PillPosition, SurfaceStyle} from '../../settings/schema-values.js';
 import type {FrodoSettings, SettingsKey} from '../../settings/frodo-settings.js';
 import {spawn} from '../../shared/shell-internals.js';
@@ -185,13 +192,15 @@ export class SettingsPage implements Component {
     readonly #profiles = column('frodo-settings-profiles');
     readonly #newProfile = new St.Entry({style_class: 'frodo-entry', hint_text: '~/.claude-trabalho', can_focus: true, x_expand: true});
     readonly #pillEditor = column('frodo-pill-editor');
+    readonly #preview: Clutter.Actor;
     #section: SectionId = 'general';
     #pillSelected: ClosedItem | null = null;
     #capture: {readonly button: St.Button; readonly id: number} | null = null;
     #destroyed = false;
 
-    constructor(settings: FrodoSettings, sessions: ClaudeSessions, actions: SettingsActions) {
+    constructor(settings: FrodoSettings, sessions: ClaudeSessions, preview: Clutter.Actor, actions: SettingsActions) {
         this.#settings = settings;
+        this.#preview = preview;
         this.#sessions = sessions;
         this.#actions = actions;
         this.#typing(this.#newProfile);
@@ -501,6 +510,20 @@ export class SettingsPage implements Component {
             ),
         );
         pill.add_child(header);
+
+        const frame = new St.Bin({
+            style_class: 'frodo-pill frodo-pill-preview-pill',
+            child: this.#preview,
+            y_align: Clutter.ActorAlign.CENTER,
+        });
+        const strip = new St.Widget({style_class: 'frodo-pill-preview', layout_manager: new Clutter.BinLayout(), x_expand: true});
+        strip.accessible_name = 'Prévia da pílula';
+        strip.add_child(frame);
+        pill.add_child(strip);
+        const ALIGN = {left: Clutter.ActorAlign.START, center: Clutter.ActorAlign.CENTER, right: Clutter.ActorAlign.END} as const;
+        this.#bindings.push(() => {
+            frame.x_align = ALIGN[horizontalOf(settings.pillPosition)];
+        });
 
         const options = column('frodo-settings-card');
         const hint = dimLabel();
