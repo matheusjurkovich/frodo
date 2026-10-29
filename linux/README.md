@@ -86,6 +86,14 @@ As trocas de estado seguem a Dynamic Island do iPhone. A pílula muda de tamanho
 
 ## Instalação
 
+### Com um comando
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/matheusjurkovich/frodo/master/linux/get.sh | sh
+```
+
+O `get.sh` baixa o zip da release `linux-v*` mais nova, instala com `gnome-extensions`, compila o schema e liga a extensão; não precisa clonar o repositório nem de Node. Rodar de novo atualiza. No Wayland, saia e entre na sessão para carregar. Se a extensão estiver instalada pelo `install.sh` (link para `dist/`), ele para sem mexer.
+
 ### Pela release
 
 Baixe o `frodo-linux-<versão>.zip` da [página de releases](https://github.com/matheusjurkovich/frodo/releases) (tags `linux-v*`) e instale:

@@ -121,6 +121,7 @@ npm run build        # src/ -> dist/, copia metadata, CSS, ícones, schemas e ho
 npm run smoke        # build + gnome-shell headless isolado: liga, desliga e religa; falha se não ficar ACTIVE
 npm run format       # Prettier
 ./install.sh         # build e link de dist/ em ~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich.github.io
+sh get.sh            # quem usa: baixa e instala a última release linux-v* (curl … | sh); teste: sh tools/get.test.sh
 npm run pack -- 1.2.3  # build + frodo-linux-1.2.3.zip pronto para o extensions.gnome.org (sem gschemas.compiled)
 npm run screenshots  # build + headless com dados de exemplo: regrava docs/*.png e docs/demo.gif (precisa de GStreamer e python3-pil)
 ```

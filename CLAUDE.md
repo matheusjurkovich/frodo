@@ -32,3 +32,5 @@ Dentro de `linux/`: `npm ci`, `npm run check`, `npm test`, `npm run build`, `npm
 Dentro de `macos/`: `swift test`, `swift build`, `swift run Frodo --demo`, `sh scripts/bundle.sh` (detalhes em `macos/CLAUDE.md`).
 
 Na raiz: `sh shared/hooks/claude-session.test.sh` testa o protocolo do hook.
+
+Instalação de quem usa o Linux: `curl -fsSL https://raw.githubusercontent.com/matheusjurkovich/frodo/master/linux/get.sh | sh` (teste: `sh linux/tools/get.test.sh`).

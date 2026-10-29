@@ -25,13 +25,13 @@ As imagens são da versão Linux, geradas com dados de exemplo por `npm run scre
 
 ## Instalação rápida
 
-Linux (GNOME Shell 50, Wayland): baixe o `frodo-linux-<versão>.zip` da [página de releases](https://github.com/matheusjurkovich/frodo/releases) e rode
+Linux (GNOME Shell 50, Wayland):
 
 ```bash
-gnome-extensions install --force frodo-linux-<versão>.zip
+curl -fsSL https://raw.githubusercontent.com/matheusjurkovich/frodo/master/linux/get.sh | sh
 ```
 
-Saia e entre na sessão, ligue com `gnome-extensions enable frodo@matheusjurkovich.github.io` e, para ver as sessões do Claude Code, registre o hook ([passo a passo](linux/README.md#sessões-do-claude-code)).
+O comando baixa a release `linux-v*` mais nova da [página de releases](https://github.com/matheusjurkovich/frodo/releases), instala e liga a extensão; rodar de novo atualiza. Saia e entre na sessão e, para ver as sessões do Claude Code, registre o hook ([passo a passo](linux/README.md#sessões-do-claude-code)).
 
 macOS 14+: baixe o `Frodo-<versão>.dmg` e arraste para Aplicativos ([detalhes](macos/README.md#instalação)).
 
