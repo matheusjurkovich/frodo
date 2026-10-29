@@ -26,22 +26,31 @@ export class MeetLinkClient {
 
     async find(title: string, startsAt: number): Promise<string | null> {
         try {
-            for (const uid of await this.#calendars()) {
-                const calendar = await this.#open(uid);
-                const reply = await this.#call(
-                    calendar.bus,
-                    calendar.path,
-                    CALENDAR_INTERFACE,
-                    'GetObjectList',
-                    new GLib.Variant('(s)', [rangeQuery(startsAt)]),
-                    '(as)',
-                );
-                const [objects] = reply.deepUnpack<[string[]]>();
-                const link = meetLinkFor(objects, title);
-                if (link) return link;
-            }
+            return await this.#find(title, startsAt);
+        } catch {
+            this.#opened.clear();
+        }
+        try {
+            return await this.#find(title, startsAt);
         } catch {
             return null;
+        }
+    }
+
+    async #find(title: string, startsAt: number): Promise<string | null> {
+        for (const uid of await this.#calendars()) {
+            const calendar = await this.#open(uid);
+            const reply = await this.#call(
+                calendar.bus,
+                calendar.path,
+                CALENDAR_INTERFACE,
+                'GetObjectList',
+                new GLib.Variant('(s)', [rangeQuery(startsAt)]),
+                '(as)',
+            );
+            const [objects] = reply.deepUnpack<[string[]]>();
+            const link = meetLinkFor(objects, title);
+            if (link) return link;
         }
         return null;
     }
