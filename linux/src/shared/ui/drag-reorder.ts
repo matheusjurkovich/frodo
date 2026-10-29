@@ -10,6 +10,7 @@ const LINE_WIDTH = 1.5;
 
 export interface DragReorderOptions {
     readonly axis: 'x' | 'y';
+    readonly host: St.Widget;
     readonly items: readonly St.Widget[];
     readonly handles: readonly Clutter.Actor[];
     readonly arrange: (actors: readonly St.Widget[]) => void;
@@ -19,9 +20,9 @@ export interface DragReorderOptions {
 interface Drag {
     readonly from: number;
     readonly item: St.Widget;
-    readonly layer: St.Widget;
     readonly placeholder: St.DrawingArea;
     readonly grab: Clutter.Grab;
+    readonly signals: number[];
     readonly offsetX: number;
     readonly offsetY: number;
     index: number;
@@ -74,7 +75,7 @@ function insertionAt(axis: 'x' | 'y', others: readonly St.Widget[], x: number, y
 }
 
 export function dragReorder(options: DragReorderOptions): Disposer {
-    const {axis, items, handles, arrange, onMove} = options;
+    const {axis, host, items, handles, arrange, onMove} = options;
     const disposables = new Disposables();
     const backKey = axis === 'x' ? Clutter.KEY_Left : Clutter.KEY_Up;
     const forwardKey = axis === 'x' ? Clutter.KEY_Right : Clutter.KEY_Down;
@@ -90,7 +91,8 @@ export function dragReorder(options: DragReorderOptions): Disposer {
     };
 
     const follow = (current: Drag, x: number, y: number): void => {
-        current.item.set_position(Math.round(x - current.offsetX), Math.round(y - current.offsetY));
+        const [, localX, localY] = host.transform_stage_point(x - current.offsetX, y - current.offsetY);
+        current.item.set_translation(Math.round(localX), Math.round(localY), 0);
     };
 
     const finish = (commit: boolean): void => {
@@ -98,11 +100,13 @@ export function dragReorder(options: DragReorderOptions): Disposer {
         if (!current) return;
         drag = null;
         current.grab.dismiss();
-        current.layer.remove_child(current.item);
+        for (const id of current.signals) host.disconnect(id);
+        host.reactive = false;
+        host.remove_child(current.item);
         current.item.remove_style_class_name('frodo-dragging');
         current.item.set_size(-1, -1);
+        current.item.set_translation(0, 0, 0);
         current.placeholder.get_parent()?.replace_child(current.placeholder, current.item);
-        current.layer.destroy();
         const to = commit ? current.index : current.from;
         const order = others(current);
         order.splice(to, 0, current.item);
@@ -115,47 +119,42 @@ export function dragReorder(options: DragReorderOptions): Disposer {
         const [x, y] = event.get_coords();
         const [left, top] = item.get_transformed_position();
         const {width, height} = item;
-        const gap = placeholder(width, height);
-        const layer = new St.Widget({
-            style_class: 'frodo-drag-layer',
-            reactive: true,
-            width: global.stage.width,
-            height: global.stage.height,
-        });
-        global.stage.add_child(layer);
+        host.reactive = true;
         const current: Drag = {
             from,
             item,
-            layer,
-            placeholder: gap,
-            grab: global.stage.grab(layer),
+            placeholder: placeholder(width, height),
+            grab: global.stage.grab(host),
+            signals: [],
             offsetX: x - left,
             offsetY: y - top,
             index: from,
         };
         drag = current;
         item.get_parent()?.remove_child(item);
-        layer.add_child(item);
+        host.add_child(item);
+        item.set_position(0, 0);
         item.set_size(width, height);
-        place(current, from);
         item.add_style_class_name('frodo-dragging');
+        place(current, from);
         follow(current, x, y);
-        layer.connect('motion-event', (_actor, motion: Clutter.Event) => {
-            if (drag !== current) return Clutter.EVENT_PROPAGATE;
-            const [px, py] = motion.get_coords();
-            follow(current, px, py);
-            const index = insertionAt(axis, others(current), px, py);
-            if (index !== null && index !== current.index) place(current, index);
-            return Clutter.EVENT_STOP;
-        });
-        layer.connect('button-release-event', () => {
-            finish(true);
-            return Clutter.EVENT_STOP;
-        });
-        layer.connect('key-press-event', (_actor, key: Clutter.Event) => {
-            if (key.get_key_symbol() === Clutter.KEY_Escape) finish(false);
-            return Clutter.EVENT_STOP;
-        });
+        current.signals.push(
+            host.connect('motion-event', (_actor, motion: Clutter.Event) => {
+                const [px, py] = motion.get_coords();
+                follow(current, px, py);
+                const index = insertionAt(axis, others(current), px, py);
+                if (index !== null && index !== current.index) place(current, index);
+                return Clutter.EVENT_STOP;
+            }),
+            host.connect('button-release-event', () => {
+                finish(true);
+                return Clutter.EVENT_STOP;
+            }),
+            host.connect('key-press-event', (_actor, key: Clutter.Event) => {
+                if (key.get_key_symbol() === Clutter.KEY_Escape) finish(false);
+                return Clutter.EVENT_STOP;
+            }),
+        );
     };
 
     handles.forEach((handle, from) => {

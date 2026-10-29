@@ -96,6 +96,7 @@ export interface SettingsActions {
     readonly back: () => void;
     readonly close: () => void;
     readonly grabKeyboard: (focus: Clutter.Actor) => void;
+    readonly overlay: St.Widget;
 }
 
 const SECTIONS: readonly {id: SectionId; label: string; icon: FrodoIconName}[] = [
@@ -681,6 +682,7 @@ export class SettingsPage implements Component {
         this.#pillBuilt.add(
             dragReorder({
                 axis: 'x',
+                host: this.#actions.overlay,
                 items: chips,
                 handles,
                 arrange: actors => {
@@ -776,6 +778,7 @@ export class SettingsPage implements Component {
         this.#tabsBuilt.add(
             dragReorder({
                 axis: 'y',
+                host: this.#actions.overlay,
                 items: lines,
                 handles,
                 arrange: actors => {

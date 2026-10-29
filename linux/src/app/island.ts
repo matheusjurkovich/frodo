@@ -61,6 +61,9 @@ export interface IslandEvents {
 export class Island extends Emitter<IslandEvents> implements IslandHandle {
     readonly pill: Pill;
     readonly panel = new St.Bin({style_class: 'frodo-panel', reactive: true, track_hover: true, visible: false});
+    readonly overlay = new St.Widget({x_expand: true, y_expand: true});
+    readonly #frame = new St.Widget({layout_manager: new Clutter.BinLayout()});
+    #content: Clutter.Actor | null = null;
     readonly #backdrop = new St.Widget({style_class: 'frodo-panel-backdrop', visible: false});
     readonly #tongue = new St.Widget({style_class: 'frodo-tongue', reactive: true, track_hover: true, visible: false});
     readonly monitorIndex: number;
@@ -106,6 +109,8 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
                 },
             },
         });
+        this.#frame.add_child(this.overlay);
+        this.panel.set_child(this.#frame);
         Main.layoutManager.addTopChrome(this.#backdrop, {affectsStruts: false});
         Main.layoutManager.addTopChrome(this.panel, {affectsStruts: false});
         Main.layoutManager.addTopChrome(this.#tongue, {affectsStruts: false});
@@ -288,7 +293,9 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
     }
 
     setContent(content: Clutter.Actor | null): void {
-        this.panel.set_child(content);
+        if (this.#content) this.#frame.remove_child(this.#content);
+        this.#content = content;
+        if (content) this.#frame.insert_child_below(content, this.overlay);
     }
 
     holdWhileOpen(menu: PopupMenu.PopupMenu): Disposer {
