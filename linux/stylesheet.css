@@ -2345,6 +2345,7 @@
     padding: 3px;
     border-radius: 13px;
     background-color: #3f3f46;
+    transition-duration: 150ms;
 }
 
 .frodo-switch:hover {
