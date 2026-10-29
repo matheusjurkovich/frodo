@@ -1,4 +1,4 @@
-import {formatGb, memoryAlarm, parseMeminfo, usedPercent} from './memory.js';
+import {formatGb, formatRam, memoryAlarm, parseMeminfo, usedPercent} from './memory.js';
 
 describe('memory', () => {
     it('calcula usado a partir de MemAvailable', () => {
@@ -14,6 +14,18 @@ describe('memory', () => {
 
     it('formata em GB com uma casa', () => {
         expect(formatGb(6501171)).toBe('6.2G');
+    });
+
+    it('formatRam mostra GB por padrão', () => {
+        expect(formatRam({usedKb: 10276044, totalKb: 16777216}, false)).toBe(`RAM ${formatGb(10276044)}`);
+    });
+
+    it('formatRam mostra porcentagem quando pedido', () => {
+        expect(formatRam({usedKb: 10276044, totalKb: 16777216}, true)).toBe('RAM 61%');
+    });
+
+    it('formatRam sem leitura mostra traço', () => {
+        expect(formatRam(null, true)).toBe('RAM —');
     });
 
     it('calcula a porcentagem usada', () => {

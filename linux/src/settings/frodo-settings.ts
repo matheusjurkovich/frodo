@@ -34,6 +34,7 @@ export type SettingsKey =
     | 'open-on-hover'
     | 'auto-close'
     | 'always-show-pill'
+    | 'ram-percent'
     | 'hidden-tabs'
     | 'collapsed-cards'
     | 'disabled-ai'
@@ -180,6 +181,14 @@ export class FrodoSettings {
 
     set alwaysShowPill(value: boolean) {
         this.gsettings.set_boolean('always-show-pill', value);
+    }
+
+    get ramPercent(): boolean {
+        return this.gsettings.get_boolean('ram-percent');
+    }
+
+    set ramPercent(value: boolean) {
+        this.gsettings.set_boolean('ram-percent', value);
     }
 
     get hiddenTabs(): TabId[] {
