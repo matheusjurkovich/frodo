@@ -57,7 +57,7 @@ export function createServices(gsettings: Gio.Settings, disposables: Disposables
     const meetings = disposables.own(new UpcomingMeeting(settings));
     const performance = disposables.own(new PerformanceMonitor());
     disposables.own(new MemoryAlert());
-    const feed = disposables.own(new ActivityFeed({recording, sessions, meetings, bridge, volume, media}));
+    const feed = disposables.own(new ActivityFeed({recording, sessions, meetings, bridge, volume, media, settings}));
     return {
         settings,
         state,

@@ -7,11 +7,22 @@ import {
     CLOSED_MODES,
     MONITOR_MODES,
     PILL_POSITIONS,
+    PILL_AI_ACTIVITIES,
     SURFACE_STYLES,
     TAB_IDS,
     isOneOf,
 } from './schema-values.js';
-import type {AiProvider, CardId, ClosedItem, ClosedMode, MonitorMode, PillPosition, SurfaceStyle, TabId} from './schema-values.js';
+import type {
+    AiProvider,
+    CardId,
+    ClosedItem,
+    ClosedMode,
+    MonitorMode,
+    PillAiActivity,
+    PillPosition,
+    SurfaceStyle,
+    TabId,
+} from './schema-values.js';
 import {parseProfiles} from './claude-profile.js';
 import {orderedTabs} from './tabs.js';
 import type {ClaudeProfile} from './claude-profile.js';
@@ -35,6 +46,7 @@ export type SettingsKey =
     | 'auto-close'
     | 'always-show-pill'
     | 'ram-percent'
+    | 'pill-ai-activity'
     | 'hidden-tabs'
     | 'collapsed-cards'
     | 'disabled-ai'
@@ -181,6 +193,15 @@ export class FrodoSettings {
 
     set alwaysShowPill(value: boolean) {
         this.gsettings.set_boolean('always-show-pill', value);
+    }
+
+    get pillAiActivity(): PillAiActivity {
+        const value = this.gsettings.get_string('pill-ai-activity');
+        return isOneOf(PILL_AI_ACTIVITIES, value) ? value : 'change';
+    }
+
+    set pillAiActivity(value: PillAiActivity) {
+        this.gsettings.set_string('pill-ai-activity', value);
     }
 
     get ramPercent(): boolean {

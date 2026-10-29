@@ -59,6 +59,9 @@ export const PEEK_SECONDS = [5, 10, 15, 30] as const;
 export const MONITOR_MODES = ['primary', 'secondary', 'both'] as const;
 export type MonitorMode = (typeof MONITOR_MODES)[number];
 
+export const PILL_AI_ACTIVITIES = ['always', 'change', 'never'] as const;
+export type PillAiActivity = (typeof PILL_AI_ACTIVITIES)[number];
+
 export const SURFACE_STYLES = ['solid', 'frosted', 'clear'] as const;
 export type SurfaceStyle = (typeof SURFACE_STYLES)[number];
 

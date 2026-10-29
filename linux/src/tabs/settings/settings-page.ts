@@ -601,6 +601,23 @@ export class SettingsPage implements Component {
         );
         always.add_style_class_name('frodo-settings-line-flat');
         options.add_child(always);
+        const activity = line(
+            'Atividade da IA',
+            'O que a IA está fazendo aparece na pílula',
+            this.#segmented(
+                [
+                    {id: 'always', label: 'Sempre'},
+                    {id: 'change', label: 'Ao mudar'},
+                    {id: 'never', label: 'Nunca'},
+                ],
+                () => settings.pillAiActivity,
+                value => {
+                    settings.pillAiActivity = value;
+                },
+            ),
+        );
+        activity.add_style_class_name('frodo-settings-line-flat');
+        options.add_child(activity);
         this.#bindings.push(() => {
             hint.text = MODE_HINTS[settings.closedMode];
             rotate.visible = settings.closedMode === 'rotating';

@@ -5,6 +5,8 @@ import {ActivityFeed} from './activity-feed.js';
 import type {FeedSources} from './activity-feed.js';
 import {Emitter} from '../shared/emitter.js';
 import {Timer} from '../shared/timer.js';
+import type {FrodoSettings} from '../settings/frodo-settings.js';
+import {createSettings} from '../../tests/fixtures.js';
 
 class FakeRecording extends Emitter<{changed: []}> {
     startedAt: number | null = null;
@@ -121,8 +123,20 @@ describe('ActivityFeed', () => {
     let bridge: FakeBridge;
     let volume: FakeVolume;
     let media: FakeMedia;
+    let settings: FrodoSettings;
+    let now: number;
     let feed: ActivityFeed;
     let changes: number;
+
+    function workingStep(): string | null {
+        const {current} = feed;
+        return current?.kind === 'claude-working' ? current.session.step : null;
+    }
+
+    function workingSession(): string | null {
+        const {current} = feed;
+        return current?.kind === 'claude-working' ? current.session.sessionId : null;
+    }
 
     function notificationTitle(): string | null {
         const {current} = feed;
@@ -137,7 +151,10 @@ describe('ActivityFeed', () => {
         bridge = new FakeBridge();
         volume = new FakeVolume();
         media = new FakeMedia();
-        const sources: FeedSources = {recording, sessions, meetings, bridge, volume, media};
+        settings = createSettings();
+        now = 1_000_000;
+        spyOn(Date, 'now').and.callFake(() => now);
+        const sources: FeedSources = {recording, sessions, meetings, bridge, volume, media, settings};
         feed = new ActivityFeed(sources);
         changes = 0;
         feed.on('changed', () => {
@@ -202,17 +219,95 @@ describe('ActivityFeed', () => {
         expect(changes).toBe(2);
     });
 
-    it('Claude trabalhando aparece 5 s a cada ferramenta nova e some', () => {
+    it('Claude trabalhando aparece 3 s a cada passo novo e some', () => {
         sessions.set([session('a', 'working', 'Bash ls', 'Bash')]);
         expect(feed.current?.kind).toBe('claude-working');
-        expect(timers.onceMs()).toEqual([5000]);
-        timers.fire(5000);
+        expect(timers.onceMs()).toEqual([3000]);
+        timers.fire(3000);
         expect(feed.current).toBeNull();
         sessions.set([session('a', 'working', 'Bash ls', 'Bash')]);
         expect(feed.current).toBeNull();
+        now += 10000;
         sessions.set([session('a', 'working', 'Edit x', 'Edit')]);
         expect(feed.current?.kind).toBe('claude-working');
-        expect(timers.onceMs()).toEqual([5000, 5000]);
+        expect(timers.onceMs()).toEqual([3000, 3000]);
+    });
+
+    it('no modo ao mudar, passos dentro de 10 s não aparecem', () => {
+        sessions.set([session('a', 'working', 'Edit a.ts', 'Edit')]);
+        timers.fire(3000);
+        now += 5000;
+        sessions.set([session('a', 'working', 'Edit b.ts', 'Edit')]);
+        expect(feed.current).toBeNull();
+        now += 6000;
+        sessions.set([session('a', 'working', 'Edit b.ts', 'Edit')]);
+        expect(feed.current).toBeNull();
+        sessions.set([session('a', 'working', 'Edit c.ts', 'Edit')]);
+        expect(workingStep()).toBe('Edit c.ts');
+    });
+
+    it('passo de outra sessão substitui o que está na pílula e o anterior não volta', () => {
+        const first = session('s1', 'working', 'Edit a.ts', 'Edit');
+        sessions.set([first]);
+        now += 1000;
+        sessions.set([first, session('s2', 'working', 'Edit b.ts', 'Edit')]);
+        expect(workingSession()).toBe('s2');
+        timers.fire(3000);
+        expect(feed.current).toBeNull();
+    });
+
+    it('no modo sempre a sessão fica enquanto trabalha e acompanha o passo', () => {
+        settings.pillAiActivity = 'always';
+        sessions.set([session('a', 'working', 'Edit a.ts', 'Edit')]);
+        expect(timers.onceMs()).toEqual([]);
+        sessions.set([session('a', 'working', 'Edit b.ts', 'Edit')]);
+        expect(workingStep()).toBe('Edit b.ts');
+    });
+
+    it('no modo sempre mostra a sessão com evento mais recente', () => {
+        settings.pillAiActivity = 'always';
+        const old = session('s1', 'working', 'Edit a.ts', 'Edit');
+        now += 1000;
+        sessions.set([old, session('s2', 'working', 'Edit b.ts', 'Edit')]);
+        expect(workingSession()).toBe('s2');
+    });
+
+    it('no modo sempre cancelTransient não esconde a sessão', () => {
+        settings.pillAiActivity = 'always';
+        sessions.set([session('a', 'working', 'Edit a.ts', 'Edit')]);
+        feed.cancelTransient();
+        expect(workingStep()).toBe('Edit a.ts');
+    });
+
+    it('no modo sempre a sessão que já trabalhava ao ligar aparece', () => {
+        settings.pillAiActivity = 'always';
+        sessions.set([session('a', 'working', 'Bash ls', 'Bash')]);
+        const later = new ActivityFeed({recording, sessions, meetings, bridge, volume, media, settings});
+        expect(later.current?.kind).toBe('claude-working');
+        later.destroy();
+    });
+
+    it('no modo nunca a IA trabalhando não aparece, mas o pedido de permissão sim', () => {
+        settings.pillAiActivity = 'never';
+        sessions.set([session('a', 'working', 'Edit a.ts', 'Edit')]);
+        expect(feed.current).toBeNull();
+        sessions.set([session('a', 'waiting')], [request('a', 'r1', 10)]);
+        expect(feed.current?.kind).toBe('claude-permission');
+    });
+
+    it('trocar de sempre para ao mudar reavalia na hora', () => {
+        settings.pillAiActivity = 'always';
+        sessions.set([session('a', 'working', 'Edit a.ts', 'Edit')]);
+        expect(timers.onceMs()).toEqual([]);
+        settings.pillAiActivity = 'change';
+        expect(workingStep()).toBe('Edit a.ts');
+        expect(timers.onceMs()).toEqual([3000]);
+    });
+
+    it('sessão encerrada some da pílula', () => {
+        sessions.set([session('a', 'working', 'Edit a.ts', 'Edit')]);
+        sessions.set([]);
+        expect(feed.current).toBeNull();
     });
 
     it('Claude pensando, sem ferramenta, não aparece', () => {
@@ -223,7 +318,7 @@ describe('ActivityFeed', () => {
 
     it('sessão que já trabalhava ao ligar não pisca', () => {
         sessions.set([session('a', 'working', 'Bash ls', 'Bash')]);
-        const later = new ActivityFeed({recording, sessions, meetings, bridge, volume, media});
+        const later = new ActivityFeed({recording, sessions, meetings, bridge, volume, media, settings});
         expect(later.current).toBeNull();
         later.destroy();
     });
@@ -258,7 +353,7 @@ describe('ActivityFeed', () => {
 
     it('mídia que já tocava ao ligar não aparece', () => {
         media.set(track(true));
-        const later = new ActivityFeed({recording, sessions, meetings, bridge, volume, media});
+        const later = new ActivityFeed({recording, sessions, meetings, bridge, volume, media, settings});
         expect(later.current).toBeNull();
         later.destroy();
     });
