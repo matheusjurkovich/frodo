@@ -141,6 +141,7 @@ export class PanelContent {
             grabKeyboard: focus => {
                 island.grabKeyboard(focus);
             },
+            overlay: island.overlay,
         });
         this.#disposables.add(
             island.on('opening', () => {
