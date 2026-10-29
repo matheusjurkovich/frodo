@@ -1,0 +1,6 @@
+{
+  "uuid": "probe@frodo",
+  "name": "Frodo probe",
+  "description": "Libera o Eval e cria ponteiro virtual para tools/screenshots.",
+  "shell-version": ["50"]
+}

@@ -9,6 +9,7 @@
     "pack": "npm run build && sh tools/pack.sh",
     "smoke": "npm run build && sh tools/smoke.sh",
     "devkit": "npm run build && sh tools/devkit.sh",
+    "screenshots": "npm run build && sh tools/screenshots/run.sh",
     "typecheck": "tsc -p tsconfig.json",
     "lint": "eslint .",
     "format": "prettier --write .",

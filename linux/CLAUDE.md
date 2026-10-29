@@ -26,7 +26,8 @@ Código agrupado por camada e domínio. Import só desce: `app → pill, tabs �
 | `src/shared/ui/`          | Componentes St: botões, cards, layout, anel, barra de segmentos, segmentado, switch, tile de provedor, quebra de linha (`Wrap`), arrastar para reordenar (`drag-reorder.ts`), ícones, `ActorLoan`, movimento (`motion.ts`), vidro (`glass.ts`)                                                   |
 | `src/types/`              | Declarações que faltam nos `@girs`                                                                                                                                                                                                                                                               |
 | `tests/`                  | Runner Jasmine (`entry.js` acha todo `*.spec.ts`), polyfills e fixtures                                                                                                                                                                                                                          |
-| `tools/`                  | `smoke.sh`: headless isolado liga, desliga e religa; `devkit.sh`: shell aninhado ao vivo                                                                                                                                                                                                         |
+| `tools/`                  | `smoke.sh`: headless isolado liga, desliga e religa; `devkit.sh`: shell aninhado ao vivo; `screenshots/`: imagens da doc                                                                                                                                                                         |
+| `docs/`                   | Imagens do README (`*.png`, `demo.gif`), geradas por `npm run screenshots`; não edite à mão                                                                                                                                                                                                      |
 | `stylesheet.css`          | Todo o visual (cor só existe aqui)                                                                                                                                                                                                                                                               |
 | `schemas/`                | Schema do GSettings                                                                                                                                                                                                                                                                              |
 | `../shared/hooks/`        | `claude-session.sh`: hook do Claude Code, Codex e Gemini CLI (argumento `codex` ou `gemini`; sem argumento, Claude) que grava o estado de cada sessão e, no `PermissionRequest`, espera e devolve a decisão da ilha (compartilhado com o macOS; o build o copia para `dist/hooks/`)              |
@@ -121,6 +122,7 @@ npm run smoke        # build + gnome-shell headless isolado: liga, desliga e rel
 npm run format       # Prettier
 ./install.sh         # build e link de dist/ em ~/.local/share/gnome-shell/extensions/frodo@matheusjurkovich.github.io
 npm run pack -- 1.2.3  # build + frodo-linux-1.2.3.zip pronto para o extensions.gnome.org (sem gschemas.compiled)
+npm run screenshots  # build + headless com dados de exemplo: regrava docs/*.png e docs/demo.gif (precisa de GStreamer e python3-pil)
 ```
 
 ## Release
@@ -171,6 +173,12 @@ Esperado: `State: ACTIVE` e nenhuma linha no `grep` final.
 sobrescrever o `alive` da sessão real e quebrar o aprovar pela ilha), e imprime o barramento D-Bus dele
 (`env DBUS_SESSION_BUS_ADDRESS=<barramento> notify-send …`). Mantenha a janela visível, porque escondida ela congela as
 animações. Ele usa o D-Bus de sistema real: clicar no tile de Wi-Fi ou Bluetooth liga ou desliga o de verdade.
+
+**Imagens da doc:** `npm run screenshots` (`tools/screenshots/run.sh`) depois de mudança visível que apareça nas imagens do README.
+Mesmo isolamento do smoke; a extensão `tools/screenshots/probe/` liga o `unsafe_mode` (para `Eval`, `Screenshot` e
+`Screencast`) e só move o ponteiro virtual, nunca clica: abas e botões vão por `emit('clicked')`. O `Screencast` para quando o
+processo que o chamou sai, por isso a gravação passa pelo `record.js`, que segura a conexão. Confira as imagens antes do commit
+(o tile de Wi-Fi tem o nome da rede trocado por "Casa"; outros dados reais, como dispositivos de som e processos, aparecem).
 
 **Sessão real:** `./install.sh` e **saia da sessão logo em seguida**, sem desligar nem religar a extensão antes. O Wayland
 guarda os módulos antigos em memória; religar com o schema novo quebra a extensão e pode esconder a barra do topo.

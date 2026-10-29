@@ -2,6 +2,39 @@
 
 Dynamic island para o desktop: uma pílula no topo da tela com hora, bateria, RAM e uso do Claude Code, Codex e Gemini CLI que muda conforme o que acontece no sistema e, ao abrir, vira uma ilha com abas (controles, calendário, IA, notificações e mais).
 
+<p align="center"><img src="linux/docs/demo.gif" alt="Pílula recebendo uma notificação e mostrando o Claude trabalhando; depois a ilha abre e passa pelas abas" width="720"></p>
+
+## O que faz
+
+- **Pílula que reage:** notificação recebida, pedido de permissão do Claude Code ou do Codex (com Negar e Aprovar ali mesmo), sessão de IA trabalhando, reunião chegando, gravação de tela, volume e música.
+- **Ilha com abas:** controles do sistema e player, calendário, áreas de trabalho, IA (cotas, consumo e sessões do Claude Code, Codex e Gemini CLI), notificações e desempenho.
+- **Configurável por dentro:** posição em qualquer borda, fundo sólido, fosco ou translúcido, itens e ordem da pílula, abas visíveis e atalhos.
+
+<table>
+  <tr>
+    <td><img src="linux/docs/pilula-notificacao.png" alt="Pílula mostrando uma notificação"></td>
+    <td><img src="linux/docs/pilula-permissao.png" alt="Pílula pedindo permissão para o Claude rodar um comando"></td>
+  </tr>
+  <tr>
+    <td><img src="linux/docs/geral.png" alt="Aba Geral com controles do sistema e player"></td>
+    <td><img src="linux/docs/ia.png" alt="Aba IA com cotas e sessões"></td>
+  </tr>
+</table>
+
+As imagens são da versão Linux, geradas com dados de exemplo por `npm run screenshots` (veja [`linux/README.md`](linux/README.md#imagens)).
+
+## Instalação rápida
+
+Linux (GNOME Shell 50, Wayland): baixe o `frodo-linux-<versão>.zip` da [página de releases](https://github.com/matheusjurkovich/frodo/releases) e rode
+
+```bash
+gnome-extensions install --force frodo-linux-<versão>.zip
+```
+
+Saia e entre na sessão, ligue com `gnome-extensions enable frodo@matheusjurkovich.github.io` e, para ver as sessões do Claude Code, registre o hook ([passo a passo](linux/README.md#sessões-do-claude-code)).
+
+macOS 14+: baixe o `Frodo-<versão>.dmg` e arraste para Aplicativos ([detalhes](macos/README.md#instalação)).
+
 ## Plataformas
 
 | Plataforma                      | Pasta             | Tecnologia                                     | Download                                                                          |
@@ -23,7 +56,7 @@ Cada plataforma tem versão e tag próprias, para um ajuste de uma não mexer na
 ## Estrutura
 
 ```
-linux/                  extensão do GNOME Shell (TypeScript)
+linux/                  extensão do GNOME Shell (TypeScript); imagens da doc em linux/docs/
 macos/                  app macOS (Swift)
 shared/                 hook das sessões de IA (Claude Code, Codex, Gemini CLI) e ícones, comuns às duas
 docs/superpowers/       specs e planos de mudanças grandes
