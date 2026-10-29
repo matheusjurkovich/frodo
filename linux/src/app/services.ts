@@ -3,6 +3,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import {ClaudeService} from '../features/claude/claude-service.js';
 import {ClaudeSessions} from '../features/claude/claude-sessions-service.js';
+import {DoneAlert} from '../features/claude/done-alert-service.js';
 import {ClaudeTranscripts} from '../features/claude/claude-transcripts-service.js';
 import {CodexUsage} from '../features/codex/codex-service.js';
 import {GeminiUsage} from '../features/gemini/gemini-service.js';
@@ -57,6 +58,7 @@ export function createServices(gsettings: Gio.Settings, disposables: Disposables
     const meetings = disposables.own(new UpcomingMeeting(settings));
     const performance = disposables.own(new PerformanceMonitor());
     disposables.own(new MemoryAlert());
+    disposables.own(new DoneAlert(settings, sessions));
     const feed = disposables.own(new ActivityFeed({recording, sessions, meetings, bridge, volume, media, settings}));
     return {
         settings,

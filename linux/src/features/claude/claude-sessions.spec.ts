@@ -3,6 +3,8 @@ import {
     countByStatus,
     decisionJson,
     displayStatus,
+    doneMessage,
+    finishedSessions,
     nextState,
     oldestPending,
     parentPid,
@@ -219,5 +221,58 @@ describe('pedidos de permissão pendentes', () => {
         expect(oldestPending([a, b, c])).toBe(b);
         expect(oldestPending([a, b, c], 'a')).toBe(c);
         expect(oldestPending([], 'a')).toBeNull();
+    });
+});
+
+describe('sessões que terminaram', () => {
+    function stateOf(id: string, status: SessionStatus): SessionState {
+        return {
+            provider: 'claude',
+            sessionId: id,
+            cwd: '/home/u/frodo',
+            repo: 'frodo',
+            status,
+            tool: null,
+            step: '',
+            pid: null,
+            since: at,
+            updatedAt: at,
+        };
+    }
+
+    it('finishedSessions avisa quem passou de trabalhando para concluída', () => {
+        expect(
+            finishedSessions([stateOf('a', 'working'), stateOf('b', 'working')], [stateOf('a', 'done'), stateOf('b', 'working')]),
+        ).toEqual([stateOf('a', 'done')]);
+    });
+
+    it('finishedSessions ignora quem já estava concluída ao carregar', () => {
+        expect(finishedSessions([], [stateOf('a', 'done')])).toEqual([]);
+    });
+
+    it('finishedSessions ignora quem foi para esperando ou parada', () => {
+        expect(
+            finishedSessions([stateOf('a', 'working'), stateOf('b', 'working')], [stateOf('a', 'waiting'), stateOf('b', 'idle')]),
+        ).toEqual([]);
+    });
+
+    it('gemini termina pelo AfterAgent e conta como concluída', () => {
+        const gemini = (name: string): HookEvent => {
+            const parsed = parseHookEvent(
+                JSON.stringify({pid: 7, provider: 'gemini', event: {session_id: 'g1', cwd: '/home/u/site', hook_event_name: name}}),
+            );
+            if (!parsed) throw new Error('evento inválido');
+            return parsed;
+        };
+        const before = nextState(null, gemini('BeforeAgent'), at);
+        const after = nextState(before, gemini('AfterAgent'), at + 1000);
+        if (!before || !after) throw new Error('estado ausente');
+        const finished = finishedSessions([before], [after]);
+        expect(finished.map(({sessionId}) => sessionId)).toEqual(['g1']);
+        expect(doneMessage(after)).toBe('Gemini terminou em site');
+    });
+
+    it('doneMessage usa o nome do provedor e o repo', () => {
+        expect(doneMessage(stateOf('a', 'done'))).toBe('Claude terminou em frodo');
     });
 });

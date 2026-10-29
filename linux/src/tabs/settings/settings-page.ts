@@ -860,6 +860,17 @@ export class SettingsPage implements Component {
                 ),
             ),
             line(
+                'Avisar quando terminar',
+                'Notificação quando Claude, Codex ou Gemini termina a resposta',
+                this.#switch(
+                    'Avisar quando terminar',
+                    () => settings.notifyDone,
+                    checked => {
+                        settings.notifyDone = checked;
+                    },
+                ),
+            ),
+            line(
                 'Mostrar uso restante em vez do usado',
                 null,
                 this.#switch(

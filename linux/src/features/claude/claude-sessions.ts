@@ -2,6 +2,7 @@ import type {SessionStats} from './claude-index.js';
 import {contextWindow, modelDisplayName} from './claude-transcript.js';
 import {formatSpan, formatTokens} from '../../shared/format.js';
 import {AI_PROVIDERS, isOneOf} from '../../settings/schema-values.js';
+import {PROVIDER_NAMES} from '../../shared/ai-provider.js';
 import type {AiProvider} from '../../settings/schema-values.js';
 
 export type SessionStatus = 'working' | 'waiting' | 'done' | 'idle';
@@ -157,6 +158,15 @@ function transition(previous: SessionState | null, event: HookEvent, atMs: numbe
 
 export function displayStatus(state: SessionState, nowMs: number): SessionStatus {
     return state.status === 'done' && nowMs - state.updatedAt > IDLE_AFTER_MS ? 'idle' : state.status;
+}
+
+export function finishedSessions(previous: readonly SessionState[], next: readonly SessionState[]): SessionState[] {
+    const before = new Map(previous.map(state => [state.sessionId, state.status]));
+    return next.filter(state => state.status === 'done' && before.get(state.sessionId) === 'working');
+}
+
+export function doneMessage(state: SessionState): string {
+    return `${PROVIDER_NAMES[state.provider]} terminou em ${state.repo}`;
 }
 
 export function countByStatus(states: readonly SessionState[], nowMs: number): Record<SessionStatus | 'all', number> {
