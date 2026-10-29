@@ -77,6 +77,27 @@
     background-color: rgba(38, 38, 43, 0.72);
 }
 
+.frodo-pill-peeking {
+    min-height: 34px;
+    padding: 0 18px;
+    border-color: rgba(255, 255, 255, 0.14);
+}
+
+.frodo-pill-peek {
+    spacing: 3px;
+}
+
+.frodo-pill-peek-clock {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.frodo-pill-peek-bar {
+    height: 2px;
+    border-radius: 1px;
+    background-color: -st-accent-color;
+}
+
 .frodo-pill-action {
     min-height: 46px;
     padding-right: 7px;

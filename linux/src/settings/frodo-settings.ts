@@ -36,7 +36,10 @@ export type SettingsKey =
     | 'collapsed-cards'
     | 'disabled-ai'
     | 'gemini-daily-limit'
-    | 'meeting-notice-minutes';
+    | 'meeting-notice-minutes'
+    | 'peek-clock'
+    | 'peek-every-minutes'
+    | 'peek-seconds';
 
 const known = <T extends string>(values: readonly T[], list: readonly string[]): T[] =>
     [...new Set(list)].filter((item): item is T => isOneOf(values, item));
@@ -216,6 +219,30 @@ export class FrodoSettings {
 
     set meetingNoticeMinutes(value: number) {
         this.gsettings.set_int('meeting-notice-minutes', value);
+    }
+
+    get peekClock(): boolean {
+        return this.gsettings.get_boolean('peek-clock');
+    }
+
+    set peekClock(value: boolean) {
+        this.gsettings.set_boolean('peek-clock', value);
+    }
+
+    get peekEveryMinutes(): number {
+        return this.gsettings.get_int('peek-every-minutes');
+    }
+
+    set peekEveryMinutes(value: number) {
+        this.gsettings.set_int('peek-every-minutes', value);
+    }
+
+    get peekSeconds(): number {
+        return this.gsettings.get_int('peek-seconds');
+    }
+
+    set peekSeconds(value: number) {
+        this.gsettings.set_int('peek-seconds', value);
     }
 
     onChanged(keys: SettingsKey | readonly SettingsKey[], callback: () => void): Disposer {

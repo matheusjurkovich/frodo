@@ -17,6 +17,7 @@ import {hasMaximizedWindow, hasRealFullscreen, onWindowCoverChanged, watchTopEdg
 import {Disposables} from '../shared/disposables.js';
 import type {Disposer} from '../shared/disposables.js';
 import {Emitter} from '../shared/emitter.js';
+import {nextPeek} from '../shared/peek.js';
 import type {IslandHandle} from '../shared/island-handle.js';
 import type {FrodoServices} from './services.js';
 import {GENTLE_SPRING, SOFT_SPRING, SPRING, springWithin} from '../shared/spring.js';
@@ -71,10 +72,13 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
     readonly #grab = new GrabHelper(this.panel, {actionMode: Shell.ActionMode.POPUP});
     readonly #openTimer = new Timer();
     readonly #closeTimer = new Timer();
+    readonly #peekTimer = new Timer();
     readonly #disposables = new Disposables();
     #attached = false;
     #openEdge = 0;
     #covered = false;
+    #fullscreen = false;
+    #peeking = false;
     #unredirectDisabled = false;
     #pillWanted = true;
     #clipping = false;
@@ -237,6 +241,14 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
                 this.#syncSurface();
             }),
         );
+        this.#disposables.add(
+            settings.onChanged(['peek-clock', 'peek-every-minutes', 'peek-seconds'], () => {
+                this.#schedulePeek();
+            }),
+        );
+        this.#disposables.add(() => {
+            this.#peekTimer.stop();
+        });
         this.#disposables.add(() => {
             this.#dropGlass();
         });
@@ -566,13 +578,52 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         const alert = !fullscreen && (kind === 'notification' || kind === 'claude-permission');
         const entering = covered && !this.#covered;
         this.#covered = covered;
-        this.#showPill(!covered || alert, !fullscreen && !this.#isOpen);
+        this.#fullscreen = fullscreen;
+        this.#schedulePeek();
+        this.#showPill(!covered || alert || this.#peeking, !fullscreen && !this.#isOpen);
         this.#syncUnredirect();
         if (entering) {
             this.#feed.cancelTransient();
             this.close();
         }
         this.#syncTongue();
+    }
+
+    #schedulePeek(): void {
+        if (!this.#fullscreen || !this.#settings.peekClock) {
+            this.#peekTimer.stop();
+            this.#endPeek();
+            return;
+        }
+        if (this.#peeking) return;
+        const now = new Date();
+        this.#peekTimer.once(nextPeek(now, this.#settings.peekEveryMinutes).getTime() - now.getTime(), () => {
+            this.#startPeek();
+        });
+    }
+
+    #startPeek(): void {
+        if (this.#pillWanted || this.#isOpen) {
+            this.#schedulePeek();
+            return;
+        }
+        const seconds = this.#settings.peekSeconds;
+        this.#peeking = true;
+        this.pill.setPeek(seconds);
+        this.#finishConceal();
+        this.#showPill(true, true);
+        this.#syncTongue();
+        this.#peekTimer.once(seconds * 1000, () => {
+            this.#endPeek();
+            this.#schedulePeek();
+        });
+    }
+
+    #endPeek(): void {
+        if (!this.#peeking) return;
+        this.#peeking = false;
+        if (this.#fullscreen) this.#showPill(false, !this.#isOpen);
+        else this.pill.setPeek(null);
     }
 
     #finishConceal(): void {
@@ -586,6 +637,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
     }
 
     #showPill(wanted: boolean, animate: boolean): void {
+        if (wanted && !this.#peeking) this.pill.setPeek(null);
         if (wanted === this.#pillWanted) return;
         this.#pillWanted = wanted;
         const pill = this.pill.actor;
@@ -748,6 +800,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         }
         this.#openTimer.stop();
         this.#closeTimer.stop();
+        this.#peekTimer.stop();
         this.#disposables.dispose();
         this.clearListeners();
         this.panel.set_child(null);
