@@ -1,6 +1,7 @@
 .frodo-pill,
 .frodo-panel,
-.frodo-power-menu {
+.frodo-power-menu,
+.frodo-drag-layer {
     font-family: 'Ubuntu', sans-serif;
     color: #f4f4f5;
 }
@@ -986,14 +987,6 @@
 .frodo-pill-item {
     spacing: 6px;
     padding: 0 2px 0 4px;
-}
-
-.frodo-pill-item.frodo-drop-before {
-    box-shadow: inset 2px 0 0 0 -st-accent-color;
-}
-
-.frodo-pill-item.frodo-drop-after {
-    box-shadow: inset -2px 0 0 0 -st-accent-color;
 }
 
 .frodo-pill-item .frodo-pill-item-remove {
@@ -2561,15 +2554,6 @@
     margin-right: 8px;
 }
 
-.frodo-settings-line.frodo-drop-before,
-.frodo-settings-line.frodo-drop-before:first-child {
-    border-top: 2px solid -st-accent-color;
-}
-
-.frodo-settings-line.frodo-drop-after {
-    border-bottom: 2px solid -st-accent-color;
-}
-
 .frodo-performance {
     spacing: 10px;
 }
@@ -2749,4 +2733,21 @@
 
 .frodo-button.frodo-perf-kill:hover {
     background-color: #c8321f;
+}
+
+.frodo-drop-placeholder {
+    color: -st-accent-color;
+    border-radius: 10px;
+}
+
+.frodo-pill-item.frodo-dragging {
+    background-color: #2f2f35;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+
+.frodo-settings-line.frodo-dragging {
+    border-radius: 12px;
+    border-top-width: 0;
+    background-color: #232327;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
 }

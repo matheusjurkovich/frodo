@@ -1,4 +1,4 @@
-import {dropIndex, moveTo} from './reorder.js';
+import {moveTo} from './reorder.js';
 
 describe('moveTo', () => {
     it('leva o item para a posição pedida', () => {
@@ -13,22 +13,5 @@ describe('moveTo', () => {
 
     it('item que não está na lista não muda nada', () => {
         expect(moveTo(['a', 'b'], 'z', 0)).toEqual(['a', 'b']);
-    });
-});
-
-describe('dropIndex', () => {
-    it('soltar antes ou depois de um item mais à frente desconta o próprio item', () => {
-        expect(dropIndex(0, 2, false)).toBe(1);
-        expect(dropIndex(0, 2, true)).toBe(2);
-    });
-
-    it('soltar antes ou depois de um item mais atrás mantém o alvo', () => {
-        expect(dropIndex(3, 1, false)).toBe(1);
-        expect(dropIndex(3, 1, true)).toBe(2);
-    });
-
-    it('soltar sobre si mesmo não move', () => {
-        expect(dropIndex(2, 2, false)).toBe(2);
-        expect(dropIndex(2, 2, true)).toBe(2);
     });
 });

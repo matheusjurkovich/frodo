@@ -654,6 +654,7 @@ export class SettingsPage implements Component {
         const handles: St.Button[] = [];
         const chips = items.map((item, index) => {
             const chipBox = row('frodo-pill-item');
+            chipBox.x_expand = false;
             const grip = this.#grip(`Reordenar ${ITEM_LABELS[item]}: arraste ou use as setas`);
             handles.push(grip);
             chipBox.add_child(grip);
@@ -675,12 +676,16 @@ export class SettingsPage implements Component {
             for (const child of chipBox.get_children()) child.y_align = Clutter.ActorAlign.CENTER;
             return chipBox;
         });
-        editor.add_child(new Wrap('frodo-pill-items', chips).actor);
+        const wrap = new Wrap('frodo-pill-items', chips);
+        editor.add_child(wrap.actor);
         this.#pillBuilt.add(
             dragReorder({
                 axis: 'x',
                 items: chips,
                 handles,
+                arrange: actors => {
+                    wrap.setItems(actors);
+                },
                 onMove: (from, to) => {
                     const item = items[from];
                     if (item === undefined) return;
@@ -773,6 +778,12 @@ export class SettingsPage implements Component {
                 axis: 'y',
                 items: lines,
                 handles,
+                arrange: actors => {
+                    actors.forEach((actor, index) => {
+                        if (actor.get_parent() !== list) list.insert_child_at_index(actor, index);
+                        else list.set_child_at_index(actor, index);
+                    });
+                },
                 onMove: (from, to) => {
                     const id = order[from];
                     if (id === undefined) return;

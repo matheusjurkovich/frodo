@@ -12,7 +12,7 @@ function rowBox(): St.BoxLayout {
 
 export class Wrap implements Component {
     readonly actor: St.BoxLayout;
-    readonly #items: readonly Clutter.Actor[];
+    #items: readonly Clutter.Actor[];
     #rows: readonly number[];
 
     constructor(styleClass: string, items: readonly Clutter.Actor[]) {
@@ -25,6 +25,12 @@ export class Wrap implements Component {
         this.actor.connect('notify::width', () => {
             this.#reflow();
         });
+    }
+
+    setItems(items: readonly Clutter.Actor[]): void {
+        this.#items = items;
+        this.#rows = [];
+        this.#reflow();
     }
 
     #reflow(): void {
