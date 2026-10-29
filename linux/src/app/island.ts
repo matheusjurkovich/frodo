@@ -30,12 +30,11 @@ const OPEN_DELAY_MS = 150;
 const CLOSE_DELAY_MS = 300;
 const AUTO_CLOSE_MS = 5000;
 const FADE_IN_MS = 220;
-const FADE_IN_DELAY_MS = 70;
+const CONTENT_FADE_IN_MS = 120;
 const FADE_OUT_MS = 110;
 const FOLLOW = 'frodo-follow';
 const BLUR = 'frodo-blur';
 const BLUR_RADIUS = 16;
-const BLUR_IN_MS = 300;
 const CLOSE_FADE_MS = 160;
 const CONTENT_OPEN_SCALE = 0.9;
 const CONTENT_CLOSE_SCALE = 0.95;
@@ -643,6 +642,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         const anchor = this.#anchor();
         anchor.get_allocation_box();
         panel.remove_all_transitions();
+        panel.remove_effect_by_name(BLUR);
         panel.opacity = 0;
         panel.show();
 
@@ -668,15 +668,14 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         panel.set_scale(CONTENT_OPEN_SCALE, CONTENT_OPEN_SCALE);
         this.#clipping = true;
         this.#clipToBackdrop();
-        springEase(panel, {scaleX: 1, scaleY: 1, delay: FADE_IN_DELAY_MS}, SOFT_SPRING);
-        this.#blurPanel(BLUR_RADIUS, 0, BLUR_IN_MS);
+        springEase(panel, {scaleX: 1, scaleY: 1}, SOFT_SPRING);
         springEase(backdrop, {x: panel.x, width: naturalWidth}, GENTLE_SPRING);
         springEase(backdrop, {y: panel.y, height}, springWithin(GENTLE_SPRING, backdrop.height, height, max), () => {
             this.#clipping = false;
             panel.remove_clip();
             backdrop.add_constraint_with_name(FOLLOW, new Clutter.BindConstraint({source: panel, coordinate: Clutter.BindCoordinate.ALL}));
         });
-        panel.ease({opacity: 255, duration: FADE_IN_MS, delay: FADE_IN_DELAY_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+        panel.ease({opacity: 255, duration: CONTENT_FADE_IN_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
         pill.ease({opacity: 0, duration: FADE_OUT_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
     }
 

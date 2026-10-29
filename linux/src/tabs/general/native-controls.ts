@@ -18,6 +18,7 @@ import {Disposables} from '../../shared/disposables.js';
 import type {Disposer} from '../../shared/disposables.js';
 import {SPRING} from '../../shared/spring.js';
 import {ActorLoan} from '../../shared/ui/actor-loan.js';
+import {whileShown} from '../../shared/ui/lifecycle.js';
 import {iconButton} from '../../shared/ui/buttons.js';
 import {packGrid} from '../../shared/ui/layout.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
@@ -79,14 +80,16 @@ export class NativeControls {
         this.#content = content;
         this.#scrollToTop = scrollToTop;
         this.#disposables.add(
-            island.on('opening', () => {
-                this.#borrow();
-            }),
-        );
-        this.#disposables.add(
-            island.on('closed', () => {
-                this.#loan.dispose();
-            }),
+            whileShown(
+                page,
+                island,
+                () => {
+                    this.#borrow();
+                },
+                () => {
+                    this.#loan.dispose();
+                },
+            ),
         );
     }
 
