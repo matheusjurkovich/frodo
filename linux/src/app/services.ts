@@ -9,6 +9,7 @@ import {GeminiUsage} from '../features/gemini/gemini-service.js';
 import {MediaService} from '../features/media/media-service.js';
 import {UpcomingMeeting} from '../features/meetings/meetings-service.js';
 import {NotificationBridge} from '../features/notifications/notification-bridge-service.js';
+import {MemoryAlert} from '../features/system/memory-alert-service.js';
 import {PerformanceMonitor} from '../features/system/performance-service.js';
 import {Recording} from '../features/system/recording-service.js';
 import {SystemState} from '../features/system/system-state-service.js';
@@ -55,6 +56,7 @@ export function createServices(gsettings: Gio.Settings, disposables: Disposables
     const volume = disposables.own(new VolumeWatch());
     const meetings = disposables.own(new UpcomingMeeting(settings));
     const performance = disposables.own(new PerformanceMonitor());
+    disposables.own(new MemoryAlert());
     const feed = disposables.own(new ActivityFeed({recording, sessions, meetings, bridge, volume, media}));
     return {
         settings,
