@@ -73,6 +73,9 @@
     <key name="auto-close" type="b">
       <default>false</default>
     </key>
+    <key name="always-show-pill" type="b">
+      <default>false</default>
+    </key>
     <key name="hidden-tabs" type="as">
       <default>[]</default>
     </key>

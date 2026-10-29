@@ -256,6 +256,7 @@ export class SettingsPage implements Component {
             'pill-position',
             'open-on-hover',
             'auto-close',
+            'always-show-pill',
             'hidden-tabs',
             'monitors',
             'hide-top-bar',
@@ -574,6 +575,19 @@ export class SettingsPage implements Component {
         );
         percent.add_style_class_name('frodo-settings-line-flat');
         options.add_child(percent);
+        const always = line(
+            'Sempre à mostra',
+            'Com janela maximizada a pílula fica no lugar, sem virar lingueta',
+            this.#switch(
+                'Sempre à mostra',
+                () => settings.alwaysShowPill,
+                checked => {
+                    settings.alwaysShowPill = checked;
+                },
+            ),
+        );
+        always.add_style_class_name('frodo-settings-line-flat');
+        options.add_child(always);
         this.#bindings.push(() => {
             hint.text = MODE_HINTS[settings.closedMode];
             rotate.visible = settings.closedMode === 'rotating';
