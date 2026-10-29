@@ -71,6 +71,7 @@ export class ActivityFeed extends Emitter<{changed: []}> {
     readonly #volumeTimer = new Timer();
     readonly #shownTimer = new Timer();
     readonly #gate = new StepGate();
+    #held: Extract<PillActivity, {kind: 'claude-working'}> | null = null;
     #seen: PillActivity[] = [];
     #queue: InterceptedNotification[] = [];
     #notification: InterceptedNotification | null = null;
@@ -105,9 +106,12 @@ export class ActivityFeed extends Emitter<{changed: []}> {
         );
         this.#disposables.add(
             sources.settings.onChanged('pill-ai-activity', () => {
+                const shown = this.#current !== null;
                 this.#shownTimer.stop();
+                this.#held = null;
                 this.#current = null;
                 this.#refresh();
+                if (shown && this.current === null) this.emit('changed');
             }),
         );
         this.#seen = this.#transient().filter(({kind}) => kind === 'claude-working' || kind === 'media');
@@ -156,8 +160,11 @@ export class ActivityFeed extends Emitter<{changed: []}> {
             const status = displayStatus(session, now);
             if (session === asking) continue;
             if (status === 'waiting') candidates.push({kind: 'claude-waiting', session});
-            else if (status === 'working' && session.tool !== null && this.#showsWorking(session, now))
-                candidates.push({kind: 'claude-working', session});
+            else if (status === 'working' && session.tool !== null) {
+                const held = this.#held?.session.sessionId === session.sessionId ? this.#held : null;
+                if (held) candidates.push(held);
+                else if (this.#showsWorking(session, now)) candidates.push({kind: 'claude-working', session});
+            }
         }
         const meeting = meetings.next;
         if (meeting) candidates.push({kind: 'meeting', title: meeting.title, startsAt: meeting.startsAt, url: meeting.url ?? null});
@@ -180,7 +187,9 @@ export class ActivityFeed extends Emitter<{changed: []}> {
     }
 
     #refresh(): void {
-        this.#gate.retain(new Set(this.#sources.sessions.sessions.map(({sessionId}) => sessionId)));
+        const ids = new Set(this.#sources.sessions.sessions.map(({sessionId}) => sessionId));
+        this.#gate.retain(ids);
+        if (this.#held && !ids.has(this.#held.session.sessionId)) this.#held = null;
         const candidates = this.#candidates();
         this.#seen = this.#seen.filter(seen => candidates.some(candidate => same(seen, candidate)));
         const previous = this.#current;
@@ -189,11 +198,15 @@ export class ActivityFeed extends Emitter<{changed: []}> {
         if (same(previous, current)) return;
         const mode = this.#sources.settings.pillAiActivity;
         if (mode === 'change' && previous?.kind === 'claude-working' && current?.kind === 'claude-working') this.#seen.push(previous);
-        if (current?.kind === 'claude-working' && mode === 'change') this.#gate.shown(current.session.sessionId, Date.now());
+        if (current?.kind === 'claude-working' && mode === 'change') {
+            this.#gate.shown(current.session.sessionId, Date.now());
+            this.#held = current;
+        }
         if (current?.kind === 'claude-working' && mode === 'always') this.#shownTimer.stop();
         else if (current && current.kind !== 'notification' && current.kind !== 'volume')
             this.#shownTimer.once(current.kind === 'claude-working' ? STEP_SHOWN_MS : SHOWN_MS, () => {
                 this.#seen.push(current);
+                if (this.#held === current) this.#held = null;
                 this.#refresh();
             });
         else this.#shownTimer.stop();

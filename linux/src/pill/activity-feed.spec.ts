@@ -212,6 +212,7 @@ describe('ActivityFeed', () => {
     });
 
     it('só emite quando o conteúdo muda', () => {
+        settings.pillAiActivity = 'always';
         sessions.set([session('a', 'working', 'Bash ls', 'Bash')]);
         sessions.set([session('a', 'working', 'Bash ls', 'Bash')]);
         expect(changes).toBe(1);
@@ -302,6 +303,37 @@ describe('ActivityFeed', () => {
         settings.pillAiActivity = 'change';
         expect(workingStep()).toBe('Edit a.ts');
         expect(timers.onceMs()).toEqual([3000]);
+    });
+
+    it('no modo ao mudar, o primeiro passo de uma rajada fica 3 s inteiros', () => {
+        sessions.set([session('a', 'working', 'Read a.ts', 'Read')]);
+        now += 200;
+        sessions.set([session('a', 'working', 'Read b.ts', 'Read')]);
+        expect(workingStep()).toBe('Read a.ts');
+        timers.fire(3000);
+        expect(feed.current).toBeNull();
+    });
+
+    it('trocar para nunca tira a IA da pílula na hora', () => {
+        settings.pillAiActivity = 'always';
+        sessions.set([session('a', 'working', 'Edit a.ts', 'Edit')]);
+        const before = changes;
+        settings.pillAiActivity = 'never';
+        expect(feed.current).toBeNull();
+        expect(changes).toBe(before + 1);
+    });
+
+    it('trocar de sempre para ao mudar com o passo recusado não deixa a pílula presa', () => {
+        sessions.set([session('a', 'working', 'Edit a.ts', 'Edit')]);
+        timers.fire(3000);
+        settings.pillAiActivity = 'always';
+        now += 1000;
+        sessions.set([session('a', 'working', 'Edit b.ts', 'Edit')]);
+        expect(workingStep()).toBe('Edit b.ts');
+        const before = changes;
+        settings.pillAiActivity = 'change';
+        expect(feed.current).toBeNull();
+        expect(changes).toBe(before + 1);
     });
 
     it('sessão encerrada some da pílula', () => {
