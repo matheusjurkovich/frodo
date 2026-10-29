@@ -19,8 +19,8 @@ cada commit, `npm run smoke` nas que mexem em composição ou ciclo de vida.
    `TabBar` e `PanelContent` seguem a ordem; "Abas visíveis" com alça e número; CSS.
 6. **feat: entrar no meet** — parse de iCalendar e link do Meet puros + spec em `src/features/meetings/`; cliente D-Bus do
    EDS (`meet-link-client.ts`); `UpcomingMeeting` expõe `url`; botão "Entrar" na atividade de reunião (`src/pill/activity-view.ts`).
-7. **feat: aba desempenho** — `TabId` `performance`; regras puras e specs em `src/features/performance/` (cpu, memória,
-   disco, processos, gpu por fdinfo, protegido, top N); `performance-service.ts` em `FrodoServices`; página em
+7. **feat: aba desempenho** — `TabId` `performance`; regras puras e specs em `src/features/system/performance.ts` (cpu, memória,
+   disco, processos, gpu por fdinfo, protegido, top N); `system/performance-service.ts` em `FrodoServices`; página em
    `src/tabs/performance/` (cards, sparkline, segmentado, tabela, confirmação, rodapé); ícones `frodo-performance-symbolic`;
    CSS.
 8. **docs e verificação** — `linux/README.md`, `linux/CLAUDE.md` (aba nova, pasta `performance`), `README.md` da raiz se

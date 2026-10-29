@@ -7,16 +7,16 @@ Desempenho · confirmar encerramento, Configurações · Pílula, Configuraçõe
 
 Dois bugs e seis melhorias, entregues em sequência no mesmo branch, um commit por item.
 
-| Item                      | Tipo  | Resumo                                                                                   |
-| ------------------------- | ----- | ---------------------------------------------------------------------------------------- |
-| Abertura lenta ou travada | fix   | A ilha engasga ao abrir                                                                  |
-| Carregamento em etapas    | fix   | O fundo aparece antes e o conteúdo chega depois                                          |
-| Estilo escuro             | feat  | Tile nativo de estilo escuro na Geral                                                    |
-| Hora periódica            | feat  | Em tela cheia, a pílula volta só com a hora a cada N min por S s                         |
-| Prévia da pílula          | feat  | Configurações › Pílula mostra a pílula de repouso real                                   |
-| Arrastar para reordenar   | feat  | Itens da pílula e abas reordenados por arrastar (e teclado)                              |
-| Entrar no Meet            | feat  | Botão "Entrar" na pílula de reunião quando o evento tem link do Meet                     |
-| Aba Desempenho            | feat  | CPU, RAM, GPU e disco; top 5 processos ordenável por CPU, RAM ou GPU; encerrar processo |
+| Item                      | Tipo | Resumo                                                                                  |
+| ------------------------- | ---- | --------------------------------------------------------------------------------------- |
+| Abertura lenta ou travada | fix  | A ilha engasga ao abrir                                                                 |
+| Carregamento em etapas    | fix  | O fundo aparece antes e o conteúdo chega depois                                         |
+| Estilo escuro             | feat | Tile nativo de estilo escuro na Geral                                                   |
+| Hora periódica            | feat | Em tela cheia, a pílula volta só com a hora a cada N min por S s                        |
+| Prévia da pílula          | feat | Configurações › Pílula mostra a pílula de repouso real                                  |
+| Arrastar para reordenar   | feat | Itens da pílula e abas reordenados por arrastar (e teclado)                             |
+| Entrar no Meet            | feat | Botão "Entrar" na pílula de reunião quando o evento tem link do Meet                    |
+| Aba Desempenho            | feat | CPU, RAM, GPU e disco; top 5 processos ordenável por CPU, RAM ou GPU; encerrar processo |
 
 ## 1. Fixes de abertura
 
@@ -111,8 +111,9 @@ soma, limitado a 100%). Funciona em Intel e AMD; NVIDIA proprietária não expõ
 
 Encerrar usa `kill -TERM <pid>` por `Gio.Subprocess`, processo curto por ação do usuário (permitido pela regra do repositório).
 
-Código: `src/features/performance/` com regras puras (parse de `/proc`, delta de CPU, delta de GPU por fdinfo, top N,
-protegido) e specs, e `performance-service.ts`; aba em `src/tabs/performance/`.
+Código: regras puras em `src/features/system/performance.ts` (parse de `/proc`, delta de CPU, delta de GPU por fdinfo, top N,
+protegido) com spec, e `src/features/system/performance-service.ts` (fica em `system` porque feature não importa outra e o
+parse de `/proc/meminfo` já mora lá); aba em `src/tabs/performance/`.
 
 ## Fora do escopo
 
