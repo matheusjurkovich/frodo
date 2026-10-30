@@ -4,6 +4,22 @@ public enum ClosedMode: String, CaseIterable, Sendable {
     case minimal
     case compact
     case rotating
+
+    public var label: String {
+        switch self {
+        case .minimal: "Mínimo"
+        case .compact: "Compacto"
+        case .rotating: "Rotativo"
+        }
+    }
+
+    public var hint: String {
+        switch self {
+        case .minimal: "Só o relógio, a pílula mais discreta."
+        case .compact: "Todos os itens aparecem ao mesmo tempo."
+        case .rotating: "Bateria, RAM e as cotas de IA dividem um espaço e se revezam."
+        }
+    }
 }
 
 public enum ClosedItem: String, CaseIterable, Sendable {
@@ -19,6 +35,18 @@ public enum ClosedItem: String, CaseIterable, Sendable {
         switch self {
         case .battery, .ram, .claudeSession, .claudeWeekly: true
         default: false
+        }
+    }
+
+    public var label: String {
+        switch self {
+        case .clock: "Relógio"
+        case .date: "Data"
+        case .notifications: "Notificações"
+        case .battery: "Bateria"
+        case .ram: "RAM"
+        case .claudeSession: "Claude · sessão"
+        case .claudeWeekly: "Claude · semana"
         }
     }
 }
@@ -151,6 +179,16 @@ public final class FrodoSettings {
     public var autoClose: Bool {
         get { defaults.bool(forKey: "auto-close") }
         set { set(newValue, for: "auto-close") }
+    }
+
+    public var ramPercent: Bool {
+        get { defaults.bool(forKey: "ram-percent") }
+        set { set(newValue, for: "ram-percent") }
+    }
+
+    public var showBatteryPercentage: Bool {
+        get { defaults.object(forKey: "show-battery-percentage") == nil ? true : defaults.bool(forKey: "show-battery-percentage") }
+        set { set(newValue, for: "show-battery-percentage") }
     }
 
     public var alwaysShowPill: Bool {

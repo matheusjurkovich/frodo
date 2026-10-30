@@ -13,3 +13,13 @@ public struct MemoryInfo: Equatable, Sendable {
 public func formatGb(_ bytes: UInt64) -> String {
     String(format: "%.1fG", Double(bytes) / 1_073_741_824)
 }
+
+public func usedPercent(_ memory: MemoryInfo) -> Int {
+    guard memory.totalBytes > 0 else { return 0 }
+    return Int((Double(memory.usedBytes) / Double(memory.totalBytes) * 100).rounded())
+}
+
+public func formatRam(_ memory: MemoryInfo?, percent: Bool) -> String {
+    guard let memory else { return "RAM —" }
+    return percent ? "RAM \(usedPercent(memory))%" : "RAM \(formatGb(memory.usedBytes))"
+}

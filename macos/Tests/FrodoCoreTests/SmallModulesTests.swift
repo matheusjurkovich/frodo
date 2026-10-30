@@ -163,6 +163,34 @@ struct FrodoSettingsTests {
         #expect(changedKeys == ["meeting-notice-minutes"])
     }
 
+    @Test("itens da pílula guardam a ordem escolhida")
+    func closedItemsKeepTheChosenOrder() {
+        let settings = makeSettings()
+        settings.closedItems = [.battery, .clock, .ram]
+        #expect(settings.closedItems == [.battery, .clock, .ram])
+    }
+
+    @Test("RAM em porcentagem começa desligada e porcentagem da bateria começa ligada")
+    func ramPercentDefaultsToOffAndBatteryPercentageToOn() {
+        let settings = makeSettings()
+        #expect(!settings.ramPercent)
+        #expect(settings.showBatteryPercentage)
+        settings.ramPercent = true
+        settings.showBatteryPercentage = false
+        #expect(settings.ramPercent)
+        #expect(!settings.showBatteryPercentage)
+    }
+
+    @Test("trocar RAM em porcentagem e bateria emite cada chave")
+    func changingRamPercentAndBatteryPercentageEmitsEachKey() {
+        let settings = makeSettings()
+        var changedKeys: [String] = []
+        _ = settings.changed.on { changedKeys.append($0) }
+        settings.ramPercent = true
+        settings.showBatteryPercentage = false
+        #expect(changedKeys == ["ram-percent", "show-battery-percentage"])
+    }
+
     @Test("sempre à mostra começa desligado e guarda a escolha")
     func alwaysShowPillDefaultsToOffAndStoresTheChoice() {
         let settings = makeSettings()

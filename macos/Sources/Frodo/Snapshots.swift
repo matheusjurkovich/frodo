@@ -64,6 +64,25 @@ enum Snapshots {
             model.settingsSection = section ?? .general
             writeWindow(IslandRootView(services: services, model: model, onToggle: {}, onClose: {}), size: CGSize(width: 1000, height: 860), name: name, directory: directory)
         }
+        let settings = services.settings
+        let pillScenes: [(String, ClosedMode, [ClosedItem], Bool)] = [
+            ("minimo", .minimal, [.clock], false),
+            ("rotativo", .rotating, [.clock, .battery, .ram, .claudeSession], true),
+            ("ordem", .compact, [.battery, .clock, .ram, .claudeSession], true),
+        ]
+        for (name, mode, items, ramPercent) in pillScenes {
+            settings.closedMode = mode
+            settings.closedItems = items
+            settings.ramPercent = ramPercent
+            let model = IslandModel()
+            model.isOpen = true
+            model.settingsOpen = true
+            model.settingsSection = .pill
+            writeWindow(IslandRootView(services: services, model: model, onToggle: {}, onClose: {}), size: CGSize(width: 1000, height: 860), name: "ilha-configuracoes-pill-\(name)", directory: directory)
+        }
+        settings.closedMode = .compact
+        settings.closedItems = [.clock, .date, .notifications, .battery]
+        settings.ramPercent = false
         let placements: [(String, IslandPosition, Bool)] = [
             ("posicao-embaixo-direita-pilula", .bottomRight, false), ("posicao-meio-esquerda-pilula", .middleLeft, false),
             ("posicao-meio-esquerda-ilha", .middleLeft, true), ("posicao-embaixo-meio-ilha", .bottomCenter, true),

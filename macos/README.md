@@ -1,6 +1,6 @@
 # Frodo para macOS
 
-Versão macOS do [Frodo](../README.md): a mesma ilha flutuante, por padrão no topo da tela (Configurações, Posição, move para qualquer canto ou meio de borda), em Swift (SwiftUI + AppKit). Fechada, é a pílula com hora, data, bateria, memória e uso do Claude Code, que troca para a atividade em andamento (Claude trabalhando, pedido de permissão, notificação, música, volume, reunião). Aberta, é a ilha com as abas Geral, Calendário, Claude e Notificações, mais as configurações em seis seções (Geral, Tela e posição, Pílula, Abas, IA e Agenda), com aviso de reunião de 0, 5, 10 ou 15 minutos e fundo sólido, fosco ou translúcido (o desfoque do que está atrás da ilha, em Tela e posição). Nas bordas esquerda e direita a pílula fica em pé. Com uma janela maximizada por cima a pílula vira uma lingueta (a menos que "Sempre à mostra" esteja ligado); em tela cheia ela some e volta só com a hora, de tempos em tempos (Pílula, Tela cheia), exceto para aprovar uma permissão do Claude.
+Versão macOS do [Frodo](../README.md): a mesma ilha flutuante, por padrão no topo da tela (Configurações, Posição, move para qualquer canto ou meio de borda), em Swift (SwiftUI + AppKit). Fechada, é a pílula com hora, data, bateria, memória e uso do Claude Code, que troca para a atividade em andamento (Claude trabalhando, pedido de permissão, notificação, música, volume, reunião). Aberta, é a ilha com as abas Geral, Calendário, Claude e Notificações, mais as configurações em seis seções (Geral, Tela e posição, Pílula, Abas, IA e Agenda), com aviso de reunião de 0, 5, 10 ou 15 minutos e fundo sólido, fosco ou translúcido (o desfoque do que está atrás da ilha, em Tela e posição). Em Pílula há uma prévia ao vivo, o modo (Mínimo, Compacto ou Rotativo), os itens na ordem que você escolher (mover, tirar e adicionar), RAM em porcentagem e a opção de esconder a porcentagem da bateria. Nas bordas esquerda e direita a pílula fica em pé. Com uma janela maximizada por cima a pílula vira uma lingueta (a menos que "Sempre à mostra" esteja ligado); em tela cheia ela some e volta só com a hora, de tempos em tempos (Pílula, Tela cheia), exceto para aprovar uma permissão do Claude.
 
 O app não é um port do código do Linux: no GNOME o Frodo roda dentro do `gnome-shell`, e nada disso existe no macOS. O design (tokens, tamanhos, animações com mola) e o comportamento vêm da versão Linux; veja o mapa em [`docs/superpowers/specs/2026-10-28-frodo-macos-design.md`](../docs/superpowers/specs/2026-10-28-frodo-macos-design.md).
 
@@ -42,7 +42,7 @@ As credenciais do Claude Code ficam no Keychain (`Claude Code-credentials`, e `C
 
 ```shell
 swift build                      # compila
-swift test                       # 254 testes (Core e Plataforma), inclui o hook de verdade
+swift test                       # 275 testes (Core e Plataforma), inclui o hook de verdade
 swift run Frodo --demo           # dados de exemplo e um roteiro de atividades
 swift run Frodo --smoke          # sobe, cria as ilhas e sai com 0
 swift run Frodo --scan           # varre as transcrições reais; mostra tempo e pico de memória

@@ -76,6 +76,7 @@ struct TextButton: View {
     var kind: Kind = .secondary
     var compact = false
     let action: () -> Void
+    @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
         Button(action: action) {
@@ -90,6 +91,44 @@ struct TextButton: View {
                 )
         }
         .buttonStyle(.plain)
+        .opacity(isEnabled ? 1 : 0.4)
+    }
+}
+
+struct WrapLayout: Layout {
+    var spacing: CGFloat = 8
+    var lineSpacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        arrange(width: proposal.width ?? .infinity, subviews: subviews).size
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let origins = arrange(width: bounds.width, subviews: subviews).origins
+        for (index, origin) in origins.enumerated() {
+            subviews[index].place(at: CGPoint(x: bounds.minX + origin.x, y: bounds.minY + origin.y), proposal: .unspecified)
+        }
+    }
+
+    private func arrange(width: CGFloat, subviews: Subviews) -> (size: CGSize, origins: [CGPoint]) {
+        var origins: [CGPoint] = []
+        var cursorX: CGFloat = 0
+        var cursorY: CGFloat = 0
+        var lineHeight: CGFloat = 0
+        var usedWidth: CGFloat = 0
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if cursorX > 0, cursorX + size.width > width {
+                cursorX = 0
+                cursorY += lineHeight + lineSpacing
+                lineHeight = 0
+            }
+            origins.append(CGPoint(x: cursorX, y: cursorY))
+            cursorX += size.width + spacing
+            lineHeight = max(lineHeight, size.height)
+            usedWidth = max(usedWidth, cursorX - spacing)
+        }
+        return (CGSize(width: usedWidth, height: cursorY + lineHeight), origins)
     }
 }
 
