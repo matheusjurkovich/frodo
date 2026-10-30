@@ -3,7 +3,6 @@ import EventKit
 import FrodoCore
 import Foundation
 
-private let leadSeconds: TimeInterval = 10 * 60
 private let refreshSeconds: TimeInterval = 30
 
 public enum CalendarAccess: Sendable {
@@ -20,13 +19,17 @@ public final class CalendarService: MeetingsSource, Destroyable {
     public private(set) var access: CalendarAccess = .unknown
 
     private let store = EKEventStore()
+    private let settings: FrodoSettings
     private let timer: TimerSlot
     private var observer: NSObjectProtocol?
+    private var settingsSubscription: Unsubscribe?
     private var demoEvents: [CalendarEvent]?
 
-    public init(scheduler: Scheduler) {
+    public init(settings: FrodoSettings, scheduler: Scheduler) {
+        self.settings = settings
         timer = TimerSlot(scheduler: scheduler)
         access = Self.currentAccess()
+        settingsSubscription = settings.onChanged(["meeting-notice-minutes"]) { [weak self] in self?.refresh() }
         observer = NotificationCenter.default.addObserver(forName: .EKEventStoreChanged, object: store, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.refresh() }
         }
@@ -68,7 +71,11 @@ public final class CalendarService: MeetingsSource, Destroyable {
     }
 
     private func nextMeetingFromStore() -> Meeting? {
-        guard Self.currentAccess() == .granted else { return nil }
+        let leadSeconds = TimeInterval(settings.meetingNoticeMinutes * 60)
+        guard Self.currentAccess() == .granted, leadSeconds > 0 else {
+            nextMeetingURL = nil
+            return nil
+        }
         let now = Date()
         let predicate = store.predicateForEvents(withStart: now, end: now.addingTimeInterval(leadSeconds + 60), calendars: nil)
         let stored = store.events(matching: predicate)
@@ -108,6 +115,7 @@ public final class CalendarService: MeetingsSource, Destroyable {
 
     public func destroy() {
         timer.stop()
+        settingsSubscription?()
         if let observer { NotificationCenter.default.removeObserver(observer) }
         changed.clearListeners()
     }

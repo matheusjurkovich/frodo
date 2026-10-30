@@ -52,7 +52,7 @@ final class FrodoServices {
         claude = ClaudeService(settings: settings, store: store, transport: transport, paths: paths, scheduler: scheduler)
         transcripts = ClaudeTranscripts(settings: settings, cachePath: paths.indexCacheFile, scheduler: scheduler)
         system = SystemState(scheduler: scheduler)
-        calendar = CalendarService(scheduler: scheduler)
+        calendar = CalendarService(settings: settings, scheduler: scheduler)
         let sources = FeedSources(
             recording: NoRecording(), sessions: sessions, meetings: calendar, notifications: notifications, volume: volume, media: media
         )

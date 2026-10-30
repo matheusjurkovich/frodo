@@ -17,7 +17,7 @@ struct HeaderView: View {
         HStack(spacing: 12) {
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 HStack(spacing: 8) {
-                    Text(context.date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute())).font(Theme.Font.title()).foregroundStyle(Theme.text).monospacedDigit()
+                    Text(context.date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits))).font(Theme.Font.title()).foregroundStyle(Theme.text).monospacedDigit()
                     Text(formatDate(context.date)).font(Theme.Font.secondary()).foregroundStyle(Theme.textSecondary)
                 }
             }

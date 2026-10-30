@@ -427,6 +427,7 @@ struct HooksSetup: View {
             if let message { Text(message).font(Theme.Font.label()).foregroundStyle(Theme.accentText) }
         }
         .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: Theme.Radius.item, style: .continuous).fill(Theme.control))
     }
 }

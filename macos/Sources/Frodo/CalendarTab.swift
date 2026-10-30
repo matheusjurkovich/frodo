@@ -108,7 +108,7 @@ private struct EventRow: View {
             HStack(alignment: .top, spacing: 10) {
                 Circle().fill(Color(hexString: event.colorHex)).frame(width: 8, height: 8).padding(.top, 6)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(event.isAllDay ? "Dia inteiro" : "\(event.start.formatted(.dateTime.hour().minute())) – \(event.end.formatted(.dateTime.hour().minute()))")
+                    Text(event.isAllDay ? "Dia inteiro" : "\(event.start.formatted(.dateTime.hour().minute(.twoDigits))) – \(event.end.formatted(.dateTime.hour().minute(.twoDigits)))")
                         .font(Theme.Font.mono(12)).foregroundStyle(Theme.textSecondary)
                     Text(event.title).font(Theme.Font.body(.medium)).foregroundStyle(Theme.text).lineLimit(2)
                     if !event.location.isEmpty { Text(event.location).font(Theme.Font.label()).foregroundStyle(Theme.textSecondary).lineLimit(1) }

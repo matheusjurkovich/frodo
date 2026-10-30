@@ -137,6 +137,32 @@ struct FrodoSettingsTests {
         UserDefaults.standard.removeObject(forKey: "frodo-test-invalid")
     }
 
+    @Test("aviso de reunião começa em 10 minutos e aceita zero para desligar")
+    func meetingNoticeDefaultsToTenMinutesAndAcceptsZero() {
+        let settings = makeSettings()
+        #expect(settings.meetingNoticeMinutes == 10)
+        settings.meetingNoticeMinutes = 0
+        #expect(settings.meetingNoticeMinutes == 0)
+    }
+
+    @Test("aviso de reunião fica entre 0 e 60 minutos")
+    func meetingNoticeIsClampedToTheAllowedRange() {
+        let settings = makeSettings()
+        settings.meetingNoticeMinutes = 90
+        #expect(settings.meetingNoticeMinutes == 60)
+        settings.meetingNoticeMinutes = -5
+        #expect(settings.meetingNoticeMinutes == 0)
+    }
+
+    @Test("trocar o aviso de reunião emite a chave dele")
+    func changingTheMeetingNoticeEmitsItsKey() {
+        let settings = makeSettings()
+        var changedKeys: [String] = []
+        _ = settings.changed.on { changedKeys.append($0) }
+        settings.meetingNoticeMinutes = 5
+        #expect(changedKeys == ["meeting-notice-minutes"])
+    }
+
     @Test("avisa só as chaves pedidas")
     func notifiesOnlyRequestedKeys() {
         let settings = makeSettings()

@@ -20,6 +20,7 @@ Pacote SwiftPM. A regra "import só desce" é imposta pelo compilador pelos alvo
 
 - Sem comentário em código, teste e script (só diretiva de ferramenta, como `swift-tools-version`).
 - Texto de UI em pt-BR, direto no código. Nomes em inglês.
+- Configurações: uma seção por vez (`SettingsSection`), cada uma com `SettingsGroup` (título, card, dica) e linhas `SettingRow`/`ToggleRow` (`SettingsComponents.swift`). Booleano é sempre `FrodoSwitch`. Chave nova entra em `FrodoSettings` com o nome da chave do Linux (`schemas/*.gschema.xml`) e teste.
 - Cor só em `Theme.swift`; tempos e molas só em `Motion.swift` e `Core/Spring.swift`. O destaque é o accent do sistema.
 - Sem dependência de terceiros. Processo externo só por ação do usuário ou por necessidade do sistema (`security`, `git`, `gh`, `pmset`).
 - Todo serviço é `@MainActor`, expõe `Event<Payload>` e tem `destroy()`. A UI não conhece o serviço: assina `Event` e lê por getter. `FrodoServices` ponte os eventos para `Revisions` (`@Observable`) que o SwiftUI observa.

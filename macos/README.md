@@ -1,6 +1,6 @@
 # Frodo para macOS
 
-Versão macOS do [Frodo](../README.md): a mesma ilha flutuante, por padrão no topo da tela (Configurações, Posição, move para qualquer canto ou meio de borda), em Swift (SwiftUI + AppKit). Fechada, é a pílula com hora, data, bateria, memória e uso do Claude Code, que troca para a atividade em andamento (Claude trabalhando, pedido de permissão, notificação, música, volume, reunião). Aberta, é a ilha com as abas Geral, Calendário, Claude e Notificações, mais as configurações.
+Versão macOS do [Frodo](../README.md): a mesma ilha flutuante, por padrão no topo da tela (Configurações, Posição, move para qualquer canto ou meio de borda), em Swift (SwiftUI + AppKit). Fechada, é a pílula com hora, data, bateria, memória e uso do Claude Code, que troca para a atividade em andamento (Claude trabalhando, pedido de permissão, notificação, música, volume, reunião). Aberta, é a ilha com as abas Geral, Calendário, Claude e Notificações, mais as configurações em seis seções (Geral, Tela e posição, Pílula, Abas, IA e Agenda), com aviso de reunião de 0, 5, 10 ou 15 minutos.
 
 O app não é um port do código do Linux: no GNOME o Frodo roda dentro do `gnome-shell`, e nada disso existe no macOS. O design (tokens, tamanhos, animações com mola) e o comportamento vêm da versão Linux; veja o mapa em [`docs/superpowers/specs/2026-10-28-frodo-macos-design.md`](../docs/superpowers/specs/2026-10-28-frodo-macos-design.md).
 

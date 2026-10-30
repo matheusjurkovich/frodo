@@ -170,19 +170,13 @@ struct ToggleRow: View {
     @Binding var isOn: Bool
 
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(Theme.Font.body()).foregroundStyle(Theme.text)
-                if let subtitle { Text(subtitle).font(Theme.Font.label()).foregroundStyle(Theme.textSecondary) }
-            }
-            Spacer()
-            FrodoSwitch(isOn: $isOn)
-        }
+        SettingRow(title, subtitle: subtitle) { FrodoSwitch(isOn: $isOn) }
     }
 }
 
 struct FrodoSwitch: View {
     @Binding var isOn: Bool
+    @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
         Button {
@@ -195,6 +189,7 @@ struct FrodoSwitch: View {
             .contentShape(Capsule())
         }
         .buttonStyle(.plain)
+        .opacity(isEnabled ? 1 : 0.4)
     }
 }
 
