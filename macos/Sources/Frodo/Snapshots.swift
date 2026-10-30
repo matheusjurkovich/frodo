@@ -42,6 +42,12 @@ enum Snapshots {
             model.activity = activity
             write(IslandRootView(services: services, model: model, onToggle: {}, onClose: {}), model: model, size: CGSize(width: 760, height: 90), name: name, directory: directory)
         }
+        for (name, activity) in pills where ["pilula-repouso", "pilula-notificacao", "pilula-permissao", "pilula-reuniao", "pilula-trabalhando"].contains(name) {
+            let model = IslandModel()
+            model.position = .middleLeft
+            model.activity = activity
+            writeWindow(IslandRootView(services: services, model: model, onToggle: {}, onClose: {}), size: CGSize(width: 440, height: 520), name: name.replacingOccurrences(of: "pilula-", with: "pilula-vertical-"), directory: directory)
+        }
         let tabs: [(String, TabId, SettingsSection?)] = [("ilha-geral", .general, nil), ("ilha-calendario", .calendar, nil), ("ilha-claude", .claude, nil), ("ilha-notificacoes", .notifications, nil)]
             + SettingsSection.allCases.map { ("ilha-configuracoes-\($0.rawValue)", TabId.general, $0) }
         for (name, tab, section) in tabs {

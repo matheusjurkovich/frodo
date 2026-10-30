@@ -32,7 +32,7 @@ struct IslandRootView: View {
     var body: some View {
         let _ = services.revisions.settings
         let size = model.targetSize
-        let radius = model.isOpen ? Theme.Radius.panel : min(size.height / 2, 26)
+        let radius = model.isOpen ? Theme.Radius.panel : min(min(size.width, size.height) / 2, model.position.isSideEdge ? 24 : 26)
         ZStack(alignment: model.position.alignment) {
             RoundedRectangle(cornerRadius: radius, style: .continuous)
                 .fill(Theme.island)
@@ -42,7 +42,7 @@ struct IslandRootView: View {
                 .shadow(color: .black.opacity((model.isOpen ? 0.5 : 0.35) * Theme.shadowStrength), radius: model.isOpen ? 30 : 10, y: model.isOpen ? 16 : 4)
                 .overlay(alignment: .top) { pillLayer }
                 .overlay(alignment: .top) { islandLayer }
-                .animation(model.isOpen ? Motion.island : Motion.standard, value: size)
+                .animation(model.isOpen ? Motion.island : Motion.soft, value: size)
                 .animation(Motion.standard, value: radius)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: model.position.alignment)
@@ -59,7 +59,7 @@ struct IslandRootView: View {
 
     private var pillLayer: some View {
         ZStack {
-            PillContent(services: services, activity: model.activity)
+            PillContent(services: services, activity: model.activity, vertical: model.position.isSideEdge)
                 .id(model.subjectToken)
                 .reportSize { size in if size != .zero { model.pillSize = CGSize(width: size.width, height: max(Theme.Size.pillHeight, size.height)) } }
                 .transition(.asymmetric(
@@ -73,7 +73,7 @@ struct IslandRootView: View {
         .allowsHitTesting(!model.isOpen)
         .contentShape(Rectangle())
         .onTapGesture(perform: onToggle)
-        .animation(model.isOpen ? Motion.fadeOut : Motion.fadeIn, value: model.isOpen)
+        .animation(model.isOpen ? Motion.fadeOut : Motion.pillReturn, value: model.isOpen)
     }
 
     private var islandLayer: some View {

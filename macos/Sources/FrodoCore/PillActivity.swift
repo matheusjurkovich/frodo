@@ -10,6 +10,21 @@ public enum PillActivity: Equatable, Sendable, ActivityKinded {
     case claudeWorking(session: SessionState)
     case media(MediaTrack)
 
+    public var clickTab: TabId? {
+        switch self {
+        case .notification: .notifications
+        case .claudeWorking: .claude
+        default: nil
+        }
+    }
+
+    public var hasAction: Bool {
+        switch self {
+        case .recording, .claudePermission, .claudeWaiting, .meeting, .media: true
+        case .notification, .volume, .claudeWorking: false
+        }
+    }
+
     public var kind: ActivityKind {
         switch self {
         case .recording: .recording

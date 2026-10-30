@@ -25,7 +25,7 @@ final class IslandModel {
 
     var targetSize: CGSize {
         if isOpen { return CGSize(width: Theme.Size.islandWidth, height: min(islandHeight, Theme.Size.maxIslandHeight)) }
-        if showsTongue { return position.isSideEdge ? CGSize(width: 8, height: 96) : CGSize(width: 96, height: 8) }
+        if showsTongue { return position.isSideEdge ? CGSize(width: 8, height: 120) : CGSize(width: 120, height: 8) }
         return pillSize
     }
 

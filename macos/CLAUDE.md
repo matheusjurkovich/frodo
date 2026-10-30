@@ -38,6 +38,8 @@ Pacote SwiftPM. A regra "import só desce" é imposta pelo compilador pelos alvo
 - `acceptsFirstMouse` verdadeiro; `mouseDown` próprio precisa chamar `super`.
 - Hover: `NSTrackingArea` só para abrir; fechar com timer de 50 ms enquanto aberta, sempre conferindo `NSEvent.mouseLocation`. Monitores globais de `mouseMoved` não recebem eventos.
 - Ao trocar de aba a forma aberta encolhe na hora e pode deixar o cursor parado fora dela (ilha embaixo ou no meio). `HoverGrace` (`Core/HoverGrace.swift`) mantém a ilha aberta até o cursor se mover de verdade; todo teste de "cursor sobre a ilha aberta" passa por `pointerIsOverOpenIsland()` no `IslandController`.
+- Nas laterais (`middleLeft` e `middleRight`) a pílula fica em pé: o conteúdo usa `PillStack` (vertical por `\.pillVertical`), a região de hover vem de `islandHoverRegion(position:)` e a lingueta fica 8×120. Hover ou clique na pílula abre a ilha na aba da atividade (`PillActivity.clickTab`); atividade com botão (`hasAction`) não abre por hover, para não cobrir o botão.
+- Fechar usa a mola `soft` e a pílula só volta no fim do fechamento (`Motion.pillReturn`, atraso = duração da mola − 220 ms).
 - `.onHover` do SwiftUI com redimensionamento é instável.
 - Controles nativos do AppKit (`Toggle`, `Slider`, `Stepper`, checkbox) não recebem o clique neste painel, porque o `hitTest` devolve o próprio painel. Use `FrodoSwitch`, `FrodoSlider`, `FrodoStepper` e `FrodoCheckbox` (`Components.swift`), que funcionam por gesto. Só campos de texto (`NSTextField`) passam pelo `hitTest`.
 - `ImageRenderer` não desenha `ScrollView`: para capturar telas use `NSHostingView` numa janela fora da tela (`--snapshot`).

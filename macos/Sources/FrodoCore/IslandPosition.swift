@@ -89,3 +89,7 @@ public func islandShapeRect(position: IslandPosition, panel: CGRect, size: CGSiz
     }
     return CGRect(x: originX, y: originY, width: size.width, height: size.height)
 }
+
+public func islandHoverRegion(position: IslandPosition) -> CGSize {
+    position.isSideEdge ? CGSize(width: 360, height: 640) : CGSize(width: 640, height: 70)
+}
