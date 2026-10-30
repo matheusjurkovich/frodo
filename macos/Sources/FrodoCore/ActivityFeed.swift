@@ -1,6 +1,6 @@
 import Foundation
 
-private let flashSeconds: TimeInterval = 3
+private let flashSeconds: TimeInterval = 5
 private let volumeSeconds: TimeInterval = 1.5
 private let shownSeconds: TimeInterval = 5
 

@@ -10,7 +10,8 @@ final class IslandModel {
     var slideDirection: CGFloat = 1
     var settingsOpen = false
     var powerMenuOpen = false
-    var covered = false
+    var presence: PillPresence = .pill
+    var peek: PeekState?
     var position: IslandPosition = .topCenter
     var settingsSection: SettingsSection = .general
     var pillSize = CGSize(width: 220, height: Theme.Size.pillHeight)
@@ -20,18 +21,31 @@ final class IslandModel {
     var panelHeight: CGFloat = Theme.Size.maxIslandHeight + Theme.Size.panelPadding
 
     var showsTongue: Bool {
-        covered && activity == nil && !isOpen
+        presence == .tongue && !isOpen
+    }
+
+    var isHidden: Bool {
+        presence == .hidden && !isOpen
+    }
+
+    var pillHasAction: Bool {
+        presence == .pill && peek == nil && activity?.hasAction == true
     }
 
     var targetSize: CGSize {
         if isOpen { return CGSize(width: Theme.Size.islandWidth, height: min(islandHeight, Theme.Size.maxIslandHeight)) }
-        if showsTongue { return position.isSideEdge ? CGSize(width: 8, height: 120) : CGSize(width: 120, height: 8) }
+        if presence != .pill { return position.isSideEdge ? CGSize(width: 8, height: 120) : CGSize(width: 120, height: 8) }
         return pillSize
     }
 
     func updateActivity(_ next: PillActivity?) {
         if !sameSubject(activity, next) { subjectToken += 1 }
         activity = next
+    }
+
+    func updatePeek(_ next: PeekState?) {
+        if (peek == nil) != (next == nil) { subjectToken += 1 }
+        peek = next
     }
 
     func select(_ next: TabId, visible: [TabId]) {

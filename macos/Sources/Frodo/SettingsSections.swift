@@ -49,21 +49,53 @@ extension SettingsView {
     }
 
     var pillSection: some View {
-        SettingsGroup("Pílula fechada") {
-            SettingBlock {
-                VStack(alignment: .leading, spacing: 12) {
-                    SegmentedPicker(options: [(ClosedMode.minimal, "Mínima"), (.compact, "Compacta"), (.rotating, "Rotativa")], selection: bind(\.closedMode))
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8, alignment: .leading), count: 2), alignment: .leading, spacing: 6) {
-                        ForEach(ClosedItem.allCases, id: \.self) { item in
-                            FrodoCheckbox(itemLabel(item), isOn: closedItemBinding(item)).frame(maxWidth: .infinity, alignment: .leading)
+        Group {
+            SettingsGroup("Pílula fechada") {
+                SettingBlock {
+                    VStack(alignment: .leading, spacing: 12) {
+                        SegmentedPicker(options: [(ClosedMode.minimal, "Mínima"), (.compact, "Compacta"), (.rotating, "Rotativa")], selection: bind(\.closedMode))
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8, alignment: .leading), count: 2), alignment: .leading, spacing: 6) {
+                            ForEach(ClosedItem.allCases, id: \.self) { item in
+                                FrodoCheckbox(itemLabel(item), isOn: closedItemBinding(item)).frame(maxWidth: .infinity, alignment: .leading)
+                            }
                         }
-                    }
-                    if settings.closedMode == .rotating {
-                        FrodoStepper("Trocar a cada \(settings.rotateSeconds) s", value: bind(\.rotateSeconds), range: 2 ... 30)
+                        if settings.closedMode == .rotating {
+                            FrodoStepper("Trocar a cada \(settings.rotateSeconds) s", value: bind(\.rotateSeconds), range: 2 ... 30)
+                        }
                     }
                 }
             }
+            SettingsGroup("Visibilidade") {
+                ToggleRow(title: "Sempre à mostra", subtitle: "Com janela maximizada a pílula fica no lugar, sem virar lingueta", isOn: bind(\.alwaysShowPill))
+            }
+            fullscreenGroup
         }
+    }
+
+    private var fullscreenGroup: some View {
+        let enabled = settings.peekClock
+        return SettingsGroup("Tela cheia", hint: peekHint) {
+            ToggleRow(
+                title: "Mostrar a hora de tempos em tempos",
+                subtitle: "Em tela cheia a pílula some. Ligado, ela volta por alguns segundos só com o relógio.",
+                isOn: bind(\.peekClock)
+            )
+            SettingRow("A cada") {
+                SegmentedPicker(options: [(5, "5 min"), (10, "10 min"), (15, "15 min"), (30, "30 min")], selection: bind(\.peekEveryMinutes))
+            }
+            .disabled(!enabled)
+            SettingRow("Fica visível por") {
+                SegmentedPicker(options: [(5, "5 s"), (10, "10 s"), (15, "15 s"), (30, "30 s")], selection: bind(\.peekSeconds))
+            }
+            .disabled(!enabled)
+        }
+    }
+
+    private var peekHint: String {
+        guard settings.peekClock else { return "Desligado: em tela cheia a pílula fica escondida." }
+        let next = nextPeek(after: Date(), everyMinutes: settings.peekEveryMinutes)
+        let time = next.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits))
+        return "Próxima vez às \(time), por \(settings.peekSeconds) s. Passar o mouse na pílula abre a ilha."
     }
 
     private func closedItemBinding(_ item: ClosedItem) -> Binding<Bool> {

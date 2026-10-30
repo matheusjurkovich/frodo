@@ -42,6 +42,9 @@ final class IslandController: NSObject {
     private var coverTimer: Timer?
     private var disposables = Disposables()
     private var activationObserver: NSObjectProtocol?
+    private var spaceObserver: NSObjectProtocol?
+    private var cover = ScreenCover.none
+    private var peekCycle: PeekCycle?
 
     init(screen: NSScreen, services: FrodoServices) {
         self.screen = screen
@@ -52,6 +55,7 @@ final class IslandController: NSObject {
         let hosting = ShapeHostingView(rootView: root)
         hosting.shapeSize = { [weak self] in
             guard let self else { return .zero }
+            if self.model.isHidden { return .zero }
             let size = self.model.targetSize
             guard self.model.showsTongue else { return size }
             return self.model.position.isSideEdge ? CGSize(width: size.width + 8, height: size.height) : CGSize(width: size.width, height: size.height + 8)
@@ -66,8 +70,15 @@ final class IslandController: NSObject {
         model.updateActivity(services.feed.current)
         disposables.add(services.feed.changed.on { [weak self] _ in self?.syncActivity() })
         disposables.add(services.settings.onChanged(["position"]) { [weak self] in self?.applyPosition() })
+        disposables.add(services.settings.onChanged(["always-show-pill", "peek-clock", "peek-every-minutes", "peek-seconds"]) { [weak self] in self?.syncCover() })
+        peekCycle = PeekCycle(
+            scheduler: SystemScheduler(),
+            canStart: { [weak self] in self?.canPeek() ?? false },
+            onChange: { [weak self] state in self?.applyPeek(state) }
+        )
+        refreshCover()
         coverTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.refreshCovered() }
+            MainActor.assumeIsolated { self?.refreshCover() }
         }
         RunLoop.main.add(coverTimer!, forMode: .common)
         IslandBus.register(self) { [weak self] in self?.close() }
@@ -75,6 +86,9 @@ final class IslandController: NSObject {
             let activated = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
             guard activated?.processIdentifier != ProcessInfo.processInfo.processIdentifier else { return }
             MainActor.assumeIsolated { self?.close() }
+        }
+        spaceObserver = NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.refreshCover() }
         }
     }
 
@@ -111,6 +125,8 @@ final class IslandController: NSObject {
         let size: CGSize
         if open {
             size = CGSize(width: Theme.Size.islandWidth, height: min(model.islandHeight, Theme.Size.maxIslandHeight))
+        } else if model.isHidden {
+            size = .zero
         } else if model.showsTongue {
             size = model.position.isSideEdge ? CGSize(width: 16, height: 144) : CGSize(width: 144, height: 16)
         } else {
@@ -129,11 +145,11 @@ final class IslandController: NSObject {
         if inside {
             closeWork?.cancel()
             closeWork = nil
-            if !model.isOpen, openWork == nil, services.settings.openOnHover, model.activity?.hasAction != true {
+            if !model.isOpen, openWork == nil, services.settings.openOnHover, !model.pillHasAction {
                 let work = DispatchWorkItem { [weak self] in
                     guard let self else { return }
                     self.openWork = nil
-                    if self.shapeRect(open: false).contains(NSEvent.mouseLocation), self.model.activity?.hasAction != true {
+                    if self.shapeRect(open: false).contains(NSEvent.mouseLocation), !self.model.pillHasAction {
                         self.open(tab: self.model.activity?.clickTab)
                     }
                 }
@@ -205,38 +221,81 @@ final class IslandController: NSObject {
     }
 
     private func syncActivity() {
-        withAnimation(Motion.standard) { model.updateActivity(services.feed.current) }
-    }
-
-    private func refreshCovered() {
-        let covered = Self.isCovered(screen: screen)
-        if covered != model.covered { withAnimation(Motion.standard) { model.covered = covered } }
-    }
-
-    private static func isCovered(screen: NSScreen) -> Bool {
-        let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
-        guard let list = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]], let primary = NSScreen.screens.first else { return false }
-        let frame = CGRect(x: screen.frame.minX, y: primary.frame.height - screen.frame.maxY, width: screen.frame.width, height: screen.frame.height)
-        let ownPid = Int(ProcessInfo.processInfo.processIdentifier)
-        for window in list {
-            guard (window[kCGWindowLayer as String] as? Int) == 0, (window[kCGWindowOwnerPID as String] as? Int) != ownPid,
-                let bounds = window[kCGWindowBounds as String] as? [String: CGFloat],
-                let rect = CGRect(dictionaryRepresentation: bounds as CFDictionary)
-            else { continue }
-            if rect.width >= frame.width - 1, rect.height >= frame.height - 1, abs(rect.minX - frame.minX) < 2, abs(rect.minY - frame.minY) < 2 { return true }
+        withAnimation(Motion.standard) {
+            model.updateActivity(services.feed.current)
+            model.presence = currentPresence()
         }
-        return false
+    }
+
+    private func currentPresence() -> PillPresence {
+        pillPresence(cover: cover, alwaysShow: services.settings.alwaysShowPill, activity: model.activity?.kind, peeking: model.peek != nil)
+    }
+
+    private func canPeek() -> Bool {
+        let withoutPeek = pillPresence(cover: cover, alwaysShow: services.settings.alwaysShowPill, activity: model.activity?.kind, peeking: false)
+        return !model.isOpen && withoutPeek != .pill
+    }
+
+    private func applyPeek(_ state: PeekState?) {
+        withAnimation(Motion.standard) {
+            model.updatePeek(state)
+            model.presence = currentPresence()
+        }
+    }
+
+    private func syncCover() {
+        let settings = services.settings
+        peekCycle?.update(active: cover == .fullscreen && settings.peekClock, everyMinutes: settings.peekEveryMinutes, seconds: settings.peekSeconds)
+        let next = currentPresence()
+        if next != model.presence { withAnimation(Motion.standard) { model.presence = next } }
+    }
+
+    private func refreshCover() {
+        let next = Self.currentCover(of: screen)
+        guard next != cover else { return }
+        let alwaysShow = services.settings.alwaysShowPill
+        let wasCovered = pillCovered(cover, alwaysShow: alwaysShow)
+        cover = next
+        if pillCovered(next, alwaysShow: alwaysShow), !wasCovered {
+            services.feed.cancelTransient()
+            close()
+        }
+        syncCover()
+    }
+
+    private static func currentCover(of screen: NSScreen) -> ScreenCover {
+        let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
+        guard let list = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]], let primary = NSScreen.screens.first else { return .none }
+        let ownPid = Int(ProcessInfo.processInfo.processIdentifier)
+        let windows = list.compactMap { window -> CGRect? in
+            guard (window[kCGWindowLayer as String] as? Int) == 0, (window[kCGWindowOwnerPID as String] as? Int) != ownPid,
+                (window[kCGWindowAlpha as String] as? Double ?? 1) > 0.01,
+                let bounds = window[kCGWindowBounds as String] as? [String: CGFloat]
+            else { return nil }
+            return CGRect(dictionaryRepresentation: bounds as CFDictionary)
+        }
+        return screenCover(
+            windows: windows,
+            screen: globalFrame(screen.frame, primary: primary),
+            visible: globalFrame(screen.visibleFrame, primary: primary)
+        )
+    }
+
+    private static func globalFrame(_ frame: CGRect, primary: NSScreen) -> CGRect {
+        CGRect(x: frame.minX, y: primary.frame.height - frame.maxY, width: frame.width, height: frame.height)
     }
 
     func tearDown() {
         pollTimer?.invalidate()
         coverTimer?.invalidate()
+        peekCycle?.stop()
         openWork?.cancel()
         closeWork?.cancel()
         autoCloseWork?.cancel()
         disposables.dispose()
         IslandBus.unregister(self)
         if let activationObserver { NSWorkspace.shared.notificationCenter.removeObserver(activationObserver) }
+        if let spaceObserver { NSWorkspace.shared.notificationCenter.removeObserver(spaceObserver) }
         panel.orderOut(nil)
     }
 }

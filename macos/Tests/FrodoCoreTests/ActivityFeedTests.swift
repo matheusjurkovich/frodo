@@ -294,28 +294,28 @@ struct ActivityFeedTests {
         h.recording.set(moment(1000))
         h.notifications.push("Oi")
         #expect(h.notificationTitle == "Oi")
-        h.scheduler.fire(3)
+        h.scheduler.fire(5)
         #expect(h.feed.current == .recording(startedAt: moment(1000)))
     }
 
-    @Test("a fila de notificações avança de 3 s em 3 s e recomeça depois de esvaziar")
+    @Test("a fila de notificações avança de 5 s em 5 s e recomeça depois de esvaziar")
     func notificationQueueAdvancesEveryThreeSecondsAndRestartsAfterEmptying() {
         let h = Harness()
         defer { h.feed.destroy() }
         h.notifications.push("a")
-        #expect(h.scheduler.history == [3])
+        #expect(h.scheduler.history == [5])
         h.notifications.push("b")
-        #expect(h.scheduler.history == [3])
+        #expect(h.scheduler.history == [5])
         #expect(h.notificationTitle == "a")
-        h.scheduler.fire(3)
+        h.scheduler.fire(5)
         #expect(h.notificationTitle == "b")
-        #expect(h.scheduler.history == [3, 3])
-        h.scheduler.fire(3)
+        #expect(h.scheduler.history == [5, 5])
+        h.scheduler.fire(5)
         #expect(h.feed.current == nil)
         #expect(h.scheduler.armedIntervals.isEmpty)
         h.notifications.push("c")
         #expect(h.notificationTitle == "c")
-        #expect(h.scheduler.history == [3, 3, 3])
+        #expect(h.scheduler.history == [5, 5, 5])
         #expect(h.changes == 4)
     }
 
@@ -339,9 +339,9 @@ struct ActivityFeedTests {
         defer { h.feed.destroy() }
         h.notifications.push("a")
         h.volume.set(40)
-        #expect(h.scheduler.history == [3, 1.5])
+        #expect(h.scheduler.history == [5, 1.5])
         #expect(h.feed.current?.kind == .notification)
-        h.scheduler.fire(3)
+        h.scheduler.fire(5)
         #expect(h.feed.current == .volume(percent: 40))
         h.scheduler.fire(1.5)
         #expect(h.feed.current == nil)
@@ -361,7 +361,7 @@ struct ActivityFeedTests {
         #expect(h.scheduler.armedIntervals.isEmpty)
         h.notifications.push("c")
         #expect(h.notificationTitle == "c")
-        h.scheduler.fire(3)
+        h.scheduler.fire(5)
         #expect(h.feed.current == nil)
     }
 
@@ -444,9 +444,9 @@ struct ActivityFeedTests {
         defer { h.feed.destroy() }
         h.recording.set(moment(1000))
         h.notifications.push("Oi")
-        h.scheduler.fire(3)
+        h.scheduler.fire(5)
         #expect(h.feed.current?.kind == .recording)
-        #expect(h.scheduler.history == [5, 3, 5])
+        #expect(h.scheduler.history == [5, 5, 5])
     }
 
     @Test("abrir a ilha dá como vista a gravação em andamento")

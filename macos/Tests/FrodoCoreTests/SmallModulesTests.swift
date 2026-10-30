@@ -163,6 +163,45 @@ struct FrodoSettingsTests {
         #expect(changedKeys == ["meeting-notice-minutes"])
     }
 
+    @Test("sempre à mostra começa desligado e guarda a escolha")
+    func alwaysShowPillDefaultsToOffAndStoresTheChoice() {
+        let settings = makeSettings()
+        #expect(!settings.alwaysShowPill)
+        settings.alwaysShowPill = true
+        #expect(settings.alwaysShowPill)
+    }
+
+    @Test("espiada da hora começa ligada, a cada 10 min por 10 s")
+    func peekClockDefaultsToOnEveryTenMinutesForTenSeconds() {
+        let settings = makeSettings()
+        #expect(settings.peekClock)
+        #expect(settings.peekEveryMinutes == 10)
+        #expect(settings.peekSeconds == 10)
+        settings.peekClock = false
+        #expect(!settings.peekClock)
+    }
+
+    @Test("espiada da hora fica entre 1 e 60")
+    func peekValuesAreClampedToTheAllowedRange() {
+        let settings = makeSettings()
+        settings.peekEveryMinutes = 0
+        settings.peekSeconds = 500
+        #expect(settings.peekEveryMinutes == 1)
+        #expect(settings.peekSeconds == 60)
+    }
+
+    @Test("trocar as chaves da espiada emite cada uma")
+    func changingThePeekKeysEmitsEachOne() {
+        let settings = makeSettings()
+        var changedKeys: [String] = []
+        _ = settings.changed.on { changedKeys.append($0) }
+        settings.alwaysShowPill = true
+        settings.peekClock = false
+        settings.peekEveryMinutes = 15
+        settings.peekSeconds = 5
+        #expect(changedKeys == ["always-show-pill", "peek-clock", "peek-every-minutes", "peek-seconds"])
+    }
+
     @Test("fundo começa sólido e guarda o estilo escolhido")
     func surfaceStyleDefaultsToSolidAndStoresTheChoice() {
         let settings = makeSettings()

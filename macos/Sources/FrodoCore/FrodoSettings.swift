@@ -153,6 +153,26 @@ public final class FrodoSettings {
         set { set(newValue, for: "auto-close") }
     }
 
+    public var alwaysShowPill: Bool {
+        get { defaults.bool(forKey: "always-show-pill") }
+        set { set(newValue, for: "always-show-pill") }
+    }
+
+    public var peekClock: Bool {
+        get { defaults.object(forKey: "peek-clock") == nil ? true : defaults.bool(forKey: "peek-clock") }
+        set { set(newValue, for: "peek-clock") }
+    }
+
+    public var peekEveryMinutes: Int {
+        get { bounded("peek-every-minutes", default: 10, range: 1 ... 60) }
+        set { set(min(60, max(1, newValue)), for: "peek-every-minutes") }
+    }
+
+    public var peekSeconds: Int {
+        get { bounded("peek-seconds", default: 10, range: 1 ... 60) }
+        set { set(min(60, max(1, newValue)), for: "peek-seconds") }
+    }
+
     public var hiddenTabs: [TabId] {
         get { enumList("hidden-tabs", default: []) }
         set { set(newValue.map(\.rawValue), for: "hidden-tabs") }

@@ -38,8 +38,10 @@ struct IslandRootView: View {
                 .fill(Theme.island)
                 .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).stroke(borderColor, lineWidth: model.activity.map(isUrgent) == true ? 1.5 : 1))
                 .frame(width: size.width, height: size.height)
-                .background { if glassEnabled, Surface.shared.style != .solid { GlassBackground(radius: radius) } }
+                .background { if glassEnabled, Surface.shared.style != .solid, !model.isHidden { GlassBackground(radius: radius) } }
                 .shadow(color: .black.opacity((model.isOpen ? 0.5 : 0.35) * Theme.shadowStrength), radius: model.isOpen ? 30 : 10, y: model.isOpen ? 16 : 4)
+                .opacity(model.isHidden ? 0 : 1)
+                .animation(model.isHidden ? Motion.conceal : Motion.fadeIn, value: model.isHidden)
                 .overlay(alignment: .top) { pillLayer }
                 .overlay(alignment: .top) { islandLayer }
                 .animation(model.isOpen ? Motion.island : Motion.soft, value: size)
@@ -59,7 +61,7 @@ struct IslandRootView: View {
 
     private var pillLayer: some View {
         ZStack {
-            PillContent(services: services, activity: model.activity, vertical: model.position.isSideEdge)
+            PillContent(services: services, activity: model.activity, peek: model.peek, vertical: model.position.isSideEdge)
                 .id(model.subjectToken)
                 .reportSize { size in if size != .zero { model.pillSize = CGSize(width: size.width, height: max(Theme.Size.pillHeight, size.height)) } }
                 .transition(.asymmetric(
@@ -69,7 +71,7 @@ struct IslandRootView: View {
         }
         .animation(Motion.standard, value: model.subjectToken)
         .frame(width: model.targetSize.width, height: model.targetSize.height)
-        .opacity(model.isOpen || model.showsTongue ? 0 : 1)
+        .opacity(model.isOpen || model.presence != .pill ? 0 : 1)
         .allowsHitTesting(!model.isOpen)
         .contentShape(Rectangle())
         .onTapGesture(perform: onToggle)

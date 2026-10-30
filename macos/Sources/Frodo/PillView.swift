@@ -32,29 +32,15 @@ struct PillStack<Content: View>: View {
 struct PillContent: View {
     let services: FrodoServices
     let activity: PillActivity?
+    var peek: PeekState?
     var vertical = false
 
     var body: some View {
         Group {
-            switch activity {
-            case .none:
-                IdleContent(services: services)
-            case let .notification(item)?:
-                NotificationContent(item: item)
-            case let .claudePermission(session, request)?:
-                PermissionContent(services: services, session: session, request: request)
-            case let .claudeWaiting(session)?:
-                WaitingContent(services: services, session: session)
-            case let .meeting(title, startsAt)?:
-                MeetingContent(services: services, title: title, startsAt: startsAt)
-            case let .volume(percent)?:
-                VolumeContent(percent: percent)
-            case let .claudeWorking(session)?:
-                WorkingContent(session: session)
-            case let .media(track)?:
-                MediaContent(services: services, track: track)
-            case .recording?:
-                EmptyView()
+            if let peek {
+                PeekContent(peek: peek)
+            } else {
+                activityContent
             }
         }
         .fixedSize()
@@ -62,6 +48,44 @@ struct PillContent: View {
         .padding(.vertical, vertical ? 16 : 0)
         .frame(minHeight: vertical ? nil : Theme.Size.pillHeight)
         .environment(\.pillVertical, vertical)
+    }
+
+    @ViewBuilder
+    private var activityContent: some View {
+        switch activity {
+        case .none:
+            IdleContent(services: services)
+        case let .notification(item)?:
+            NotificationContent(item: item)
+        case let .claudePermission(session, request)?:
+            PermissionContent(services: services, session: session, request: request)
+        case let .claudeWaiting(session)?:
+            WaitingContent(services: services, session: session)
+        case let .meeting(title, startsAt)?:
+            MeetingContent(services: services, title: title, startsAt: startsAt)
+        case let .volume(percent)?:
+            VolumeContent(percent: percent)
+        case let .claudeWorking(session)?:
+            WorkingContent(session: session)
+        case let .media(track)?:
+            MediaContent(services: services, track: track)
+        case .recording?:
+            EmptyView()
+        }
+    }
+}
+
+struct PeekContent: View {
+    let peek: PeekState
+    @State private var remaining = 1.0
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Text(peek.startedAt.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits)))
+                .font(Theme.Font.body(.medium)).foregroundStyle(Theme.text).monospacedDigit()
+            Capsule().fill(Theme.accent).frame(height: 2).scaleEffect(x: remaining, anchor: .leading)
+        }
+        .onAppear { withAnimation(Motion.peekCountdown(seconds: peek.seconds)) { remaining = 0 } }
     }
 }
 
