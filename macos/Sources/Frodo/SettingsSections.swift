@@ -49,23 +49,23 @@ extension SettingsView {
     }
 
     var pillSection: some View {
-        Group {
-            SettingsGroup("Pílula fechada") {
+        let modes: [(ClosedMode, String)] = ClosedMode.allCases.map { ($0, $0.label) }
+        return Group {
+            SettingsGroup("Prévia") { PillPreview(services: services) }
+            SettingsGroup("Pílula fechada", hint: settings.closedMode.hint) {
                 SettingBlock {
                     VStack(alignment: .leading, spacing: 12) {
-                        SegmentedPicker(options: [(ClosedMode.minimal, "Mínima"), (.compact, "Compacta"), (.rotating, "Rotativa")], selection: bind(\.closedMode))
-                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8, alignment: .leading), count: 2), alignment: .leading, spacing: 6) {
-                            ForEach(ClosedItem.allCases, id: \.self) { item in
-                                FrodoCheckbox(itemLabel(item), isOn: closedItemBinding(item)).frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                        }
+                        SegmentedPicker(options: modes, selection: bind(\.closedMode))
                         if settings.closedMode == .rotating {
                             FrodoStepper("Trocar a cada \(settings.rotateSeconds) s", value: bind(\.rotateSeconds), range: 2 ... 30)
                         }
                     }
                 }
             }
-            SettingsGroup("Visibilidade") {
+            SettingsGroup("Itens") { SettingBlock { PillItemsEditor(services: services) } }
+            SettingsGroup("Opções") {
+                ToggleRow(title: "RAM em porcentagem", subtitle: "Mostra RAM 63% em vez dos GB usados", isOn: bind(\.ramPercent))
+                ToggleRow(title: "Mostrar porcentagem da bateria", isOn: bind(\.showBatteryPercentage))
                 ToggleRow(title: "Sempre à mostra", subtitle: "Com janela maximizada a pílula fica no lugar, sem virar lingueta", isOn: bind(\.alwaysShowPill))
             }
             fullscreenGroup
@@ -96,29 +96,6 @@ extension SettingsView {
         let next = nextPeek(after: Date(), everyMinutes: settings.peekEveryMinutes)
         let time = next.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits))
         return "Próxima vez às \(time), por \(settings.peekSeconds) s. Passar o mouse na pílula abre a ilha."
-    }
-
-    private func closedItemBinding(_ item: ClosedItem) -> Binding<Bool> {
-        Binding(
-            get: { settings.closedItems.contains(item) },
-            set: { on in
-                var items = settings.closedItems
-                if on, !items.contains(item) { items.append(item) } else if !on { items.removeAll { $0 == item } }
-                settings.closedItems = ClosedItem.allCases.filter { items.contains($0) }
-            }
-        )
-    }
-
-    private func itemLabel(_ item: ClosedItem) -> String {
-        switch item {
-        case .clock: "Hora"
-        case .date: "Data"
-        case .notifications: "Notificações"
-        case .battery: "Bateria"
-        case .ram: "Memória"
-        case .claudeSession: "Claude (5 h)"
-        case .claudeWeekly: "Claude (semana)"
-        }
     }
 
     var tabsSection: some View {

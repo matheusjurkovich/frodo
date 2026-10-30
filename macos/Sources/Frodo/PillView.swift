@@ -148,13 +148,14 @@ struct IdleContent: View {
             if let battery = services.system.batteryInfo {
                 HStack(spacing: 4) {
                     FrodoIcon(name: batteryIcon(battery), size: 14, color: battery.percent < 15 && !battery.charging ? Theme.danger : Theme.text)
-                    Text("\(battery.percent)%").font(Theme.Font.secondary()).foregroundStyle(Theme.text).monospacedDigit()
+                    if services.settings.showBatteryPercentage {
+                        Text("\(battery.percent)%").font(Theme.Font.secondary()).foregroundStyle(Theme.text).monospacedDigit()
+                    }
                 }
             }
         case .ram:
-            if let memory = services.system.memoryInfo {
-                Text("RAM \(formatGb(memory.usedBytes))").font(Theme.Font.secondary()).foregroundStyle(Theme.textSecondary).monospacedDigit()
-            }
+            Text(formatRam(services.system.memoryInfo, percent: services.settings.ramPercent))
+                .font(Theme.Font.secondary()).foregroundStyle(Theme.textSecondary).monospacedDigit()
         case .claudeSession, .claudeWeekly:
             ClaudeUsageSegment(services: services, role: item == .claudeSession ? .session : .weekly, now: now)
         default:
