@@ -25,6 +25,7 @@ struct IslandRootView: View {
     var onClose: () -> Void
 
     @State private var contentHeight: CGFloat = 400
+    @Environment(\.glassEnabled) private var glassEnabled
 
     private var visible: [TabId] { visibleTabs(hidden: services.settings.hiddenTabs) }
 
@@ -37,7 +38,8 @@ struct IslandRootView: View {
                 .fill(Theme.island)
                 .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).stroke(borderColor, lineWidth: model.activity.map(isUrgent) == true ? 1.5 : 1))
                 .frame(width: size.width, height: size.height)
-                .shadow(color: .black.opacity(model.isOpen ? 0.5 : 0.35), radius: model.isOpen ? 30 : 10, y: model.isOpen ? 16 : 4)
+                .background { if glassEnabled, Surface.shared.style != .solid { GlassBackground(radius: radius) } }
+                .shadow(color: .black.opacity((model.isOpen ? 0.5 : 0.35) * Theme.shadowStrength), radius: model.isOpen ? 30 : 10, y: model.isOpen ? 16 : 4)
                 .overlay(alignment: .top) { pillLayer }
                 .overlay(alignment: .top) { islandLayer }
                 .animation(model.isOpen ? Motion.island : Motion.standard, value: size)

@@ -62,6 +62,19 @@ enum Snapshots {
             model.isOpen = isOpen
             writeWindow(IslandRootView(services: services, model: model, onToggle: {}, onClose: {}), size: CGSize(width: 1000, height: 860), name: name, directory: directory)
         }
+        for style in [SurfaceStyle.frosted, .clear] {
+            Surface.shared.style = style
+            let scenes: [(String, Bool, Bool)] = [("pilula", false, false), ("ilha-geral", true, false), ("ilha-configuracoes-display", true, true)]
+            for (scene, isOpen, settingsOpen) in scenes {
+                let model = IslandModel()
+                model.isOpen = isOpen
+                model.settingsOpen = settingsOpen
+                model.settingsSection = .display
+                let view = IslandRootView(services: services, model: model, onToggle: {}, onClose: {}).environment(\.glassEnabled, false)
+                writeWindow(view, size: CGSize(width: 1000, height: 860), name: "fundo-\(style.rawValue)-\(scene)", directory: directory, striped: true)
+            }
+        }
+        Surface.shared.style = .solid
         print("frodo snapshot: imagens em \(directory)")
     }
 
@@ -79,8 +92,9 @@ enum Snapshots {
         try? png.write(to: URL(fileURLWithPath: "\(directory)/\(name).png"))
     }
 
-    private static func writeWindow<Content: View>(_ view: Content, size: CGSize, name: String, directory: String) {
-        let canvas = AnyView(view.frame(width: size.width, height: size.height, alignment: .top).background(Color(white: 0.32)))
+    private static func writeWindow<Content: View>(_ view: Content, size: CGSize, name: String, directory: String, striped: Bool = false) {
+        let backdrop = AnyView(striped ? AnyView(Stripes()) : AnyView(Color(white: 0.32)))
+        let canvas = AnyView(view.frame(width: size.width, height: size.height, alignment: .top).background(backdrop))
         let hosting = NSHostingView(rootView: canvas)
         hosting.frame = NSRect(origin: .zero, size: size)
         let window = NSWindow(contentRect: NSRect(origin: CGPoint(x: -6000, y: -6000), size: size), styleMask: [.borderless], backing: .buffered, defer: false)
@@ -124,6 +138,16 @@ extension Snapshots {
                 let png = bitmap.representation(using: .png, properties: [:])
             else { continue }
             try? png.write(to: URL(fileURLWithPath: "\(directory)/\(name).png"))
+        }
+    }
+}
+
+private struct Stripes: View {
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(0 ..< 20, id: \.self) { index in
+                [Color(hex: 0xE5484D), Color(hex: 0x3E63DD), Color(hex: 0xF5D90A), Color(hex: 0x30A46C)][index % 4]
+            }
         }
     }
 }

@@ -23,6 +23,12 @@ public enum ClosedItem: String, CaseIterable, Sendable {
     }
 }
 
+public enum SurfaceStyle: String, CaseIterable, Sendable {
+    case solid
+    case frosted
+    case clear
+}
+
 public enum MonitorMode: String, CaseIterable, Sendable {
     case primary
     case secondary
@@ -86,6 +92,11 @@ public final class FrodoSettings {
     public var openBlur: Bool {
         get { defaults.object(forKey: "open-blur") == nil ? true : defaults.bool(forKey: "open-blur") }
         set { set(newValue, for: "open-blur") }
+    }
+
+    public var surfaceStyle: SurfaceStyle {
+        get { enumValue("surface-style", default: .solid) }
+        set { set(newValue.rawValue, for: "surface-style") }
     }
 
     public var monitors: MonitorMode {

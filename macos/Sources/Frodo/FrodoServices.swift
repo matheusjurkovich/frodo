@@ -68,6 +68,8 @@ final class FrodoServices {
 
     private func bridge() {
         let revisions = revisions
+        Surface.shared.style = settings.surfaceStyle
+        disposables.add(settings.onChanged(["surface-style"]) { [settings] in Surface.shared.style = settings.surfaceStyle })
         disposables.add(claude.changed.on { _ in revisions.claude += 1 })
         disposables.add(sessions.changed.on { _ in revisions.sessions += 1 })
         disposables.add(transcripts.changed.on { _ in revisions.transcripts += 1 })

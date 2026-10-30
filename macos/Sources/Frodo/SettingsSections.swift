@@ -40,7 +40,10 @@ extension SettingsView {
                 SettingRow("Monitores") {
                     SegmentedPicker(options: [(MonitorMode.primary, "Principal"), (.secondary, "Secundário"), (.both, "Ambos")], selection: bind(\.monitors))
                 }
-                ToggleRow(title: "Desfoque ao abrir", subtitle: "Desligue se a abertura da ilha ficar pesada", isOn: bind(\.openBlur))
+                SettingRow("Fundo", subtitle: "Fosco desfoca o que está atrás. Use Sólido se a abertura ficar pesada.") {
+                    SegmentedPicker(options: [(SurfaceStyle.solid, "Sólido"), (.frosted, "Fosco"), (.clear, "Translúcido")], selection: bind(\.surfaceStyle))
+                }
+                ToggleRow(title: "Desfoque ao abrir", subtitle: "Desfoca o conteúdo durante a animação de abrir", isOn: bind(\.openBlur))
             }
         }
     }
