@@ -24,6 +24,7 @@ export function quotaReadings({claude, codex, gemini, enabled, nowMs}: QuotaSour
             if (window)
                 readings.push({
                     id: `claude:${claude.configDir}:${role}`,
+                    provider: 'claude',
                     name: 'Claude',
                     window: WINDOW_NAMES[role],
                     percent: window.utilization,
@@ -32,9 +33,16 @@ export function quotaReadings({claude, codex, gemini, enabled, nowMs}: QuotaSour
     if (enabled('codex'))
         for (const meter of codexMeters(codex, nowMs))
             if (meter.key === 'session' || meter.key === 'weekly')
-                readings.push({id: `codex:${meter.key}`, name: 'Codex', window: WINDOW_NAMES[meter.key], percent: meter.percent});
+                readings.push({
+                    id: `codex:${meter.key}`,
+                    provider: 'codex',
+                    name: 'Codex',
+                    window: WINDOW_NAMES[meter.key],
+                    percent: meter.percent,
+                });
     if (enabled('gemini'))
         for (const meter of geminiMeters(gemini))
-            if (meter.key === 'daily') readings.push({id: 'gemini:daily', name: 'Gemini', window: 'dia', percent: meter.percent});
+            if (meter.key === 'daily')
+                readings.push({id: 'gemini:daily', provider: 'gemini', name: 'Gemini', window: 'dia', percent: meter.percent});
     return readings;
 }
