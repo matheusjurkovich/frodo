@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.3.0](https://github.com/matheusjurkovich/frodo/compare/linux-v1.2.0...linux-v1.3.0) (2026-10-30)
+
+
+### Novidades
+
+* alertas de cota em 80% e 95% e de renovação ([406387c](https://github.com/matheusjurkovich/frodo/commit/406387cf6e3d424e44f80bd021fc0626ba8b8031))
+* atividade da ia na pílula sempre, ao mudar ou nunca ([ab1a333](https://github.com/matheusjurkovich/frodo/commit/ab1a333757996e667f32c4885b715f01b54c7fcb))
+* instalação em um comando com get.sh ([47b77f1](https://github.com/matheusjurkovich/frodo/commit/47b77f15336d6643227039f55adba3d8a3696ff2))
+* notificação pronto quando a ia termina ([906f6db](https://github.com/matheusjurkovich/frodo/commit/906f6db2b3de379e88c97605982abdd0891dd5e8))
+* opção de ram em porcentagem na pílula ([8742514](https://github.com/matheusjurkovich/frodo/commit/8742514c19236bda049c431f011da881a323c541))
+* pronto e avisos de cota saem com o ícone e o nome do assistente ([3553559](https://github.com/matheusjurkovich/frodo/commit/3553559a539bb68233fd0d489105b53a9b00debf))
+
+
+### Correções
+
+* ilha não treme quando a pílula muda com ela aberta ([2b79e08](https://github.com/matheusjurkovich/frodo/commit/2b79e083881903224579dad7f90fd97da6c19fad))
+* pílula não trava ao trocar o modo da ia e a cota do claude não repete aviso ([698d085](https://github.com/matheusjurkovich/frodo/commit/698d085a54952bb558cc69e0321439ce811a533e))
+
 ## [1.2.0](https://github.com/matheusjurkovich/frodo/compare/linux-v1.1.0...linux-v1.2.0) (2026-10-29)
 
 
