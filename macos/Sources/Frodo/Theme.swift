@@ -13,13 +13,34 @@ extension Color {
 }
 
 enum Theme {
-    static let island = Color(hex: 0x0A0A0B)
+    private static func byStyle(_ solid: Color, frosted: Color? = nil, clear: Color) -> Color {
+        switch Surface.shared.style {
+        case .solid: solid
+        case .frosted: frosted ?? solid
+        case .clear: clear
+        }
+    }
+
+    static var island: Color {
+        byStyle(Color(hex: 0x0A0A0B), frosted: Color(hex: 0x0A0A0B, opacity: 0.72), clear: Color(hex: 0x0A0A0B, opacity: 0.42))
+    }
+
+    static var shadowStrength: Double {
+        switch Surface.shared.style {
+        case .solid: 1
+        case .frosted: 0.72
+        case .clear: 0.42
+        }
+    }
+
+    static let glassMaterial: NSVisualEffectView.Material = .underWindowBackground
+
     static let islandBorder = Color.white.opacity(0.08)
-    static let card = Color(hex: 0x17171A)
-    static let cardInner = Color(hex: 0x1F1F23)
-    static let control = Color(hex: 0x232327)
-    static let controlHover = Color(hex: 0x26262B)
-    static let track = Color(hex: 0x2A2A2F)
+    static var card: Color { byStyle(Color(hex: 0x17171A), clear: Color(hex: 0x17171A, opacity: 0.25)) }
+    static var cardInner: Color { byStyle(Color(hex: 0x1F1F23), clear: Color(hex: 0x17171A, opacity: 0.25)) }
+    static var control: Color { byStyle(Color(hex: 0x232327), clear: Color(hex: 0x1F1F23, opacity: 0.45)) }
+    static var controlHover: Color { byStyle(Color(hex: 0x26262B), clear: Color.white.opacity(0.08)) }
+    static var track: Color { byStyle(Color(hex: 0x2A2A2F), clear: Color.white.opacity(0.14)) }
     static let divider = Color.white.opacity(0.06)
     static let accent = Color(nsColor: .controlAccentColor)
     static let accentText = Color(nsColor: .controlAccentColor).opacity(0.9)

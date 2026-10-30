@@ -163,6 +163,34 @@ struct FrodoSettingsTests {
         #expect(changedKeys == ["meeting-notice-minutes"])
     }
 
+    @Test("fundo começa sólido e guarda o estilo escolhido")
+    func surfaceStyleDefaultsToSolidAndStoresTheChoice() {
+        let settings = makeSettings()
+        #expect(settings.surfaceStyle == .solid)
+        settings.surfaceStyle = .clear
+        #expect(settings.surfaceStyle == .clear)
+        settings.surfaceStyle = .frosted
+        #expect(settings.surfaceStyle == .frosted)
+    }
+
+    @Test("fundo com valor desconhecido volta ao sólido")
+    func unknownSurfaceStyleFallsBackToSolid() {
+        let suite = "frodo-test-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite) ?? .standard
+        defaults.removePersistentDomain(forName: suite)
+        defaults.set("holografico", forKey: "surface-style")
+        #expect(FrodoSettings(defaults: defaults).surfaceStyle == .solid)
+    }
+
+    @Test("trocar o fundo emite a chave surface-style")
+    func changingTheSurfaceStyleEmitsItsKey() {
+        let settings = makeSettings()
+        var changedKeys: [String] = []
+        _ = settings.changed.on { changedKeys.append($0) }
+        settings.surfaceStyle = .frosted
+        #expect(changedKeys == ["surface-style"])
+    }
+
     @Test("avisa só as chaves pedidas")
     func notifiesOnlyRequestedKeys() {
         let settings = makeSettings()

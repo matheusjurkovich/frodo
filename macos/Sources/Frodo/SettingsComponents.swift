@@ -32,7 +32,7 @@ struct SettingRow<Control: View>: View {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title).font(Theme.Font.body()).foregroundStyle(Theme.text)
-                    if let subtitle { Text(subtitle).font(Theme.Font.label()).foregroundStyle(Theme.textSecondary) }
+                    if let subtitle { Text(subtitle).font(Theme.Font.label()).foregroundStyle(Theme.textSecondary).fixedSize(horizontal: false, vertical: true) }
                 }
                 Spacer(minLength: 12)
                 control
@@ -82,7 +82,7 @@ struct SettingsSidebar: View {
                     }
                     .padding(.horizontal, 12)
                     .frame(height: 40)
-                    .hoverBackground(selection == section ? Theme.control : .clear, hover: Theme.controlHover)
+                    .hoverBackground(selection == section ? Theme.controlHover : .clear, hover: Theme.controlHover)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
