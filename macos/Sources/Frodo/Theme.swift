@@ -20,6 +20,7 @@ enum Theme {
     static let control = Color(hex: 0x232327)
     static let controlHover = Color(hex: 0x26262B)
     static let track = Color(hex: 0x2A2A2F)
+    static let divider = Color.white.opacity(0.06)
     static let accent = Color(nsColor: .controlAccentColor)
     static let accentText = Color(nsColor: .controlAccentColor).opacity(0.9)
     static let claude = Color(hex: 0xD97757)

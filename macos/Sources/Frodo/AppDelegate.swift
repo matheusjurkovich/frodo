@@ -55,7 +55,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func runCalendarCheck() {
-        let calendar = CalendarService(scheduler: SystemScheduler())
+        let calendar = CalendarService(settings: FrodoSettings(defaults: .standard), scheduler: SystemScheduler())
         Task { @MainActor in
             print("calendário antes: \(calendar.access)")
             await calendar.requestAccess()

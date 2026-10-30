@@ -117,6 +117,11 @@ public final class FrodoSettings {
         set { set(newValue, for: "claude-profiles-initialized") }
     }
 
+    public var meetingNoticeMinutes: Int {
+        get { bounded("meeting-notice-minutes", default: 10, range: 0 ... 60) }
+        set { set(min(60, max(0, newValue)), for: "meeting-notice-minutes") }
+    }
+
     public var toggleShortcut: String {
         get { defaults.string(forKey: "toggle-shortcut") ?? "ctrl+opt+z" }
         set { set(newValue, for: "toggle-shortcut") }

@@ -42,12 +42,14 @@ enum Snapshots {
             model.activity = activity
             write(IslandRootView(services: services, model: model, onToggle: {}, onClose: {}), model: model, size: CGSize(width: 760, height: 90), name: name, directory: directory)
         }
-        let tabs: [(String, TabId, Bool)] = [("ilha-geral", .general, false), ("ilha-calendario", .calendar, false), ("ilha-claude", .claude, false), ("ilha-notificacoes", .notifications, false), ("ilha-configuracoes", .general, true)]
-        for (name, tab, settings) in tabs {
+        let tabs: [(String, TabId, SettingsSection?)] = [("ilha-geral", .general, nil), ("ilha-calendario", .calendar, nil), ("ilha-claude", .claude, nil), ("ilha-notificacoes", .notifications, nil)]
+            + SettingsSection.allCases.map { ("ilha-configuracoes-\($0.rawValue)", TabId.general, $0) }
+        for (name, tab, section) in tabs {
             let model = IslandModel()
             model.isOpen = true
             model.tab = tab
-            model.settingsOpen = settings
+            model.settingsOpen = section != nil
+            model.settingsSection = section ?? .general
             writeWindow(IslandRootView(services: services, model: model, onToggle: {}, onClose: {}), size: CGSize(width: 1000, height: 860), name: name, directory: directory)
         }
         let placements: [(String, IslandPosition, Bool)] = [

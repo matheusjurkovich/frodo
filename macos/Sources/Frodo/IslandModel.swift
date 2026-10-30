@@ -12,6 +12,7 @@ final class IslandModel {
     var powerMenuOpen = false
     var covered = false
     var position: IslandPosition = .topCenter
+    var settingsSection: SettingsSection = .general
     var pillSize = CGSize(width: 220, height: Theme.Size.pillHeight)
     var islandHeight: CGFloat = 400
     var activity: PillActivity?

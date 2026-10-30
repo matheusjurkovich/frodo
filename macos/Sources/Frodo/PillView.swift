@@ -71,7 +71,7 @@ struct IdleContent: View {
     private func segment(_ item: ClosedItem, now: Date) -> some View {
         switch item {
         case .clock:
-            Text(now.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute())).font(Theme.Font.body(.medium)).foregroundStyle(Theme.text).monospacedDigit()
+            Text(now.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits))).font(Theme.Font.body(.medium)).foregroundStyle(Theme.text).monospacedDigit()
         case .date:
             Text(formatDate(now)).font(Theme.Font.secondary()).foregroundStyle(Theme.textSecondary)
         case .notifications:
