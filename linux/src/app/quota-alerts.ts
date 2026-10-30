@@ -1,5 +1,3 @@
-import * as Main from 'resource:///org/gnome/shell/ui/main.js';
-
 import type {ClaudeService} from '../features/claude/claude-service.js';
 import type {CodexUsage} from '../features/codex/codex-service.js';
 import type {GeminiUsage} from '../features/gemini/gemini-service.js';
@@ -7,6 +5,7 @@ import type {FrodoSettings} from '../settings/frodo-settings.js';
 import {Disposables} from '../shared/disposables.js';
 import type {Level} from '../shared/level.js';
 import {quotaNotices} from '../shared/meter.js';
+import type {ProviderNotifier} from '../shared/ui/provider-notifier.js';
 import {quotaReadings} from './quota-readings.js';
 
 export interface QuotaAlertsDependencies {
@@ -14,6 +13,7 @@ export interface QuotaAlertsDependencies {
     readonly claude: ClaudeService;
     readonly codex: CodexUsage;
     readonly gemini: GeminiUsage;
+    readonly notifier: Pick<ProviderNotifier, 'notify'>;
 }
 
 export class QuotaAlerts {
@@ -46,7 +46,7 @@ export class QuotaAlerts {
             }),
         );
         this.#states = states;
-        if (settings.notifyQuota) for (const {title, body} of notices) Main.notify(title, body);
+        if (settings.notifyQuota) for (const {provider, title, body} of notices) this.#deps.notifier.notify(provider, title, body);
     }
 
     destroy(): void {

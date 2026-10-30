@@ -21,8 +21,8 @@ describe('leituras de cota', () => {
             nowMs: now,
         });
         expect(readings).toEqual([
-            {id: 'claude:/c:session', name: 'Claude', window: '5 h', percent: 10},
-            {id: 'claude:/c:weekly', name: 'Claude', window: 'semana', percent: 85},
+            {id: 'claude:/c:session', provider: 'claude', name: 'Claude', window: '5 h', percent: 10},
+            {id: 'claude:/c:weekly', provider: 'claude', name: 'Claude', window: 'semana', percent: 85},
         ]);
     });
 
@@ -40,9 +40,9 @@ describe('leituras de cota', () => {
             nowMs: now,
         });
         expect(readings).toEqual([
-            {id: 'codex:session', name: 'Codex', window: '5 h', percent: 42},
-            {id: 'codex:weekly', name: 'Codex', window: 'semana', percent: 81},
-            {id: 'gemini:daily', name: 'Gemini', window: 'dia', percent: 90},
+            {id: 'codex:session', provider: 'codex', name: 'Codex', window: '5 h', percent: 42},
+            {id: 'codex:weekly', provider: 'codex', name: 'Codex', window: 'semana', percent: 81},
+            {id: 'gemini:daily', provider: 'gemini', name: 'Gemini', window: 'dia', percent: 90},
         ]);
     });
 

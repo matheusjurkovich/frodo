@@ -1,3 +1,4 @@
+import type {AiProvider} from './ai-provider.js';
 import type {Level} from './level.js';
 
 export interface Meter {
@@ -42,12 +43,14 @@ export function shownMeterPercent(percent: number, remaining: boolean): number {
 
 export interface QuotaReading {
     readonly id: string;
+    readonly provider: AiProvider;
     readonly name: string;
     readonly window: string;
     readonly percent: number;
 }
 
 export interface QuotaNotice {
+    readonly provider: AiProvider;
     readonly title: string;
     readonly body: string;
 }
@@ -61,17 +64,17 @@ export function quotaNotices(
 ): {states: Map<string, Level>; notices: QuotaNotice[]} {
     const states = new Map<string, Level>();
     const notices: QuotaNotice[] = [];
-    for (const {id, name, window, percent} of readings) {
+    for (const {id, provider, name, window, percent} of readings) {
         const next = meterLevel(percent);
         const before = previous.get(id);
         if (before === undefined) {
             states.set(id, next);
         } else if (LEVEL_RANK[next] > LEVEL_RANK[before]) {
             const limit = LEVEL_PERCENT[next];
-            notices.push({title: `Cota em ${limit}%`, body: `${name}: ${limit}% da cota de ${window}`});
+            notices.push({provider, title: `Cota em ${limit}%`, body: `${name}: ${limit}% da cota de ${window}`});
             states.set(id, next);
         } else if (next === 'ok' && before !== 'ok') {
-            notices.push({title: 'Cota renovada', body: `${name}: cota de ${window} renovada`});
+            notices.push({provider, title: 'Cota renovada', body: `${name}: cota de ${window} renovada`});
             states.set(id, 'ok');
         } else {
             states.set(id, before);

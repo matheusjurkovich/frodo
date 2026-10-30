@@ -26,7 +26,13 @@ describe('medidores de cota', () => {
 });
 
 describe('avisos de cota', () => {
-    const claude = (percent: number): QuotaReading => ({id: 'claude:/c:session', name: 'Claude', window: '5 h', percent});
+    const claude = (percent: number): QuotaReading => ({
+        id: 'claude:/c:session',
+        provider: 'claude',
+        name: 'Claude',
+        window: '5 h',
+        percent,
+    });
 
     it('primeira leitura só registra, sem aviso', () => {
         const {states, notices} = quotaNotices(new Map(), [claude(90)]);
@@ -36,13 +42,13 @@ describe('avisos de cota', () => {
 
     it('cruzar 80% avisa uma vez', () => {
         const first = quotaNotices(new Map([['claude:/c:session', 'ok']]), [claude(82)]);
-        expect(first.notices).toEqual([{title: 'Cota em 80%', body: 'Claude: 80% da cota de 5 h'}]);
+        expect(first.notices).toEqual([{provider: 'claude', title: 'Cota em 80%', body: 'Claude: 80% da cota de 5 h'}]);
         expect(quotaNotices(first.states, [claude(85)]).notices).toEqual([]);
     });
 
     it('pular de 70% para 97% avisa só o de 95%', () => {
         expect(quotaNotices(new Map([['claude:/c:session', 'ok']]), [claude(97)]).notices).toEqual([
-            {title: 'Cota em 95%', body: 'Claude: 95% da cota de 5 h'},
+            {provider: 'claude', title: 'Cota em 95%', body: 'Claude: 95% da cota de 5 h'},
         ]);
     });
 
@@ -53,21 +59,21 @@ describe('avisos de cota', () => {
     });
 
     it('voltar abaixo de 80% depois de alerta avisa cota renovada', () => {
-        const codex: QuotaReading = {id: 'codex:weekly', name: 'Codex', window: 'semana', percent: 12};
+        const codex: QuotaReading = {id: 'codex:weekly', provider: 'codex', name: 'Codex', window: 'semana', percent: 12};
         const {states, notices} = quotaNotices(new Map([['codex:weekly', 'warn']]), [codex]);
-        expect(notices).toEqual([{title: 'Cota renovada', body: 'Codex: cota de semana renovada'}]);
+        expect(notices).toEqual([{provider: 'codex', title: 'Cota renovada', body: 'Codex: cota de semana renovada'}]);
         expect(states.get('codex:weekly')).toBe('ok');
     });
 
     it('janela do codex expirada (0%) depois de alerta vira renovada', () => {
-        const expired: QuotaReading = {id: 'codex:session', name: 'Codex', window: '5 h', percent: 0};
+        const expired: QuotaReading = {id: 'codex:session', provider: 'codex', name: 'Codex', window: '5 h', percent: 0};
         expect(quotaNotices(new Map([['codex:session', 'crit']]), [expired]).notices).toEqual([
-            {title: 'Cota renovada', body: 'Codex: cota de 5 h renovada'},
+            {provider: 'codex', title: 'Cota renovada', body: 'Codex: cota de 5 h renovada'},
         ]);
     });
 
     it('medidor que some é esquecido e volta como primeira leitura', () => {
-        const other: QuotaReading = {id: 'claude:/outro:session', name: 'Claude', window: '5 h', percent: 10};
+        const other: QuotaReading = {id: 'claude:/outro:session', provider: 'claude', name: 'Claude', window: '5 h', percent: 10};
         const switched = quotaNotices(new Map([['claude:/c:session', 'crit']]), [other]);
         expect(switched.notices).toEqual([]);
         expect(switched.states.has('claude:/c:session')).toBeFalse();
