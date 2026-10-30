@@ -37,6 +37,7 @@ final class IslandController: NSObject {
     private var openWork: DispatchWorkItem?
     private var closeWork: DispatchWorkItem?
     private var autoCloseWork: DispatchWorkItem?
+    private var hoverGrace = HoverGrace()
     private var pollTimer: Timer?
     private var coverTimer: Timer?
     private var disposables = Disposables()
@@ -117,9 +118,13 @@ final class IslandController: NSObject {
         return islandShapeRect(position: model.position, panel: panel.frame, size: size)
     }
 
+    private func pointerIsOverOpenIsland() -> Bool {
+        hoverGrace.isOverIsland(pointer: NSEvent.mouseLocation, shape: shapeRect(open: true))
+    }
+
     func updateHover() {
         let mouse = NSEvent.mouseLocation
-        let inside = shapeRect(open: model.isOpen).contains(mouse)
+        let inside = model.isOpen ? pointerIsOverOpenIsland() : shapeRect(open: false).contains(mouse)
         if inside {
             closeWork?.cancel()
             closeWork = nil
@@ -139,7 +144,7 @@ final class IslandController: NSObject {
                 let work = DispatchWorkItem { [weak self] in
                     guard let self else { return }
                     self.closeWork = nil
-                    if !self.shapeRect(open: true).contains(NSEvent.mouseLocation) { self.close() }
+                    if !self.pointerIsOverOpenIsland() { self.close() }
                 }
                 closeWork = work
                 DispatchQueue.main.asyncAfter(deadline: .now() + Motion.closeDelay, execute: work)
@@ -170,6 +175,7 @@ final class IslandController: NSObject {
         pollTimer?.invalidate()
         pollTimer = nil
         autoCloseWork?.cancel()
+        hoverGrace.reset()
         panel.allowsKey = false
         withAnimation(Motion.standard) {
             model.isOpen = false
@@ -181,7 +187,7 @@ final class IslandController: NSObject {
         autoCloseWork?.cancel()
         guard services.settings.autoClose else { return }
         let work = DispatchWorkItem { [weak self] in
-            guard let self, self.model.isOpen, !self.shapeRect(open: true).contains(NSEvent.mouseLocation) else { return }
+            guard let self, self.model.isOpen, !self.pointerIsOverOpenIsland() else { return }
             self.close()
         }
         autoCloseWork = work
