@@ -22,6 +22,12 @@ enum Motion {
         reduced ? .linear(duration: 0) : .easeOut(duration: 0.22).delay(max(0, SpringSpec.soft.milliseconds / 1000 - 0.22))
     }
 
+    static var conceal: Animation { reduced ? .linear(duration: 0) : .easeIn(duration: SpringSpec.soft.milliseconds / 1000) }
+
+    static func peekCountdown(seconds: Int) -> Animation {
+        .linear(duration: Double(seconds))
+    }
+
     static var reveal: Animation { reduced ? .linear(duration: 0) : .easeOut(duration: 0.24).delay(0.08) }
 
     static let slideDistance: CGFloat = 56

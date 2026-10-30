@@ -48,6 +48,12 @@ enum Snapshots {
             model.activity = activity
             writeWindow(IslandRootView(services: services, model: model, onToggle: {}, onClose: {}), size: CGSize(width: 440, height: 520), name: name.replacingOccurrences(of: "pilula-", with: "pilula-vertical-"), directory: directory)
         }
+        for (name, position, size) in [("pilula-espiada", IslandPosition.topCenter, CGSize(width: 760, height: 90)), ("pilula-vertical-espiada", .middleLeft, CGSize(width: 440, height: 520))] {
+            let model = IslandModel()
+            model.position = position
+            model.peek = PeekState(startedAt: now, seconds: 10)
+            writeWindow(IslandRootView(services: services, model: model, onToggle: {}, onClose: {}), size: size, name: name, directory: directory)
+        }
         let tabs: [(String, TabId, SettingsSection?)] = [("ilha-geral", .general, nil), ("ilha-calendario", .calendar, nil), ("ilha-claude", .claude, nil), ("ilha-notificacoes", .notifications, nil)]
             + SettingsSection.allCases.map { ("ilha-configuracoes-\($0.rawValue)", TabId.general, $0) }
         for (name, tab, section) in tabs {
