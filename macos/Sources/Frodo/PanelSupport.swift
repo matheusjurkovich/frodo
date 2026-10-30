@@ -12,7 +12,7 @@ final class ShapeHostingView<Content: View>: NSHostingView<Content> {
     var shapeSize: () -> CGSize = { .zero }
     var position: () -> IslandPosition = { .topCenter }
     var onPointer: () -> Void = {}
-    private var region: NSTrackingArea?
+    private var trackingRegion: NSTrackingArea?
 
     private func anchoredRect(size: CGSize) -> CGRect {
         let rect = islandShapeRect(position: position(), panel: CGRect(origin: .zero, size: bounds.size), size: size)
@@ -30,13 +30,14 @@ final class ShapeHostingView<Content: View>: NSHostingView<Content> {
 
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
-        if let region { removeTrackingArea(region) }
+        if let area = trackingRegion { removeTrackingArea(area) }
+        let region = islandHoverRegion(position: position())
         let area = NSTrackingArea(
-            rect: anchoredRect(size: CGSize(width: min(640, bounds.width), height: 70)),
+            rect: anchoredRect(size: CGSize(width: min(region.width, bounds.width), height: min(region.height, bounds.height))),
             options: [.mouseEnteredAndExited, .mouseMoved, .activeAlways], owner: self, userInfo: nil
         )
         addTrackingArea(area)
-        region = area
+        trackingRegion = area
     }
 
     override func mouseEntered(with event: NSEvent) { onPointer() }

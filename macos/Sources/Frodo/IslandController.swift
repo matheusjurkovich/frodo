@@ -48,12 +48,13 @@ final class IslandController: NSObject {
         self.services = services
         super.init()
         configurePanel()
-        let root = IslandRootView(services: services, model: model, onToggle: { [weak self] in self?.toggle() }, onClose: { [weak self] in self?.close() })
+        let root = IslandRootView(services: services, model: model, onToggle: { [weak self] in self?.togglePill() }, onClose: { [weak self] in self?.close() })
         let hosting = ShapeHostingView(rootView: root)
         hosting.shapeSize = { [weak self] in
             guard let self else { return .zero }
             let size = self.model.targetSize
-            return self.model.showsTongue ? CGSize(width: size.width, height: size.height + 8) : size
+            guard self.model.showsTongue else { return size }
+            return self.model.position.isSideEdge ? CGSize(width: size.width + 8, height: size.height) : CGSize(width: size.width, height: size.height + 8)
         }
         hosting.position = { [weak self] in self?.model.position ?? .topCenter }
         hosting.onPointer = { [weak self] in self?.updateHover() }
@@ -111,7 +112,7 @@ final class IslandController: NSObject {
         if open {
             size = CGSize(width: Theme.Size.islandWidth, height: min(model.islandHeight, Theme.Size.maxIslandHeight))
         } else if model.showsTongue {
-            size = model.position.isSideEdge ? CGSize(width: 16, height: 120) : CGSize(width: 120, height: 16)
+            size = model.position.isSideEdge ? CGSize(width: 16, height: 144) : CGSize(width: 144, height: 16)
         } else {
             size = model.pillSize
         }
@@ -128,11 +129,13 @@ final class IslandController: NSObject {
         if inside {
             closeWork?.cancel()
             closeWork = nil
-            if !model.isOpen, openWork == nil, services.settings.openOnHover {
+            if !model.isOpen, openWork == nil, services.settings.openOnHover, model.activity?.hasAction != true {
                 let work = DispatchWorkItem { [weak self] in
                     guard let self else { return }
                     self.openWork = nil
-                    if self.shapeRect(open: false).contains(NSEvent.mouseLocation) { self.open() }
+                    if self.shapeRect(open: false).contains(NSEvent.mouseLocation), self.model.activity?.hasAction != true {
+                        self.open(tab: self.model.activity?.clickTab)
+                    }
                 }
                 openWork = work
                 DispatchQueue.main.asyncAfter(deadline: .now() + Motion.openDelay, execute: work)
@@ -156,8 +159,15 @@ final class IslandController: NSObject {
         model.isOpen ? close() : open()
     }
 
+    func togglePill() {
+        model.isOpen ? close() : open(tab: model.activity?.clickTab)
+    }
+
     func open(tab: TabId? = nil) {
-        if let tab { model.select(tab, visible: visibleTabs(hidden: services.settings.hiddenTabs)) }
+        if let tab {
+            let visible = visibleTabs(hidden: services.settings.hiddenTabs)
+            model.select(tabToOpen(tab, visible: visible), visible: visible)
+        }
         guard !model.isOpen else { return }
         services.feed.cancelTransient()
         panel.allowsKey = true
@@ -177,7 +187,7 @@ final class IslandController: NSObject {
         autoCloseWork?.cancel()
         hoverGrace.reset()
         panel.allowsKey = false
-        withAnimation(Motion.standard) {
+        withAnimation(Motion.soft) {
             model.isOpen = false
             model.powerMenuOpen = false
         }

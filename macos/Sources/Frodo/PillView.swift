@@ -2,9 +2,37 @@ import FrodoCore
 import FrodoPlatform
 import SwiftUI
 
+private struct PillVerticalKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    var pillVertical: Bool {
+        get { self[PillVerticalKey.self] }
+        set { self[PillVerticalKey.self] = newValue }
+    }
+}
+
+struct PillStack<Content: View>: View {
+    @Environment(\.pillVertical) private var vertical
+    let spacing: CGFloat
+    let content: Content
+
+    init(spacing: CGFloat = 10, @ViewBuilder content: () -> Content) {
+        self.spacing = spacing
+        self.content = content()
+    }
+
+    var body: some View {
+        let layout = vertical ? AnyLayout(VStackLayout(alignment: .center, spacing: 10)) : AnyLayout(HStackLayout(spacing: spacing))
+        layout { content }
+    }
+}
+
 struct PillContent: View {
     let services: FrodoServices
     let activity: PillActivity?
+    var vertical = false
 
     var body: some View {
         Group {
@@ -30,8 +58,10 @@ struct PillContent: View {
             }
         }
         .fixedSize()
-        .padding(.horizontal, 16)
-        .frame(minHeight: Theme.Size.pillHeight)
+        .padding(.horizontal, vertical ? 12 : 16)
+        .padding(.vertical, vertical ? 16 : 0)
+        .frame(minHeight: vertical ? nil : Theme.Size.pillHeight)
+        .environment(\.pillVertical, vertical)
     }
 }
 
@@ -55,7 +85,7 @@ struct IdleContent: View {
     var body: some View {
         let _ = services.revisions.settings + services.revisions.system + services.revisions.claude + services.revisions.notifications
         TimelineView(.periodic(from: .now, by: 1)) { context in
-            HStack(spacing: 12) {
+            PillStack(spacing: 12) {
                 ForEach(items, id: \.self) { item in
                     segment(item, now: context.date)
                 }
@@ -150,36 +180,38 @@ struct ClaudeUsageSegment: View {
 }
 
 struct NotificationContent: View {
+    @Environment(\.pillVertical) private var vertical
     let item: InterceptedNotification
 
     var body: some View {
-        HStack(spacing: 10) {
+        PillStack(spacing: 10) {
             ZStack {
                 Circle().fill(Theme.claude.opacity(0.2)).frame(width: 30, height: 30)
                 FrodoIcon(name: "claude", size: 16, color: Theme.claude)
             }
-            VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: vertical ? .center : .leading, spacing: 1) {
                 Text("\(item.app) · \(item.title)").font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text).lineLimit(1)
                 Text(item.body).font(Theme.Font.label()).foregroundStyle(Theme.textSecondary).lineLimit(1)
             }
-            .frame(maxWidth: 320, alignment: .leading)
+            .frame(maxWidth: 320, alignment: vertical ? .center : .leading)
         }
     }
 }
 
 struct PermissionContent: View {
+    @Environment(\.pillVertical) private var vertical
     let services: FrodoServices
     let session: SessionState
     let request: PendingRequest
 
     var body: some View {
-        HStack(spacing: 10) {
+        PillStack(spacing: 10) {
             FrodoIcon(name: "claude", size: 18, color: Theme.warn)
-            VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: vertical ? .center : .leading, spacing: 1) {
                 Text("\(session.repo) precisa de permissão").font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text).lineLimit(1)
                 Text(session.step.isEmpty ? request.tool : session.step).font(Theme.Font.mono(12)).foregroundStyle(Theme.textSecondary).lineLimit(1)
             }
-            .frame(maxWidth: 280, alignment: .leading)
+            .frame(maxWidth: 280, alignment: vertical ? .center : .leading)
             TextButton(title: "Negar", kind: .secondary, compact: true) { services.sessions.decide(request, .deny) }
             TextButton(title: "Aprovar", kind: .primary, compact: true) { services.sessions.decide(request, .allow) }
         }
@@ -192,7 +224,7 @@ struct WaitingContent: View {
     let session: SessionState
 
     var body: some View {
-        HStack(spacing: 10) {
+        PillStack(spacing: 10) {
             FrodoIcon(name: "claude", size: 18, color: Theme.warn)
             Text("\(session.repo) aguardando você").font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text).lineLimit(1)
             TextButton(title: "Abrir", compact: true) { _ = services.sessions.focus(session.sessionId) }
@@ -201,19 +233,20 @@ struct WaitingContent: View {
 }
 
 struct MeetingContent: View {
+    @Environment(\.pillVertical) private var vertical
     let services: FrodoServices
     let title: String
     let startsAt: Date
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 15)) { context in
-            HStack(spacing: 10) {
+            PillStack(spacing: 10) {
                 FrodoIcon(name: "calendar", size: 18, color: Theme.accentText)
-                VStack(alignment: .leading, spacing: 1) {
+                VStack(alignment: vertical ? .center : .leading, spacing: 1) {
                     Text(title).font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text).lineLimit(1)
                     Text(formatUntil(startsAt, now: context.date)).font(Theme.Font.label()).foregroundStyle(Theme.textSecondary)
                 }
-                .frame(maxWidth: 240, alignment: .leading)
+                .frame(maxWidth: 240, alignment: vertical ? .center : .leading)
                 TextButton(title: services.calendar.nextMeetingURL == nil ? "Abrir" : "Entrar", kind: .primary, compact: true) {
                     if let url = services.calendar.nextMeetingURL { SystemActions.open(url) } else { SystemActions.open(URL(fileURLWithPath: "/System/Applications/Calendar.app")) }
                 }
@@ -226,7 +259,7 @@ struct VolumeContent: View {
     let percent: Int
 
     var body: some View {
-        HStack(spacing: 10) {
+        PillStack(spacing: 10) {
             FrodoIcon(name: "wave", size: 16, color: Theme.text)
             ProgressBar(fraction: Double(percent) / 100, tint: Theme.accent, height: 6).frame(width: 120)
             Text("\(percent)%").font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text).monospacedDigit().frame(width: 40, alignment: .trailing)
@@ -239,7 +272,7 @@ struct WorkingContent: View {
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
-            HStack(spacing: 10) {
+            PillStack(spacing: 10) {
                 FrodoIcon(name: "claude", size: 16, color: Theme.claude)
                 Text(session.repo).font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text)
                 Text(ellipsize(session.step, max: 36)).font(Theme.Font.mono(12)).foregroundStyle(Theme.textSecondary).lineLimit(1)
@@ -250,20 +283,21 @@ struct WorkingContent: View {
 }
 
 struct MediaContent: View {
+    @Environment(\.pillVertical) private var vertical
     let services: FrodoServices
     let track: MediaTrack
 
     var body: some View {
-        HStack(spacing: 10) {
+        PillStack(spacing: 10) {
             ZStack {
                 Circle().fill(Theme.control).frame(width: 28, height: 28)
                 FrodoIcon(name: "music", size: 14, color: Theme.accentText)
             }
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: vertical ? .center : .leading, spacing: 0) {
                 Text(track.title).font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text).lineLimit(1)
                 Text(track.artist).font(Theme.Font.label()).foregroundStyle(Theme.textSecondary).lineLimit(1)
             }
-            .frame(maxWidth: 200, alignment: .leading)
+            .frame(maxWidth: 200, alignment: vertical ? .center : .leading)
             IconButton(icon: "pause", size: 28, iconSize: 12) { services.media.playPause() }
         }
     }

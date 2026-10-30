@@ -18,6 +18,10 @@ enum Motion {
     static var hover: Animation { reduced ? .linear(duration: 0) : .easeOut(duration: 0.15) }
     static var fadeOut: Animation { reduced ? .linear(duration: 0) : .easeOut(duration: 0.11) }
     static var fadeIn: Animation { reduced ? .linear(duration: 0) : .easeOut(duration: 0.22).delay(0.07) }
+    static var pillReturn: Animation {
+        reduced ? .linear(duration: 0) : .easeOut(duration: 0.22).delay(max(0, SpringSpec.soft.milliseconds / 1000 - 0.22))
+    }
+
     static var reveal: Animation { reduced ? .linear(duration: 0) : .easeOut(duration: 0.24).delay(0.08) }
 
     static let slideDistance: CGFloat = 56
