@@ -1,7 +1,6 @@
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import St from 'gi://St';
-
 import {profileChip} from '../../features/claude/claude-profiles.js';
 import {
     displayLevel,
@@ -12,8 +11,9 @@ import {
     shownPercent,
     tierIcon,
 } from '../../features/claude/claude-usage.js';
-import type {Spend, UsageWindow} from '../../features/claude/claude-usage.js';
-import type {ClaudeService, ProfileUsage} from '../../features/claude/claude-service.js';
+import type {Spend, UsageWindow} from '../../features/claude/claude-usage.types.js';
+import type {ClaudeService} from '../../features/claude/claude-service.js';
+import type {ProfileUsage} from '../../features/claude/claude-service.types.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
 import {Disposables} from '../../shared/disposables.js';
 import {Timer} from '../../shared/timer.js';
@@ -22,19 +22,12 @@ import {card, cardHeading} from '../../shared/ui/card.js';
 import {providerTile} from '../../shared/ui/provider-tile.js';
 import {column, dimLabel, label, row, spacer} from '../../shared/ui/layout.js';
 import {whileMapped} from '../../shared/ui/lifecycle.js';
-import type {Component} from '../../shared/ui/lifecycle.js';
+import type {Component} from '../../shared/ui/lifecycle.types.js';
 import {levelClass} from '../../shared/level.js';
-import type {Level} from '../../shared/level.js';
 import {SegmentBar} from '../../shared/ui/segment-bar.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
-
-const USAGE_PAGE = 'https://claude.ai/settings/usage';
-const TICK_SECONDS = 30;
-
-export interface ClaudeTabActions {
-    readonly openSettings: () => void;
-    readonly close: () => void;
-}
+import {TICK_SECONDS, USAGE_PAGE} from './limits-card.const.js';
+import type {MeterOptions, ClaudeTabActions} from './limits-card.types.js';
 
 function percentText(value: number): string {
     return `${Math.round(value)}%`;
@@ -42,14 +35,6 @@ function percentText(value: number): string {
 
 function capitalize(text: string): string {
     return text.charAt(0).toUpperCase() + text.slice(1);
-}
-
-interface MeterOptions {
-    readonly name: string;
-    readonly percent: number | null;
-    readonly level: Level;
-    readonly details: readonly string[];
-    readonly pace?: number | null;
 }
 
 function meter({name, percent, level, details, pace = null}: MeterOptions): St.BoxLayout {

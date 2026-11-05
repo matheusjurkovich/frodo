@@ -2,37 +2,23 @@ import Gio from 'gi://Gio';
 import Meta from 'gi://Meta';
 import Shell from 'gi://Shell';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
-
-import {WINDOW_COLOR_SLOTS, appsSummary, colorSlot, thumbnailRects, workspaceTitle} from './workspaces.js';
-import type {Rect} from '../../shared/geometry.js';
+import {appsSummary, colorSlot, thumbnailRects, workspaceTitle} from './workspaces.js';
+import {WINDOW_COLOR_SLOTS} from './workspaces.const.js';
 import {Emitter} from '../../shared/emitter.js';
-
-const WM_PREFERENCES_SCHEMA = 'org.gnome.desktop.wm.preferences';
-const WORKSPACE_NAMES_KEY = 'workspace-names';
-
-export interface WorkspaceWindow {
-    readonly rect: Rect;
-    readonly slot: number;
-}
-
-export interface WorkspaceInfo {
-    readonly index: number;
-    readonly title: string;
-    readonly apps: string;
-    readonly active: boolean;
-    readonly windows: readonly WorkspaceWindow[];
-}
+import {WM_PREFERENCES_SCHEMA, WORKSPACE_NAMES_KEY} from './workspaces-service.const.js';
+import type {WorkspaceInfo, WorkspaceWindow} from './workspaces-service.types.js';
 
 export class Workspaces extends Emitter<{changed: []}> {
     readonly #manager = global.workspace_manager;
     readonly #tracker = Shell.WindowTracker.get_default();
-    readonly #preferences = new Gio.Settings({schema_id: WM_PREFERENCES_SCHEMA});
+    readonly #preferences: Gio.Settings;
     readonly #tracked = new Map<Meta.Workspace, number[]>();
     readonly #managerIds: number[];
     readonly #namesId: number;
 
-    constructor() {
+    constructor(preferences = new Gio.Settings({schema_id: WM_PREFERENCES_SCHEMA})) {
         super();
+        this.#preferences = preferences;
         const notify = (): void => {
             this.emit('changed');
         };

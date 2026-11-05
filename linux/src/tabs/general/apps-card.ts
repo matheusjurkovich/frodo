@@ -1,23 +1,15 @@
 import Clutter from 'gi://Clutter';
 import Shell from 'gi://Shell';
 import St from 'gi://St';
-
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
 import {Disposables} from '../../shared/disposables.js';
 import {chip} from '../../shared/ui/buttons.js';
 import {CollapsibleCard} from './collapsible-card.js';
 import {column, grid, label, packGrid} from '../../shared/ui/layout.js';
 import {whileMapped} from '../../shared/ui/lifecycle.js';
-import type {Component} from '../../shared/ui/lifecycle.js';
-import type {IslandHandle} from '../../shared/island-handle.js';
-
-const COLUMNS = 4;
-const SPACING = 6;
-const ICON_SIZE = 32;
-const SUMMARY_ICON_SIZE = 20;
-const SUMMARY_LIMIT = 8;
-const BADGE_OFFSET_X = 6;
-const BADGE_OFFSET_Y = -4;
+import type {Component} from '../../shared/ui/lifecycle.types.js';
+import type {IslandHandle} from '../../shared/island-handle.types.js';
+import {SPACING, COLUMNS, SUMMARY_LIMIT, SUMMARY_ICON_SIZE, ICON_SIZE, BADGE_OFFSET_X, BADGE_OFFSET_Y} from './apps-card.const.js';
 
 export class AppsCard implements Component {
     readonly #island: IslandHandle;

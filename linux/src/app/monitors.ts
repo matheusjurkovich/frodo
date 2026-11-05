@@ -1,4 +1,4 @@
-import type {MonitorMode} from '../settings/schema-values.js';
+import type {MonitorMode} from '../settings/schema-values.types.js';
 
 export function targetMonitors(mode: MonitorMode, primary: number, count: number): number[] {
     if (count === 0) return [];

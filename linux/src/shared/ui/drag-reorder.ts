@@ -1,32 +1,10 @@
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
-
 import {Disposables} from '../disposables.js';
-import type {Disposer} from '../disposables.js';
+import type {Disposer} from '../disposables.types.js';
 import {setSourceColor} from './progress-ring.js';
-
-const DASH = [5, 4];
-const LINE_WIDTH = 1.5;
-
-export interface DragReorderOptions {
-    readonly axis: 'x' | 'y';
-    readonly host: St.Widget;
-    readonly items: readonly St.Widget[];
-    readonly handles: readonly Clutter.Actor[];
-    readonly arrange: (actors: readonly St.Widget[]) => void;
-    readonly onMove: (from: number, to: number) => void;
-}
-
-interface Drag {
-    readonly from: number;
-    readonly item: St.Widget;
-    readonly placeholder: St.DrawingArea;
-    readonly grab: Clutter.Grab;
-    readonly signals: number[];
-    readonly offsetX: number;
-    readonly offsetY: number;
-    index: number;
-}
+import {LINE_WIDTH, DASH} from './drag-reorder.const.js';
+import type {DragReorderOptions, Drag} from './drag-reorder.types.js';
 
 function placeholder(width: number, height: number): St.DrawingArea {
     const area = new St.DrawingArea({style_class: 'frodo-drop-placeholder', width, height});

@@ -1,4 +1,4 @@
-import {TAB_IDS} from './schema-values.js';
+import {TAB_IDS} from './schema-values.const.js';
 import {orderedTabs, tabToOpen, visibleTabs} from './tabs.js';
 
 describe('abas', () => {

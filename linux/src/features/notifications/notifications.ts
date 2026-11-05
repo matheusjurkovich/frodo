@@ -1,8 +1,5 @@
-const URGENCY_CRITICAL = 3;
-
-export interface InterceptCandidate {
-    readonly urgency: number;
-}
+import {URGENCY_CRITICAL} from './notifications.const.js';
+import type {InterceptCandidate} from './notifications.types.js';
 
 export function shouldIntercept(notification: InterceptCandidate | null | undefined): notification is InterceptCandidate {
     return !!notification && notification.urgency !== URGENCY_CRITICAL;

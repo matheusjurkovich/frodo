@@ -15,6 +15,16 @@ const restrict = (files, patterns, ignores = []) => ({
     rules: {'@typescript-eslint/no-restricted-imports': ['error', {patterns}]},
 });
 const otherFeature = sibling('features', 'Feature não importa outra feature; o que é comum vai para shared/.');
+const topLevel = selector => `:matches(Program, Program > ExportNamedDeclaration) > ${selector}`;
+const constant = topLevel("VariableDeclaration[kind='const'] > VariableDeclarator > Identifier.id[name=/^[A-Z][A-Z0-9_]*$/]");
+const typeDeclaration = topLevel(':matches(TSInterfaceDeclaration, TSTypeAliasDeclaration, TSEnumDeclaration)');
+const behavior = topLevel(':matches(FunctionDeclaration, ClassDeclaration)');
+const variable = topLevel('VariableDeclaration');
+const syntax = (files, ignores, ...rules) => ({
+    files,
+    ignores,
+    rules: {'no-restricted-syntax': ['error', ...rules.map(([selector, message]) => ({selector, message}))]},
+});
 
 export default tseslint.config(
     {ignores: ['dist/', '.build/', 'node_modules/', '.superpowers/']},
@@ -56,5 +66,18 @@ export default tseslint.config(
     restrict(['src/features/**/*-service.ts', 'src/features/**/*-client.ts'], [above('pill', 'tabs', 'app'), otherFeature]),
     restrict(['src/pill/**/*.ts'], [above('tabs', 'app')]),
     restrict(['src/tabs/**/*.ts'], [above('pill', 'app'), sibling('tabs', 'Aba não importa outra aba.')]),
+    syntax(
+        ['src/**/*.ts'],
+        ['src/**/*.const.ts', 'src/**/*.types.ts', 'src/**/*.spec.ts', 'src/**/*.d.ts'],
+        [constant, 'Constante do módulo vai para <módulo>.const.ts.'],
+        [typeDeclaration, 'Tipo do módulo vai para <módulo>.types.ts.'],
+    ),
+    syntax(
+        ['src/**/*.const.ts'],
+        [],
+        [typeDeclaration, 'Tipo vai para <módulo>.types.ts.'],
+        [behavior, '<módulo>.const.ts só guarda constantes.'],
+    ),
+    syntax(['src/**/*.types.ts'], [], [variable, '<módulo>.types.ts só guarda tipos.'], [behavior, '<módulo>.types.ts só guarda tipos.']),
     prettier,
 );

@@ -4,34 +4,25 @@ import St from 'gi://St';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import {Slider} from 'resource:///org/gnome/shell/ui/slider.js';
-
 import {playingSummary, sameStreams, volumeLabel} from '../../features/system/mixer.js';
-import type {AudioStream} from '../../features/system/mixer.js';
-import type {AudioDevice, Mixer} from '../../features/system/mixer-service.js';
+import type {AudioStream} from '../../features/system/mixer.types.js';
+import type {Mixer} from '../../features/system/mixer-service.js';
+import type {AudioDevice} from '../../features/system/mixer-service.types.js';
 import {Disposables} from '../../shared/disposables.js';
-import type {IslandHandle} from '../../shared/island-handle.js';
+import type {IslandHandle} from '../../shared/island-handle.types.js';
 import {iconButton} from '../../shared/ui/buttons.js';
 import {card, cardHeading, cardTitle} from '../../shared/ui/card.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
-import type {FrodoIconName} from '../../shared/ui/icons.js';
 import {column, dimLabel, label, row} from '../../shared/ui/layout.js';
 import {whileMapped} from '../../shared/ui/lifecycle.js';
-import type {Component} from '../../shared/ui/lifecycle.js';
-
-const BARS = 3;
-
-interface Icons {
-    readonly on: FrodoIconName;
-    readonly off: FrodoIconName;
-}
+import type {Component} from '../../shared/ui/lifecycle.types.js';
+import {SPEAKER, BARS, MICROPHONE} from './mixer-page.const.js';
+import type {Icons} from './mixer-page.types.js';
 
 function wrap(text: St.Label): void {
     text.clutter_text.line_wrap = true;
     text.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
 }
-
-const SPEAKER: Icons = {on: 'volume', off: 'volume-off'};
-const MICROPHONE: Icons = {on: 'mic', off: 'mic-off'};
 
 class VolumeControl implements Component {
     readonly actor = row('frodo-mixer-control');

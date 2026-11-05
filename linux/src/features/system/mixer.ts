@@ -1,13 +1,5 @@
-export interface AudioStream {
-    readonly id: number;
-    readonly name: string;
-    readonly detail: string | null;
-    readonly iconName: string;
-    readonly level: number;
-    readonly muted: boolean;
-}
-
-const GENERIC_DETAILS = new Set(['playback', 'audio stream', 'audiostream', 'record', 'recording', 'capture']);
+import {GENERIC_DETAILS} from './mixer.const.js';
+import type {AudioStream} from './mixer.types.js';
 
 export function streamDetail(description: string | null): string | null {
     const text = description?.trim() ?? '';

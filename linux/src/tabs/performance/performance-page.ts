@@ -1,42 +1,33 @@
 import Clutter from 'gi://Clutter';
 import Shell from 'gi://Shell';
 import St from 'gi://St';
-
 import {formatBytes, formatPercent, formatRate, monogram, topBy} from '../../features/system/performance.js';
-import type {PerformanceMonitor, PerformanceSnapshot, ProcessSample} from '../../features/system/performance-service.js';
+import type {PerformanceMonitor} from '../../features/system/performance-service.js';
+import type {PerformanceSnapshot, ProcessSample} from '../../features/system/performance-service.types.js';
 import {Disposables} from '../../shared/disposables.js';
-import type {IslandHandle} from '../../shared/island-handle.js';
+import type {IslandHandle} from '../../shared/island-handle.types.js';
 import {iconButton, textButton} from '../../shared/ui/buttons.js';
 import {card, cardTitle} from '../../shared/ui/card.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
 import {column, dimLabel, grid, label, packGrid, row} from '../../shared/ui/layout.js';
 import {whileMapped} from '../../shared/ui/lifecycle.js';
-import type {Component} from '../../shared/ui/lifecycle.js';
+import type {Component} from '../../shared/ui/lifecycle.types.js';
 import {SegmentBar} from '../../shared/ui/segment-bar.js';
 import {Segmented} from '../../shared/ui/segmented.js';
-
-type SortKey = 'cpu' | 'ram' | 'gpu';
-
-const SORTS: readonly {id: SortKey; label: string}[] = [
-    {id: 'cpu', label: 'CPU'},
-    {id: 'ram', label: 'RAM'},
-    {id: 'gpu', label: 'GPU'},
-];
-const TOP = 5;
-const SPARK_HEIGHT = 40;
-const RECENT_BARS = 3;
-const DIM_OPACITY = 115;
-const HIGH_USAGE = 0.85;
-const SPACING = 10;
-const MONITOR_APPS = ['org.gnome.SystemMonitor.desktop', 'net.nokyan.Resources.desktop', 'io.missioncenter.MissionCenter.desktop'];
-const HISTORY_SLOTS = 30;
-const IDLE_FOOTER = 'Atualiza a cada 2 s enquanto esta aba está aberta.';
-
-const SORT_VALUE: Record<SortKey, (process: ProcessSample) => number> = {
-    cpu: process => process.cpu,
-    ram: process => process.ramBytes,
-    gpu: process => process.gpu ?? 0,
-};
+import {
+    HISTORY_SLOTS,
+    SPARK_HEIGHT,
+    RECENT_BARS,
+    DIM_OPACITY,
+    HIGH_USAGE,
+    IDLE_FOOTER,
+    SPACING,
+    SORTS,
+    MONITOR_APPS,
+    SORT_VALUE,
+    TOP,
+} from './performance-page.const.js';
+import type {SortKey} from './performance-page.types.js';
 
 class Sparkline {
     readonly actor = new St.BoxLayout({style_class: 'frodo-perf-spark', x_expand: true});

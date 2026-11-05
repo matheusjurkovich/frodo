@@ -1,7 +1,6 @@
 import Clutter from 'gi://Clutter';
 import Pango from 'gi://Pango';
 import St from 'gi://St';
-
 import {formatTimer} from '../../shared/format.js';
 import {trackFraction} from '../../features/media/media.js';
 import type {MediaService} from '../../features/media/media-service.js';
@@ -11,12 +10,10 @@ import {chip, iconButton} from '../../shared/ui/buttons.js';
 import {card} from '../../shared/ui/card.js';
 import {column, label, row, spacer} from '../../shared/ui/layout.js';
 import {whileMapped} from '../../shared/ui/lifecycle.js';
-import type {Component} from '../../shared/ui/lifecycle.js';
+import type {Component} from '../../shared/ui/lifecycle.types.js';
 import {SegmentBar} from '../../shared/ui/segment-bar.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
-
-const POLL_SECONDS = 1;
-const US_PER_SECOND = 1e6;
+import {US_PER_SECOND, POLL_SECONDS} from './media-card.const.js';
 
 function setEnabled(button: St.Button, enabled: boolean): void {
     button.reactive = enabled;

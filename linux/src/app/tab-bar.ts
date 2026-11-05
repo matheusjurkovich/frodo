@@ -1,26 +1,12 @@
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
-
-import type {TabId} from '../settings/schema-values.js';
+import type {TabId} from '../settings/schema-values.types.js';
 import {Emitter} from '../shared/emitter.js';
-import {SPRING} from '../shared/spring.js';
+import {SPRING} from '../shared/spring.const.js';
 import {chip} from '../shared/ui/buttons.js';
-import type {Component} from '../shared/ui/lifecycle.js';
 import {frodoIcon} from '../shared/ui/icons.js';
 import {springEase} from '../shared/ui/motion.js';
-import type {FrodoIconName} from '../shared/ui/icons.js';
-
-export interface TabSpec {
-    readonly id: TabId;
-    readonly icon: FrodoIconName;
-    readonly label: string;
-    create(): Component;
-}
-
-interface TabItem {
-    readonly button: St.Button;
-    readonly badge: St.Label;
-}
+import type {TabItem, TabSpec} from './tab-bar.types.js';
 
 export class TabBar extends Emitter<{selected: [TabId]}> {
     readonly actor = new St.Widget({layout_manager: new Clutter.BinLayout(), x_expand: true, x_align: Clutter.ActorAlign.CENTER});

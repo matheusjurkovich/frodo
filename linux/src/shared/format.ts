@@ -1,5 +1,4 @@
-const WEEKDAYS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'] as const;
-const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'] as const;
+import {WEEKDAYS, MONTHS} from './format.const.js';
 
 const pad = (n: number): string => String(n).padStart(2, '0');
 

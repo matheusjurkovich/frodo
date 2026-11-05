@@ -1,8 +1,7 @@
 import type Clutter from 'gi://Clutter';
 import type St from 'gi://St';
 import type * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
-
-import type {Disposer} from './disposables.js';
+import type {Disposer} from './disposables.types.js';
 import type {Emitter} from './emitter.js';
 
 export interface IslandHandleEvents {

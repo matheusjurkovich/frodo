@@ -1,47 +1,9 @@
 import {addCell, hourStart} from '../../shared/consumption.js';
-import type {ModelGroups, UsageCell} from '../../shared/consumption.js';
+import type {ModelGroups, UsageCell} from '../../shared/consumption.types.js';
 import {resetNote} from '../../shared/meter.js';
-import type {Meter} from '../../shared/meter.js';
-
-export interface RateWindow {
-    readonly usedPercent: number;
-    readonly windowMinutes: number;
-    readonly resetsAt: number;
-}
-
-export interface CodexLimits {
-    readonly plan: string | null;
-    readonly primary: RateWindow | null;
-    readonly secondary: RateWindow | null;
-    readonly at: number;
-}
-
-export interface CodexSession {
-    readonly model: string;
-    readonly tokens: number;
-    readonly contextTokens: number;
-    readonly contextWindow: number;
-    readonly startedAt: number;
-    readonly lastAt: number;
-}
-
-export interface CodexLine {
-    readonly at: number;
-    readonly type: string;
-    readonly payload: Json;
-}
-
-export interface CodexRollout {
-    readonly id: string | null;
-    readonly cells: readonly UsageCell[];
-    readonly session: CodexSession | null;
-    readonly limits: CodexLimits | null;
-}
-
-type Json = Record<string, unknown>;
-type Mutable<T> = {-readonly [K in keyof T]: T[K]};
-
-const FAMILIES = ['codex-gpt', 'codex-codex', 'codex-mini', 'codex-other'];
+import type {Meter} from '../../shared/meter.types.js';
+import {FAMILIES} from './codex-usage.const.js';
+import type {Json, CodexLine, RateWindow, CodexLimits, CodexRollout, Mutable, CodexSession} from './codex-usage.types.js';
 
 function isJson(value: unknown): value is Json {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -173,7 +135,7 @@ function codexLabel(model: string): string {
     return [`GPT-${version}`, ...rest.map(capitalize)].join(' ');
 }
 
-export const CODEX_MODELS: ModelGroups = {order: FAMILIES, family: codexFamily, label: codexLabel};
+export const codexModels: ModelGroups = {order: FAMILIES, family: codexFamily, label: codexLabel};
 
 function windowName(minutes: number): string {
     if (minutes > 0 && minutes % (7 * 24 * 60) === 0) return 'Semana';

@@ -1,61 +1,13 @@
 import St from 'gi://St';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
-
 import {powerActions} from '../shared/shell-internals.js';
-import type {PowerActions} from '../shared/shell-internals.js';
 import {Disposables} from '../shared/disposables.js';
 import {label} from '../shared/ui/layout.js';
 import {frodoIcon} from '../shared/ui/icons.js';
-import type {FrodoIconName} from '../shared/ui/icons.js';
 import type {Island} from './island.js';
-
-interface Entry {
-    readonly text: string;
-    readonly icon: FrodoIconName;
-    readonly danger: boolean;
-    available(actions: PowerActions): boolean;
-    activate(actions: PowerActions): void;
-}
-
-const ENTRIES: readonly Entry[] = [
-    {
-        text: 'Suspender',
-        icon: 'suspend',
-        danger: false,
-        available: actions => actions.canSuspend,
-        activate: actions => {
-            actions.activateSuspend();
-        },
-    },
-    {
-        text: 'Encerrar sessão',
-        icon: 'logout',
-        danger: false,
-        available: actions => actions.canLogout,
-        activate: actions => {
-            actions.activateLogout();
-        },
-    },
-    {
-        text: 'Reiniciar',
-        icon: 'restart',
-        danger: false,
-        available: actions => actions.canRestart,
-        activate: actions => {
-            actions.activateRestart();
-        },
-    },
-    {
-        text: 'Desligar',
-        icon: 'power',
-        danger: true,
-        available: actions => actions.canPowerOff,
-        activate: actions => {
-            actions.activatePowerOff();
-        },
-    },
-];
+import {ENTRIES} from './power-menu.const.js';
+import type {Entry} from './power-menu.types.js';
 
 export class PowerMenu {
     readonly #menu: PopupMenu.PopupMenu;

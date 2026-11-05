@@ -1,7 +1,7 @@
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import type {FrodoSettings} from '../settings/frodo-settings.js';
-import type {Disposer} from '../shared/disposables.js';
+import type {Disposer} from '../shared/disposables.types.js';
 
 export class TopBarVisibility {
     readonly #settings: FrodoSettings;

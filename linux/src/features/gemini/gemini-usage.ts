@@ -1,37 +1,9 @@
 import {addCell, hourStart} from '../../shared/consumption.js';
-import type {ModelGroups, UsageCell} from '../../shared/consumption.js';
+import type {ModelGroups, UsageCell} from '../../shared/consumption.types.js';
 import {clockTime} from '../../shared/meter.js';
-import type {Meter} from '../../shared/meter.js';
-
-export interface GeminiRequest {
-    readonly id: string;
-    readonly at: number;
-    readonly model: string;
-    readonly input: number;
-    readonly output: number;
-    readonly cacheRead: number;
-}
-
-export interface GeminiSession {
-    readonly id: string;
-    readonly requests: readonly GeminiRequest[];
-}
-
-export interface GeminiQuota {
-    readonly requests: number;
-    readonly limit: number;
-    readonly perMinute: number;
-    readonly resetsAt: number;
-}
-
-type Json = Record<string, unknown>;
-
-export const GEMINI_PER_MINUTE_LIMIT = 60;
-const PACIFIC = 'America/Los_Angeles';
-const MINUTE_MS = 60_000;
-const HASH = /^[0-9a-f]{64}$/;
-const FAMILIES = ['gemini-pro', 'gemini-flash', 'gemini-other'];
-const DROPPED_WORDS = new Set(['preview', 'exp', 'latest']);
+import type {Meter} from '../../shared/meter.types.js';
+import {PACIFIC, HASH, MINUTE_MS, DROPPED_WORDS, FAMILIES, GEMINI_PER_MINUTE_LIMIT} from './gemini-usage.const.js';
+import type {Json, GeminiRequest, GeminiSession, GeminiQuota} from './gemini-usage.types.js';
 
 const pacificParts = new Intl.DateTimeFormat('en-US', {
     timeZone: PACIFIC,
@@ -178,7 +150,7 @@ function geminiLabel(model: string): string {
     return ['Gemini', version, ...words].join(' ');
 }
 
-export const GEMINI_MODELS: ModelGroups = {order: FAMILIES, family: geminiFamily, label: geminiLabel};
+export const geminiModels: ModelGroups = {order: FAMILIES, family: geminiFamily, label: geminiLabel};
 
 export function geminiMeters(quota: GeminiQuota | null): Meter[] {
     if (!quota) return [];

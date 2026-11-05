@@ -1,15 +1,9 @@
 import Gio from 'gi://Gio';
 import UPower from 'gi://UPowerGlib';
 import {loadInterfaceXML} from 'resource:///org/gnome/shell/misc/fileUtils.js';
-
-import type {BatteryInfo} from './battery.js';
+import type {BatteryInfo} from './battery.types.js';
 import {Emitter} from '../../shared/emitter.js';
-
-interface DisplayDevice {
-    readonly IsPresent: boolean;
-    readonly Percentage: number;
-    readonly State: UPower.DeviceState;
-}
+import type {DisplayDevice} from './battery-service.types.js';
 
 const DisplayDeviceProxy = Gio.DBusProxy.makeProxyWrapper<DisplayDevice>(loadInterfaceXML('org.freedesktop.UPower.Device'));
 
@@ -19,10 +13,10 @@ export class BatteryMonitor extends Emitter<{changed: []}> {
     #destroyed = false;
     readonly #proxy: DisplayDevice & Gio.DBusProxy;
 
-    constructor() {
+    constructor(bus = Gio.DBus.system) {
         super();
         this.#proxy = DisplayDeviceProxy(
-            Gio.DBus.system,
+            bus,
             'org.freedesktop.UPower',
             '/org/freedesktop/UPower/devices/DisplayDevice',
             (_proxy, error) => {

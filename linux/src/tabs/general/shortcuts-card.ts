@@ -6,21 +6,16 @@ import Shell from 'gi://Shell';
 import St from 'gi://St';
 import {showScreenRecordingUI, showScreenshotUI} from 'resource:///org/gnome/shell/ui/screenshot.js';
 import {getMixerControl} from 'resource:///org/gnome/shell/ui/status/volume.js';
-
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
 import {powerActions} from '../../shared/shell-internals.js';
 import {Disposables} from '../../shared/disposables.js';
 import {CollapsibleCard} from './collapsible-card.js';
 import {column, grid, label, packGrid} from '../../shared/ui/layout.js';
-import type {Component} from '../../shared/ui/lifecycle.js';
+import type {Component} from '../../shared/ui/lifecycle.types.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
-import type {FrodoIconName} from '../../shared/ui/icons.js';
-import type {IslandHandle} from '../../shared/island-handle.js';
-
-const COLUMNS = 3;
-const SPACING = 6;
-const TERMINALS = ['org.gnome.Ptyxis.desktop', 'org.gnome.Terminal.desktop', 'org.gnome.Console.desktop'];
-const FILES = ['org.gnome.Nautilus.desktop'];
+import type {FrodoIconName} from '../../shared/ui/icons.types.js';
+import type {IslandHandle} from '../../shared/island-handle.types.js';
+import {TERMINALS, FILES, SPACING, COLUMNS} from './shortcuts-card.const.js';
 
 function shortcutButton(icon: FrodoIconName, text: string, onClick: () => void): St.Button {
     const content = column('frodo-shortcut-content');

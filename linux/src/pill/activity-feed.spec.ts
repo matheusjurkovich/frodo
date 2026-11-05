@@ -1,8 +1,8 @@
-import type {PendingRequest, SessionState, SessionStatus} from '../features/claude/claude-sessions.js';
-import type {MediaTrack} from '../features/media/media-service.js';
-import type {NotificationBridgeEvents} from '../features/notifications/notification-bridge-service.js';
+import type {PendingRequest, SessionState, SessionStatus} from '../features/claude/claude-sessions.types.js';
+import type {MediaTrack} from '../features/media/media-service.types.js';
+import type {NotificationBridgeEvents} from '../features/notifications/notification-bridge-service.types.js';
 import {ActivityFeed} from './activity-feed.js';
-import type {FeedSources} from './activity-feed.js';
+import type {FeedSources} from './activity-feed.types.js';
 import {Emitter} from '../shared/emitter.js';
 import {Timer} from '../shared/timer.js';
 import type {FrodoSettings} from '../settings/frodo-settings.js';

@@ -1,46 +1,24 @@
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
-
-import type {ActivityKind} from './activity-priority.js';
 import {sameSubject} from './activity-subject.js';
-import type {ClaudeService} from '../features/claude/claude-service.js';
-import type {NotificationBridge} from '../features/notifications/notification-bridge-service.js';
 import type {FrodoSettings} from '../settings/frodo-settings.js';
-import type {SystemState} from '../features/system/system-state-service.js';
-import type {TabId} from '../settings/schema-values.js';
+import type {TabId} from '../settings/schema-values.types.js';
 import {Disposables} from '../shared/disposables.js';
 import {Emitter} from '../shared/emitter.js';
-import {SOFT_SPRING, SPRING} from '../shared/spring.js';
-import {BOTH_AXES, fadeIn, fadeOut, morphSize, settle} from '../shared/ui/motion.js';
-import type {ActivityFeed, PillActivity} from './activity-feed.js';
+import {SOFT_SPRING, SPRING} from '../shared/spring.const.js';
+import {fadeIn, fadeOut, morphSize, settle} from '../shared/ui/motion.js';
+import {BOTH_AXES} from '../shared/ui/motion.const.js';
+import type {ActivityFeed} from './activity-feed.js';
+import type {PillActivity} from './activity-feed.types.js';
 import {ActivityView} from './activity-view.js';
-import type {ActivityServices} from './activity-view.js';
-import type {CodexUsage} from '../features/codex/codex-service.js';
-import type {GeminiUsage} from '../features/gemini/gemini-service.js';
 import {IdleView} from './idle-view.js';
 import {PeekView} from './peek-view.js';
-
-const STATE_CLASSES: Partial<Record<ActivityKind, string>> = {
-    recording: 'frodo-pill-recording',
-    'claude-permission': 'frodo-pill-waiting',
-    'claude-waiting': 'frodo-pill-waiting',
-    meeting: 'frodo-pill-meeting',
-    notification: 'frodo-pill-notification',
-};
+import {STATE_CLASSES} from './pill.const.js';
+import type {PillDependencies} from './pill.types.js';
 
 function disarm(actor: Clutter.Actor): void {
     actor.reactive = false;
     for (const child of actor.get_children()) disarm(child);
-}
-
-export interface PillDependencies extends ActivityServices {
-    readonly settings: FrodoSettings;
-    readonly state: SystemState;
-    readonly claude: ClaudeService;
-    readonly codex: CodexUsage;
-    readonly gemini: GeminiUsage;
-    readonly bridge: NotificationBridge;
-    readonly feed: ActivityFeed;
 }
 
 export class Pill extends Emitter<{rebuilt: []}> {

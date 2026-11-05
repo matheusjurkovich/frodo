@@ -1,23 +1,13 @@
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
-
-import type {MediaService} from '../../features/media/media-service.js';
-import type {FrodoSettings} from '../../settings/frodo-settings.js';
 import {column, row} from '../../shared/ui/layout.js';
-import type {Component} from '../../shared/ui/lifecycle.js';
-import type {IslandHandle} from '../../shared/island-handle.js';
+import type {Component} from '../../shared/ui/lifecycle.types.js';
 import {AppsCard} from './apps-card.js';
 import {MediaCard} from './media-card.js';
 import {NativeControls} from './native-controls.js';
 import {ShortcutsCard} from './shortcuts-card.js';
 import {SoundCard} from './sound-card.js';
-
-export interface GeneralDependencies {
-    readonly island: IslandHandle;
-    readonly settings: FrodoSettings;
-    readonly media: MediaService;
-    readonly scrollToTop: () => void;
-}
+import type {GeneralDependencies} from './general-page.types.js';
 
 function columns(...sides: Clutter.Actor[]): St.BoxLayout {
     const box = row('frodo-cols');

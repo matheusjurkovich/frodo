@@ -1,46 +1,19 @@
-import type {Level} from '../../shared/level.js';
+import type {Level} from '../../shared/level.types.js';
 import {resetNote} from '../../shared/meter.js';
-import type {Meter} from '../../shared/meter.js';
-
-export type WindowRole = 'session' | 'weekly' | 'scoped' | 'other';
-export type TierIcon = 'free' | 'pro' | 'max' | 'team' | 'enterprise';
-
-export interface UsageWindow {
-    readonly key: string;
-    readonly label: string;
-    readonly role: WindowRole;
-    readonly utilization: number;
-    readonly resetsAt: string | null;
-    readonly totalSeconds: number | null;
-    readonly apiLevel: Level;
-    readonly isActive: boolean;
-}
-
-export interface Spend {
-    readonly used: string | null;
-    readonly limit: string | null;
-    readonly percent: number | null;
-    readonly level: Level;
-}
-
-export interface LevelInput {
-    readonly utilization: number;
-    readonly resetsAt: string | null;
-    readonly totalSeconds: number | null;
-    readonly apiLevel: Level;
-}
-
-type Json = Record<string, unknown>;
-
-const FIVE_HOUR_SECONDS = 5 * 3600;
-const SEVEN_DAY_SECONDS = 7 * 24 * 3600;
-const GROUP_SECONDS: Record<string, number> = {session: FIVE_HOUR_SECONDS, weekly: SEVEN_DAY_SECONDS};
-const ROLE_ORDER: Record<WindowRole, number> = {session: 0, weekly: 1, scoped: 2, other: 3};
-const LEVEL_RANK: Record<Level, number> = {ok: 0, warn: 1, crit: 2};
-const KNOWN_MODEL: Record<string, string> = {opus: 'Opus', sonnet: 'Sonnet', haiku: 'Haiku', oauth_apps: 'OAuth Apps'};
-const TIER_ICONS: readonly TierIcon[] = ['free', 'pro', 'max', 'team', 'enterprise'];
-const LOCKOUT_CRIT_FRACTION = 0.1;
-const DISPLAY_WARN_UTILIZATION = 80;
+import type {Meter} from '../../shared/meter.types.js';
+import {
+    KNOWN_MODEL,
+    FIVE_HOUR_SECONDS,
+    SEVEN_DAY_SECONDS,
+    GROUP_SECONDS,
+    ROLE_ORDER,
+    TIER_ICONS,
+    LEVEL_RANK,
+    LOCKOUT_CRIT_FRACTION,
+    DISPLAY_WARN_UTILIZATION,
+    SHORT_LABELS,
+} from './claude-usage.const.js';
+import type {Json, WindowRole, UsageWindow, Spend, TierIcon, LevelInput, AccountSummary} from './claude-usage.types.js';
 
 function isJson(value: unknown): value is Json {
     return typeof value === 'object' && value !== null;
@@ -327,13 +300,6 @@ export function relativeReset(resetsAt: string | null, now: number): string {
     return `reinicia em ${humanDuration(seconds)}`;
 }
 
-export interface AccountSummary {
-    readonly who: string | null;
-    readonly plan: string | null;
-    readonly rateLimitTier: string | null;
-    readonly subtitle: string;
-}
-
 export function accountSummary(profile: unknown): AccountSummary | null {
     const account = field(profile, 'account');
     if (!isJson(account)) return null;
@@ -352,8 +318,6 @@ export function accountSummary(profile: unknown): AccountSummary | null {
     };
 }
 
-export const STALE_USAGE_MESSAGE = 'Uso desatualizado. Abra o Claude Code para atualizar.';
-
 export function claudeErrorMessage(status: number | null, apiMessage: string | null): string {
     switch (status) {
         case null:
@@ -368,8 +332,6 @@ export function claudeErrorMessage(status: number | null, apiMessage: string | n
             return `Erro do Claude (HTTP ${status}).`;
     }
 }
-
-const SHORT_LABELS: Partial<Record<WindowRole, string>> = {session: 'Sessão 5 h', weekly: 'Semana'};
 
 export function claudeMeters(windows: readonly UsageWindow[], now: number): Meter[] {
     return windows

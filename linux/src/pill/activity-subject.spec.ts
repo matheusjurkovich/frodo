@@ -1,7 +1,7 @@
-import type {PendingRequest, SessionState} from '../features/claude/claude-sessions.js';
-import type {MediaTrack} from '../features/media/media-service.js';
-import type {InterceptedNotification} from '../features/notifications/notification-bridge-service.js';
-import type {PillActivity} from './activity-feed.js';
+import type {PendingRequest, SessionState} from '../features/claude/claude-sessions.types.js';
+import type {MediaTrack} from '../features/media/media-service.types.js';
+import type {InterceptedNotification} from '../features/notifications/notification-bridge-service.types.js';
+import type {PillActivity} from './activity-feed.types.js';
 import {sameSubject} from './activity-subject.js';
 
 const session = (sessionId: string, step = ''): SessionState => ({sessionId, step}) as SessionState;

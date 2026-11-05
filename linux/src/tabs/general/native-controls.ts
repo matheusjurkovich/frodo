@@ -3,7 +3,6 @@ import GObject from 'gi://GObject';
 import St from 'gi://St';
 import {PopupAnimation} from 'resource:///org/gnome/shell/ui/boxpointer.js';
 import type {QuickSlider, QuickToggleMenu} from 'resource:///org/gnome/shell/ui/quickSettings.js';
-
 import {
     closeQuickSettingsMenu,
     interceptCloseQuickSettings,
@@ -15,27 +14,18 @@ import {
     quickToggleMenuHeader,
 } from '../../shared/shell-internals.js';
 import {Disposables} from '../../shared/disposables.js';
-import type {Disposer} from '../../shared/disposables.js';
-import {SPRING} from '../../shared/spring.js';
+import type {Disposer} from '../../shared/disposables.types.js';
+import {SPRING} from '../../shared/spring.const.js';
 import {ActorLoan} from '../../shared/ui/actor-loan.js';
 import {whileShown} from '../../shared/ui/lifecycle.js';
 import {iconButton} from '../../shared/ui/buttons.js';
 import {packGrid} from '../../shared/ui/layout.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
-import {HEIGHT_AXIS, morphSize, settle, slideIn, slideOut} from '../../shared/ui/motion.js';
-import type {IslandHandle} from '../../shared/island-handle.js';
-
-const OVERLAY_BINDINGS = [Clutter.BindCoordinate.X, Clutter.BindCoordinate.Y, Clutter.BindCoordinate.WIDTH] as const;
-const TILE_COLUMNS = 2;
-const TILE_SPACING = 8;
-
-export interface SliderSlots {
-    readonly slider: St.Bin;
-    readonly icon: St.Bin;
-    readonly menu: St.Bin;
-}
-
-type Toggle = Clutter.Actor & {subtitle: string | null; checked: boolean};
+import {morphSize, settle, slideIn, slideOut} from '../../shared/ui/motion.js';
+import {HEIGHT_AXIS} from '../../shared/ui/motion.const.js';
+import type {IslandHandle} from '../../shared/island-handle.types.js';
+import {TILE_SPACING, TILE_COLUMNS, OVERLAY_BINDINGS} from './native-controls.const.js';
+import type {SliderSlots, Toggle} from './native-controls.types.js';
 
 function sliderSlots(): SliderSlots {
     return {

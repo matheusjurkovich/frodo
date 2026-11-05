@@ -1,6 +1,6 @@
 import {
     geminiMeters,
-    GEMINI_MODELS,
+    geminiModels,
     geminiCells,
     geminiQuota,
     nextPacificReset,
@@ -107,8 +107,8 @@ describe('gemini-usage', () => {
             'gemini-2.5-pro-preview-05-06',
             'gemma-3',
         ];
-        expect(models.map(GEMINI_MODELS.family)).toEqual(['gemini-pro', 'gemini-flash', 'gemini-flash', 'gemini-pro', 'gemini-other']);
-        expect(models.map(GEMINI_MODELS.label)).toEqual([
+        expect(models.map(geminiModels.family)).toEqual(['gemini-pro', 'gemini-flash', 'gemini-flash', 'gemini-pro', 'gemini-other']);
+        expect(models.map(geminiModels.label)).toEqual([
             'Gemini 3.1 Pro',
             'Gemini 3 Flash',
             'Gemini 2.5 Flash Lite',

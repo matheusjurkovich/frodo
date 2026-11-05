@@ -1,13 +1,8 @@
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
-
 import {segmentWidths} from '../geometry.js';
 import {allocatedWidth} from './layout.js';
-
-export interface Segment {
-    readonly fraction: number;
-    readonly styleClass: string;
-}
+import type {Segment} from './segment-bar.types.js';
 
 export class SegmentBar {
     readonly actor: St.Widget;

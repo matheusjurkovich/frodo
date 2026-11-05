@@ -1,0 +1,9 @@
+export const THUMB_WIDTH = 145;
+export const THUMB_HEIGHT = 91;
+export const SCREEN_WIDTH = 129;
+export const SCREEN_HEIGHT = 81;
+export const SCREEN_X = (THUMB_WIDTH - SCREEN_WIDTH) / 2;
+export const SCREEN_Y = (THUMB_HEIGHT - SCREEN_HEIGHT) / 2;
+export const DASH_RADIUS = 18;
+export const DASH_WIDTH = 1.5;
+export const DASH_PATTERN = [4, 4];

@@ -1,37 +1,25 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
-
-import {CODEX_MODELS, latestLimits, readRollout} from './codex-usage.js';
-import type {CodexLimits, CodexRollout, CodexSession} from './codex-usage.js';
+import {codexModels, latestLimits, readRollout} from './codex-usage.js';
+import type {CodexLimits, CodexRollout, CodexSession} from './codex-usage.types.js';
 import {Disposables} from '../../shared/disposables.js';
 import {Emitter} from '../../shared/emitter.js';
 import {Timer} from '../../shared/timer.js';
 import {readTextFile} from '../../shared/files.js';
-import {KEPT_DAYS, dayStart, summarize} from '../../shared/consumption.js';
-import type {ConsumptionSource, ConsumptionSummary, Period} from '../../shared/consumption.js';
+import {dayStart, summarize} from '../../shared/consumption.js';
+import {KEPT_DAYS} from '../../shared/consumption.const.js';
+import type {ConsumptionSource, ConsumptionSummary, Period} from '../../shared/consumption.types.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
+import {ATTRIBUTES, BATCH, SCAN_SECONDS, TAIL_BYTES} from './codex-service.const.js';
+import type {Cached, Found} from './codex-service.types.js';
 
 Gio._promisify(Gio.File.prototype, 'enumerate_children_async', 'enumerate_children_finish');
+
 Gio._promisify(Gio.FileEnumerator.prototype, 'next_files_async', 'next_files_finish');
+
 Gio._promisify(Gio.File.prototype, 'read_async', 'read_finish');
+
 Gio._promisify(Gio.InputStream.prototype, 'read_bytes_async', 'read_bytes_finish');
-
-const SCAN_SECONDS = 30;
-const TAIL_BYTES = 256 * 1024;
-const BATCH = 256;
-const ATTRIBUTES = 'standard::name,standard::type,standard::size,time::modified';
-
-interface Found {
-    readonly path: string;
-    readonly key: string;
-    readonly modified: number;
-    readonly size: number;
-}
-
-interface Cached<T> {
-    readonly key: string;
-    readonly value: T;
-}
 
 async function children(dir: string, cancellable: Gio.Cancellable): Promise<Gio.FileInfo[]> {
     try {
@@ -117,7 +105,7 @@ export class CodexUsage extends Emitter<{changed: []}> implements ConsumptionSou
             [...this.#rollouts.values()].flatMap(({value}) => value.cells),
             period,
             now,
-            CODEX_MODELS,
+            codexModels,
         );
     }
 

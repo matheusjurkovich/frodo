@@ -1,20 +1,8 @@
-import type {ClaudeService} from '../features/claude/claude-service.js';
-import type {CodexUsage} from '../features/codex/codex-service.js';
-import type {GeminiUsage} from '../features/gemini/gemini-service.js';
-import type {FrodoSettings} from '../settings/frodo-settings.js';
 import {Disposables} from '../shared/disposables.js';
-import type {Level} from '../shared/level.js';
+import type {Level} from '../shared/level.types.js';
 import {quotaNotices} from '../shared/meter.js';
-import type {ProviderNotifier} from '../shared/ui/provider-notifier.js';
 import {quotaReadings} from './quota-readings.js';
-
-export interface QuotaAlertsDependencies {
-    readonly settings: FrodoSettings;
-    readonly claude: ClaudeService;
-    readonly codex: CodexUsage;
-    readonly gemini: GeminiUsage;
-    readonly notifier: Pick<ProviderNotifier, 'notify'>;
-}
+import type {QuotaAlertsDependencies} from './quota-alerts.types.js';
 
 export class QuotaAlerts {
     readonly #deps: QuotaAlertsDependencies;

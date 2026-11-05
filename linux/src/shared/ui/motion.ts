@@ -1,38 +1,26 @@
 import Clutter from 'gi://Clutter';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
-
-import {FIRM_SPRING, SOFT_SPRING, SPRING, springProgress} from '../spring.js';
-import type {Spring} from '../spring.js';
-
-const FADE_OUT_MS = 110;
-const FADE_OUT_SCALE = 0.96;
-const FADE_IN_MS = 220;
-const FADE_IN_DELAY_MS = 70;
-const FADE_IN_SCALE = 0.92;
-const ZOOM_DELAY_MS = 40;
-const SLIDE_PX = 56;
-const SLIDE_FADE_MS = 220;
-const REVEAL_IN_MS = 240;
-const REVEAL_IN_DELAY_MS = 80;
-const REVEAL_OUT_MS = 120;
-
-type Axis = 'width' | 'height';
-
-export interface Axes {
-    readonly width: boolean;
-    readonly height: boolean;
-}
-
-export const BOTH_AXES: Axes = {width: true, height: true};
-export const HEIGHT_AXIS: Axes = {width: false, height: true};
-
-const SPRING_KEYS = 24;
-const DOUBLE_PROPERTIES = new Set(['scale-x', 'scale-y', 'rotation-angle-z']);
-
-type EaseParams = Parameters<Clutter.Actor['ease']>[0];
-
-export type SpringProps = Omit<EaseParams, 'duration' | 'mode' | 'onComplete' | 'onStopped'>;
+import {springProgress} from '../spring.js';
+import {FIRM_SPRING, SOFT_SPRING, SPRING} from '../spring.const.js';
+import type {Spring} from '../spring.types.js';
+import {
+    DOUBLE_PROPERTIES,
+    SPRING_KEYS,
+    BOTH_AXES,
+    FADE_OUT_SCALE,
+    FADE_OUT_MS,
+    FADE_IN_SCALE,
+    FADE_IN_MS,
+    FADE_IN_DELAY_MS,
+    ZOOM_DELAY_MS,
+    SLIDE_PX,
+    SLIDE_FADE_MS,
+    REVEAL_OUT_MS,
+    REVEAL_IN_MS,
+    REVEAL_IN_DELAY_MS,
+} from './motion.const.js';
+import type {SpringProps, Axes, Axis} from './motion.types.js';
 
 function snakeCase(name: string): string {
     return name.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);

@@ -1,4 +1,4 @@
-import {CODEX_MODELS, codexMeters, latestLimits, parseCodexLine, planLabel, readRollout} from './codex-usage.js';
+import {codexModels, codexMeters, latestLimits, parseCodexLine, planLabel, readRollout} from './codex-usage.js';
 
 const at = (minute: number): string => new Date(2026, 9, 27, 10, minute).toISOString();
 
@@ -110,8 +110,8 @@ describe('codex-usage', () => {
 
     it('agrupa e rotula os modelos', () => {
         const models = ['gpt-5.6-sol', 'gpt-5-codex', 'gpt-5.1-codex-mini', 'o3'];
-        expect(models.map(CODEX_MODELS.family)).toEqual(['codex-gpt', 'codex-codex', 'codex-mini', 'codex-other']);
-        expect(models.map(CODEX_MODELS.label)).toEqual(['GPT-5.6 Sol', 'GPT-5 Codex', 'GPT-5.1 Codex Mini', 'o3']);
+        expect(models.map(codexModels.family)).toEqual(['codex-gpt', 'codex-codex', 'codex-mini', 'codex-other']);
+        expect(models.map(codexModels.label)).toEqual(['GPT-5.6 Sol', 'GPT-5 Codex', 'GPT-5.1 Codex Mini', 'o3']);
     });
 
     it('converte as janelas em medidores e zera a que já reiniciou', () => {

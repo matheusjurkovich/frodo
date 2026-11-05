@@ -1,13 +1,6 @@
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
-
 import {Emitter} from '../../shared/emitter.js';
-
-interface ScreencastUi {
-    readonly screencast_in_progress: boolean;
-    stopScreencast(): Promise<void>;
-    connect(signal: 'notify::screencast-in-progress', callback: () => void): number;
-    disconnect(id: number): void;
-}
+import type {ScreencastUi} from './recording-service.types.js';
 
 export class Recording extends Emitter<{changed: []}> {
     readonly #ui = Main.screenshotUI as ScreencastUi;

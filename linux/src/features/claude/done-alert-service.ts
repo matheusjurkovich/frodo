@@ -1,7 +1,7 @@
 import {doneMessage, finishedSessions} from './claude-sessions.js';
-import type {SessionState} from './claude-sessions.js';
+import type {SessionState} from './claude-sessions.types.js';
 import type {ClaudeSessions} from './claude-sessions-service.js';
-import type {Unsubscribe} from '../../shared/emitter.js';
+import type {Unsubscribe} from '../../shared/emitter.types.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
 import type {ProviderNotifier} from '../../shared/ui/provider-notifier.js';
 

@@ -1,12 +1,5 @@
-export interface Credentials {
-    readonly accessToken: string;
-    readonly refreshToken: string | null;
-    readonly expiresAt: number;
-    readonly subscriptionType: string | null;
-    readonly rateLimitTier: string | null;
-}
-
-const REFRESH_SKEW_MS = 5 * 60 * 1000;
+import {REFRESH_SKEW_MS} from './claude-credentials.const.js';
+import type {Credentials} from './claude-credentials.types.js';
 
 function optionalText(value: unknown): string | null {
     return typeof value === 'string' && value !== '' ? value : null;

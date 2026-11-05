@@ -1,19 +1,17 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
-
 import {parseCredentials} from './claude-credentials.js';
 import {parseProfiles} from '../../settings/claude-profile.js';
-import type {ClaudeProfile} from '../../settings/claude-profile.js';
+import type {ClaudeProfile} from '../../settings/claude-profile.types.js';
 import {labelForDirName} from './claude-profiles.js';
 import {credentialsPath, defaultConfigDir} from './claude-client.js';
 import {readTextFile} from '../../shared/files.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
+import {ORIGINAL_UUID, ORIGINAL_SCHEMA} from './claude-profiles-service.const.js';
 
 Gio._promisify(Gio.File.prototype, 'enumerate_children_async', 'enumerate_children_finish');
-Gio._promisify(Gio.FileEnumerator.prototype, 'next_files_async', 'next_files_finish');
 
-const ORIGINAL_SCHEMA = 'org.gnome.shell.extensions.claude-usage';
-const ORIGINAL_UUID = 'claude-usage@dvdstelt.github.io';
+Gio._promisify(Gio.FileEnumerator.prototype, 'next_files_async', 'next_files_finish');
 
 let sequence = 0;
 
@@ -30,8 +28,7 @@ async function hasCredentials(configDir: string): Promise<boolean> {
     return parseCredentials(await readTextFile(credentialsPath(configDir))) !== null;
 }
 
-export async function discoverConfigDirs(): Promise<string[]> {
-    const home = GLib.get_home_dir();
+export async function discoverConfigDirs(home = GLib.get_home_dir()): Promise<string[]> {
     const found: string[] = [];
     try {
         const enumerator = await Gio.File.new_for_path(home).enumerate_children_async(

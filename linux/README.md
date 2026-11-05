@@ -282,17 +282,21 @@ src/
   extension.ts            enable/disable: ícones, createServices, barra do topo, ilhas e atalhos
   app/                    a ilha: services.ts (cria os serviços), island.ts (um monitor), island-manager.ts
                           (um por monitor), panel-content.ts, header.ts, tab-bar.ts, power-menu.ts,
-                          top-bar-visibility.ts e monitors.ts
+                          top-bar-visibility.ts e monitors.ts; island.ts compõe island-motion.ts (animação),
+                          island-pointer.ts (hover e borda), island-placement.ts (posição), island-presence.ts
+                          (pílula coberta e espiada) e island-surface.ts (vidro)
   pill/                   pílula: visão ociosa, visão de atividade, feed e prioridade das atividades
   tabs/<aba>/             uma pasta por aba: general, calendar, workspaces, claude (aba IA), notifications, performance, mixer, settings
   features/<domínio>/     regra pura e serviço de cada fonte de dados: claude, codex, gemini, media, meetings,
                           notifications, system, workspaces
   settings/               GSettings tipado, valores do schema, perfis do Claude, atalho e abas
   shared/                 Emitter, Disposables, Timer, formatação, geometria, curva de mola, leitura de arquivo, nível,
-                          contrato da ilha para as abas (island-handle.ts) e shell-internals.ts
+                          contrato da ilha para as abas (island-handle.types.ts) e shell-internals.ts
     ui/                   componentes St: botões, cards, layout, anel, barra de segmentos, ícones, empréstimo de ator,
                           movimento (motion.ts)
   types/                  declarações que faltam nos tipos @girs
+  **/<módulo>.const.ts    constantes do módulo (NOME_EM_MAIÚSCULA), ao lado dele
+  **/<módulo>.types.ts    tipos e interfaces do módulo, ao lado dele
 tests/                    runner Jasmine (entry.js acha todo *.spec.ts), polyfills e fixtures
 tools/smoke.sh            gnome-shell headless isolado: liga, desliga e religa a extensão
 tools/devkit.sh           gnome-shell aninhado numa janela, isolado, para conferir ao vivo

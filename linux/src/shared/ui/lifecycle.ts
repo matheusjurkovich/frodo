@@ -1,12 +1,6 @@
 import type Clutter from 'gi://Clutter';
-
-import type {Disposer} from '../disposables.js';
-import type {IslandHandle} from '../island-handle.js';
-
-export interface Component {
-    readonly actor: Clutter.Actor;
-    destroy(): void;
-}
+import type {Disposer} from '../disposables.types.js';
+import type {IslandHandle} from '../island-handle.types.js';
 
 export function whileMapped(actor: Clutter.Actor, start: () => void, stop: () => void): Disposer {
     let running = false;

@@ -1,11 +1,8 @@
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
-
-import type {AiProvider} from '../ai-provider.js';
+import type {AiProvider} from '../ai-provider.types.js';
 import {frodoIcon} from './icons.js';
-import type {FrodoIconName} from './icons.js';
-
-export const PROVIDER_ICONS: Record<AiProvider, FrodoIconName> = {claude: 'claude', codex: 'codex', gemini: 'gemini'};
+import {PROVIDER_ICONS} from './provider-tile.const.js';
 
 export function providerIcon(provider: AiProvider, styleClass = ''): St.Icon {
     return new St.Icon({

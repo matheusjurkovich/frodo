@@ -1,37 +1,18 @@
 import Clutter from 'gi://Clutter';
-
-import type {ClaudeService} from '../../features/claude/claude-service.js';
-import type {ClaudeSessions} from '../../features/claude/claude-sessions-service.js';
-import type {ClaudeTranscripts} from '../../features/claude/claude-transcripts-service.js';
-import type {CodexUsage} from '../../features/codex/codex-service.js';
-import type {GeminiUsage} from '../../features/gemini/gemini-service.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
-import {AI_PROVIDERS, PROVIDER_NAMES} from '../../shared/ai-provider.js';
-import type {AiProvider} from '../../shared/ai-provider.js';
+import {AI_PROVIDERS, PROVIDER_NAMES} from '../../shared/ai-provider.const.js';
+import type {AiProvider} from '../../shared/ai-provider.types.js';
 import {Disposables} from '../../shared/disposables.js';
 import {column, row} from '../../shared/ui/layout.js';
-import type {Component} from '../../shared/ui/lifecycle.js';
+import type {Component} from '../../shared/ui/lifecycle.types.js';
 import {swap} from '../../shared/ui/motion.js';
 import {Segmented} from '../../shared/ui/segmented.js';
 import {ConsumptionCard} from './consumption-card.js';
 import {LimitsCard} from './limits-card.js';
-import type {ClaudeTabActions} from './limits-card.js';
 import {MetersCard, OverviewCard} from './provider-cards.js';
 import {SessionsCard} from './sessions-card.js';
-
-type View = AiProvider | 'all';
-
-const VIEWS: readonly View[] = ['all', ...AI_PROVIDERS];
-
-export interface ClaudePageDependencies {
-    readonly claude: ClaudeService;
-    readonly transcripts: ClaudeTranscripts;
-    readonly sessions: ClaudeSessions;
-    readonly codex: CodexUsage;
-    readonly gemini: GeminiUsage;
-    readonly settings: FrodoSettings;
-    readonly actions: ClaudeTabActions;
-}
+import {VIEWS} from './claude-page.const.js';
+import type {View, ClaudePageDependencies} from './claude-page.types.js';
 
 export class ClaudePage implements Component {
     readonly actor = column('frodo-section frodo-ai');

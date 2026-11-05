@@ -9,153 +9,40 @@ import * as Layout from 'resource:///org/gnome/shell/ui/layout.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import type * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
 import type {QuickSlider, QuickToggleMenu} from 'resource:///org/gnome/shell/ui/quickSettings.js';
-
-import type {EdgeSpan} from './geometry.js';
-import type {Disposer} from './disposables.js';
-
-const EDGE_PRESSURE = 100;
-const EDGE_TIMEOUT_MS = 1000;
-
-const NATIVE_INDICATORS: readonly string[] = [
-    'activities',
-    'quickSettings',
-    'dateMenu',
-    'a11y',
-    'keyboard',
-    'dwellClick',
-    'screenRecording',
-    'screenSharing',
-];
-
-export type PanelSide = 'left' | 'center' | 'right';
-
-interface PanelInternals {
-    readonly _leftBox: St.BoxLayout;
-    readonly _centerBox: St.BoxLayout;
-    readonly _rightBox: St.BoxLayout;
-    closeQuickSettings(): void;
-}
-
-export interface QuickSettingsMenuInternals {
-    readonly actor: St.Widget;
-    readonly _grid: St.Widget;
-    readonly _overlay: Clutter.Actor;
-    readonly _activeMenu?: QuickToggleMenu | null;
-    close(animate: PopupAnimation): void;
-}
-
-interface InputSliderInternals extends QuickSlider {
-    _showInput: boolean;
-    _sync(): void;
-    _maybeShowInput(): void;
-}
-
-interface QuickSliderInternals {
-    readonly _iconButton: St.Button;
-    readonly _menuButton: St.Button;
-}
-
-interface QuickMenuToggleInternals {
-    readonly _menuButton?: St.Button;
-}
-
-interface QuickToggleMenuInternals {
-    readonly _header: St.Widget;
-    readonly _headerIcon: St.Icon;
-}
-
-export interface QuickToggleMenuHeader {
-    readonly header: St.Widget;
-    readonly icon: St.Icon;
-}
-
-interface PressureBarrier {
-    addBarrier(barrier: Meta.Barrier): void;
-    connect(signal: 'trigger', callback: () => void): number;
-    destroy(): void;
-}
-
-type PressureBarrierClass = new (threshold: number, timeout: number, actionMode: Shell.ActionMode) => PressureBarrier;
-
-export interface QuickSliderButtons {
-    readonly icon: St.Button;
-    readonly menu: St.Button;
-}
-
-interface QuickSettingsIndicator<Item extends Clutter.Actor = Clutter.Actor> {
-    readonly quickSettingsItems: readonly Item[];
-}
-
-export interface QuickSettingsInternals {
-    readonly menu: QuickSettingsMenuInternals;
-    readonly _indicators: St.BoxLayout;
-    readonly _network?: (Clutter.Actor & {readonly _wirelessToggle: Clutter.Actor}) | null;
-    readonly _bluetooth?: QuickSettingsIndicator | null;
-    readonly _rfkill?: QuickSettingsIndicator;
-    readonly _powerProfiles?: QuickSettingsIndicator;
-    readonly _doNotDisturb?: QuickSettingsIndicator;
-    readonly _nightLight?: QuickSettingsIndicator;
-    readonly _darkMode?: QuickSettingsIndicator;
-    readonly _volumeOutput?: QuickSettingsIndicator<QuickSlider>;
-    readonly _volumeInput?: QuickSettingsIndicator<QuickSlider>;
-    readonly _brightness?: QuickSettingsIndicator<QuickSlider>;
-}
-
-export interface QuickSettingsParts {
-    readonly menu: QuickSettingsMenuInternals;
-    readonly tiles: readonly Clutter.Actor[];
-    readonly output: QuickSlider | null;
-    readonly input: QuickSlider | null;
-    readonly brightness: QuickSlider | null;
-}
-
-interface DateSetter {
-    setDate(date: Date): void;
-}
-
-export interface CalendarEvent {
-    readonly summary: string;
-    readonly date: Date;
-    readonly end: Date;
-}
-
-export interface CalendarEventSource {
-    getEvents(begin: Date, end: Date): readonly CalendarEvent[];
-    connect(signal: 'changed', callback: () => void): number;
-    disconnect(id: number): void;
-}
-
-interface CalendarInternals {
-    _headerFormat: string;
-    _headerFormatWithoutYear: string;
-    readonly _topBox: St.BoxLayout;
-    readonly _monthLabel: St.Label;
-    readonly _backButton: St.Button;
-    readonly _buttons: readonly (St.Button & {readonly _date: Date})[];
-    readonly _selectedDate: Date;
-    _rebuildCalendar(): void;
-    _update(): void;
-}
-
-interface DateMenuInternals {
-    readonly _calendar: Clutter.Actor & DateSetter;
-    readonly _date: DateSetter;
-    readonly _eventsItem: Clutter.Actor & DateSetter;
-    readonly _eventSource?: CalendarEventSource | null;
-}
-
-export interface CalendarParts {
-    readonly month: Clutter.Actor;
-    readonly events: Clutter.Actor;
-    selectToday(): void;
-}
-
-export interface MessageTrayInternals {
-    _notificationQueue: MessageTray.Notification[];
-    _showNotification(): void;
-    _updateState(): void;
-    emit(signal: 'queue-changed'): void;
-}
+import type {EdgeSpan} from './geometry.types.js';
+import type {Disposer} from './disposables.types.js';
+import {
+    NATIVE_INDICATORS,
+    PANEL_SIDES,
+    SYSTEM_INDICATOR_FIELDS,
+    OWN_INDICATOR_FIELDS,
+    WEEK,
+    MONTH_HEADER,
+    EDGE_PRESSURE,
+    EDGE_TIMEOUT_MS,
+} from './shell-internals.const.js';
+import type {
+    PanelInternals,
+    PanelSide,
+    QuickSettingsInternals,
+    SystemIndicatorName,
+    QuickSettingsParts,
+    QuickSettingsIndicator,
+    QuickSliderButtons,
+    QuickSliderInternals,
+    QuickToggleMenuHeader,
+    QuickToggleMenuInternals,
+    QuickMenuToggleInternals,
+    InputSliderInternals,
+    DateMenuInternals,
+    CalendarParts,
+    CalendarInternals,
+    PressureBarrierClass,
+    CalendarEventSource,
+    PowerActions,
+    MessageTrayInternals,
+    SessionModeInternals,
+} from './shell-internals.types.js';
 
 function panelInternals(): PanelInternals {
     return Main.panel as unknown as PanelInternals;
@@ -165,8 +52,6 @@ export function panelBox(side: PanelSide): St.BoxLayout {
     const panel = panelInternals();
     return {left: panel._leftBox, center: panel._centerBox, right: panel._rightBox}[side];
 }
-
-const PANEL_SIDES: readonly PanelSide[] = ['left', 'center', 'right'];
 
 export function extensionIndicators(): Clutter.Actor[] {
     const statusArea = Main.panel.statusArea as Record<string, {readonly container?: Clutter.Actor} | undefined>;
@@ -212,18 +97,6 @@ export function quickSettings(): QuickSettingsInternals | null {
 export function networkIndicator(): Clutter.Actor | null {
     return quickSettings()?._network ?? null;
 }
-
-export type SystemIndicatorName = 'bluetooth' | 'volume' | 'microphone' | 'do-not-disturb' | 'battery';
-
-const SYSTEM_INDICATOR_FIELDS: Record<SystemIndicatorName, string> = {
-    bluetooth: '_bluetooth',
-    volume: '_volumeOutput',
-    microphone: '_volumeInput',
-    'do-not-disturb': '_doNotDisturb',
-    battery: '_system',
-};
-
-const OWN_INDICATOR_FIELDS: readonly string[] = [...Object.values(SYSTEM_INDICATOR_FIELDS), '_network'];
 
 function quickSettingsFields(): Record<string, Clutter.Actor | null | undefined> | null {
     return quickSettings() as unknown as Record<string, Clutter.Actor | null | undefined> | null;
@@ -339,9 +212,6 @@ export function calendarParts(): CalendarParts | null {
     };
 }
 
-const WEEK = 7;
-const MONTH_HEADER = '%OB %Y';
-
 function trimMonth(calendar: CalendarInternals): void {
     const month = calendar._selectedDate.getMonth();
     const now = new Date();
@@ -421,14 +291,6 @@ export function calendarEventSource(): CalendarEventSource | null {
     return dateMenuInternals()?._eventSource ?? null;
 }
 
-export type PowerActions = ReturnType<typeof SystemActions.getDefault> & {
-    activateSuspend(): void;
-    activateRestart(): void;
-    activateLogout(): void;
-    activatePowerOff(): void;
-    activateLockScreen(): void;
-};
-
 export function powerActions(): PowerActions {
     return SystemActions.getDefault() as PowerActions;
 }
@@ -439,12 +301,6 @@ export function spawn(argv: readonly string[]): void {
 
 export function messageTray(): MessageTray.MessageTray & MessageTrayInternals {
     return Main.messageTray as MessageTray.MessageTray & MessageTrayInternals;
-}
-
-interface SessionModeInternals {
-    readonly isLocked: boolean;
-    connect(signal: 'updated', callback: () => void): number;
-    disconnect(id: number): void;
 }
 
 function sessionMode(): SessionModeInternals {

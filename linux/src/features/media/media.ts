@@ -1,10 +1,5 @@
-export interface TrackMetadata {
-    readonly title: string;
-    readonly artist: string;
-    readonly album: string;
-    readonly coverUrl: string;
-    readonly lengthUs: number | null;
-}
+import {PLAYERCTLD} from './media.const.js';
+import type {TrackMetadata, PlayerCandidate} from './media.types.js';
 
 const text = (value: unknown): string => (typeof value === 'string' ? value : '');
 
@@ -27,14 +22,6 @@ export function parseMetadata(metadata: Record<string, unknown>): TrackMetadata 
 export function trackFraction(positionUs: number | null, lengthUs: number | null): number | null {
     if (positionUs === null || lengthUs === null || lengthUs <= 0) return null;
     return Math.min(1, Math.max(0, positionUs / lengthUs));
-}
-
-const PLAYERCTLD = 'org.mpris.MediaPlayer2.playerctld';
-
-export interface PlayerCandidate {
-    readonly name: string;
-    readonly playing: boolean;
-    readonly title: string;
 }
 
 export function pickPlayer<Candidate extends PlayerCandidate>(players: readonly Candidate[]): Candidate | null {

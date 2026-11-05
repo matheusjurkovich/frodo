@@ -1,38 +1,18 @@
 import Gio from 'gi://Gio';
 import Soup from 'gi://Soup?version=3.0';
-
 import {isActiveProfile} from './claude-profiles.js';
-import type {ClaudeProfile} from '../../settings/claude-profile.js';
-import {STALE_USAGE_MESSAGE, accountSummary, claudeErrorMessage, normalizeSpend, normalizeWindows, tierLabel} from './claude-usage.js';
-import type {Spend, UsageWindow} from './claude-usage.js';
+import type {ClaudeProfile} from '../../settings/claude-profile.types.js';
+import {accountSummary, claudeErrorMessage, normalizeSpend, normalizeWindows, tierLabel} from './claude-usage.js';
+import {STALE_USAGE_MESSAGE} from './claude-usage.const.js';
 import {Disposables} from '../../shared/disposables.js';
 import {Emitter} from '../../shared/emitter.js';
 import {Timer} from '../../shared/timer.js';
 import {ClaudeApiError, ClaudeClient, ExpiredTokenError, SignedOutError, defaultConfigDir, soupTransport} from './claude-client.js';
+import type {Transport} from './claude-client.types.js';
 import {ensureProfiles} from './claude-profiles-service.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
-
-const MIN_REFRESH_MS = 60 * 1000;
-const TIMEOUT_SECONDS = 15;
-
-export type ProfileStatus = 'loading' | 'ok' | 'error' | 'signed-out';
-
-export interface ProfileUsage {
-    readonly profile: ClaudeProfile;
-    readonly active: boolean;
-    readonly status: ProfileStatus;
-    readonly windows: readonly UsageWindow[];
-    readonly spend: Spend | null;
-    readonly tier: string | null;
-    readonly subtitle: string | null;
-    readonly error: string | null;
-    readonly updatedAt: number;
-}
-
-interface Entry {
-    readonly client: ClaudeClient;
-    usage: ProfileUsage;
-}
+import {TIMEOUT_SECONDS, MIN_REFRESH_MS} from './claude-service.const.js';
+import type {ProfileUsage, Entry} from './claude-service.types.js';
 
 function initialUsage(profile: ClaudeProfile, active: boolean): ProfileUsage {
     return {profile, active, status: 'loading', windows: [], spend: null, tier: null, subtitle: null, error: null, updatedAt: 0};
@@ -48,14 +28,16 @@ export class ClaudeService extends Emitter<{changed: []}> {
     readonly #cancellable = new Gio.Cancellable();
     readonly #timer = new Timer();
     readonly #disposables = new Disposables();
+    readonly #transport: Transport;
     #entries: Entry[] = [];
     #lastRefresh = 0;
     #lastFailed = false;
     #destroyed = false;
 
-    constructor(settings: FrodoSettings) {
+    constructor(settings: FrodoSettings, transport?: Transport) {
         super();
         this.#settings = settings;
+        this.#transport = transport ?? soupTransport(this.#session, this.#cancellable);
         this.#disposables.add(
             settings.onChanged('claude-poll-minutes', () => {
                 this.#schedule();
@@ -104,11 +86,10 @@ export class ClaudeService extends Emitter<{changed: []}> {
 
     #rebuild(profiles: readonly ClaudeProfile[]): void {
         const defaultDir = defaultConfigDir();
-        const transport = soupTransport(this.#session, this.#cancellable);
         const hasActive = profiles.some(profile => isActiveProfile(profile, defaultDir));
         this.#entries = profiles.map((profile, index) => {
             const active = hasActive ? isActiveProfile(profile, defaultDir) : index === 0;
-            return {client: new ClaudeClient(profile.configDir, transport), usage: initialUsage(profile, active)};
+            return {client: new ClaudeClient(profile.configDir, this.#transport), usage: initialUsage(profile, active)};
         });
         this.emit('changed');
         void this.refresh(true);

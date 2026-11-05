@@ -1,42 +1,19 @@
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import St from 'gi://St';
-
 import {ellipsize, formatSpan, formatTimer, formatUntil, secondsSince} from '../shared/format.js';
-import type {TabId} from '../settings/schema-values.js';
-import type {ClaudeSessions} from '../features/claude/claude-sessions-service.js';
-import type {MediaService} from '../features/media/media-service.js';
-import type {Recording} from '../features/system/recording-service.js';
+import type {TabId} from '../settings/schema-values.types.js';
 import {Timer} from '../shared/timer.js';
 import {iconButton, textButton} from '../shared/ui/buttons.js';
 import {column, label} from '../shared/ui/layout.js';
-import type {Component} from '../shared/ui/lifecycle.js';
+import type {Component} from '../shared/ui/lifecycle.types.js';
 import {SegmentBar} from '../shared/ui/segment-bar.js';
-import {PROVIDER_ICONS} from '../shared/ui/provider-tile.js';
+import {PROVIDER_ICONS} from '../shared/ui/provider-tile.const.js';
 import {frodoIcon} from '../shared/ui/icons.js';
 import {setSourceColor} from '../shared/ui/progress-ring.js';
-import type {PillActivity} from './activity-feed.js';
-
-const TICK_SECONDS = 1;
-const REPO_CHARS = 24;
-const STEP_CHARS = 40;
-const TITLE_CHARS = 40;
-const APP_CHARS = 20;
-const TRACK_CHARS = 30;
-const ARTIST_CHARS = 24;
-
-type Of<K extends PillActivity['kind']> = Extract<PillActivity, {kind: K}>;
-
-export interface PillActions {
-    openTab(tab: TabId): void;
-}
-
-export interface ActivityServices {
-    readonly recording: Pick<Recording, 'stop'>;
-    readonly sessions: Pick<ClaudeSessions, 'focus' | 'decide'>;
-    readonly media: Pick<MediaService, 'playPause'>;
-    readonly actions: PillActions;
-}
+import type {PillActivity} from './activity-feed.types.js';
+import {TICK_SECONDS, REPO_CHARS, STEP_CHARS, TITLE_CHARS, APP_CHARS, TRACK_CHARS, ARTIST_CHARS} from './activity-view.const.js';
+import type {ActivityServices, Of} from './activity-view.types.js';
 
 function icon(gicon: Gio.Icon, styleClass = ''): St.Icon {
     return new St.Icon({gicon, style_class: `frodo-pill-icon ${styleClass}`.trim(), y_align: Clutter.ActorAlign.CENTER});

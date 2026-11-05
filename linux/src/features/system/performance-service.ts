@@ -1,7 +1,6 @@
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import Shell from 'gi://Shell';
-
 import {Emitter} from '../../shared/emitter.js';
 import {readTextFile} from '../../shared/files.js';
 import {Timer} from '../../shared/timer.js';
@@ -20,52 +19,26 @@ import {
     parseSwap,
     pushHistory,
 } from './performance.js';
-import type {CpuTimes, DiskIo, DrmClient} from './performance.js';
+import type {CpuTimes, DiskIo, DrmClient} from './performance.types.js';
+import {
+    ENUMERATE_BATCH,
+    SAMPLE_SECONDS,
+    DRM_SCAN_EVERY,
+    HISTORY_SIZE,
+    TICKS_PER_SECOND,
+    PAGE_BYTES,
+    SECTOR_BYTES,
+    CPU_SENSORS,
+} from './performance-service.const.js';
+import type {Child, PerformanceSnapshot, ProcessSample, Engines} from './performance-service.types.js';
 
 Gio._promisify(Gio.File.prototype, 'enumerate_children_async', 'enumerate_children_finish');
+
 Gio._promisify(Gio.FileEnumerator.prototype, 'next_files_async', 'next_files_finish');
+
 Gio._promisify(Gio.File.prototype, 'query_filesystem_info_async', 'query_filesystem_info_finish');
+
 Gio._promisify(Gio.Subprocess.prototype, 'wait_check_async', 'wait_check_finish');
-
-const SAMPLE_SECONDS = 2;
-const HISTORY_SIZE = 30;
-const TICKS_PER_SECOND = 100;
-const PAGE_BYTES = 4096;
-const SECTOR_BYTES = 512;
-const DRM_SCAN_EVERY = 5;
-const ENUMERATE_BATCH = 256;
-const CPU_SENSORS = ['coretemp', 'k10temp', 'zenpower', 'cpu_thermal'];
-
-export interface ProcessSample {
-    readonly pid: number;
-    readonly name: string;
-    readonly cpu: number;
-    readonly ramBytes: number;
-    readonly gpu: number | null;
-    readonly protected: boolean;
-    readonly gicon: Gio.Icon | null;
-}
-
-export interface PerformanceSnapshot {
-    readonly cpu: {readonly usage: number; readonly cores: number; readonly mhz: number | null; readonly celsius: number | null};
-    readonly cpuHistory: readonly number[];
-    readonly memory: {readonly usedKb: number; readonly totalKb: number; readonly swapUsedKb: number; readonly swapTotalKb: number} | null;
-    readonly gpu: {readonly usage: number; readonly driver: string} | null;
-    readonly gpuHistory: readonly number[];
-    readonly disk: {readonly usedBytes: number; readonly totalBytes: number; readonly readBps: number; readonly writeBps: number} | null;
-    readonly processes: readonly ProcessSample[];
-}
-
-interface Child {
-    readonly name: string;
-    readonly info: Gio.FileInfo;
-}
-
-interface Engines {
-    readonly engines: Record<string, number>;
-    readonly capacity: Record<string, number>;
-    readonly driver: string;
-}
 
 async function children(path: string, attributes: string, cancellable: Gio.Cancellable): Promise<Child[]> {
     try {
@@ -287,7 +260,9 @@ export class PerformanceMonitor extends Emitter<{changed: []}> {
         await Promise.all(
             pids.map(async pid => {
                 const fds = await children(`/proc/${pid}/fd`, 'standard::name,standard::symlink-target', cancellable);
-                const drm = fds.filter(({info}) => info.get_symlink_target()?.startsWith('/dev/dri/')).map(({name}) => name);
+                const drm = fds
+                    .filter(({info}) => info.get_attribute_byte_string('standard::symlink-target')?.startsWith('/dev/dri/'))
+                    .map(({name}) => name);
                 if (drm.length > 0) found.set(pid, drm);
             }),
         );

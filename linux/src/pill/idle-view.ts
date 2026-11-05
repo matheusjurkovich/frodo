@@ -3,19 +3,18 @@ import GLib from 'gi://GLib';
 import GnomeDesktop from 'gi://GnomeDesktop';
 import Pango from 'gi://Pango';
 import St from 'gi://St';
-
 import {formatDate} from '../shared/format.js';
 import {formatRam} from '../features/system/memory.js';
-import type {ClosedItem} from '../settings/schema-values.js';
+import type {ClosedItem} from '../settings/schema-values.types.js';
 import {displayLevel, shownPercent} from '../features/claude/claude-usage.js';
-import type {UsageWindow} from '../features/claude/claude-usage.js';
+import type {UsageWindow} from '../features/claude/claude-usage.types.js';
 import type {ClaudeService} from '../features/claude/claude-service.js';
 import {codexMeters} from '../features/codex/codex-usage.js';
 import type {CodexUsage} from '../features/codex/codex-service.js';
 import {geminiMeters} from '../features/gemini/gemini-usage.js';
 import type {GeminiUsage} from '../features/gemini/gemini-service.js';
 import {meterLevel, shownMeterPercent} from '../shared/meter.js';
-import type {Meter} from '../shared/meter.js';
+import type {Meter} from '../shared/meter.types.js';
 import {providerIcon} from '../shared/ui/provider-tile.js';
 import type {NotificationBridge} from '../features/notifications/notification-bridge-service.js';
 import type {FrodoSettings} from '../settings/frodo-settings.js';
@@ -31,48 +30,14 @@ import {Disposables} from '../shared/disposables.js';
 import {Emitter} from '../shared/emitter.js';
 import {Timer} from '../shared/timer.js';
 import {dimLabel, label} from '../shared/ui/layout.js';
-import type {Component} from '../shared/ui/lifecycle.js';
+import type {Component} from '../shared/ui/lifecycle.types.js';
 import {ProgressRing} from '../shared/ui/progress-ring.js';
 import {frodoIcon} from '../shared/ui/icons.js';
-
-const FADE_MS = 150;
-
-type MeterItem = Extract<ClosedItem, 'codex-session' | 'codex-weekly' | 'gemini-daily'>;
-type TextItem = Extract<ClosedItem, 'battery' | 'ram' | 'claude-session' | 'claude-weekly'> | MeterItem;
-
-const TEXT_ITEMS: readonly ClosedItem[] = [
-    'battery',
-    'ram',
-    'claude-session',
-    'claude-weekly',
-    'codex-session',
-    'codex-weekly',
-    'gemini-daily',
-];
-
-const METER_ITEMS: Record<MeterItem, {provider: 'codex' | 'gemini'; key: string; name: string; suffix: string}> = {
-    'codex-session': {provider: 'codex', key: 'session', name: 'Codex', suffix: ''},
-    'codex-weekly': {provider: 'codex', key: 'weekly', name: 'Codex', suffix: ' · 7d'},
-    'gemini-daily': {provider: 'gemini', key: 'daily', name: 'Gemini', suffix: ' hoje'},
-};
-
-export interface IdleViewDependencies {
-    readonly settings: FrodoSettings;
-    readonly state: SystemState;
-    readonly claude: ClaudeService;
-    readonly codex: CodexUsage;
-    readonly gemini: GeminiUsage;
-    readonly bridge: NotificationBridge;
-}
+import {TEXT_ITEMS, METER_ITEMS, FADE_MS} from './idle-view.const.js';
+import type {TextItem, Segment, IdleViewDependencies, MeterItem} from './idle-view.types.js';
 
 function isTextItem(item: ClosedItem): item is TextItem {
     return TEXT_ITEMS.includes(item);
-}
-
-interface Segment {
-    readonly actor: Clutter.Actor;
-    readonly isVisible: () => boolean;
-    readonly update: () => void;
 }
 
 function present(actor: Clutter.Actor | null): Clutter.Actor[] {

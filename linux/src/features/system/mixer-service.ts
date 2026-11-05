@@ -1,18 +1,11 @@
 import type Gvc from 'gi://Gvc';
 import {getMixerControl} from 'resource:///org/gnome/shell/ui/status/volume.js';
-
 import {Disposables} from '../../shared/disposables.js';
 import {Emitter} from '../../shared/emitter.js';
 import {levelOf, streamDetail} from './mixer.js';
-import type {AudioStream} from './mixer.js';
-
-const CONTROL_SIGNALS = ['stream-added', 'stream-removed', 'default-sink-changed', 'default-source-changed', 'state-changed'];
-const STREAM_SIGNALS = ['notify::volume', 'notify::is-muted', 'notify::description', 'notify::name'];
-
-export interface AudioDevice {
-    readonly id: number;
-    readonly name: string;
-}
+import type {AudioStream} from './mixer.types.js';
+import {CONTROL_SIGNALS, STREAM_SIGNALS} from './mixer-service.const.js';
+import type {AudioDevice} from './mixer-service.types.js';
 
 function deviceName(stream: Gvc.MixerStream): string {
     return stream.get_description() || stream.get_name();

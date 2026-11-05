@@ -1,42 +1,16 @@
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import {loadInterfaceXML} from 'resource:///org/gnome/shell/misc/fileUtils.js';
-
 import {parseMetadata, pickPlayer} from './media.js';
-import type {TrackMetadata} from './media.js';
 import {Emitter} from '../../shared/emitter.js';
-
-const BUS_NAME = 'org.freedesktop.DBus';
-const BUS_PATH = '/org/freedesktop/DBus';
-const PLAYER_PREFIX = 'org.mpris.MediaPlayer2.';
-const PLAYER_PATH = '/org/mpris/MediaPlayer2';
-const PLAYER_INTERFACE = 'org.mpris.MediaPlayer2.Player';
+import {PLAYER_INTERFACE, PLAYER_PATH, BUS_NAME, BUS_PATH, PLAYER_PREFIX} from './media-service.const.js';
+import type {PlayerApp, PlayerControls, MediaTrack} from './media-service.types.js';
 
 Gio._promisify(Gio.DBusConnection.prototype, 'call', 'call_finish');
 
-interface PlayerApp {
-    readonly Identity: string | null;
-}
-
-interface PlayerControls {
-    readonly PlaybackStatus: string | null;
-    readonly Metadata: Record<string, GLib.Variant> | null;
-    readonly CanGoNext: boolean | null;
-    readonly CanGoPrevious: boolean | null;
-    PlayPauseAsync(): Promise<unknown>;
-    NextAsync(): Promise<unknown>;
-    PreviousAsync(): Promise<unknown>;
-}
-
 const PlayerAppProxy = Gio.DBusProxy.makeProxyWrapper<PlayerApp>(loadInterfaceXML('org.mpris.MediaPlayer2'));
-const PlayerControlsProxy = Gio.DBusProxy.makeProxyWrapper<PlayerControls>(loadInterfaceXML(PLAYER_INTERFACE));
 
-export interface MediaTrack extends TrackMetadata {
-    readonly app: string;
-    readonly playing: boolean;
-    readonly canPrevious: boolean;
-    readonly canNext: boolean;
-}
+const PlayerControlsProxy = Gio.DBusProxy.makeProxyWrapper<PlayerControls>(loadInterfaceXML(PLAYER_INTERFACE));
 
 class Player {
     readonly #cancellable = new Gio.Cancellable();
@@ -48,10 +22,11 @@ class Player {
 
     constructor(
         readonly name: string,
+        bus: Gio.DBusConnection,
         onChange: () => void,
     ) {
         this.#app = PlayerAppProxy(
-            Gio.DBus.session,
+            bus,
             name,
             PLAYER_PATH,
             () => {
@@ -60,7 +35,7 @@ class Player {
             this.#cancellable,
         );
         this.#controls = PlayerControlsProxy(
-            Gio.DBus.session,
+            bus,
             name,
             PLAYER_PATH,
             (_proxy, error) => {
@@ -117,14 +92,16 @@ class Player {
 }
 
 export class MediaService extends Emitter<{changed: []}> {
+    readonly #bus: Gio.DBusConnection;
     readonly #cancellable = new Gio.Cancellable();
     readonly #players = new Map<string, Player>();
     readonly #subscription: number;
     #destroyed = false;
 
-    constructor() {
+    constructor(bus = Gio.DBus.session) {
         super();
-        this.#subscription = Gio.DBus.session.signal_subscribe(
+        this.#bus = bus;
+        this.#subscription = bus.signal_subscribe(
             BUS_NAME,
             BUS_NAME,
             'NameOwnerChanged',
@@ -160,7 +137,7 @@ export class MediaService extends Emitter<{changed: []}> {
         const player = this.#currentPlayer();
         if (!player) return null;
         try {
-            const reply = await Gio.DBus.session.call(
+            const reply = await this.#bus.call(
                 player.name,
                 PLAYER_PATH,
                 'org.freedesktop.DBus.Properties',
@@ -185,7 +162,7 @@ export class MediaService extends Emitter<{changed: []}> {
 
     async #discover(): Promise<void> {
         try {
-            const reply = await Gio.DBus.session.call(
+            const reply = await this.#bus.call(
                 BUS_NAME,
                 BUS_PATH,
                 BUS_NAME,
@@ -208,7 +185,7 @@ export class MediaService extends Emitter<{changed: []}> {
         if (this.#destroyed || !name.startsWith(PLAYER_PREFIX) || this.#players.has(name)) return;
         this.#players.set(
             name,
-            new Player(name, () => {
+            new Player(name, this.#bus, () => {
                 this.emit('changed');
             }),
         );
@@ -225,7 +202,7 @@ export class MediaService extends Emitter<{changed: []}> {
     destroy(): void {
         this.#destroyed = true;
         this.#cancellable.cancel();
-        Gio.DBus.session.signal_unsubscribe(this.#subscription);
+        this.#bus.signal_unsubscribe(this.#subscription);
         for (const player of this.#players.values()) player.destroy();
         this.#players.clear();
         this.clearListeners();

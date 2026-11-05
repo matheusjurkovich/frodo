@@ -1,17 +1,11 @@
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
-
 import {Emitter} from '../emitter.js';
-import {SPRING} from '../spring.js';
+import {SPRING} from '../spring.const.js';
 import {allocatedWidth, label} from './layout.js';
 import {springEase} from './motion.js';
-
-const WRAP_SPACING = 6;
-
-interface Item {
-    readonly button: St.Button;
-    readonly count: St.Label;
-}
+import {WRAP_SPACING} from './segmented.const.js';
+import type {Item} from './segmented.types.js';
 
 function rowBox(): St.BoxLayout {
     return new St.BoxLayout({style_class: 'frodo-segmented-row', x_expand: true});

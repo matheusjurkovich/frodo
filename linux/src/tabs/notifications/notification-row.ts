@@ -3,17 +3,12 @@ import Pango from 'gi://Pango';
 import St from 'gi://St';
 import {fixMarkup} from 'resource:///org/gnome/shell/misc/util.js';
 import type * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
-
 import {formatAgo} from '../../shared/format.js';
 import {notificationIcon} from '../../features/notifications/notification-bridge-service.js';
 import {iconButton} from '../../shared/ui/buttons.js';
 import {column, label, row} from '../../shared/ui/layout.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
-
-export interface NotificationRowActions {
-    readonly dismiss: () => void;
-    readonly open: () => void;
-}
+import type {NotificationRowActions} from './notification-row.types.js';
 
 const oneLine = (text: string): string => text.replace(/\n/g, ' ');
 

@@ -1,21 +1,10 @@
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
-
-import type {WorkspaceInfo} from '../../features/workspaces/workspaces-service.js';
+import type {WorkspaceInfo} from '../../features/workspaces/workspaces-service.types.js';
 import {column, label, row} from '../../shared/ui/layout.js';
 import {setSourceColor} from '../../shared/ui/progress-ring.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
-
-const THUMB_WIDTH = 145;
-const THUMB_HEIGHT = 91;
-export const SCREEN_WIDTH = 129;
-export const SCREEN_HEIGHT = 81;
-const SCREEN_X = (THUMB_WIDTH - SCREEN_WIDTH) / 2;
-const SCREEN_Y = (THUMB_HEIGHT - SCREEN_HEIGHT) / 2;
-
-const DASH_RADIUS = 18;
-const DASH_WIDTH = 1.5;
-const DASH_PATTERN = [4, 4];
+import {THUMB_WIDTH, THUMB_HEIGHT, SCREEN_X, SCREEN_Y, DASH_WIDTH, DASH_RADIUS, DASH_PATTERN} from './workspace-card.const.js';
 
 function thumbnail(windows: WorkspaceInfo['windows']): St.Widget {
     const thumb = new St.Widget({

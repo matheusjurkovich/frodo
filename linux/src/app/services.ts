@@ -1,6 +1,5 @@
 import type Gio from 'gi://Gio';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
-
 import {ClaudeService} from '../features/claude/claude-service.js';
 import {ClaudeSessions} from '../features/claude/claude-sessions-service.js';
 import {DoneAlert} from '../features/claude/done-alert-service.js';
@@ -22,25 +21,7 @@ import {FrodoSettings} from '../settings/frodo-settings.js';
 import type {Disposables} from '../shared/disposables.js';
 import {ProviderNotifier} from '../shared/ui/provider-notifier.js';
 import {QuotaAlerts} from './quota-alerts.js';
-
-export interface FrodoServices {
-    readonly settings: FrodoSettings;
-    readonly state: SystemState;
-    readonly claude: ClaudeService;
-    readonly transcripts: ClaudeTranscripts;
-    readonly sessions: ClaudeSessions;
-    readonly codex: CodexUsage;
-    readonly gemini: GeminiUsage;
-    readonly media: MediaService;
-    readonly workspaces: Workspaces;
-    readonly bridge: NotificationBridge;
-    readonly recording: Recording;
-    readonly volume: VolumeWatch;
-    readonly mixer: Mixer;
-    readonly meetings: UpcomingMeeting;
-    readonly performance: PerformanceMonitor;
-    readonly feed: ActivityFeed;
-}
+import type {FrodoServices} from './services.types.js';
 
 export function createServices(gsettings: Gio.Settings, disposables: Disposables): FrodoServices {
     const settings = new FrodoSettings(gsettings);

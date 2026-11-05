@@ -1,5 +1,5 @@
 import {parseMetadata, pickPlayer, trackFraction} from './media.js';
-import type {PlayerCandidate} from './media.js';
+import type {PlayerCandidate} from './media.types.js';
 
 describe('mídia', () => {
     it('lê os metadados do MPRIS', () => {

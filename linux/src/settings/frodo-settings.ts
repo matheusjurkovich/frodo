@@ -1,7 +1,6 @@
 import type Gio from 'gi://Gio';
-
+import {AI_PROVIDERS, isOneOf, type AiProvider} from './schema-values.js';
 import {
-    AI_PROVIDERS,
     CARD_IDS,
     CLOSED_ITEMS,
     CLOSED_MODES,
@@ -10,10 +9,8 @@ import {
     PILL_AI_ACTIVITIES,
     SURFACE_STYLES,
     TAB_IDS,
-    isOneOf,
-} from './schema-values.js';
+} from './schema-values.const.js';
 import type {
-    AiProvider,
     CardId,
     ClosedItem,
     ClosedMode,
@@ -22,42 +19,12 @@ import type {
     PillPosition,
     SurfaceStyle,
     TabId,
-} from './schema-values.js';
+} from './schema-values.types.js';
 import {parseProfiles} from './claude-profile.js';
+import type {ClaudeProfile} from './claude-profile.types.js';
 import {orderedTabs} from './tabs.js';
-import type {ClaudeProfile} from './claude-profile.js';
-import type {Disposer} from '../shared/disposables.js';
-
-export type SettingsKey =
-    | 'closed-mode'
-    | 'closed-items'
-    | 'rotate-seconds'
-    | 'pill-position'
-    | 'monitors'
-    | 'hide-top-bar'
-    | 'surface-style'
-    | 'claude-poll-minutes'
-    | 'claude-show-remaining'
-    | 'claude-profiles'
-    | 'claude-profiles-initialized'
-    | 'claude-shortcut'
-    | 'toggle-shortcut'
-    | 'open-on-hover'
-    | 'auto-close'
-    | 'always-show-pill'
-    | 'ram-percent'
-    | 'pill-ai-activity'
-    | 'notify-done'
-    | 'notify-quota'
-    | 'hidden-tabs'
-    | 'collapsed-cards'
-    | 'disabled-ai'
-    | 'gemini-daily-limit'
-    | 'meeting-notice-minutes'
-    | 'tab-order'
-    | 'peek-clock'
-    | 'peek-every-minutes'
-    | 'peek-seconds';
+import type {Disposer} from '../shared/disposables.types.js';
+import type {SettingsKey} from './frodo-settings.types.js';
 
 const known = <T extends string>(values: readonly T[], list: readonly string[]): T[] =>
     [...new Set(list)].filter((item): item is T => isOneOf(values, item));

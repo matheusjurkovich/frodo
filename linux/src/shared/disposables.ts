@@ -1,8 +1,4 @@
-export type Disposer = () => void;
-
-export interface SignalSource {
-    disconnect(id: number): void;
-}
+import type {Disposer, SignalSource} from './disposables.types.js';
 
 export class Disposables {
     #items: Disposer[] = [];
