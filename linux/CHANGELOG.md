@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.4.0](https://github.com/matheusjurkovich/frodo/compare/linux-v1.3.0...linux-v1.4.0) (2026-11-05)
+
+
+### Novidades
+
+* aba mixer de volume por app e correções de layout da ilha ([62c95f6](https://github.com/matheusjurkovich/frodo/commit/62c95f6f004b24fadfec858eb2b2b3aa5faca05f))
+
+
+### Correções
+
+* aba desempenho não enche o journal com GLib-GIO-CRITICAL ([fb3d48c](https://github.com/matheusjurkovich/frodo/commit/fb3d48ccb73ae4da87fc709c12be84d060e1a6bb))
+* captura de atalho cancela ao sair da seção e ilha fecha sem animar ao desligar ([7ae40e5](https://github.com/matheusjurkovich/frodo/commit/7ae40e5b9891153c8892e22c451a51a971d7d0a9))
+
 ## [1.3.0](https://github.com/matheusjurkovich/frodo/compare/linux-v1.2.0...linux-v1.3.0) (2026-10-30)
 
 
