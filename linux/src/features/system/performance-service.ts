@@ -260,7 +260,9 @@ export class PerformanceMonitor extends Emitter<{changed: []}> {
         await Promise.all(
             pids.map(async pid => {
                 const fds = await children(`/proc/${pid}/fd`, 'standard::name,standard::symlink-target', cancellable);
-                const drm = fds.filter(({info}) => info.get_symlink_target()?.startsWith('/dev/dri/')).map(({name}) => name);
+                const drm = fds
+                    .filter(({info}) => info.get_attribute_byte_string('standard::symlink-target')?.startsWith('/dev/dri/'))
+                    .map(({name}) => name);
                 if (drm.length > 0) found.set(pid, drm);
             }),
         );
