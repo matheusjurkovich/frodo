@@ -8,10 +8,10 @@ import {textButton} from '../../shared/ui/buttons.js';
 import {card} from '../../shared/ui/card.js';
 import {column, label, row} from '../../shared/ui/layout.js';
 import {whileMapped} from '../../shared/ui/lifecycle.js';
-import type {Component} from '../../shared/ui/lifecycle.js';
+import type {Component} from '../../shared/ui/lifecycle.types.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
 import {fadeIn, reveal, slideOut} from '../../shared/ui/motion.js';
-import type {IslandHandle} from '../../shared/island-handle.js';
+import type {IslandHandle} from '../../shared/island-handle.types.js';
 import {notificationRow} from './notification-row.js';
 
 export class NotificationsPage implements Component {

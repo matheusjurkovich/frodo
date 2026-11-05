@@ -1,11 +1,9 @@
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
-
 import type {Bar} from '../../features/claude/claude-index.js';
 import {barHeight} from '../../shared/geometry.js';
 import {allocatedWidth} from '../../shared/ui/layout.js';
-
-const DENSE_FROM = 16;
+import {DENSE_FROM} from './bar-chart.const.js';
 
 function barClass({current, future}: Bar): string {
     if (future) return 'frodo-chart-bar frodo-chart-bar-future';

@@ -1,20 +1,8 @@
-import type {UsageWindow} from '../features/claude/claude-usage.js';
 import {codexMeters} from '../features/codex/codex-usage.js';
-import type {CodexLimits} from '../features/codex/codex-usage.js';
 import {geminiMeters} from '../features/gemini/gemini-usage.js';
-import type {GeminiQuota} from '../features/gemini/gemini-usage.js';
-import type {AiProvider} from '../shared/ai-provider.js';
-import type {QuotaReading} from '../shared/meter.js';
-
-export interface QuotaSources {
-    readonly claude: {readonly configDir: string; readonly windows: readonly UsageWindow[]} | null;
-    readonly codex: CodexLimits | null;
-    readonly gemini: GeminiQuota | null;
-    readonly enabled: (provider: AiProvider) => boolean;
-    readonly nowMs: number;
-}
-
-const WINDOW_NAMES = {session: '5 h', weekly: 'semana'} as const;
+import type {QuotaReading} from '../shared/meter.types.js';
+import {WINDOW_NAMES} from './quota-readings.const.js';
+import type {QuotaSources} from './quota-readings.types.js';
 
 export function quotaReadings({claude, codex, gemini, enabled, nowMs}: QuotaSources): QuotaReading[] {
     const readings: QuotaReading[] = [];

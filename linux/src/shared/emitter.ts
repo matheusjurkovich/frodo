@@ -1,7 +1,4 @@
-export type Unsubscribe = () => void;
-
-type EventMap<Events> = {[K in keyof Events]: unknown[]};
-type Listeners<Events extends EventMap<Events>> = {[K in keyof Events]?: Set<(...args: Events[K]) => void>};
+import type {EventMap, Listeners, Unsubscribe} from './emitter.types.js';
 
 export class Emitter<Events extends EventMap<Events>> {
     #listeners: Listeners<Events> = {};

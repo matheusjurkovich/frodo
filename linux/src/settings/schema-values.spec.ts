@@ -1,4 +1,5 @@
-import {CLOSED_MODES, horizontalOf, isBottom, isMiddle, isOneOf} from './schema-values.js';
+import {horizontalOf, isBottom, isMiddle, isOneOf} from './schema-values.js';
+import {CLOSED_MODES} from './schema-values.const.js';
 
 describe('types', () => {
     it('valida valores de enum de configuração', () => {

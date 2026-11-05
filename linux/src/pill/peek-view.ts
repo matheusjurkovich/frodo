@@ -3,7 +3,7 @@ import GLib from 'gi://GLib';
 import St from 'gi://St';
 
 import {column, label} from '../shared/ui/layout.js';
-import type {Component} from '../shared/ui/lifecycle.js';
+import type {Component} from '../shared/ui/lifecycle.types.js';
 
 export class PeekView implements Component {
     readonly actor = column('frodo-pill-peek');

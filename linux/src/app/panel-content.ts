@@ -1,17 +1,16 @@
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
-
-import {TAB_LABELS, tabToOpen, visibleTabs} from '../settings/tabs.js';
-import {TAB_IDS} from '../settings/schema-values.js';
-import type {TabId} from '../settings/schema-values.js';
+import {tabToOpen, visibleTabs} from '../settings/tabs.js';
+import {TAB_LABELS} from '../settings/tabs.const.js';
+import {TAB_IDS} from '../settings/schema-values.const.js';
+import type {TabId} from '../settings/schema-values.types.js';
 import type {FrodoSettings} from '../settings/frodo-settings.js';
 import {Disposables} from '../shared/disposables.js';
-import {SPRING} from '../shared/spring.js';
+import {SPRING} from '../shared/spring.const.js';
 import {column} from '../shared/ui/layout.js';
-import {HEIGHT_AXIS, morphSize, settle, slideIn, slideOut} from '../shared/ui/motion.js';
-import type {Component} from '../shared/ui/lifecycle.js';
-import type {Island} from './island.js';
-import type {FrodoServices} from './services.js';
+import {morphSize, settle, slideIn, slideOut} from '../shared/ui/motion.js';
+import {HEIGHT_AXIS} from '../shared/ui/motion.const.js';
+import type {Component} from '../shared/ui/lifecycle.types.js';
 import {CalendarPage} from '../tabs/calendar/calendar-page.js';
 import {ClaudePage} from '../tabs/claude/claude-page.js';
 import {GeneralPage} from '../tabs/general/general-page.js';
@@ -21,15 +20,10 @@ import {PerformancePage} from '../tabs/performance/performance-page.js';
 import {PowerMenu} from './power-menu.js';
 import {SettingsPage} from '../tabs/settings/settings-page.js';
 import {TabBar} from './tab-bar.js';
-import type {TabSpec} from './tab-bar.js';
+import type {TabSpec} from './tab-bar.types.js';
 import {IdleView} from '../pill/idle-view.js';
 import {WorkspacesPage} from '../tabs/workspaces/workspaces-page.js';
-
-export type PanelView = {readonly kind: 'tab'; readonly tab: TabId} | {readonly kind: 'settings'};
-
-export interface PanelDependencies extends FrodoServices {
-    readonly island: Island;
-}
+import type {PanelView, PanelDependencies} from './panel-content.types.js';
 
 export class PanelContent {
     readonly actor = column('frodo-panel-content');

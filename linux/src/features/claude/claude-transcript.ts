@@ -1,31 +1,5 @@
-export interface UsageRecord {
-    readonly id: string;
-    readonly timestamp: number;
-    readonly model: string;
-    readonly project: string;
-    readonly sessionId: string;
-    readonly input: number;
-    readonly output: number;
-    readonly cacheRead: number;
-    readonly cacheWrite: number;
-}
-
-export interface TranscriptEntry {
-    readonly usage: UsageRecord;
-    readonly branch: string | null;
-    readonly todos: {done: number; total: number} | null;
-    readonly sidechain: boolean;
-}
-
-export type ModelFamily = 'Opus' | 'Sonnet' | 'Haiku' | 'Outro';
-
-type Json = Record<string, unknown>;
-
-const SYNTHETIC_MODEL = '<synthetic>';
-const ASSISTANT_MARK = '"type":"assistant"';
-const NEWLINE = 0x0a;
-const SMALL_WINDOW = 200_000;
-const LARGE_WINDOW = 1_000_000;
+import {ASSISTANT_MARK, SYNTHETIC_MODEL, NEWLINE, SMALL_WINDOW, LARGE_WINDOW} from './claude-transcript.const.js';
+import type {Json, TranscriptEntry, ModelFamily} from './claude-transcript.types.js';
 
 function isJson(value: unknown): value is Json {
     return typeof value === 'object' && value !== null;

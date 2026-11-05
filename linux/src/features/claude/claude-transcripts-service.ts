@@ -1,44 +1,34 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import System from 'system';
-
 import {ClaudeIndex} from './claude-index.js';
-import type {ConsumptionSummary, Period} from '../../shared/consumption.js';
+import type {ConsumptionSummary, Period} from '../../shared/consumption.types.js';
 import {completeLines, parseAssistantLine} from './claude-transcript.js';
 import {Emitter} from '../../shared/emitter.js';
 import {Timer} from '../../shared/timer.js';
 import {readTextFile} from '../../shared/files.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
+import {
+    VERSION,
+    ATTRIBUTES,
+    BATCH,
+    SCAN_SECONDS,
+    SAVE_EVERY_MS,
+    KEPT_MS,
+    CHUNK_BYTES,
+    GC_EVERY_BYTES,
+} from './claude-transcripts-service.const.js';
+import type {Cache, Listing, Found} from './claude-transcripts-service.types.js';
 
 Gio._promisify(Gio.File.prototype, 'enumerate_children_async', 'enumerate_children_finish');
+
 Gio._promisify(Gio.FileEnumerator.prototype, 'next_files_async', 'next_files_finish');
+
 Gio._promisify(Gio.File.prototype, 'read_async', 'read_finish');
+
 Gio._promisify(Gio.InputStream.prototype, 'read_bytes_async', 'read_bytes_finish');
+
 Gio._promisify(Gio.File.prototype, 'replace_contents_bytes_async', 'replace_contents_finish');
-
-const VERSION = 4;
-const CHUNK_BYTES = 1024 * 1024;
-const KEPT_MS = 30 * 24 * 60 * 60 * 1000;
-const SCAN_SECONDS = 30;
-const SAVE_EVERY_MS = 5 * 60 * 1000;
-const BATCH = 256;
-const GC_EVERY_BYTES = 4 * 1024 * 1024;
-const ATTRIBUTES = 'standard::name,standard::type,standard::size,time::modified';
-
-interface Cache {
-    index: ClaudeIndex;
-    offsets: Map<string, number>;
-}
-
-interface Found {
-    size: number;
-    modified: number;
-}
-
-interface Listing {
-    found: Map<string, Found>;
-    roots: string[];
-}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null;

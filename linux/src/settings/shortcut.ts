@@ -1,9 +1,4 @@
-export interface ShortcutModifiers {
-    readonly super: boolean;
-    readonly control: boolean;
-    readonly alt: boolean;
-    readonly shift: boolean;
-}
+import type {ShortcutModifiers} from './shortcut.types.js';
 
 export function accelerator(keyName: string, modifiers: ShortcutModifiers): string | null {
     if (keyName === '' || !(modifiers.super || modifiers.control || modifiers.alt)) return null;

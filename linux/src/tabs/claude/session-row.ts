@@ -1,53 +1,23 @@
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
-
-import type {SessionStats} from '../../features/claude/claude-index.js';
+import type {SessionStats} from '../../features/claude/claude-index.types.js';
 import {contextUsage, sessionMeta} from '../../features/claude/claude-sessions.js';
-import type {DiffStat, PendingRequest, SessionState, SessionStatus} from '../../features/claude/claude-sessions.js';
+import type {DiffStat, PendingRequest, SessionState, SessionStatus} from '../../features/claude/claude-sessions.types.js';
 import {formatTokens} from '../../shared/format.js';
-import type {Disposer} from '../../shared/disposables.js';
+import type {Disposer} from '../../shared/disposables.types.js';
 import {textButton} from '../../shared/ui/buttons.js';
 import {column, grid, label, packGrid, row} from '../../shared/ui/layout.js';
-import type {Component} from '../../shared/ui/lifecycle.js';
+import type {Component} from '../../shared/ui/lifecycle.types.js';
 import {reveal, springEase} from '../../shared/ui/motion.js';
-import {SPRING} from '../../shared/spring.js';
+import {SPRING} from '../../shared/spring.const.js';
 import {levelClass} from '../../shared/level.js';
 import {SegmentBar} from '../../shared/ui/segment-bar.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
 import {providerTile} from '../../shared/ui/provider-tile.js';
-import {AI_PROVIDERS, PROVIDER_NAMES} from '../../shared/ai-provider.js';
-import type {AiProvider} from '../../shared/ai-provider.js';
-
-const STATUS_LABELS: Record<SessionStatus, string> = {
-    working: 'Trabalhando',
-    waiting: 'Aguardando você',
-    done: 'Concluída',
-    idle: 'Ociosa',
-};
-
-const FILL_TASKS = 'frodo-fill-light';
-const FILL_CONTEXT = 'frodo-fill-claude';
-const GRID_SPACING = 12;
-
-export interface SessionRowActions {
-    readonly toggle: () => void;
-    readonly focus: () => void;
-    readonly openPullRequest: () => void;
-    readonly dismiss: () => void;
-    readonly approve: (request: PendingRequest) => void;
-    readonly deny: (request: PendingRequest) => void;
-}
-
-export interface SessionRowView {
-    readonly state: SessionState;
-    readonly status: SessionStatus;
-    readonly stats: SessionStats | null;
-    readonly expanded: boolean;
-    readonly diff: DiffStat | null;
-    readonly pending: PendingRequest | null;
-    readonly canOpenPullRequest: () => boolean;
-    readonly nowMs: number;
-}
+import {AI_PROVIDERS, PROVIDER_NAMES} from '../../shared/ai-provider.const.js';
+import type {AiProvider} from '../../shared/ai-provider.types.js';
+import {GRID_SPACING, STATUS_LABELS, FILL_TASKS, FILL_CONTEXT} from './session-row.const.js';
+import type {SessionRowActions, SessionRowView} from './session-row.types.js';
 
 class Gauge {
     readonly actor = column('frodo-gauge');

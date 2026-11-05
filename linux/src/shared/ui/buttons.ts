@@ -1,12 +1,8 @@
 import Clutter from 'gi://Clutter';
 import type Gio from 'gi://Gio';
 import St from 'gi://St';
-
-export type ButtonVariant = 'ghost' | 'control' | 'primary' | 'danger' | 'light';
-export type ChipVariant = 'neutral' | 'accent' | 'counter';
-type IconButtonSize = 32 | 36 | 44 | 52;
-
-const ICON_SIZES: Record<IconButtonSize, number> = {32: 16, 36: 18, 44: 18, 52: 20};
+import {ICON_SIZES} from './buttons.const.js';
+import type {ButtonVariant, IconButtonSize, ChipVariant} from './buttons.types.js';
 
 export function iconButton(
     icon: Gio.Icon,

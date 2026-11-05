@@ -15,7 +15,7 @@ import {
     tierLabel,
     claudeMeters,
 } from './claude-usage.js';
-import type {LevelInput} from './claude-usage.js';
+import type {LevelInput} from './claude-usage.types.js';
 
 const NOW = Date.UTC(2026, 9, 24, 12, 0);
 

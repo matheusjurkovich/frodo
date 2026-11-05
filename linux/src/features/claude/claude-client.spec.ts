@@ -1,7 +1,8 @@
 import GLib from 'gi://GLib';
 
-import {ClaudeApiError, ClaudeClient, ExpiredTokenError, SignedOutError, USAGE_URL} from './claude-client.js';
-import type {HttpRequest, HttpResponse, Transport} from './claude-client.js';
+import {ClaudeApiError, ClaudeClient, ExpiredTokenError, SignedOutError} from './claude-client.js';
+import {USAGE_URL} from './claude-client.const.js';
+import type {HttpRequest, HttpResponse, Transport} from './claude-client.types.js';
 
 describe('ClaudeClient', () => {
     const NOW = Date.now();

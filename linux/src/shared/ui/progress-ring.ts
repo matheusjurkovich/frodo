@@ -1,13 +1,10 @@
 import type cairo from 'cairo';
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
-
 import {levelClass} from '../level.js';
-import type {Level} from '../level.js';
-
-type ThemeColor = ReturnType<St.ThemeNode['get_color']>;
-
-const LINE_WIDTH = 3;
+import type {Level} from '../level.types.js';
+import {LINE_WIDTH} from './progress-ring.const.js';
+import type {ThemeColor} from './progress-ring.types.js';
 
 export function setSourceColor(cr: cairo.Context, color: ThemeColor): void {
     cr.setSourceRGBA(color.red / 255, color.green / 255, color.blue / 255, color.alpha / 255);

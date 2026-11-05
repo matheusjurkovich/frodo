@@ -1,10 +1,8 @@
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
-
 import {Timer} from '../../shared/timer.js';
 import {formatGb, memoryAlarm, usedPercent} from './memory.js';
 import {readMemory} from './memory-service.js';
-
-const CHECK_SECONDS = 30;
+import {CHECK_SECONDS} from './memory-alert-service.const.js';
 
 export class MemoryAlert {
     readonly #timer = new Timer();

@@ -1,52 +1,5 @@
-export interface CpuTimes {
-    readonly busy: number;
-    readonly total: number;
-}
-
-export interface CpuStat {
-    readonly times: CpuTimes;
-    readonly cores: number;
-}
-
-export interface ProcStat {
-    readonly pid: number;
-    readonly name: string;
-    readonly ticks: number;
-    readonly rssPages: number;
-}
-
-export interface DrmClient {
-    readonly id: string;
-    readonly driver: string;
-    readonly engines: Readonly<Record<string, number>>;
-    readonly capacity: Readonly<Record<string, number>>;
-}
-
-export interface DiskIo {
-    readonly readSectors: number;
-    readonly writeSectors: number;
-}
-
-export interface Swap {
-    readonly totalKb: number;
-    readonly usedKb: number;
-}
-
-const WHOLE_DISK = /^(nvme\d+n\d+|sd[a-z]+|vd[a-z]+|xvd[a-z]+|hd[a-z]+|mmcblk\d+)$/;
-
-export const PROTECTED_NAMES: readonly string[] = [
-    'gnome-shell',
-    'Xwayland',
-    'systemd',
-    'gnome-session-binary',
-    'gnome-session-service',
-    'dbus-daemon',
-    'dbus-broker',
-    'pipewire',
-    'pipewire-pulse',
-    'wireplumber',
-    'gdm-wayland-session',
-];
+import {WHOLE_DISK, PROTECTED_NAMES} from './performance.const.js';
+import type {CpuStat, CpuTimes, Swap, DiskIo, ProcStat, DrmClient} from './performance.types.js';
 
 export function parseCpuStat(text: string): CpuStat | null {
     const lines = text.split('\n');

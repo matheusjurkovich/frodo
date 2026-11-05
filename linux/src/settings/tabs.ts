@@ -1,14 +1,6 @@
-import {TAB_IDS, isOneOf} from './schema-values.js';
-import type {TabId} from './schema-values.js';
-
-export const TAB_LABELS: Record<TabId, string> = {
-    general: 'Geral',
-    calendar: 'Calendário',
-    workspaces: 'Áreas de trabalho',
-    claude: 'IA',
-    notifications: 'Notificações',
-    performance: 'Desempenho',
-};
+import {isOneOf} from './schema-values.js';
+import {TAB_IDS} from './schema-values.const.js';
+import type {TabId} from './schema-values.types.js';
 
 export function orderedTabs(order: readonly string[]): TabId[] {
     const known = [...new Set(order.filter((id): id is TabId => isOneOf(TAB_IDS, id)))];

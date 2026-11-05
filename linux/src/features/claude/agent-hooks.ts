@@ -1,28 +1,5 @@
-export type HookedAgent = 'codex' | 'gemini';
-
-interface HookPlan {
-    readonly events: readonly string[];
-    readonly matcher: string;
-    readonly timeout: (event: string) => number;
-    readonly extra: Record<string, string>;
-}
-
-export const HOOK_SCRIPT_NAME = 'claude-session.sh';
-
-const PLANS: Record<HookedAgent, HookPlan> = {
-    codex: {
-        events: ['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PermissionRequest', 'PostToolUse', 'Stop', 'SessionEnd'],
-        matcher: '',
-        timeout: event => (event === 'PermissionRequest' ? 600 : 5),
-        extra: {},
-    },
-    gemini: {
-        events: ['SessionStart', 'BeforeAgent', 'BeforeTool', 'AfterTool', 'AfterAgent', 'Notification', 'PreCompress', 'SessionEnd'],
-        matcher: '*',
-        timeout: () => 5000,
-        extra: {name: 'frodo'},
-    },
-};
+import {HOOK_SCRIPT_NAME, PLANS} from './agent-hooks.const.js';
+import type {HookedAgent} from './agent-hooks.types.js';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);

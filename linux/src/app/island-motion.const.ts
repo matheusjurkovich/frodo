@@ -1,0 +1,9 @@
+export const FADE_IN_MS = 220;
+export const CONTENT_FADE_IN_MS = 120;
+export const FADE_OUT_MS = 110;
+export const FOLLOW = 'frodo-follow';
+export const BLUR = 'frodo-blur';
+export const BLUR_RADIUS = 16;
+export const CLOSE_FADE_MS = 160;
+export const CONTENT_OPEN_SCALE = 0.9;
+export const CONTENT_CLOSE_SCALE = 0.95;

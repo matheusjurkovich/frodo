@@ -1,7 +1,6 @@
 import Pango from 'gi://Pango';
-
 import {countByStatus, displayStatus} from '../../features/claude/claude-sessions.js';
-import type {DiffStat, SessionState, SessionStatus} from '../../features/claude/claude-sessions.js';
+import type {DiffStat} from '../../features/claude/claude-sessions.types.js';
 import type {ClaudeSessions} from '../../features/claude/claude-sessions-service.js';
 import type {ClaudeTranscripts} from '../../features/claude/claude-transcripts-service.js';
 import {Disposables} from '../../shared/disposables.js';
@@ -9,31 +8,14 @@ import {Timer} from '../../shared/timer.js';
 import {card, cardHeading, emptyState} from '../../shared/ui/card.js';
 import {column, label, row} from '../../shared/ui/layout.js';
 import {whileMapped} from '../../shared/ui/lifecycle.js';
-import type {Component} from '../../shared/ui/lifecycle.js';
+import type {Component} from '../../shared/ui/lifecycle.types.js';
 import {swap} from '../../shared/ui/motion.js';
 import {Segmented} from '../../shared/ui/segmented.js';
-import type {AiProvider} from '../../shared/ai-provider.js';
+import type {AiProvider} from '../../shared/ai-provider.types.js';
 import {SessionRow} from './session-row.js';
-import type {SessionRowActions} from './session-row.js';
-
-type Filter = SessionStatus | 'all';
-
-interface Entry {
-    readonly state: SessionState;
-    readonly status: SessionStatus;
-}
-
-const TICK_SECONDS = 30;
-
-const FILTERS: readonly {id: Filter; label: string}[] = [
-    {id: 'all', label: 'Todas'},
-    {id: 'working', label: 'Trabalhando'},
-    {id: 'waiting', label: 'Aguardando'},
-    {id: 'done', label: 'Concluídas'},
-    {id: 'idle', label: 'Ociosas'},
-];
-
-const ORDER: Record<SessionStatus, number> = {waiting: 0, working: 1, done: 2, idle: 3};
+import type {SessionRowActions} from './session-row.types.js';
+import {ORDER, FILTERS, TICK_SECONDS} from './sessions-card.const.js';
+import type {Entry, Filter} from './sessions-card.types.js';
 
 function byUrgency(a: Entry, b: Entry): number {
     return (

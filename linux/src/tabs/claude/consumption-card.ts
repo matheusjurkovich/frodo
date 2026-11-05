@@ -1,33 +1,18 @@
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
-
-import type {ConsumptionSource, ConsumptionSummary, Period, Share} from '../../shared/consumption.js';
-import type {AiProvider} from '../../shared/ai-provider.js';
+import type {ConsumptionSource, Period, Share} from '../../shared/consumption.types.js';
+import type {AiProvider} from '../../shared/ai-provider.types.js';
 import {formatTokens} from '../../shared/format.js';
 import {Disposables} from '../../shared/disposables.js';
 import {card, cardHeading, cardTitle} from '../../shared/ui/card.js';
 import {column, dimLabel, label, row} from '../../shared/ui/layout.js';
 import {whileMapped} from '../../shared/ui/lifecycle.js';
-import type {Component} from '../../shared/ui/lifecycle.js';
+import type {Component} from '../../shared/ui/lifecycle.types.js';
 import {swap} from '../../shared/ui/motion.js';
 import {SegmentBar} from '../../shared/ui/segment-bar.js';
 import {Segmented} from '../../shared/ui/segmented.js';
 import {BarChart} from './bar-chart.js';
-
-const PERIODS: Record<Period, {label: string; chart: string}> = {
-    today: {label: 'Hoje', chart: 'Tokens por hora · hoje'},
-    '7d': {label: '7 dias', chart: 'Tokens por dia · últimos 7 dias'},
-    '30d': {label: '30 dias', chart: 'Tokens por dia · últimos 30 dias'},
-};
-
-const ORDER: readonly Period[] = ['today', '7d', '30d'];
-
-const STATS: readonly {name: string; text: (summary: ConsumptionSummary) => string}[] = [
-    {name: 'Entrada', text: ({input}) => formatTokens(input)},
-    {name: 'Saída', text: ({output}) => formatTokens(output)},
-    {name: 'Cache lido', text: ({cacheRead}) => formatTokens(cacheRead)},
-    {name: 'Sessões', text: ({sessions}) => String(sessions)},
-];
+import {STATS, ORDER, PERIODS} from './consumption-card.const.js';
 
 function percent(fraction: number): string {
     return `${Math.round(fraction * 100)}%`;

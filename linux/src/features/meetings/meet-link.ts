@@ -1,4 +1,4 @@
-const MEET = /https:\/\/meet\.google\.com\/[a-z]+-[a-z]+-[a-z]+/i;
+import {MEET} from './meet-link.const.js';
 
 function unfold(text: string): string {
     return text.replace(/\r?\n[ \t]/g, '');

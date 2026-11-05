@@ -1,6 +1,6 @@
 import {readTextFile} from '../../shared/files.js';
 import {parseMeminfo} from './memory.js';
-import type {MemoryInfo} from './memory.js';
+import type {MemoryInfo} from './memory.types.js';
 
 export async function readMemory(): Promise<MemoryInfo | null> {
     const text = await readTextFile('/proc/meminfo');

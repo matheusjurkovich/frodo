@@ -1,27 +1,12 @@
 import Gio from 'gi://Gio';
-import GLib from 'gi://GLib';
 import * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
-
 import {latest, shouldIntercept} from './notifications.js';
 import {messageTray} from '../../shared/shell-internals.js';
 import {Disposables} from '../../shared/disposables.js';
 import {Emitter} from '../../shared/emitter.js';
-
-const MAX_ITEMS = 50;
-const NOTIFICATIONS_SCHEMA = 'org.gnome.desktop.notifications';
-const SHOW_BANNERS_KEY = 'show-banners';
-
-export interface InterceptedNotification {
-    readonly gicon: Gio.Icon | null;
-    readonly app: string;
-    readonly title: string;
-    readonly body: string;
-}
-
-export interface NotificationBridgeEvents {
-    changed: [];
-    intercepted: [InterceptedNotification];
-}
+import {Timer} from '../../shared/timer.js';
+import {NOTIFICATIONS_SCHEMA, SHOW_BANNERS_KEY, MAX_ITEMS} from './notification-bridge-service.const.js';
+import type {NotificationBridgeEvents, InterceptedNotification} from './notification-bridge-service.types.js';
 
 export function notificationIcon(notification: MessageTray.Notification): Gio.Icon | null {
     return notification.gicon ?? notification.source?.icon ?? null;
@@ -103,6 +88,10 @@ export class NotificationBridge extends Emitter<NotificationBridgeEvents> {
         const emitIntercepted = (item: InterceptedNotification): void => {
             this.emit('intercepted', item);
         };
+        const refresh = new Timer();
+        this.#disposables.add(() => {
+            refresh.stop();
+        });
 
         tray._showNotification = function (this: typeof tray): void {
             const next = this._notificationQueue[0];
@@ -121,9 +110,8 @@ export class NotificationBridge extends Emitter<NotificationBridgeEvents> {
                 body: next.body ?? '',
             });
             if (next.isTransient) next.destroy(MessageTray.NotificationDestroyedReason.EXPIRED);
-            GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+            refresh.once(0, () => {
                 this._updateState();
-                return GLib.SOURCE_REMOVE;
             });
         };
 

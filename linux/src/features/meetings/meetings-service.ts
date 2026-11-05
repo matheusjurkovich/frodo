@@ -1,12 +1,11 @@
 import {MeetLinkClient} from './meet-link-client.js';
 import {nextMeeting} from './meetings.js';
-import type {Meeting} from './meetings.js';
+import type {Meeting} from './meetings.types.js';
 import {calendarEventSource} from '../../shared/shell-internals.js';
 import {Emitter} from '../../shared/emitter.js';
 import {Timer} from '../../shared/timer.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
-
-const CHECK_SECONDS = 30;
+import {CHECK_SECONDS} from './meetings-service.const.js';
 
 export class UpcomingMeeting extends Emitter<{changed: []}> {
     readonly #source = calendarEventSource();

@@ -1,4 +1,4 @@
-import type {PillActivity} from './activity-feed.js';
+import type {PillActivity} from './activity-feed.types.js';
 
 export function sameSubject(a: PillActivity | null, b: PillActivity | null): boolean {
     if (a === null || b === null) return a === b;

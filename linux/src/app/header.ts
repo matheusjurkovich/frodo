@@ -3,24 +3,16 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import GnomeDesktop from 'gi://GnomeDesktop';
 import St from 'gi://St';
-
 import type {Recording} from '../features/system/recording-service.js';
-import type {Disposer} from '../shared/disposables.js';
+import type {Disposer} from '../shared/disposables.types.js';
 import {formatDate} from '../shared/format.js';
 import {iconButton, textButton} from '../shared/ui/buttons.js';
 import {label, row} from '../shared/ui/layout.js';
-import type {Component} from '../shared/ui/lifecycle.js';
+import type {Component} from '../shared/ui/lifecycle.types.js';
 import {frodoIcon} from '../shared/ui/icons.js';
 import type {TabBar} from './tab-bar.js';
-
-const INTERFACE_SCHEMA = 'org.gnome.desktop.interface';
-const SHOW_SECONDS_KEY = 'clock-show-seconds';
-
-export interface HeaderActions {
-    readonly openSettings: () => void;
-    readonly openPower?: (source: St.Button) => void;
-    readonly collapse: () => void;
-}
+import {INTERFACE_SCHEMA, SHOW_SECONDS_KEY} from './header.const.js';
+import type {HeaderActions} from './header.types.js';
 
 export class Header implements Component {
     readonly actor = row('frodo-header');

@@ -1,11 +1,5 @@
-export const STEP_SHOWN_MS = 3000;
-export const STEP_QUIET_MS = 10000;
-
-interface GateEntry {
-    step: string;
-    admitted: boolean;
-    shownAt: number | null;
-}
+import {STEP_QUIET_MS} from './step-gate.const.js';
+import type {GateEntry} from './step-gate.types.js';
 
 export class StepGate {
     readonly #sessions = new Map<string, GateEntry>();

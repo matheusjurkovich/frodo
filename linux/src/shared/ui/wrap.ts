@@ -1,10 +1,8 @@
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
-
 import {allocatedWidth} from './layout.js';
-import type {Component} from './lifecycle.js';
-
-const WRAP_SPACING = 6;
+import type {Component} from './lifecycle.types.js';
+import {WRAP_SPACING} from './wrap.const.js';
 
 function rowBox(): St.BoxLayout {
     return new St.BoxLayout({style_class: 'frodo-wrap-row', x_expand: true});

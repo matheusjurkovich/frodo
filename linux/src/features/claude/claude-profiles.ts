@@ -1,4 +1,4 @@
-import type {ClaudeProfile} from '../../settings/claude-profile.js';
+import type {ClaudeProfile} from '../../settings/claude-profile.types.js';
 
 export function labelForDirName(name: string): string {
     if (name === '.claude') return 'Claude';

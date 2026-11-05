@@ -2,7 +2,7 @@ import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 
 import {Emitter} from '../emitter.js';
-import {SOFT_SPRING} from '../spring.js';
+import {SOFT_SPRING} from '../spring.const.js';
 import {springEase} from './motion.js';
 
 export class Switch extends Emitter<{toggled: [boolean]}> {

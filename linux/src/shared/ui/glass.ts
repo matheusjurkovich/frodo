@@ -3,25 +3,9 @@ import Cogl from 'gi://Cogl';
 import GObject from 'gi://GObject';
 import Shell from 'gi://Shell';
 import St from 'gi://St';
-
 import {Disposables} from '../disposables.js';
-import type {Component} from './lifecycle.js';
-
-const BLUR_RADIUS = 40;
-const MARGIN = BLUR_RADIUS;
-const BRIGHTNESS = 0.6;
-
-const MASK_DECLARATIONS = `
-uniform vec2 size;
-uniform float margin;
-uniform float radius;
-`;
-
-const MASK_CODE = `
-vec2 point = abs(cogl_tex_coord_in[0].xy * size - size * 0.5) - (size * 0.5 - vec2(margin)) + vec2(radius);
-float distance = length(max(point, vec2(0.0))) + min(max(point.x, point.y), 0.0) - radius;
-cogl_color_out *= 1.0 - smoothstep(-0.5, 0.5, distance);
-`;
+import type {Component} from './lifecycle.types.js';
+import {MASK_DECLARATIONS, MASK_CODE, MARGIN, BLUR_RADIUS, BRIGHTNESS} from './glass.const.js';
 
 const RoundedMask = GObject.registerClass(
     class RoundedMask extends Shell.GLSLEffect {

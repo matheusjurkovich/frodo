@@ -1,4 +1,5 @@
-import {FIRM_SPRING, GENTLE_SPRING, SOFT_SPRING, SPRING, springPeak, springProgress, springWithin} from './spring.js';
+import {springPeak, springProgress, springWithin} from './spring.js';
+import {FIRM_SPRING, GENTLE_SPRING, SOFT_SPRING, SPRING} from './spring.const.js';
 
 describe('springProgress', () => {
     it('começa em 0 e termina exatamente em 1', () => {

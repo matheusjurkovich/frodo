@@ -2,9 +2,9 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
 
 import {frodoIcon} from './icons.js';
-import {PROVIDER_ICONS} from './provider-tile.js';
-import {PROVIDER_NAMES} from '../ai-provider.js';
-import type {AiProvider} from '../ai-provider.js';
+import {PROVIDER_ICONS} from './provider-tile.const.js';
+import {PROVIDER_NAMES} from '../ai-provider.const.js';
+import type {AiProvider} from '../ai-provider.types.js';
 
 export class ProviderNotifier {
     readonly #sources = new Map<AiProvider, MessageTray.Source>();

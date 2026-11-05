@@ -1,7 +1,5 @@
-import type {Rect} from '../../shared/geometry.js';
-
-export const WINDOW_COLOR_SLOTS = 6;
-const SUMMARY_VISIBLE_APPS = 2;
+import type {Rect} from '../../shared/geometry.types.js';
+import {SUMMARY_VISIBLE_APPS} from './workspaces.const.js';
 
 export function thumbnailRects(windows: readonly Rect[], area: Rect, width: number, height: number): Rect[] {
     const scaleX = width / area.width;

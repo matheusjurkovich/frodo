@@ -5,8 +5,8 @@ import {Disposables} from '../../shared/disposables.js';
 import {ActorLoan} from '../../shared/ui/actor-loan.js';
 import {column, row} from '../../shared/ui/layout.js';
 import {whileShown} from '../../shared/ui/lifecycle.js';
-import type {Component} from '../../shared/ui/lifecycle.js';
-import type {IslandHandle} from '../../shared/island-handle.js';
+import type {Component} from '../../shared/ui/lifecycle.types.js';
+import type {IslandHandle} from '../../shared/island-handle.types.js';
 
 export class CalendarPage implements Component {
     readonly actor = row('frodo-calendar');

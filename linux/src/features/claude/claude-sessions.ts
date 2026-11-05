@@ -1,71 +1,17 @@
-import type {SessionStats} from './claude-index.js';
+import type {SessionStats} from './claude-index.types.js';
 import {contextWindow, modelDisplayName} from './claude-transcript.js';
 import {formatSpan, formatTokens} from '../../shared/format.js';
 import {AI_PROVIDERS, isOneOf} from '../../settings/schema-values.js';
-import {PROVIDER_NAMES} from '../../shared/ai-provider.js';
-import type {AiProvider} from '../../settings/schema-values.js';
-
-export type SessionStatus = 'working' | 'waiting' | 'done' | 'idle';
-
-export interface HookEvent {
-    readonly provider: AiProvider;
-    readonly sessionId: string;
-    readonly cwd: string;
-    readonly name: string;
-    readonly tool: string | null;
-    readonly input: Record<string, unknown>;
-    readonly notificationType: string | null;
-    readonly pid: number | null;
-}
-
-export interface SessionState {
-    readonly provider: AiProvider;
-    readonly sessionId: string;
-    readonly cwd: string;
-    readonly repo: string;
-    readonly status: SessionStatus;
-    readonly tool: string | null;
-    readonly step: string;
-    readonly pid: number | null;
-    readonly since: number;
-    readonly updatedAt: number;
-}
-
-export interface PendingRequest {
-    readonly key: string;
-    readonly sessionId: string;
-    readonly request: string;
-    readonly pid: number;
-    readonly tool: string;
-    readonly since: number;
-}
-
-export type Decision = 'allow' | 'deny';
-
-export interface DiffStat {
-    readonly files: number;
-    readonly added: number;
-    readonly removed: number;
-}
-
-export interface ContextUsage {
-    readonly fraction: number;
-    readonly warn: boolean;
-    readonly text: string;
-}
-
-const IDLE_AFTER_MS = 30 * 60 * 1000;
-const CONTEXT_WARN_FRACTION = 0.85;
-const PENDING_FILE = /^([A-Za-z0-9-]+)\.([A-Za-z0-9-]+)\.json$/;
-const STEP_KEYS = ['command', 'file_path', 'notebook_path', 'absolute_path', 'pattern', 'description', 'url', 'query'] as const;
-const EVENT_ALIASES: Readonly<Record<string, string>> = {
-    BeforeAgent: 'UserPromptSubmit',
-    BeforeTool: 'PreToolUse',
-    AfterTool: 'PostToolUse',
-    AfterAgent: 'Stop',
-    PreCompress: 'PreCompact',
-};
-const NOTIFICATION_ALIASES: Readonly<Record<string, string>> = {ToolPermission: 'permission_prompt'};
+import {PROVIDER_NAMES} from '../../shared/ai-provider.const.js';
+import {
+    EVENT_ALIASES,
+    NOTIFICATION_ALIASES,
+    STEP_KEYS,
+    IDLE_AFTER_MS,
+    CONTEXT_WARN_FRACTION,
+    PENDING_FILE,
+} from './claude-sessions.const.js';
+import type {HookEvent, SessionState, SessionStatus, ContextUsage, DiffStat, PendingRequest, Decision} from './claude-sessions.types.js';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);

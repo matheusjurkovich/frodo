@@ -1,23 +1,22 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import type Meta from 'gi://Meta';
-
-import {HOOK_SCRIPT_NAME, hasFrodoHooks, withFrodoHooks} from './agent-hooks.js';
-import type {HookedAgent} from './agent-hooks.js';
+import {hasFrodoHooks, withFrodoHooks} from './agent-hooks.js';
+import {HOOK_SCRIPT_NAME} from './agent-hooks.const.js';
+import type {HookedAgent} from './agent-hooks.types.js';
 import {decisionJson, nextState, oldestPending, parentPid, parseHookEvent, parsePending, parseShortstat} from './claude-sessions.js';
-import type {Decision, DiffStat, PendingRequest, SessionState} from './claude-sessions.js';
+import type {Decision, DiffStat, PendingRequest, SessionState} from './claude-sessions.types.js';
 import {Emitter} from '../../shared/emitter.js';
 import {Timer} from '../../shared/timer.js';
 import {readTextFile} from '../../shared/files.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
+import {BATCH, EXTENSION_UUID, HOOK_SCRIPT, SWEEP_SECONDS} from './claude-sessions-service.const.js';
 
 Gio._promisify(Gio.File.prototype, 'enumerate_children_async', 'enumerate_children_finish');
-Gio._promisify(Gio.FileEnumerator.prototype, 'next_files_async', 'next_files_finish');
-Gio._promisify(Gio.Subprocess.prototype, 'communicate_utf8_async', 'communicate_utf8_finish');
 
-const HOOK_SCRIPT = 'hooks/claude-session.sh';
-const SWEEP_SECONDS = 60;
-const EXTENSION_UUID = 'frodo@matheusjurkovich.github.io';
+Gio._promisify(Gio.FileEnumerator.prototype, 'next_files_async', 'next_files_finish');
+
+Gio._promisify(Gio.Subprocess.prototype, 'communicate_utf8_async', 'communicate_utf8_finish');
 
 function agentConfigPath(agent: HookedAgent): string {
     const home = GLib.get_home_dir();
@@ -25,7 +24,6 @@ function agentConfigPath(agent: HookedAgent): string {
         ? GLib.build_filenamev([GLib.getenv('CODEX_HOME') ?? GLib.build_filenamev([home, '.codex']), 'hooks.json'])
         : GLib.build_filenamev([home, '.gemini', 'settings.json']);
 }
-const BATCH = 64;
 
 function pidAlive(pid: number): boolean {
     return GLib.file_test(`/proc/${pid}`, GLib.FileTest.EXISTS);

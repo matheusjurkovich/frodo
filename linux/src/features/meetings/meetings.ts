@@ -1,14 +1,4 @@
-export interface MeetingEvent {
-    readonly summary: string;
-    readonly date: Date;
-    readonly end: Date;
-}
-
-export interface Meeting {
-    readonly title: string;
-    readonly startsAt: number;
-    readonly url?: string;
-}
+import type {MeetingEvent, Meeting} from './meetings.types.js';
 
 function atMidnight(date: Date): boolean {
     return date.getHours() === 0 && date.getMinutes() === 0 && date.getSeconds() === 0;

@@ -1,14 +1,14 @@
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 
-import type {CardId} from '../../settings/schema-values.js';
+import type {CardId} from '../../settings/schema-values.types.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
 import {Disposables} from '../../shared/disposables.js';
-import {SPRING} from '../../shared/spring.js';
+import {SPRING} from '../../shared/spring.const.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
 import {card, cardTitle} from '../../shared/ui/card.js';
 import {column, label, row} from '../../shared/ui/layout.js';
-import type {Component} from '../../shared/ui/lifecycle.js';
+import type {Component} from '../../shared/ui/lifecycle.types.js';
 import {reveal, springEase} from '../../shared/ui/motion.js';
 
 export class CollapsibleCard implements Component {

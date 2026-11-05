@@ -1,37 +1,21 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
-
-import {GEMINI_MODELS, geminiCells, geminiQuota, pacificDayStart, parseGeminiSession, parseProjects, projectName} from './gemini-usage.js';
-import type {GeminiQuota, GeminiRequest} from './gemini-usage.js';
+import {geminiModels, geminiCells, geminiQuota, pacificDayStart, parseGeminiSession, parseProjects, projectName} from './gemini-usage.js';
+import type {GeminiQuota} from './gemini-usage.types.js';
 import {Disposables} from '../../shared/disposables.js';
 import {Emitter} from '../../shared/emitter.js';
 import {Timer} from '../../shared/timer.js';
 import {readTextFile} from '../../shared/files.js';
-import {KEPT_DAYS, dayStart, summarize} from '../../shared/consumption.js';
-import type {ConsumptionSource, ConsumptionSummary, Period, UsageCell} from '../../shared/consumption.js';
+import {dayStart, summarize} from '../../shared/consumption.js';
+import {KEPT_DAYS} from '../../shared/consumption.const.js';
+import type {ConsumptionSource, ConsumptionSummary, Period, UsageCell} from '../../shared/consumption.types.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
+import {ATTRIBUTES, BATCH, SCAN_SECONDS} from './gemini-service.const.js';
+import type {Loaded, Found} from './gemini-service.types.js';
 
 Gio._promisify(Gio.File.prototype, 'enumerate_children_async', 'enumerate_children_finish');
+
 Gio._promisify(Gio.FileEnumerator.prototype, 'next_files_async', 'next_files_finish');
-
-const SCAN_SECONDS = 30;
-const BATCH = 256;
-const ATTRIBUTES = 'standard::name,standard::type,standard::size,time::modified';
-
-interface Found {
-    readonly path: string;
-    readonly key: string;
-    readonly project: string;
-    readonly parent: string | null;
-}
-
-interface Loaded {
-    readonly key: string;
-    readonly id: string;
-    readonly project: string;
-    readonly session: string;
-    readonly requests: readonly GeminiRequest[];
-}
 
 async function children(dir: string, cancellable: Gio.Cancellable): Promise<Gio.FileInfo[]> {
     try {
@@ -124,7 +108,7 @@ export class GeminiUsage extends Emitter<{changed: []}> implements ConsumptionSo
     }
 
     summary(period: Period, now: Date): ConsumptionSummary {
-        return summarize(this.#cells, period, now, GEMINI_MODELS);
+        return summarize(this.#cells, period, now, geminiModels);
     }
 
     refreshIfStale(maxAgeSeconds: number): void {

@@ -1,6 +1,9 @@
+import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 
 import {FrodoSettings} from '../src/settings/frodo-settings.js';
+import {Emitter} from '../src/shared/emitter.js';
+import {Timer} from '../src/shared/timer.js';
 
 const SCHEMA_ID = 'org.gnome.shell.extensions.frodo';
 
@@ -49,4 +52,49 @@ export function createSettings(): FrodoSettings {
     const schema = source.lookup(SCHEMA_ID, false);
     if (!schema) throw new Error('schema não compilado em .build');
     return new FrodoSettings(new Gio.Settings({settings_schema: schema, backend: Gio.memory_settings_backend_new()}));
+}
+
+export class Changes extends Emitter<{changed: []}> {
+    fire(): void {
+        this.emit('changed');
+    }
+}
+
+export function waitFor(source: Pick<Emitter<{changed: []}>, 'on'>, ready: () => boolean, ms = 2000): Promise<void> {
+    if (ready()) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+        const timer = new Timer();
+        const off = source.on('changed', () => {
+            if (!ready()) return;
+            timer.stop();
+            off();
+            resolve();
+        });
+        timer.once(ms, () => {
+            off();
+            reject(new Error(`condição não cumprida em ${ms} ms`));
+        });
+    });
+}
+
+export function tmpDir(dirs: string[]): string {
+    const dir = GLib.dir_make_tmp('frodo-spec-XXXXXX');
+    dirs.push(dir);
+    return dir;
+}
+
+export function removeDirs(dirs: string[]): void {
+    for (const dir of dirs.splice(0)) GLib.spawn_command_line_sync(`rm -rf ${GLib.shell_quote(dir)}`);
+}
+
+export function writeFile(path: string, content: string, modifiedMs?: number): void {
+    GLib.mkdir_with_parents(GLib.path_get_dirname(path), 0o700);
+    GLib.file_set_contents(path, content);
+    if (modifiedMs !== undefined)
+        Gio.File.new_for_path(path).set_attribute_uint64(
+            'time::modified',
+            Math.floor(modifiedMs / 1000),
+            Gio.FileQueryInfoFlags.NONE,
+            null,
+        );
 }

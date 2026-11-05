@@ -14,8 +14,8 @@ import {
     sessionMeta,
     stepFor,
 } from './claude-sessions.js';
-import type {SessionStats} from './claude-index.js';
-import type {HookEvent, PendingRequest, SessionState, SessionStatus} from './claude-sessions.js';
+import type {SessionStats} from './claude-index.types.js';
+import type {HookEvent, PendingRequest, SessionState, SessionStatus} from './claude-sessions.types.js';
 
 const at = Date.UTC(2026, 9, 27, 12);
 

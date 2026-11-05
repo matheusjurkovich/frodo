@@ -1,48 +1,27 @@
 import Clutter from 'gi://Clutter';
 import type St from 'gi://St';
-
-import type {ClaudeService} from '../../features/claude/claude-service.js';
 import {claudeMeters} from '../../features/claude/claude-usage.js';
 import {countByStatus} from '../../features/claude/claude-sessions.js';
 import type {ClaudeSessions} from '../../features/claude/claude-sessions-service.js';
-import type {CodexUsage} from '../../features/codex/codex-service.js';
 import {codexMeters, planLabel} from '../../features/codex/codex-usage.js';
-import type {GeminiUsage} from '../../features/gemini/gemini-service.js';
 import {geminiMeters} from '../../features/gemini/gemini-usage.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
-import {PROVIDER_NAMES} from '../../shared/ai-provider.js';
-import type {AiProvider} from '../../shared/ai-provider.js';
+import {PROVIDER_NAMES} from '../../shared/ai-provider.const.js';
+import type {AiProvider} from '../../shared/ai-provider.types.js';
 import {Disposables} from '../../shared/disposables.js';
 import {levelClass} from '../../shared/level.js';
 import {meterLevel, shownMeterPercent} from '../../shared/meter.js';
-import type {Meter} from '../../shared/meter.js';
+import type {Meter} from '../../shared/meter.types.js';
 import {chip, textButton} from '../../shared/ui/buttons.js';
 import {card, cardHeading, emptyState} from '../../shared/ui/card.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
 import {column, label, row, spacer} from '../../shared/ui/layout.js';
 import {whileMapped} from '../../shared/ui/lifecycle.js';
-import type {Component} from '../../shared/ui/lifecycle.js';
+import type {Component} from '../../shared/ui/lifecycle.types.js';
 import {providerTile} from '../../shared/ui/provider-tile.js';
 import {SegmentBar} from '../../shared/ui/segment-bar.js';
-
-const MAX_AGE_SECONDS = 60;
-const GEMINI_PLANS: Readonly<Record<number, string>> = {1000: 'Login Google', 1500: 'Standard', 2000: 'Enterprise'};
-const ESTIMATED = 'Estimado pelo histórico local: o Gemini CLI não informa a cota.';
-
-export interface UsageSources {
-    readonly settings: FrodoSettings;
-    readonly claude: ClaudeService;
-    readonly codex: CodexUsage;
-    readonly gemini: GeminiUsage;
-}
-
-interface ProviderUsage {
-    readonly meters: (now: number) => Meter[];
-    readonly plan: () => string | null;
-    readonly empty: () => string;
-    readonly refresh: () => void;
-    readonly onChanged: (callback: () => void) => () => void;
-}
+import {MAX_AGE_SECONDS, GEMINI_PLANS, ESTIMATED} from './provider-cards.const.js';
+import type {UsageSources, ProviderUsage} from './provider-cards.types.js';
 
 export function providerUsage(provider: AiProvider, {settings, claude, codex, gemini}: UsageSources): ProviderUsage {
     switch (provider) {

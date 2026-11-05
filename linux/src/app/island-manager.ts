@@ -1,17 +1,12 @@
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
-
 import {targetMonitors} from './monitors.js';
 import {tabToOpen, visibleTabs} from '../settings/tabs.js';
-import type {TabId} from '../settings/schema-values.js';
+import type {TabId} from '../settings/schema-values.types.js';
 import {Disposables} from '../shared/disposables.js';
 import {Island} from './island.js';
 import {PanelContent} from './panel-content.js';
-import type {FrodoServices} from './services.js';
-
-interface Entry {
-    readonly island: Island;
-    readonly content: PanelContent;
-}
+import type {FrodoServices} from './services.types.js';
+import type {Entry} from './island-manager.types.js';
 
 export class IslandManager {
     readonly #dependencies: FrodoServices;

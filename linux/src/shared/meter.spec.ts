@@ -1,5 +1,5 @@
 import {meterLevel, quotaNotices, resetNote, shownMeterPercent} from './meter.js';
-import type {QuotaReading} from './meter.js';
+import type {QuotaReading} from './meter.types.js';
 
 describe('medidores de cota', () => {
     const now = new Date(2026, 9, 28, 10, 0).getTime();

@@ -1,35 +1,12 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import Soup from 'gi://Soup?version=3.0';
-
 import {needsRefresh, parseCredentials} from './claude-credentials.js';
 import {readTextFile} from '../../shared/files.js';
+import {BETA_HEADER, API_VERSION, USAGE_URL, PROFILE_URL} from './claude-client.const.js';
+import type {Transport, Tier} from './claude-client.types.js';
 
 Gio._promisify(Soup.Session.prototype, 'send_and_read_async');
-
-export const USAGE_URL = 'https://api.anthropic.com/api/oauth/usage';
-export const PROFILE_URL = 'https://api.anthropic.com/api/oauth/profile';
-
-const BETA_HEADER = 'oauth-2025-04-20';
-const API_VERSION = '2023-06-01';
-
-export interface HttpRequest {
-    readonly method: 'GET';
-    readonly url: string;
-    readonly token: string;
-}
-
-export interface HttpResponse {
-    readonly status: number;
-    readonly body: string;
-}
-
-export type Transport = (request: HttpRequest) => Promise<HttpResponse>;
-
-export interface Tier {
-    readonly subscriptionType: string | null;
-    readonly rateLimitTier: string | null;
-}
 
 export class ClaudeApiError extends Error {
     readonly status: number;

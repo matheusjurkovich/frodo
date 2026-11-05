@@ -1,15 +1,5 @@
-export const ACTIVITY_KINDS = [
-    'notification',
-    'recording',
-    'claude-permission',
-    'claude-waiting',
-    'meeting',
-    'volume',
-    'claude-working',
-    'media',
-] as const;
-
-export type ActivityKind = (typeof ACTIVITY_KINDS)[number];
+import {ACTIVITY_KINDS} from './activity-priority.const.js';
+import type {ActivityKind} from './activity-priority.types.js';
 
 export function pickActivity<T extends {readonly kind: ActivityKind}>(candidates: readonly T[]): T | null {
     let best: T | null = null;

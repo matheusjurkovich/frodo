@@ -1,5 +1,5 @@
 import {quotaReadings} from './quota-readings.js';
-import type {UsageWindow} from '../features/claude/claude-usage.js';
+import type {UsageWindow} from '../features/claude/claude-usage.types.js';
 
 function window(key: string, role: UsageWindow['role'], utilization: number): UsageWindow {
     return {key, label: key, role, utilization, resetsAt: null, totalSeconds: null, apiLevel: 'ok', isActive: true};

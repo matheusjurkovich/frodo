@@ -1,7 +1,5 @@
-export interface MemoryInfo {
-    readonly totalKb: number;
-    readonly usedKb: number;
-}
+import {MEMORY_REARM_PERCENT, HIGH_MEMORY_PERCENT} from './memory.const.js';
+import type {MemoryInfo} from './memory.types.js';
 
 export function parseMeminfo(text: string): MemoryInfo | null {
     const total = /^MemTotal:\s+(\d+)/m.exec(text)?.[1];
@@ -19,9 +17,6 @@ export function formatRam(memory: MemoryInfo | null, percent: boolean): string {
     if (!memory) return 'RAM —';
     return percent ? `RAM ${usedPercent(memory)}%` : `RAM ${formatGb(memory.usedKb)}`;
 }
-
-const HIGH_MEMORY_PERCENT = 90;
-const MEMORY_REARM_PERCENT = 80;
 
 export function usedPercent(memory: MemoryInfo): number {
     return memory.totalKb > 0 ? Math.round((memory.usedKb / memory.totalKb) * 100) : 0;

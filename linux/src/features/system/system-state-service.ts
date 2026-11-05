@@ -1,17 +1,12 @@
-import type {BatteryInfo} from './battery.js';
-import type {MemoryInfo} from './memory.js';
+import type {BatteryInfo} from './battery.types.js';
+import type {MemoryInfo} from './memory.types.js';
 import {Disposables} from '../../shared/disposables.js';
 import {Emitter} from '../../shared/emitter.js';
 import {Timer} from '../../shared/timer.js';
 import {BatteryMonitor} from './battery-service.js';
 import {readMemory} from './memory-service.js';
-
-const MEMORY_SECONDS = 5;
-
-export interface SystemStateEvents {
-    memory: [];
-    battery: [];
-}
+import {MEMORY_SECONDS} from './system-state-service.const.js';
+import type {SystemStateEvents} from './system-state-service.types.js';
 
 export class SystemState extends Emitter<SystemStateEvents> {
     memory: MemoryInfo | null = null;

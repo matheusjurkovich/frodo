@@ -1,7 +1,7 @@
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 
-import type {Disposer} from '../disposables.js';
+import type {Disposer} from '../disposables.types.js';
 
 export function column(styleClass: string): St.BoxLayout {
     return new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL, style_class: styleClass, x_expand: true});

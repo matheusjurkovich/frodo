@@ -14,44 +14,46 @@ em `../CLAUDE.md`.
 
 Código agrupado por camada e domínio. Import só desce: `app → pill, tabs → features → settings → shared`.
 
-| Caminho                   | Papel                                                                                                                                                                                                                                                                                            |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `src/extension.ts`        | `enable`/`disable`: ícones, `createServices`, barra do topo, ilhas e atalhos (roda também no `unlock-dialog`: serviços seguem vivos e a UI sai)                                                                                                                                                  |
-| `src/app/`                | A ilha: `services.ts` (`FrodoServices`, `createServices`), `island.ts`, `island-manager.ts`, cabeçalho, barra de abas, menu de energia, barra do topo, monitores                                                                                                                                 |
-| `src/pill/`               | Pílula: visão ociosa, visão de atividade, feed e prioridade das atividades                                                                                                                                                                                                                       |
-| `src/tabs/<aba>/`         | Uma pasta plana por aba: `general`, `calendar`, `workspaces`, `claude` (aba IA), `notifications`, `performance`, `settings`                                                                                                                                                                      |
-| `src/features/<domínio>/` | Regra pura (`<assunto>.ts`) e serviço (`<assunto>-service.ts`, `claude-client.ts`) de cada fonte de dados: `claude`, `codex`, `gemini`, `media`, `meetings`, `notifications`, `system`, `workspaces`                                                                                             |
-| `src/settings/`           | GSettings tipado (`frodo-settings.ts`), valores do schema, perfis do Claude, atalho, abas                                                                                                                                                                                                        |
-| `src/shared/`             | `Emitter`, `Disposables`, `Timer`, formatação, geometria, curva de mola (`spring.ts`), espiada da hora (`peek.ts`), reordenar (`reorder.ts`), `readTextFile`, `Level`, `IslandHandle`, `shell-internals.ts`, consumo (`consumption.ts`), cotas (`meter.ts`), provedores de IA (`ai-provider.ts`) |
-| `src/shared/ui/`          | Componentes St: botões, cards, layout, anel, barra de segmentos, segmentado, switch, tile de provedor, quebra de linha (`Wrap`), arrastar para reordenar (`drag-reorder.ts`), ícones, `ActorLoan`, movimento (`motion.ts`), vidro (`glass.ts`)                                                   |
-| `src/types/`              | Declarações que faltam nos `@girs`                                                                                                                                                                                                                                                               |
-| `tests/`                  | Runner Jasmine (`entry.js` acha todo `*.spec.ts`), polyfills e fixtures                                                                                                                                                                                                                          |
-| `tools/`                  | `smoke.sh`: headless isolado liga, desliga e religa; `devkit.sh`: shell aninhado ao vivo; `screenshots/`: imagens da doc                                                                                                                                                                         |
-| `docs/`                   | Imagens do README (`*.png`, `demo.gif`), geradas por `npm run screenshots`; não edite à mão                                                                                                                                                                                                      |
-| `stylesheet.css`          | Todo o visual (cor só existe aqui)                                                                                                                                                                                                                                                               |
-| `schemas/`                | Schema do GSettings                                                                                                                                                                                                                                                                              |
-| `../shared/hooks/`        | `claude-session.sh`: hook do Claude Code, Codex e Gemini CLI (argumento `codex` ou `gemini`; sem argumento, Claude) que grava o estado de cada sessão e, no `PermissionRequest`, espera e devolve a decisão da ilha (compartilhado com o macOS; o build o copia para `dist/hooks/`)              |
-| `../shared/icons/`        | SVG simbólicos (`frodo-<nome>-symbolic.svg`), compartilhados com o macOS                                                                                                                                                                                                                         |
-| `../docs/superpowers/`    | Specs e planos (redesign, arquitetura)                                                                                                                                                                                                                                                           |
+| Caminho                   | Papel                                                                                                                                                                                                                                                                                                                             |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/extension.ts`        | `enable`/`disable`: ícones, `createServices`, barra do topo, ilhas e atalhos (roda também no `unlock-dialog`: serviços seguem vivos e a UI sai)                                                                                                                                                                                   |
+| `src/app/`                | A ilha: `services.ts` (`FrodoServices`, `createServices`), `island.ts` (compõe `island-motion`, `island-pointer`, `island-placement`, `island-presence`, `island-surface`), `island-manager.ts`, cabeçalho, barra de abas, menu de energia, barra do topo, monitores                                                              |
+| `src/pill/`               | Pílula: visão ociosa, visão de atividade, feed e prioridade das atividades                                                                                                                                                                                                                                                        |
+| `src/tabs/<aba>/`         | Uma pasta plana por aba: `general`, `calendar`, `workspaces`, `claude` (aba IA), `notifications`, `performance`, `settings` (uma `<seção>-section.ts` por seção)                                                                                                                                                                  |
+| `src/features/<domínio>/` | Regra pura (`<assunto>.ts`) e serviço (`<assunto>-service.ts`, `claude-client.ts`) de cada fonte de dados: `claude`, `codex`, `gemini`, `media`, `meetings`, `notifications`, `system`, `workspaces`                                                                                                                              |
+| `src/settings/`           | GSettings tipado (`frodo-settings.ts`), valores do schema, perfis do Claude, atalho, abas                                                                                                                                                                                                                                         |
+| `src/shared/`             | `Emitter`, `Disposables`, `Timer`, formatação, geometria, curva de mola (`spring.ts`), espiada da hora (`peek.ts`), reordenar (`reorder.ts`), `readTextFile`, `Level`, `IslandHandle` (`island-handle.types.ts`), `shell-internals.ts`, consumo (`consumption.ts`), cotas (`meter.ts`), provedores de IA (`ai-provider.const.ts`) |
+| `src/shared/ui/`          | Componentes St: botões, cards, layout, anel, barra de segmentos, segmentado, switch, tile de provedor, quebra de linha (`Wrap`), arrastar para reordenar (`drag-reorder.ts`), ícones, `ActorLoan`, movimento (`motion.ts`), vidro (`glass.ts`)                                                                                    |
+| `src/types/`              | Declarações que faltam nos `@girs`                                                                                                                                                                                                                                                                                                |
+| `tests/`                  | Runner Jasmine (`entry.js` acha todo `*.spec.ts`), polyfills e fixtures                                                                                                                                                                                                                                                           |
+| `tools/`                  | `smoke.sh`: headless isolado liga, desliga e religa; `devkit.sh`: shell aninhado ao vivo; `screenshots/`: imagens da doc                                                                                                                                                                                                          |
+| `docs/`                   | Imagens do README (`*.png`, `demo.gif`), geradas por `npm run screenshots`; não edite à mão                                                                                                                                                                                                                                       |
+| `stylesheet.css`          | Todo o visual (cor só existe aqui)                                                                                                                                                                                                                                                                                                |
+| `schemas/`                | Schema do GSettings                                                                                                                                                                                                                                                                                                               |
+| `../shared/hooks/`        | `claude-session.sh`: hook do Claude Code, Codex e Gemini CLI (argumento `codex` ou `gemini`; sem argumento, Claude) que grava o estado de cada sessão e, no `PermissionRequest`, espera e devolve a decisão da ilha (compartilhado com o macOS; o build o copia para `dist/hooks/`)                                               |
+| `../shared/icons/`        | SVG simbólicos (`frodo-<nome>-symbolic.svg`), compartilhados com o macOS                                                                                                                                                                                                                                                          |
+| `../docs/superpowers/`    | Specs e planos (redesign, arquitetura)                                                                                                                                                                                                                                                                                            |
 
 ## Regras inegociáveis
 
-| Regra                                                                                                                        | Onde é verificada                   |
-| ---------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| Import só desce: `app → pill, tabs → features → settings → shared`                                                           | ESLint (`no-restricted-imports`)    |
-| Em `features/`, só `*-service.ts` e `*-client.ts` importam `gi://` ou `resource://` (import de tipo pode); o resto tem teste | ESLint (`no-restricted-imports`)    |
-| Feature não importa outra feature; aba não importa outra aba (o comum vai para `shared/`)                                    | ESLint (`no-restricted-imports`)    |
-| Aba fala com a ilha só pelo `IslandHandle` (`src/shared/island-handle.ts`)                                                   | ESLint (aba não importa `app/`)     |
-| Serviço não conhece a UI; a UI assina eventos tipados (`Emitter`)                                                            | ESLint (camadas), revisão           |
-| Todo `connect`, timer e patch do `enable()` é desfeito no `disable()` por `Disposables`                                      | `npm run smoke` (religa), revisão   |
-| API privada do shell só em `src/shared/shell-internals.ts`                                                                   | revisão                             |
-| Controle do sistema (Wi-Fi, Bluetooth, sliders, calendário) é o nativo emprestado (`ActorLoan`), nunca reimplementado        | revisão                             |
-| Cor só no `stylesheet.css`; desenho em Cairo lê do tema (`get_theme_node()`); destaque é `-st-accent-color`                  | revisão                             |
-| Card que lê disco ou D-Bus periodicamente só roda visível (`whileMapped`)                                                    | revisão                             |
-| Sem comentário em código, teste, CSS, XML e shell script (só diretiva de ferramenta)                                         | revisão                             |
-| Texto de UI em pt-BR, direto no código                                                                                       | revisão                             |
-| Sem dependência npm em runtime e sem processo residente; processo curto só por ação do usuário (`git`, `gh`) ou pelo hook    | revisão                             |
-| Tipos estritos, `import type` para tipo, sem `console`, `===`                                                                | `npm run typecheck`, `npm run lint` |
+| Regra                                                                                                                          | Onde é verificada                   |
+| ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------- |
+| Import só desce: `app → pill, tabs → features → settings → shared`                                                             | ESLint (`no-restricted-imports`)    |
+| Em `features/`, só `*-service.ts` e `*-client.ts` importam `gi://` ou `resource://` (import de tipo pode); o resto tem teste   | ESLint (`no-restricted-imports`)    |
+| Feature não importa outra feature; aba não importa outra aba (o comum vai para `shared/`)                                      | ESLint (`no-restricted-imports`)    |
+| Aba fala com a ilha só pelo `IslandHandle` (`src/shared/island-handle.types.ts`)                                               | ESLint (aba não importa `app/`)     |
+| Serviço não conhece a UI; a UI assina eventos tipados (`Emitter`)                                                              | ESLint (camadas), revisão           |
+| Todo `connect`, timer e patch do `enable()` é desfeito no `disable()` por `Disposables`                                        | `npm run smoke` (religa), revisão   |
+| API privada do shell só em `src/shared/shell-internals.ts`                                                                     | revisão                             |
+| Controle do sistema (Wi-Fi, Bluetooth, sliders, calendário) é o nativo emprestado (`ActorLoan`), nunca reimplementado          | revisão                             |
+| Cor só no `stylesheet.css`; desenho em Cairo lê do tema (`get_theme_node()`); destaque é `-st-accent-color`                    | revisão                             |
+| Card que lê disco ou D-Bus periodicamente só roda visível (`whileMapped`)                                                      | revisão                             |
+| Sem comentário em código, teste, CSS, XML e shell script (só diretiva de ferramenta)                                           | revisão                             |
+| Texto de UI em pt-BR, direto no código                                                                                         | revisão                             |
+| Sem dependência npm em runtime e sem processo residente; processo curto só por ação do usuário (`git`, `gh`) ou pelo hook      | revisão                             |
+| Tipos estritos, `import type` para tipo, sem `console`, `===`                                                                  | `npm run typecheck`, `npm run lint` |
+| Constante de módulo (`NOME_EM_MAIÚSCULA`) em `<módulo>.const.ts`; `interface`/`type` em `<módulo>.types.ts`, ao lado do módulo | ESLint (`no-restricted-syntax`)     |
+| Sem `any`, nem explícito nem vazando de API não tipada                                                                         | ESLint (`strictTypeChecked`)        |
 
 ## Onde mora
 
@@ -65,6 +67,10 @@ Responda na ordem; o primeiro "sim" decide.
 6. Genérico, sem domínio, usado por dois ou mais? → `src/shared/` (componente St em `src/shared/ui/`).
 7. API privada do shell? → `src/shared/shell-internals.ts`, e só lá.
 8. Tipo que falta nos `@girs`? → `src/types/*.d.ts`.
+
+Constante e tipo do módulo `x.ts` moram ao lado dele, em `x.const.ts` (só `const`) e `x.types.ts` (só `type`/`interface`). Módulo
+que só tem tipo ou constante vira só esse arquivo (`island-handle.types.ts`, `ai-provider.const.ts`). Objeto com comportamento
+(funções) não é constante: nome em camelCase e fica no módulo (`codexModels`).
 
 Serviço novo: crie em `features/`, acrescente o campo em `FrodoServices` e a linha em `createServices` (`src/app/services.ts`).
 Quem precisa dele recebe pelo construtor.
@@ -101,7 +107,9 @@ openTab}`). Nada global além de `Main` e `global` do shell.
 - Jasmine no `gjs`: `tests/entry.js` lista todo `src/**/*.spec.ts`, o esbuild empacota e o `gjs` executa. Não há lista
   para manter.
 - Spec ao lado do arquivo que testa, com o mesmo nome base (`claude-usage.ts` → `claude-usage.spec.ts`). Helper usado por dois
-  specs vai para `tests/fixtures.ts`.
+  specs vai para `tests/fixtures.ts` (`createSettings`, `Changes`, `waitFor`, `tmpDir`, `writeFile`).
+- Serviço que importa valor de `resource:///` (`Main`, `messageTray`) não entra no bundle de teste; o que dá para testar dele
+  vai para regra pura.
 - `tsconfig.json` é o de desenvolvimento (código + specs, tipos do Jasmine); `tsconfig.build.json` compila só o código.
 - Regra pura testada direto. Serviço testado com fakes; `createSettings()` (`tests/fixtures.ts`) usa o schema compilado em
   `.build/` com backend em memória.

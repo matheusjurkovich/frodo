@@ -9,8 +9,9 @@ import {Disposables} from '../../shared/disposables.js';
 import {card} from '../../shared/ui/card.js';
 import {column, label, row} from '../../shared/ui/layout.js';
 import {whileMapped} from '../../shared/ui/lifecycle.js';
-import type {Component} from '../../shared/ui/lifecycle.js';
-import type {NativeControls, SliderSlots} from './native-controls.js';
+import type {Component} from '../../shared/ui/lifecycle.types.js';
+import type {NativeControls} from './native-controls.js';
+import type {SliderSlots} from './native-controls.types.js';
 
 function group(slots: SliderSlots, title: string, device: St.Label, value: St.Label): St.BoxLayout {
     const header = row('frodo-sound-header');

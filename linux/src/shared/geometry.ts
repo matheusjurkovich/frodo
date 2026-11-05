@@ -1,17 +1,5 @@
-export interface Rect {
-    readonly x: number;
-    readonly y: number;
-    readonly width: number;
-    readonly height: number;
-}
-
-export interface EdgeSpan {
-    readonly x1: number;
-    readonly x2: number;
-    readonly y: number;
-}
-
-export type HorizontalAlign = 'center' | 'left' | 'right';
+import {BAR_MIN, BAR_FULL} from './geometry.const.js';
+import type {HorizontalAlign, Rect, EdgeSpan} from './geometry.types.js';
 
 export function alignX(align: HorizontalAlign, width: number, monX: number, monW: number, margin = 0): number {
     if (align === 'left') return monX + margin;
@@ -47,9 +35,6 @@ export function segmentWidths(fractions: readonly number[], width: number): numb
         return segment;
     });
 }
-
-const BAR_FULL = 64;
-const BAR_MIN = 3;
 
 export function barHeight(value: number, max: number, future: boolean): number {
     return future || max <= 0 ? BAR_MIN : Math.max(BAR_MIN, Math.round((value / max) * BAR_FULL));

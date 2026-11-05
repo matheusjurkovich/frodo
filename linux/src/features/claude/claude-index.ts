@@ -1,37 +1,11 @@
-import {modelDisplayName, modelFamily} from './claude-transcript.js';
-import type {ModelFamily, TranscriptEntry, UsageRecord} from './claude-transcript.js';
-import {KEPT_DAYS, addCell, cellKey, dayStart, hourStart, summarize} from '../../shared/consumption.js';
-import type {ConsumptionSummary, ModelGroups, Period, UsageCell} from '../../shared/consumption.js';
+import type {TranscriptEntry, UsageRecord} from './claude-transcript.types.js';
+import {addCell, cellKey, dayStart, hourStart, summarize} from '../../shared/consumption.js';
+import {KEPT_DAYS} from '../../shared/consumption.const.js';
+import type {ConsumptionSummary, Period} from '../../shared/consumption.types.js';
+import {CLAUDE_MODELS, VERSION} from './claude-index.const.js';
+import type {Cell, Session, Seen, SessionStats} from './claude-index.types.js';
 
-export type {Bar, ConsumptionSummary, Period, Share} from '../../shared/consumption.js';
-
-export interface SessionStats {
-    readonly tokens: number;
-    readonly model: string;
-    readonly contextTokens: number;
-    readonly branch: string | null;
-    readonly startedAt: number;
-    readonly lastAt: number;
-    readonly todos: {done: number; total: number} | null;
-}
-
-type Cell = UsageCell;
-
-interface Session extends Mutable<SessionStats> {
-    todosAt: number;
-    mainAt: number;
-}
-
-interface Seen {
-    at: number;
-    output: number;
-}
-
-type Mutable<T> = {-readonly [K in keyof T]: T[K]};
-
-const VERSION = 4;
-const FAMILIES: readonly ModelFamily[] = ['Opus', 'Sonnet', 'Haiku', 'Outro'];
-const CLAUDE_MODELS: ModelGroups = {order: FAMILIES, family: modelFamily, label: modelDisplayName};
+export type {Bar, ConsumptionSummary, Period, Share} from '../../shared/consumption.types.js';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null;

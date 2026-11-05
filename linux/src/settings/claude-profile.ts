@@ -1,8 +1,4 @@
-export interface ClaudeProfile {
-    readonly id: string;
-    readonly label: string;
-    readonly configDir: string;
-}
+import type {ClaudeProfile} from './claude-profile.types.js';
 
 export function parseProfiles(json: string): ClaudeProfile[] {
     let list: unknown;

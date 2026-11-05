@@ -1,24 +1,18 @@
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
-
 import {isEnabledCalendar, meetLinkFor, rangeQuery} from './meet-link.js';
+import {
+    CALENDAR_INTERFACE,
+    SOURCES_BUS,
+    SOURCES_PATH,
+    SOURCE_INTERFACE,
+    CALENDAR_BUS,
+    FACTORY_PATH,
+    FACTORY_INTERFACE,
+} from './meet-link-client.const.js';
+import type {OpenCalendar, ManagedObjects} from './meet-link-client.types.js';
 
 Gio._promisify(Gio.DBusConnection.prototype, 'call', 'call_finish');
-
-const SOURCES_BUS = 'org.gnome.evolution.dataserver.Sources5';
-const SOURCES_PATH = '/org/gnome/evolution/dataserver/SourceManager';
-const SOURCE_INTERFACE = 'org.gnome.evolution.dataserver.Source';
-const CALENDAR_BUS = 'org.gnome.evolution.dataserver.Calendar8';
-const FACTORY_PATH = '/org/gnome/evolution/dataserver/CalendarFactory';
-const FACTORY_INTERFACE = 'org.gnome.evolution.dataserver.CalendarFactory';
-const CALENDAR_INTERFACE = 'org.gnome.evolution.dataserver.Calendar';
-
-type ManagedObjects = Record<string, Record<string, Record<string, unknown>>>;
-
-interface OpenCalendar {
-    readonly path: string;
-    readonly bus: string;
-}
 
 export class MeetLinkClient {
     readonly #cancellable = new Gio.Cancellable();

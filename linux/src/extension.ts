@@ -2,17 +2,14 @@ import Meta from 'gi://Meta';
 import Shell from 'gi://Shell';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
-
 import {IslandManager} from './app/island-manager.js';
 import {createServices} from './app/services.js';
+import type {FrodoServices} from './app/services.types.js';
 import {TopBarVisibility} from './app/top-bar-visibility.js';
-import type {FrodoServices} from './app/services.js';
 import {Disposables} from './shared/disposables.js';
 import {isScreenLocked, onSessionModeChanged} from './shared/shell-internals.js';
 import {setIconsDirectory} from './shared/ui/icons.js';
-
-const TOGGLE_KEYBINDING = 'toggle-shortcut';
-const CLAUDE_KEYBINDING = 'claude-shortcut';
+import {TOGGLE_KEYBINDING, CLAUDE_KEYBINDING} from './extension.const.js';
 
 export default class FrodoExtension extends Extension {
     #disposables: Disposables | null = null;
