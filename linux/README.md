@@ -23,6 +23,7 @@ Roda dentro do próprio gnome-shell (sem processo extra). Escrita em TypeScript 
 | IA                | Claude Code, Codex e Gemini CLI. Em Todos, um card por assistente (plano, duas cotas e sessões ativas) e a lista única de sessões; em cada um, limites, consumo de tokens e as sessões dele. A cota do Gemini é estimada pelos pedidos do dia, porque o CLI não a informa                                  |
 | Notificações      | Lista de notificações, não perturbe e limpar tudo                                                                                                                                                                                                                                                          |
 | Desempenho        | CPU, memória, GPU e disco, com histórico de 60 s; os 5 processos que mais gastam, ordenáveis por CPU, RAM ou GPU, com botão para encerrar (pede confirmação; processos de outro usuário ou essenciais à sessão têm cadeado). Só lê `/proc` com a aba aberta                                                |
+| Mixer             | Volume e silenciar de cada app com som aberto (mais Sons do sistema), a saída e o microfone com troca de dispositivo e os apps usando o microfone, cada um com Silenciar/Ativar                                                                                                                            |
 
 <table>
   <tr>
@@ -285,7 +286,7 @@ src/
                           island-pointer.ts (hover e borda), island-placement.ts (posição), island-presence.ts
                           (pílula coberta e espiada) e island-surface.ts (vidro)
   pill/                   pílula: visão ociosa, visão de atividade, feed e prioridade das atividades
-  tabs/<aba>/             uma pasta por aba: general, calendar, workspaces, claude (aba IA), notifications, performance, settings
+  tabs/<aba>/             uma pasta por aba: general, calendar, workspaces, claude (aba IA), notifications, performance, mixer, settings
   features/<domínio>/     regra pura e serviço de cada fonte de dados: claude, codex, gemini, media, meetings,
                           notifications, system, workspaces
   settings/               GSettings tipado, valores do schema, perfis do Claude, atalho e abas
@@ -317,6 +318,7 @@ Fontes de dados em `src/features/`:
 - Gemini CLI (`gemini/gemini-service.ts`): pedidos do dia (cota estimada) e consumo dos últimos 30 dias.
 - Mídia (`media/media-service.ts`): MPRIS com proxies próprios.
 - Áreas de trabalho (`workspaces/workspaces-service.ts`), gravação de tela (`system/recording-service.ts`), volume (`system/volume-service.ts`) e reuniões (`meetings/meetings-service.ts`, com o link do Meet por `meetings/meet-link-client.ts`).
+- Mixer (`system/mixer-service.ts`): streams de cada app, saída, microfone e apps gravando pelo `Gvc.MixerControl` do shell, só por sinais.
 - Desempenho (`system/performance-service.ts`): CPU, memória, disco e processos por `/proc`, GPU pelo `fdinfo` do DRM (Intel e AMD; NVIDIA proprietária não expõe), a cada 2 s só com a aba aberta.
 
 Regras da arquitetura:

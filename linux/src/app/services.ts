@@ -10,6 +10,7 @@ import {MediaService} from '../features/media/media-service.js';
 import {UpcomingMeeting} from '../features/meetings/meetings-service.js';
 import {NotificationBridge} from '../features/notifications/notification-bridge-service.js';
 import {MemoryAlert} from '../features/system/memory-alert-service.js';
+import {Mixer} from '../features/system/mixer-service.js';
 import {PerformanceMonitor} from '../features/system/performance-service.js';
 import {Recording} from '../features/system/recording-service.js';
 import {SystemState} from '../features/system/system-state-service.js';
@@ -39,6 +40,7 @@ export function createServices(gsettings: Gio.Settings, disposables: Disposables
     const bridge = disposables.own(new NotificationBridge());
     const recording = disposables.own(new Recording());
     const volume = disposables.own(new VolumeWatch());
+    const mixer = disposables.own(new Mixer());
     const meetings = disposables.own(new UpcomingMeeting(settings));
     const performance = disposables.own(new PerformanceMonitor());
     disposables.own(new MemoryAlert());
@@ -59,6 +61,7 @@ export function createServices(gsettings: Gio.Settings, disposables: Disposables
         bridge,
         recording,
         volume,
+        mixer,
         meetings,
         performance,
         feed,

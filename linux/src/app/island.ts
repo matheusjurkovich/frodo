@@ -10,6 +10,7 @@ import type {SystemState} from '../features/system/system-state-service.js';
 import {Disposables} from '../shared/disposables.js';
 import type {Disposer} from '../shared/disposables.types.js';
 import {Emitter} from '../shared/emitter.js';
+import {Timer} from '../shared/timer.js';
 import type {IslandHandle} from '../shared/island-handle.types.js';
 import type {FrodoServices} from './services.types.js';
 import type {ActivityFeed} from '../pill/activity-feed.js';
@@ -19,7 +20,7 @@ import {IslandPlacement} from './island-placement.js';
 import {IslandPointer} from './island-pointer.js';
 import {IslandPresence} from './island-presence.js';
 import {IslandSurface} from './island-surface.js';
-import {CLAUDE_MAX_AGE_SECONDS} from './island.const.js';
+import {CLAUDE_MAX_AGE_SECONDS, PREWARM_MS, PREWARM_OPACITY} from './island.const.js';
 import type {IslandEvents, OpenReason} from './island.types.js';
 
 export class Island extends Emitter<IslandEvents> implements IslandHandle {
@@ -46,6 +47,8 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
     #unredirectDisabled = false;
     #isOpen = false;
     #openedBy: OpenReason | null = null;
+    readonly #warmTimer = new Timer();
+    #unwarm: Disposer | null = null;
 
     constructor(dependencies: FrodoServices, monitorIndex: number) {
         super();
@@ -197,8 +200,30 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         else this.open('key');
     }
 
+    prewarm(mapContent: () => Disposer): void {
+        if (this.#isOpen || this.#unwarm || this.panel.visible) return;
+        this.panel.set({opacity: PREWARM_OPACITY, reactive: false});
+        this.panel.show();
+        this.#unwarm = mapContent();
+        this.#warmTimer.once(PREWARM_MS, () => {
+            this.#endWarm();
+        });
+    }
+
+    #endWarm(): void {
+        const unwarm = this.#unwarm;
+        if (!unwarm) return;
+        this.#unwarm = null;
+        this.#warmTimer.stop();
+        unwarm();
+        this.panel.reactive = true;
+        this.panel.hide();
+        this.panel.opacity = 0;
+    }
+
     open(reason: OpenReason): void {
         if (this.#isOpen) return;
+        this.#endWarm();
         const tab = reason === 'hover' ? this.pill.clickTab : null;
         if (tab) this.emit('tabRequested', tab);
         this.#pointer.cancelOpen();
@@ -301,6 +326,8 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
     }
 
     destroy(): void {
+        this.#warmTimer.stop();
+        this.#unwarm = null;
         this.close(false);
         this.#disposables.dispose();
         this.clearListeners();

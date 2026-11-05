@@ -38,5 +38,5 @@ export const PEEK_SECONDS = [5, 10, 15, 30] as const;
 export const MONITOR_MODES = ['primary', 'secondary', 'both'] as const;
 export const PILL_AI_ACTIVITIES = ['always', 'change', 'never'] as const;
 export const SURFACE_STYLES = ['solid', 'frosted', 'clear'] as const;
-export const TAB_IDS = ['general', 'calendar', 'workspaces', 'claude', 'notifications', 'performance'] as const;
+export const TAB_IDS = ['general', 'calendar', 'workspaces', 'claude', 'notifications', 'performance', 'mixer'] as const;
 export const CARD_IDS = ['shortcuts', 'apps'] as const;

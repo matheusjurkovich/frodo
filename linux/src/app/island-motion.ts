@@ -113,6 +113,9 @@ export class IslandMotion {
         springEase(backdrop, {y: panel.y, height}, springWithin(GENTLE_SPRING, backdrop.height, height, max), () => {
             this.#clipping = false;
             panel.remove_clip();
+            panel.remove_transition('scale-x');
+            panel.remove_transition('scale-y');
+            panel.set_scale(1, 1);
             backdrop.add_constraint_with_name(FOLLOW, new Clutter.BindConstraint({source: panel, coordinate: Clutter.BindCoordinate.ALL}));
         });
         panel.ease({opacity: 255, duration: CONTENT_FADE_IN_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});

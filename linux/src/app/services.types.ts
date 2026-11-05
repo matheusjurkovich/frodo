@@ -6,6 +6,7 @@ import type {GeminiUsage} from '../features/gemini/gemini-service.js';
 import type {MediaService} from '../features/media/media-service.js';
 import type {UpcomingMeeting} from '../features/meetings/meetings-service.js';
 import type {NotificationBridge} from '../features/notifications/notification-bridge-service.js';
+import type {Mixer} from '../features/system/mixer-service.js';
 import type {PerformanceMonitor} from '../features/system/performance-service.js';
 import type {Recording} from '../features/system/recording-service.js';
 import type {SystemState} from '../features/system/system-state-service.js';
@@ -27,6 +28,7 @@ export interface FrodoServices {
     readonly bridge: NotificationBridge;
     readonly recording: Recording;
     readonly volume: VolumeWatch;
+    readonly mixer: Mixer;
     readonly meetings: UpcomingMeeting;
     readonly performance: PerformanceMonitor;
     readonly feed: ActivityFeed;

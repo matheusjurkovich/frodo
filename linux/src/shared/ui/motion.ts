@@ -71,7 +71,8 @@ export function springEase(actor: Clutter.Actor, props: SpringProps, spring: Spr
         transition.set_values(times.map(time => typedValue(property, from + (to - from) * springProgress(spring.damping, time))));
         transition.set_modes(times.map(() => Clutter.AnimationMode.LINEAR));
         transition.connect('stopped', (_transition, finished) => {
-            if (!finished) interrupted = true;
+            if (finished) fields[field] = to;
+            else interrupted = true;
             remaining--;
             if (remaining === 0 && !interrupted) onComplete?.();
         });

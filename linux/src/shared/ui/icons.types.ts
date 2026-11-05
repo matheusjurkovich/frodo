@@ -42,4 +42,7 @@ export type FrodoIconName =
     | 'plus'
     | 'minus'
     | 'grip'
-    | 'performance';
+    | 'performance'
+    | 'volume'
+    | 'volume-off'
+    | 'mic';
