@@ -108,8 +108,12 @@ openTab}`). Nada global além de `Main` e `global` do shell.
   para manter.
 - Spec ao lado do arquivo que testa, com o mesmo nome base (`claude-usage.ts` → `claude-usage.spec.ts`). Helper usado por dois
   specs vai para `tests/fixtures.ts` (`createSettings`, `Changes`, `waitFor`, `tmpDir`, `writeFile`).
-- Serviço que importa valor de `resource:///` (`Main`, `messageTray`) não entra no bundle de teste; o que dá para testar dele
-  vai para regra pura.
+- O `entry.js` troca `resource:///org/gnome/shell/**/<nome>.js` por `tests/shell/<nome>.ts` e `gi://Shell`, `Meta`, `Clutter`,
+  `St`, `UPowerGlib` e `Gvc` por `tests/shell/<Namespace>.ts` (stub que falta quebra o build). O spec importa o mesmo stub para
+  configurar e inspecionar; stub só tem o que algum código testado toca. Schemas de fora do Frodo ficam em
+  `tests/shell/*.gschema.xml` (`shellSettings()`).
+- Serviço de D-Bus recebe a conexão pelo construtor; o spec usa `PrivateBus` (`tests/fixtures.ts`), um `dbus-daemon` próprio,
+  nunca o barramento real. Timer longo: espie `Timer.prototype.every` e chame o callback, sem esperar.
 - `tsconfig.json` é o de desenvolvimento (código + specs, tipos do Jasmine); `tsconfig.build.json` compila só o código.
 - Regra pura testada direto. Serviço testado com fakes; `createSettings()` (`tests/fixtures.ts`) usa o schema compilado em
   `.build/` com backend em memória.

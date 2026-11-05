@@ -13,13 +13,14 @@ export class UpcomingMeeting extends Emitter<{changed: []}> {
     readonly #timer = new Timer();
     readonly #settings: FrodoSettings;
     readonly #disposeSettings: () => void;
-    readonly #links = new MeetLinkClient();
+    readonly #links: Pick<MeetLinkClient, 'find' | 'destroy'>;
     #next: Meeting | null = null;
     #destroyed = false;
 
-    constructor(settings: FrodoSettings) {
+    constructor(settings: FrodoSettings, links: Pick<MeetLinkClient, 'find' | 'destroy'> = new MeetLinkClient()) {
         super();
         this.#settings = settings;
+        this.#links = links;
         this.#disposeSettings = settings.onChanged('meeting-notice-minutes', () => {
             this.#refresh();
         });

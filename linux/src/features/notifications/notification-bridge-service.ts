@@ -14,12 +14,13 @@ export function notificationIcon(notification: MessageTray.Notification): Gio.Ic
 
 export class NotificationBridge extends Emitter<NotificationBridgeEvents> {
     readonly #sources = new Map<MessageTray.Source, Disposables>();
-    readonly #settings = new Gio.Settings({schema_id: NOTIFICATIONS_SCHEMA});
+    readonly #settings: Gio.Settings;
     readonly #disposables = new Disposables();
     #clearing = false;
 
-    constructor() {
+    constructor(settings = new Gio.Settings({schema_id: NOTIFICATIONS_SCHEMA})) {
         super();
+        this.#settings = settings;
         this.#disposables.signal(
             this.#settings,
             this.#settings.connect(`changed::${SHOW_BANNERS_KEY}`, () => {

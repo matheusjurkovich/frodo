@@ -13,10 +13,10 @@ export class BatteryMonitor extends Emitter<{changed: []}> {
     #destroyed = false;
     readonly #proxy: DisplayDevice & Gio.DBusProxy;
 
-    constructor() {
+    constructor(bus = Gio.DBus.system) {
         super();
         this.#proxy = DisplayDeviceProxy(
-            Gio.DBus.system,
+            bus,
             'org.freedesktop.UPower',
             '/org/freedesktop/UPower/devices/DisplayDevice',
             (_proxy, error) => {

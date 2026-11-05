@@ -22,10 +22,11 @@ class Player {
 
     constructor(
         readonly name: string,
+        bus: Gio.DBusConnection,
         onChange: () => void,
     ) {
         this.#app = PlayerAppProxy(
-            Gio.DBus.session,
+            bus,
             name,
             PLAYER_PATH,
             () => {
@@ -34,7 +35,7 @@ class Player {
             this.#cancellable,
         );
         this.#controls = PlayerControlsProxy(
-            Gio.DBus.session,
+            bus,
             name,
             PLAYER_PATH,
             (_proxy, error) => {
@@ -91,14 +92,16 @@ class Player {
 }
 
 export class MediaService extends Emitter<{changed: []}> {
+    readonly #bus: Gio.DBusConnection;
     readonly #cancellable = new Gio.Cancellable();
     readonly #players = new Map<string, Player>();
     readonly #subscription: number;
     #destroyed = false;
 
-    constructor() {
+    constructor(bus = Gio.DBus.session) {
         super();
-        this.#subscription = Gio.DBus.session.signal_subscribe(
+        this.#bus = bus;
+        this.#subscription = bus.signal_subscribe(
             BUS_NAME,
             BUS_NAME,
             'NameOwnerChanged',
@@ -134,7 +137,7 @@ export class MediaService extends Emitter<{changed: []}> {
         const player = this.#currentPlayer();
         if (!player) return null;
         try {
-            const reply = await Gio.DBus.session.call(
+            const reply = await this.#bus.call(
                 player.name,
                 PLAYER_PATH,
                 'org.freedesktop.DBus.Properties',
@@ -159,7 +162,7 @@ export class MediaService extends Emitter<{changed: []}> {
 
     async #discover(): Promise<void> {
         try {
-            const reply = await Gio.DBus.session.call(
+            const reply = await this.#bus.call(
                 BUS_NAME,
                 BUS_PATH,
                 BUS_NAME,
@@ -182,7 +185,7 @@ export class MediaService extends Emitter<{changed: []}> {
         if (this.#destroyed || !name.startsWith(PLAYER_PREFIX) || this.#players.has(name)) return;
         this.#players.set(
             name,
-            new Player(name, () => {
+            new Player(name, this.#bus, () => {
                 this.emit('changed');
             }),
         );
@@ -199,7 +202,7 @@ export class MediaService extends Emitter<{changed: []}> {
     destroy(): void {
         this.#destroyed = true;
         this.#cancellable.cancel();
-        Gio.DBus.session.signal_unsubscribe(this.#subscription);
+        this.#bus.signal_unsubscribe(this.#subscription);
         for (const player of this.#players.values()) player.destroy();
         this.#players.clear();
         this.clearListeners();

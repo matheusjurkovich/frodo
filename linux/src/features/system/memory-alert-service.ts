@@ -5,16 +5,18 @@ import {readMemory} from './memory-service.js';
 import {CHECK_SECONDS} from './memory-alert-service.const.js';
 
 export class MemoryAlert {
+    readonly #read: typeof readMemory;
     readonly #timer = new Timer();
     #alarmed = false;
     #destroyed = false;
 
-    constructor() {
+    constructor(read = readMemory) {
+        this.#read = read;
         this.#timer.every(CHECK_SECONDS, () => void this.#check());
     }
 
     async #check(): Promise<void> {
-        const memory = await readMemory();
+        const memory = await this.#read();
         if (this.#destroyed || !memory) return;
         const percent = usedPercent(memory);
         const alarmed = memoryAlarm(percent, this.#alarmed);

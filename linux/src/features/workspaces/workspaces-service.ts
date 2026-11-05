@@ -11,13 +11,14 @@ import type {WorkspaceInfo, WorkspaceWindow} from './workspaces-service.types.js
 export class Workspaces extends Emitter<{changed: []}> {
     readonly #manager = global.workspace_manager;
     readonly #tracker = Shell.WindowTracker.get_default();
-    readonly #preferences = new Gio.Settings({schema_id: WM_PREFERENCES_SCHEMA});
+    readonly #preferences: Gio.Settings;
     readonly #tracked = new Map<Meta.Workspace, number[]>();
     readonly #managerIds: number[];
     readonly #namesId: number;
 
-    constructor() {
+    constructor(preferences = new Gio.Settings({schema_id: WM_PREFERENCES_SCHEMA})) {
         super();
+        this.#preferences = preferences;
         const notify = (): void => {
             this.emit('changed');
         };

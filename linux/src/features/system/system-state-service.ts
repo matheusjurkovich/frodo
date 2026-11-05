@@ -11,13 +11,14 @@ import type {SystemStateEvents} from './system-state-service.types.js';
 export class SystemState extends Emitter<SystemStateEvents> {
     memory: MemoryInfo | null = null;
 
-    readonly #battery = new BatteryMonitor();
+    readonly #battery: BatteryMonitor;
     readonly #memoryTimer = new Timer();
     readonly #disposables = new Disposables();
     #destroyed = false;
 
-    constructor() {
+    constructor(battery = new BatteryMonitor()) {
         super();
+        this.#battery = battery;
         this.#disposables.add(
             this.#battery.on('changed', () => {
                 this.emit('battery');
