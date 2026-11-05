@@ -23,6 +23,7 @@ import {SettingsPage} from '../tabs/settings/settings-page.js';
 import {TabBar} from './tab-bar.js';
 import type {TabSpec} from './tab-bar.js';
 import {IdleView} from '../pill/idle-view.js';
+import {MixerPage} from '../tabs/mixer/mixer-page.js';
 import {WorkspacesPage} from '../tabs/workspaces/workspaces-page.js';
 
 export type PanelView = {readonly kind: 'tab'; readonly tab: TabId} | {readonly kind: 'settings'};
@@ -66,6 +67,7 @@ export class PanelContent {
         workspaces,
         recording,
         performance,
+        mixer,
     }: PanelDependencies) {
         this.#settings = settings;
 
@@ -110,6 +112,7 @@ export class PanelContent {
             },
             {id: 'notifications', icon: 'bell', label: TAB_LABELS.notifications, create: () => new NotificationsPage(bridge, island)},
             {id: 'performance', icon: 'performance', label: TAB_LABELS.performance, create: () => new PerformancePage(performance, island)},
+            {id: 'mixer', icon: 'volume', label: 'Mixer', create: () => new MixerPage(mixer, island)},
         ];
 
         this.#tabBar = new TabBar(specs);
@@ -156,6 +159,7 @@ export class PanelContent {
             this.#stack.add_child(page.actor);
         }
         this.#stack.add_child(this.#settingsPage.actor);
+        for (const page of this.#allActors()) page.y_align = Clutter.ActorAlign.START;
         this.actor.clip_to_allocation = true;
         this.actor.add_child(this.#header.actor);
         this.actor.add_child(this.#scroll);
@@ -233,6 +237,13 @@ export class PanelContent {
 
     #allActors(): Clutter.Actor[] {
         return [...[...this.#pages.values()].map(page => page.actor), this.#settingsPage.actor];
+    }
+
+    prewarm(): () => void {
+        for (const page of this.#allActors()) page.show();
+        return () => {
+            this.show(this.#view);
+        };
     }
 
     showOnNextOpen(tab: TabId): void {

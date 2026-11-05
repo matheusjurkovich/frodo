@@ -43,6 +43,8 @@ const CLAUDE_MAX_AGE_SECONDS = 60;
 const FLOAT_GAP = 6;
 const EDGE_SPAN = 900;
 const EDGE_GRACE_MS = 1500;
+const PREWARM_MS = 300;
+const PREWARM_OPACITY = 1;
 
 export type OpenReason = 'hover' | 'click' | 'key';
 
@@ -76,6 +78,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
     readonly #openTimer = new Timer();
     readonly #closeTimer = new Timer();
     readonly #peekTimer = new Timer();
+    readonly #warmTimer = new Timer();
     readonly #disposables = new Disposables();
     #attached = false;
     #openEdge = 0;
@@ -92,6 +95,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
     #backdropGlass: Glass | null = null;
     #pillGlass: Glass | null = null;
     #edgeWatch: Disposer | null = null;
+    #unwarm: Disposer | null = null;
 
     constructor(dependencies: FrodoServices, monitorIndex: number) {
         super();
@@ -322,8 +326,30 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         else this.open('key');
     }
 
+    prewarm(mapContent: () => Disposer): void {
+        if (this.#isOpen || this.#unwarm || this.panel.visible) return;
+        this.panel.set({opacity: PREWARM_OPACITY, reactive: false});
+        this.panel.show();
+        this.#unwarm = mapContent();
+        this.#warmTimer.once(PREWARM_MS, () => {
+            this.#endWarm();
+        });
+    }
+
+    #endWarm(): void {
+        const unwarm = this.#unwarm;
+        if (!unwarm) return;
+        this.#unwarm = null;
+        this.#warmTimer.stop();
+        unwarm();
+        this.panel.reactive = true;
+        this.panel.hide();
+        this.panel.opacity = 0;
+    }
+
     open(reason: OpenReason): void {
         if (this.#isOpen) return;
+        this.#endWarm();
         const tab = reason === 'hover' ? this.pill.clickTab : null;
         if (tab) this.emit('tabRequested', tab);
         this.#openTimer.stop();
@@ -741,6 +767,9 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         springEase(backdrop, {y: panel.y, height}, springWithin(GENTLE_SPRING, backdrop.height, height, max), () => {
             this.#clipping = false;
             panel.remove_clip();
+            panel.remove_transition('scale-x');
+            panel.remove_transition('scale-y');
+            panel.set_scale(1, 1);
             backdrop.add_constraint_with_name(FOLLOW, new Clutter.BindConstraint({source: panel, coordinate: Clutter.BindCoordinate.ALL}));
         });
         panel.ease({opacity: 255, duration: CONTENT_FADE_IN_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
@@ -823,6 +852,8 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         this.#openTimer.stop();
         this.#closeTimer.stop();
         this.#peekTimer.stop();
+        this.#warmTimer.stop();
+        this.#unwarm = null;
         this.#disposables.dispose();
         this.clearListeners();
         this.panel.set_child(null);

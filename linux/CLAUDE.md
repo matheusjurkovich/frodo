@@ -6,7 +6,7 @@ Guia deste repositório para o Claude Code.
 
 Extensão do GNOME Shell 50 (Wayland) em TypeScript: uma dynamic island no topo da tela. Fechada, é a pílula (hora, bateria,
 RAM, uso do Claude Code, Codex e Gemini CLI e atividades como gravação, reunião e música). Aberta, é a ilha com as abas
-Geral, Calendário, Áreas de trabalho, IA, Notificações e Desempenho, mais configurações e menu de energia. Roda dentro do `gnome-shell`, sem processo extra.
+Geral, Calendário, Áreas de trabalho, IA, Notificações, Desempenho e Mixer, mais configurações e menu de energia. Roda dentro do `gnome-shell`, sem processo extra.
 Produto, abas e prioridade da pílula: `README.md` (desta pasta). Este diretório é a versão Linux do monorepo; o guia geral está
 em `../CLAUDE.md`.
 
@@ -19,7 +19,7 @@ Código agrupado por camada e domínio. Import só desce: `app → pill, tabs �
 | `src/extension.ts`        | `enable`/`disable`: ícones, `createServices`, barra do topo, ilhas e atalhos (roda também no `unlock-dialog`: serviços seguem vivos e a UI sai)                                                                                                                                                  |
 | `src/app/`                | A ilha: `services.ts` (`FrodoServices`, `createServices`), `island.ts`, `island-manager.ts`, cabeçalho, barra de abas, menu de energia, barra do topo, monitores                                                                                                                                 |
 | `src/pill/`               | Pílula: visão ociosa, visão de atividade, feed e prioridade das atividades                                                                                                                                                                                                                       |
-| `src/tabs/<aba>/`         | Uma pasta plana por aba: `general`, `calendar`, `workspaces`, `claude` (aba IA), `notifications`, `performance`, `settings`                                                                                                                                                                      |
+| `src/tabs/<aba>/`         | Uma pasta plana por aba: `general`, `calendar`, `workspaces`, `claude` (aba IA), `notifications`, `performance`, `mixer`, `settings`                                                                                                                                                             |
 | `src/features/<domínio>/` | Regra pura (`<assunto>.ts`) e serviço (`<assunto>-service.ts`, `claude-client.ts`) de cada fonte de dados: `claude`, `codex`, `gemini`, `media`, `meetings`, `notifications`, `system`, `workspaces`                                                                                             |
 | `src/settings/`           | GSettings tipado (`frodo-settings.ts`), valores do schema, perfis do Claude, atalho, abas                                                                                                                                                                                                        |
 | `src/shared/`             | `Emitter`, `Disposables`, `Timer`, formatação, geometria, curva de mola (`spring.ts`), espiada da hora (`peek.ts`), reordenar (`reorder.ts`), `readTextFile`, `Level`, `IslandHandle`, `shell-internals.ts`, consumo (`consumption.ts`), cotas (`meter.ts`), provedores de IA (`ai-provider.ts`) |
@@ -36,22 +36,22 @@ Código agrupado por camada e domínio. Import só desce: `app → pill, tabs �
 
 ## Regras inegociáveis
 
-| Regra                                                                                                                        | Onde é verificada                   |
-| ---------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| Import só desce: `app → pill, tabs → features → settings → shared`                                                           | ESLint (`no-restricted-imports`)    |
-| Em `features/`, só `*-service.ts` e `*-client.ts` importam `gi://` ou `resource://` (import de tipo pode); o resto tem teste | ESLint (`no-restricted-imports`)    |
-| Feature não importa outra feature; aba não importa outra aba (o comum vai para `shared/`)                                    | ESLint (`no-restricted-imports`)    |
-| Aba fala com a ilha só pelo `IslandHandle` (`src/shared/island-handle.ts`)                                                   | ESLint (aba não importa `app/`)     |
-| Serviço não conhece a UI; a UI assina eventos tipados (`Emitter`)                                                            | ESLint (camadas), revisão           |
-| Todo `connect`, timer e patch do `enable()` é desfeito no `disable()` por `Disposables`                                      | `npm run smoke` (religa), revisão   |
-| API privada do shell só em `src/shared/shell-internals.ts`                                                                   | revisão                             |
-| Controle do sistema (Wi-Fi, Bluetooth, sliders, calendário) é o nativo emprestado (`ActorLoan`), nunca reimplementado        | revisão                             |
-| Cor só no `stylesheet.css`; desenho em Cairo lê do tema (`get_theme_node()`); destaque é `-st-accent-color`                  | revisão                             |
-| Card que lê disco ou D-Bus periodicamente só roda visível (`whileMapped`)                                                    | revisão                             |
-| Sem comentário em código, teste, CSS, XML e shell script (só diretiva de ferramenta)                                         | revisão                             |
-| Texto de UI em pt-BR, direto no código                                                                                       | revisão                             |
-| Sem dependência npm em runtime e sem processo residente; processo curto só por ação do usuário (`git`, `gh`) ou pelo hook    | revisão                             |
-| Tipos estritos, `import type` para tipo, sem `console`, `===`                                                                | `npm run typecheck`, `npm run lint` |
+| Regra                                                                                                                                                                                                      | Onde é verificada                   |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| Import só desce: `app → pill, tabs → features → settings → shared`                                                                                                                                         | ESLint (`no-restricted-imports`)    |
+| Em `features/`, só `*-service.ts` e `*-client.ts` importam `gi://` ou `resource://` (import de tipo pode); o resto tem teste                                                                               | ESLint (`no-restricted-imports`)    |
+| Feature não importa outra feature; aba não importa outra aba (o comum vai para `shared/`)                                                                                                                  | ESLint (`no-restricted-imports`)    |
+| Aba fala com a ilha só pelo `IslandHandle` (`src/shared/island-handle.ts`)                                                                                                                                 | ESLint (aba não importa `app/`)     |
+| Serviço não conhece a UI; a UI assina eventos tipados (`Emitter`)                                                                                                                                          | ESLint (camadas), revisão           |
+| Todo `connect`, timer e patch do `enable()` é desfeito no `disable()` por `Disposables`                                                                                                                    | `npm run smoke` (religa), revisão   |
+| API privada do shell só em `src/shared/shell-internals.ts`                                                                                                                                                 | revisão                             |
+| Controle do sistema (Wi-Fi, Bluetooth, sliders, calendário) é o nativo emprestado (`ActorLoan`), nunca reimplementado; exceção: o Mixer, que fala direto com o `Gvc` porque não há controle nativo por app | revisão                             |
+| Cor só no `stylesheet.css`; desenho em Cairo lê do tema (`get_theme_node()`); destaque é `-st-accent-color`                                                                                                | revisão                             |
+| Card que lê disco ou D-Bus periodicamente só roda visível (`whileMapped`)                                                                                                                                  | revisão                             |
+| Sem comentário em código, teste, CSS, XML e shell script (só diretiva de ferramenta)                                                                                                                       | revisão                             |
+| Texto de UI em pt-BR, direto no código                                                                                                                                                                     | revisão                             |
+| Sem dependência npm em runtime e sem processo residente; processo curto só por ação do usuário (`git`, `gh`) ou pelo hook                                                                                  | revisão                             |
+| Tipos estritos, `import type` para tipo, sem `console`, `===`                                                                                                                                              | `npm run typecheck`, `npm run lint` |
 
 ## Onde mora
 

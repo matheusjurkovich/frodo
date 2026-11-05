@@ -197,7 +197,6 @@
 }
 
 .frodo-header-time {
-    min-width: 92px;
     spacing: 2px;
 }
 
@@ -357,7 +356,7 @@
 .frodo-tab {
     height: 36px;
     min-height: 36px;
-    padding: 0 12px;
+    padding: 0 10px;
     border-radius: 999px;
     font-size: 13px;
     color: #a1a1aa;
@@ -1282,10 +1281,9 @@
 
 .frodo-chip-counter {
     min-width: 8px;
-    height: 18px;
-    min-height: 18px;
-    padding: 0 5px;
+    padding: 1px 5px;
     border-radius: 9px;
+    text-align: center;
     background-color: -st-accent-color;
     color: -st-accent-fg-color;
 }
@@ -2750,4 +2748,180 @@
     border-top-width: 0;
     background-color: #232327;
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+
+.frodo-mixer-side {
+    width: 340px;
+}
+
+.frodo-mixer-card {
+    spacing: 12px;
+}
+
+.frodo-mixer-head {
+    spacing: 8px;
+}
+
+.frodo-mixer-summary {
+    font-size: 12px;
+    color: #a1a1aa;
+}
+
+.frodo-mixer-app {
+    padding: 10px 0;
+    spacing: 8px;
+    border-top: 1px solid #232327;
+}
+
+.frodo-mixer-app:first-child {
+    border-top-width: 0;
+}
+
+.frodo-mixer-app-head {
+    spacing: 12px;
+}
+
+.frodo-mixer-app-icon {
+    icon-size: 24px;
+    padding: 6px;
+    border-radius: 10px;
+    background-color: #232327;
+}
+
+.frodo-mixer-app-text {
+    spacing: 2px;
+}
+
+.frodo-mixer-app-name {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.frodo-mixer-bars {
+    spacing: 2px;
+    height: 14px;
+}
+
+.frodo-mixer-bar {
+    width: 3px;
+    border-radius: 1px;
+    background-color: -st-accent-color;
+}
+
+.frodo-mixer-bar-0 {
+    height: 8px;
+}
+
+.frodo-mixer-bar-1 {
+    height: 14px;
+}
+
+.frodo-mixer-bar-2 {
+    height: 10px;
+}
+
+.frodo-mixer-muted-label {
+    font-size: 12px;
+    color: #fca5a5;
+}
+
+.frodo-mixer-control {
+    spacing: 10px;
+}
+
+.frodo-mixer-app-control {
+    padding-left: 48px;
+}
+
+.frodo-mixer-mute {
+    background-color: #232327;
+}
+
+.frodo-mixer-muted,
+.frodo-mixer-muted:hover {
+    background-color: #3a1c1c;
+    color: #fca5a5;
+}
+
+.frodo-mixer .slider,
+.frodo-mixer .slider:hover {
+    height: 16px;
+    color: -st-accent-color;
+    -slider-handle-radius: 8px;
+    -barlevel-height: 7px;
+    -barlevel-background-color: #efefef;
+    -barlevel-active-background-color: -st-accent-color;
+}
+
+.frodo-mixer-value {
+    width: 44px;
+    font-size: 12px;
+    color: #a1a1aa;
+    text-align: right;
+}
+
+.frodo-mixer-device {
+    spacing: 10px;
+}
+
+.frodo-mixer-device-menu {
+    width: 420px;
+}
+
+.frodo-mixer-device-label {
+    font-size: 13px;
+    color: #d4d4d8;
+}
+
+.frodo-mixer-device-button {
+    height: 36px;
+    padding: 0 10px;
+    border: 1px solid #3f3f46;
+    border-radius: 10px;
+    background-color: #232327;
+    color: #f4f4f5;
+    font-size: 13px;
+}
+
+.frodo-mixer-device-content {
+    spacing: 6px;
+}
+
+.frodo-mixer-device-caret {
+    icon-size: 14px;
+    color: #a1a1aa;
+}
+
+.frodo-mixer-recorder {
+    spacing: 10px;
+}
+
+.frodo-mixer-recorder-icon {
+    icon-size: 18px;
+    padding: 5px;
+    border-radius: 8px;
+    background-color: #232327;
+}
+
+.frodo-mixer-recorder-text {
+    spacing: 1px;
+}
+
+.frodo-mixer-recorder-name {
+    font-size: 13px;
+}
+
+.frodo-mixer-recorder-state {
+    font-size: 12px;
+    color: #86efac;
+}
+
+.frodo-mixer-recorder-state.frodo-mixer-recorder-off {
+    color: #fca5a5;
+}
+
+.frodo-mixer-recorder-button {
+    height: 30px;
+    padding: 0 12px;
+    font-size: 12px;
 }

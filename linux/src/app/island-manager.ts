@@ -4,9 +4,12 @@ import {targetMonitors} from './monitors.js';
 import {tabToOpen, visibleTabs} from '../settings/tabs.js';
 import type {TabId} from '../settings/schema-values.js';
 import {Disposables} from '../shared/disposables.js';
+import {Timer} from '../shared/timer.js';
 import {Island} from './island.js';
 import {PanelContent} from './panel-content.js';
 import type {FrodoServices} from './services.js';
+
+const PREWARM_DELAY_MS = 2000;
 
 interface Entry {
     readonly island: Island;
@@ -16,6 +19,7 @@ interface Entry {
 export class IslandManager {
     readonly #dependencies: FrodoServices;
     readonly #disposables = new Disposables();
+    readonly #prewarm = new Timer();
     #entries: Entry[] = [];
 
     constructor(dependencies: FrodoServices) {
@@ -67,6 +71,9 @@ export class IslandManager {
             });
             this.#entries.push({island, content});
         }
+        this.#prewarm.once(PREWARM_DELAY_MS, () => {
+            for (const entry of this.#entries) entry.island.prewarm(() => entry.content.prewarm());
+        });
     }
 
     #clear(): void {
@@ -80,6 +87,7 @@ export class IslandManager {
     }
 
     destroy(): void {
+        this.#prewarm.stop();
         this.#disposables.dispose();
         this.#clear();
     }
