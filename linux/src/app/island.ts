@@ -301,11 +301,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
     }
 
     destroy(): void {
-        if (this.#grab.isActorGrabbed(this.panel)) this.#grab.ungrab({actor: this.panel});
-        if (this.#isOpen) {
-            this.#isOpen = false;
-            this.emit('closed');
-        }
+        this.close(false);
         this.#disposables.dispose();
         this.clearListeners();
         this.panel.set_child(null);

@@ -15,7 +15,7 @@ export class GeneralSection implements SettingsSection {
     readonly #deps: GeneralSectionDependencies;
     readonly #disposables = new Disposables();
     readonly #bindings = new Bindings(this.#disposables);
-    #capture: {readonly button: St.Button; readonly id: number} | null = null;
+    #capture: {readonly button: St.Button; readonly ids: readonly number[]} | null = null;
 
     constructor(deps: GeneralSectionDependencies) {
         this.#deps = deps;
@@ -24,6 +24,12 @@ export class GeneralSection implements SettingsSection {
         this.#disposables.add(() => {
             this.#stopCapture();
         });
+        this.#disposables.signal(
+            this.actor,
+            this.actor.connect('notify::mapped', () => {
+                if (!this.actor.mapped) this.#cancelCapture();
+            }),
+        );
     }
 
     sync(): void {
@@ -115,12 +121,21 @@ export class GeneralSection implements SettingsSection {
             else this.#deps.settings.claudeShortcut = shortcut;
             return Clutter.EVENT_STOP;
         });
-        this.#capture = {button, id};
+        const focusOut = button.connect('key-focus-out', () => {
+            this.#cancelCapture();
+        });
+        this.#capture = {button, ids: [id, focusOut]};
+    }
+
+    #cancelCapture(): void {
+        if (!this.#capture) return;
+        this.#stopCapture();
+        this.sync();
     }
 
     #stopCapture(): void {
         if (!this.#capture) return;
-        this.#capture.button.disconnect(this.#capture.id);
+        for (const id of this.#capture.ids) this.#capture.button.disconnect(id);
         this.#capture = null;
     }
 

@@ -86,7 +86,10 @@ export class IslandPointer {
         });
         return () => {
             menu.disconnect(id);
-            if (held) this.#holds--;
+            if (!held) return;
+            held = false;
+            this.#holds--;
+            this.syncPanel();
         };
     }
 
