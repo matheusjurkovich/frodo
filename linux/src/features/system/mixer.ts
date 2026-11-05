@@ -1,0 +1,33 @@
+export interface AudioStream {
+    readonly id: number;
+    readonly name: string;
+    readonly detail: string | null;
+    readonly iconName: string;
+    readonly level: number;
+    readonly muted: boolean;
+}
+
+const GENERIC_DETAILS = new Set(['playback', 'audio stream', 'audiostream', 'record', 'recording', 'capture']);
+
+export function streamDetail(description: string | null): string | null {
+    const text = description?.trim() ?? '';
+    return text === '' || GENERIC_DETAILS.has(text.toLowerCase()) ? null : text;
+}
+
+export function levelOf(volume: number, max: number): number {
+    return max > 0 ? Math.min(1, Math.max(0, volume / max)) : 0;
+}
+
+export function volumeLabel(stream: Pick<AudioStream, 'level' | 'muted'>): string {
+    return stream.muted ? 'Mudo' : `${Math.round(stream.level * 100)}%`;
+}
+
+export function playingSummary(apps: readonly Pick<AudioStream, 'muted'>[]): string {
+    const playing = apps.filter(app => !app.muted).length;
+    if (playing === 0) return apps.length === 0 ? 'Nenhum app com som' : 'Tudo silenciado';
+    return `${playing} tocando agora`;
+}
+
+export function sameStreams(a: readonly Pick<AudioStream, 'id'>[], b: readonly Pick<AudioStream, 'id'>[]): boolean {
+    return a.length === b.length && a.every((stream, index) => stream.id === b[index]?.id);
+}
