@@ -21,7 +21,6 @@ final class Revisions {
     var notifications = 0
     var apps = 0
     var volume = 0
-    var feed = 0
     var settings = 0
 }
 
@@ -80,7 +79,7 @@ final class FrodoServices {
         disposables.add(notifications.changed.on { _ in revisions.notifications += 1 })
         disposables.add(apps.changed.on { _ in revisions.apps += 1 })
         disposables.add(volume.changed.on { _ in revisions.volume += 1 })
-        disposables.add(feed.changed.on { _ in revisions.feed += 1 })
+        disposables.add(volume.statusChanged.on { _ in revisions.volume += 1 })
         disposables.add(settings.changed.on { _ in revisions.settings += 1 })
         disposables.add(sessions.hookEvents.on { [weak self] event in
             guard event.notificationType == "idle_prompt", let message = claudeNotification(for: event) else { return }

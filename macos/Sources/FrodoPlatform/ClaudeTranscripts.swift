@@ -6,7 +6,9 @@ private let scanSeconds: TimeInterval = 30
 @MainActor
 public final class ClaudeTranscripts: Destroyable {
     public let changed = Event<Void>()
-    public private(set) var index = ClaudeIndex()
+    public private(set) var index = ClaudeIndex() {
+        didSet { summaries = [:] }
+    }
     public private(set) var scanning = false
 
     private let settings: FrodoSettings
@@ -15,6 +17,7 @@ public final class ClaudeTranscripts: Destroyable {
     private var wanted = 0
     private var running: Task<Void, Never>?
     private var destroyed = false
+    private var summaries: [Period: ConsumptionSummary] = [:]
 
     public init(settings: FrodoSettings, cachePath: String, scheduler: Scheduler) {
         self.settings = settings
@@ -34,6 +37,17 @@ public final class ClaudeTranscripts: Destroyable {
         if before > 0 { return }
         timer.every(scanSeconds) { [weak self] in Task { await self?.scan() } }
         Task { await scan() }
+    }
+
+    public func summary(_ period: Period) -> ConsumptionSummary {
+        if let cached = summaries[period] { return cached }
+        let made = index.summary(period, now: Date())
+        summaries[period] = made
+        return made
+    }
+
+    public func flush() async {
+        await scanner.flush()
     }
 
     public func scan() async {
@@ -59,6 +73,7 @@ public final class ClaudeTranscripts: Destroyable {
     public func destroy() {
         destroyed = true
         timer.stop()
+        running?.cancel()
         Task { await scanner.flush() }
         changed.clearListeners()
     }

@@ -33,22 +33,23 @@ final class IslandController: NSObject {
     let model = IslandModel()
     let panel = FrodoPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
 
+    private let coverMonitor: ScreenCoverMonitor
+    private let hover: HoverIntent
     private var host: ShapeHostingView<IslandRootView>?
-    private var openWork: DispatchWorkItem?
-    private var closeWork: DispatchWorkItem?
-    private var autoCloseWork: DispatchWorkItem?
     private var hoverGrace = HoverGrace()
-    private var pollTimer: Timer?
-    private var coverTimer: Timer?
     private var disposables = Disposables()
     private var activationObserver: NSObjectProtocol?
-    private var spaceObserver: NSObjectProtocol?
     private var cover = ScreenCover.none
     private var peekCycle: PeekCycle?
 
-    init(screen: NSScreen, services: FrodoServices) {
+    init(screen: NSScreen, services: FrodoServices, coverMonitor: ScreenCoverMonitor) {
         self.screen = screen
         self.services = services
+        self.coverMonitor = coverMonitor
+        hover = HoverIntent(
+            scheduler: services.scheduler, openDelay: Motion.openDelay, closeDelay: Motion.closeDelay, autoCloseDelay: Motion.autoCloseSeconds,
+            pollInterval: Motion.hoverPoll
+        )
         super.init()
         configurePanel()
         let root = IslandRootView(services: services, model: model, onToggle: { [weak self] in self?.togglePill() }, onClose: { [weak self] in self?.close() })
@@ -72,23 +73,17 @@ final class IslandController: NSObject {
         disposables.add(services.settings.onChanged(["position"]) { [weak self] in self?.applyPosition() })
         disposables.add(services.settings.onChanged(["always-show-pill", "peek-clock", "peek-every-minutes", "peek-seconds"]) { [weak self] in self?.syncCover() })
         peekCycle = PeekCycle(
-            scheduler: SystemScheduler(),
+            scheduler: services.scheduler,
             canStart: { [weak self] in self?.canPeek() ?? false },
             onChange: { [weak self] state in self?.applyPeek(state) }
         )
         refreshCover()
-        coverTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.refreshCover() }
-        }
-        RunLoop.main.add(coverTimer!, forMode: .common)
+        disposables.add(coverMonitor.changed.on { [weak self] _ in self?.refreshCover() })
         IslandBus.register(self) { [weak self] in self?.close() }
         activationObserver = NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] note in
             let activated = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
             guard activated?.processIdentifier != ProcessInfo.processInfo.processIdentifier else { return }
             MainActor.assumeIsolated { self?.close() }
-        }
-        spaceObserver = NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.refreshCover() }
         }
     }
 
@@ -140,33 +135,16 @@ final class IslandController: NSObject {
     }
 
     func updateHover() {
-        let mouse = NSEvent.mouseLocation
-        let inside = model.isOpen ? pointerIsOverOpenIsland() : shapeRect(open: false).contains(mouse)
+        let inside = model.isOpen ? pointerIsOverOpenIsland() : shapeRect(open: false).contains(NSEvent.mouseLocation)
         if inside {
-            closeWork?.cancel()
-            closeWork = nil
-            if !model.isOpen, openWork == nil, services.settings.openOnHover, !model.pillHasAction {
-                let work = DispatchWorkItem { [weak self] in
-                    guard let self else { return }
-                    self.openWork = nil
-                    if self.shapeRect(open: false).contains(NSEvent.mouseLocation), !self.model.pillHasAction {
-                        self.open(tab: self.model.activity?.clickTab)
-                    }
-                }
-                openWork = work
-                DispatchQueue.main.asyncAfter(deadline: .now() + Motion.openDelay, execute: work)
+            hover.entered(canOpen: !model.isOpen && services.settings.openOnHover && !model.pillHasAction) { [weak self] in
+                guard let self, self.shapeRect(open: false).contains(NSEvent.mouseLocation), !self.model.pillHasAction else { return }
+                self.open(tab: self.model.activity?.clickTab)
             }
         } else {
-            openWork?.cancel()
-            openWork = nil
-            if model.isOpen, closeWork == nil, services.settings.openOnHover {
-                let work = DispatchWorkItem { [weak self] in
-                    guard let self else { return }
-                    self.closeWork = nil
-                    if !self.pointerIsOverOpenIsland() { self.close() }
-                }
-                closeWork = work
-                DispatchQueue.main.asyncAfter(deadline: .now() + Motion.closeDelay, execute: work)
+            hover.left(canClose: model.isOpen && services.settings.openOnHover) { [weak self] in
+                guard let self, !self.pointerIsOverOpenIsland() else { return }
+                self.close()
             }
         }
     }
@@ -188,36 +166,25 @@ final class IslandController: NSObject {
         services.feed.cancelTransient()
         panel.allowsKey = true
         withAnimation(Motion.island) { model.isOpen = true }
-        pollTimer?.invalidate()
-        pollTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.updateHover() }
+        var autoClose: (@MainActor () -> Void)?
+        if services.settings.autoClose {
+            autoClose = { [weak self] in
+                guard let self, self.model.isOpen, !self.pointerIsOverOpenIsland() else { return }
+                self.close()
+            }
         }
-        RunLoop.main.add(pollTimer!, forMode: .common)
-        scheduleAutoClose()
+        hover.opened(poll: { [weak self] in self?.updateHover() }, autoClose: autoClose)
     }
 
     func close() {
         guard model.isOpen else { return }
-        pollTimer?.invalidate()
-        pollTimer = nil
-        autoCloseWork?.cancel()
+        hover.closed()
         hoverGrace.reset()
         panel.allowsKey = false
         withAnimation(Motion.soft) {
             model.isOpen = false
             model.powerMenuOpen = false
         }
-    }
-
-    private func scheduleAutoClose() {
-        autoCloseWork?.cancel()
-        guard services.settings.autoClose else { return }
-        let work = DispatchWorkItem { [weak self] in
-            guard let self, self.model.isOpen, !self.pointerIsOverOpenIsland() else { return }
-            self.close()
-        }
-        autoCloseWork = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + Motion.autoCloseSeconds, execute: work)
     }
 
     private func syncActivity() {
@@ -251,7 +218,7 @@ final class IslandController: NSObject {
     }
 
     private func refreshCover() {
-        let next = Self.currentCover(of: screen)
+        let next = coverMonitor.cover(of: screen)
         guard next != cover else { return }
         let alwaysShow = services.settings.alwaysShowPill
         let wasCovered = pillCovered(cover, alwaysShow: alwaysShow)
@@ -263,39 +230,12 @@ final class IslandController: NSObject {
         syncCover()
     }
 
-    private static func currentCover(of screen: NSScreen) -> ScreenCover {
-        let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
-        guard let list = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]], let primary = NSScreen.screens.first else { return .none }
-        let ownPid = Int(ProcessInfo.processInfo.processIdentifier)
-        let windows = list.compactMap { window -> CGRect? in
-            guard (window[kCGWindowLayer as String] as? Int) == 0, (window[kCGWindowOwnerPID as String] as? Int) != ownPid,
-                (window[kCGWindowAlpha as String] as? Double ?? 1) > 0.01,
-                let bounds = window[kCGWindowBounds as String] as? [String: CGFloat]
-            else { return nil }
-            return CGRect(dictionaryRepresentation: bounds as CFDictionary)
-        }
-        return screenCover(
-            windows: windows,
-            screen: globalFrame(screen.frame, primary: primary),
-            visible: globalFrame(screen.visibleFrame, primary: primary)
-        )
-    }
-
-    private static func globalFrame(_ frame: CGRect, primary: NSScreen) -> CGRect {
-        CGRect(x: frame.minX, y: primary.frame.height - frame.maxY, width: frame.width, height: frame.height)
-    }
-
     func tearDown() {
-        pollTimer?.invalidate()
-        coverTimer?.invalidate()
+        hover.stop()
         peekCycle?.stop()
-        openWork?.cancel()
-        closeWork?.cancel()
-        autoCloseWork?.cancel()
         disposables.dispose()
         IslandBus.unregister(self)
         if let activationObserver { NSWorkspace.shared.notificationCenter.removeObserver(activationObserver) }
-        if let spaceObserver { NSWorkspace.shared.notificationCenter.removeObserver(spaceObserver) }
         panel.orderOut(nil)
     }
 }

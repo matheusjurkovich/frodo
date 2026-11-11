@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let arguments: [String]
     private var app: AppController?
     private var demo: DemoMode?
+    private var terminating = false
 
     init(arguments: [String]) {
         self.arguments = arguments
@@ -59,6 +60,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task { @MainActor in
             print("calendário antes: \(calendar.access)")
             await calendar.requestAccess()
+            _ = calendar.events(on: Date())
+            try? await Task.sleep(for: .seconds(1))
             print("calendário depois: \(calendar.access), eventos hoje: \(calendar.events(on: Date()).count)")
             fflush(stdout)
             calendar.destroy()
@@ -93,6 +96,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             app.shutdown()
             exit(panels > 0 || NSScreen.screens.isEmpty ? 0 : 1)
         }
+    }
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard let app, !terminating else { return .terminateNow }
+        terminating = true
+        Task {
+            await app.services.transcripts.flush()
+            self.replyToTermination()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + Motion.quitFlushTimeout) { [weak self] in self?.replyToTermination() }
+        return .terminateLater
+    }
+
+    private func replyToTermination() {
+        guard terminating else { return }
+        terminating = false
+        NSApp.reply(toApplicationShouldTerminate: true)
     }
 
     func applicationWillTerminate(_ notification: Notification) {

@@ -8,10 +8,12 @@ final class AppController {
     private(set) var controllers: [IslandController] = []
     private var controllerKeys: [String] = []
     private let disposables = Disposables()
+    private let coverMonitor: ScreenCoverMonitor
     private var screenObserver: NSObjectProtocol?
 
     init(services: FrodoServices) {
         self.services = services
+        coverMonitor = ScreenCoverMonitor(scheduler: services.scheduler)
         _ = services.installHookIfPossible()
         rebuild()
         registerHotkeys()
@@ -44,7 +46,7 @@ final class AppController {
         for (key, controller) in zip(controllerKeys, controllers) {
             if wanted.contains(key), kept[key] == nil { kept[key] = controller } else { controller.tearDown() }
         }
-        controllers = targets.map { kept[$0.key] ?? IslandController(screen: $0.screen, services: services) }
+        controllers = targets.map { kept[$0.key] ?? IslandController(screen: $0.screen, services: services, coverMonitor: coverMonitor) }
         controllerKeys = targets.map(\.key)
     }
 
@@ -75,6 +77,7 @@ final class AppController {
         for controller in controllers { controller.tearDown() }
         if let screenObserver { NotificationCenter.default.removeObserver(screenObserver) }
         disposables.dispose()
+        coverMonitor.destroy()
         services.destroy()
     }
 }

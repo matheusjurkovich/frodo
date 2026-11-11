@@ -40,8 +40,6 @@ struct IslandRootView: View {
     @State private var contentHeight: CGFloat = 400
     @Environment(\.glassEnabled) private var glassEnabled
 
-    private var visible: [TabId] { visibleTabs(hidden: services.settings.hiddenTabs) }
-
     var body: some View {
         let _ = services.revisions.settings
         let size = model.targetSize

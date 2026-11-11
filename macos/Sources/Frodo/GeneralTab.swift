@@ -68,10 +68,7 @@ private struct ShortcutsCard: View {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
                 tile("screenshot", "Captura") { launchExternal { SystemActions.openScreenshotTool() } }
                 tile("record", "Gravar tela") { launchExternal { SystemActions.openScreenshotTool() } }
-                tile("mic-off", micMuted ? "Ativar mic" : "Silenciar mic", highlighted: micMuted) {
-                    _ = services.volume.setInputMuted(!micMuted)
-                    services.revisions.volume += 1
-                }
+                tile("mic-off", micMuted ? "Ativar mic" : "Silenciar mic", highlighted: micMuted) { _ = services.volume.setInputMuted(!micMuted) }
                 tile("terminal", "Terminal") { launchExternal { SystemActions.openTerminal() } }
                 tile("folder", "Arquivos") { launchExternal { SystemActions.openFinder() } }
                 tile("lock", "Bloquear") { launchExternal { SystemActions.lockScreen() } }
@@ -80,17 +77,10 @@ private struct ShortcutsCard: View {
     }
 
     private func tile(_ icon: String, _ title: String, highlighted: Bool = false, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            VStack(spacing: 6) {
-                FrodoIcon(name: icon, size: 20, color: highlighted ? .white : Theme.text)
-                Text(title).font(Theme.Font.label(.medium)).foregroundStyle(highlighted ? .white : Theme.textSecondary).lineLimit(1)
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: 64)
-            .hoverBackground(highlighted ? Theme.accent : Theme.control)
-            .contentShape(Rectangle())
+        TileButton(highlighted: highlighted, action: action) {
+            FrodoIcon(name: icon, size: 20, color: highlighted ? .white : Theme.text)
+            Text(title).font(Theme.Font.label(.medium)).foregroundStyle(highlighted ? .white : Theme.textSecondary).lineLimit(1)
         }
-        .buttonStyle(.plain)
     }
 }
 
@@ -103,7 +93,7 @@ private struct SoundCard: View {
             HStack(spacing: 10) {
                 FrodoIcon(name: "wave", size: 16, color: Theme.textSecondary)
                 FrodoSlider(
-                    value: Binding(get: { Double(services.volume.percent) }, set: { services.volume.setPercent(Int($0)); services.revisions.volume += 1 })
+                    value: Binding(get: { Double(services.volume.percent) }, set: { services.volume.setPercent(Int($0)) })
                 )
                 Text("\(services.volume.percent)%").font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text).monospacedDigit().frame(width: 40, alignment: .trailing)
             }
@@ -147,6 +137,10 @@ private struct MediaCard: View {
             } else {
                 Text("Nada tocando. Funciona com Música e Spotify.").font(Theme.Font.secondary()).foregroundStyle(Theme.textSecondary)
             }
+            if services.media.automationDenied {
+                Text("Sem permissão de Automação. Libere o Frodo em Ajustes do Sistema > Privacidade e Segurança > Automação.")
+                    .font(Theme.Font.label()).foregroundStyle(Theme.warn)
+            }
         }
     }
 }
@@ -188,17 +182,12 @@ private struct AppsCard: View {
         CollapsibleCard(services: services, id: .apps, title: "Programas abertos") {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 6), spacing: 8) {
                 ForEach(services.apps.apps) { app in
-                    Button { launchExternal { services.apps.activate(app) } } label: {
-                        VStack(spacing: 6) {
-                            if let icon = app.icon { Image(nsImage: icon).resizable().frame(width: 30, height: 30) }
-                            Text(app.name).font(Theme.Font.label()).foregroundStyle(Theme.textSecondary).lineLimit(1)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 64)
-                        .hoverBackground(Theme.control)
-                        .contentShape(Rectangle())
+                    TileButton {
+                        launchExternal { services.apps.activate(app) }
+                    } label: {
+                        if let icon = app.icon { Image(nsImage: icon).resizable().frame(width: 30, height: 30) }
+                        Text(app.name).font(Theme.Font.label()).foregroundStyle(Theme.textSecondary).lineLimit(1)
                     }
-                    .buttonStyle(.plain)
                 }
             }
         }

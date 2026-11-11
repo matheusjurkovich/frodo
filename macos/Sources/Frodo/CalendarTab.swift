@@ -124,7 +124,7 @@ private struct EventRow: View {
                 }
             }
             .padding(10)
-            .background(RoundedRectangle(cornerRadius: Theme.Radius.item, style: .continuous).fill(Theme.cardInner))
+            .innerCard()
             .opacity(past ? 0.6 : 1)
         }
     }

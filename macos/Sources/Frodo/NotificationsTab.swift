@@ -7,23 +7,7 @@ struct NotificationsTab: View {
     var body: some View {
         let _ = services.revisions.notifications
         let store = services.notifications
-        CardView(
-            title: "Notificações",
-            trailing: AnyView(
-                HStack(spacing: 8) {
-                    Button { store.doNotDisturb.toggle() } label: {
-                        HStack(spacing: 6) {
-                            FrodoIcon(name: store.doNotDisturb ? "bell-off" : "bell", size: 14, color: store.doNotDisturb ? .white : Theme.text)
-                            Text("Não perturbe").font(Theme.Font.secondary(.medium)).foregroundStyle(store.doNotDisturb ? Color.white : Theme.text)
-                        }
-                        .padding(.horizontal, 12).frame(height: 30)
-                        .background(Capsule().fill(store.doNotDisturb ? Theme.accent : Theme.control))
-                    }
-                    .buttonStyle(.plain)
-                    TextButton(title: "Limpar tudo", compact: true) { withAnimation(Motion.standard) { store.clearAll() } }
-                }
-            )
-        ) {
+        CardView(title: "Notificações") {
             if store.items.isEmpty {
                 Text("Tudo em dia").font(Theme.Font.body()).foregroundStyle(Theme.textSecondary).frame(maxWidth: .infinity, minHeight: 120)
             } else {
@@ -37,6 +21,19 @@ struct NotificationsTab: View {
             }
             Text("O macOS não deixa um app ler as notificações dos outros. Aqui aparecem os avisos do Claude Code.")
                 .font(Theme.Font.label()).foregroundStyle(Theme.textSecondary)
+        } trailing: {
+            HStack(spacing: 8) {
+                Button { store.doNotDisturb.toggle() } label: {
+                    HStack(spacing: 6) {
+                        FrodoIcon(name: store.doNotDisturb ? "bell-off" : "bell", size: 14, color: store.doNotDisturb ? .white : Theme.text)
+                        Text("Não perturbe").font(Theme.Font.secondary(.medium)).foregroundStyle(store.doNotDisturb ? Color.white : Theme.text)
+                    }
+                    .padding(.horizontal, 12).frame(height: 30)
+                    .background(Capsule().fill(store.doNotDisturb ? Theme.accent : Theme.control))
+                }
+                .buttonStyle(.plain)
+                TextButton(title: "Limpar tudo", compact: true) { withAnimation(Motion.standard) { store.clearAll() } }
+            }
         }
     }
 }
@@ -60,6 +57,6 @@ private struct NotificationRow: View {
             IconButton(icon: "close", size: 26, iconSize: 10, action: dismiss)
         }
         .padding(10)
-        .background(RoundedRectangle(cornerRadius: Theme.Radius.item, style: .continuous).fill(Theme.cardInner))
+        .innerCard()
     }
 }

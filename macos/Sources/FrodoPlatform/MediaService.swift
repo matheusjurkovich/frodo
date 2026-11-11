@@ -6,6 +6,7 @@ import Foundation
 public final class MediaService: MediaSource, Destroyable {
     public let changed = Event<Void>()
     public private(set) var current: MediaTrack?
+    public private(set) var automationDenied = false
 
     private var observers: [NSObjectProtocol] = []
 
@@ -55,7 +56,12 @@ public final class MediaService: MediaSource, Destroyable {
 
     private func send(_ command: String) {
         guard let app = current?.app else { return }
-        NSAppleScript(source: "tell application \"\(app)\" to \(command)")?.executeAndReturnError(nil)
+        Task {
+            let denied = await runAppleScript("tell application \"\(app)\" to \(command)") == automationDeniedError
+            guard denied != automationDenied else { return }
+            automationDenied = denied
+            changed.emit()
+        }
     }
 
     public func destroy() {

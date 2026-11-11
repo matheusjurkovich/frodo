@@ -93,17 +93,7 @@ struct IdleContent: View {
     let services: FrodoServices
 
     private var items: [ClosedItem] {
-        let settings = services.settings
-        switch settings.closedMode {
-        case .minimal:
-            return [.clock]
-        case .compact:
-            return settings.closedItems
-        case .rotating:
-            let all = settings.closedItems
-            let firstText = all.firstIndex(where: \.isText)
-            return all.enumerated().filter { !$0.element.isText || $0.offset == firstText }.map(\.element)
-        }
+        visibleItems(mode: services.settings.closedMode, items: services.settings.closedItems)
     }
 
     var body: some View {
@@ -117,10 +107,6 @@ struct IdleContent: View {
         }
     }
 
-    private var textItems: [ClosedItem] {
-        services.settings.closedItems.filter(\.isText)
-    }
-
     @ViewBuilder
     private func segment(_ item: ClosedItem, now: Date) -> some View {
         switch item {
@@ -131,9 +117,9 @@ struct IdleContent: View {
         case .notifications:
             NotificationBadge(count: services.notifications.count)
         case .battery, .ram, .claudeSession, .claudeWeekly:
-            if services.settings.closedMode == .rotating, !textItems.isEmpty {
-                let step = max(1, services.settings.rotateSeconds)
-                let rotating = textItems[Int(now.timeIntervalSince1970) / step % textItems.count]
+            if services.settings.closedMode == .rotating,
+                let rotating = rotatingItem(services.settings.closedItems, now: now, everySeconds: services.settings.rotateSeconds)
+            {
                 textSegment(rotating, now: now).id(rotating)
             } else {
                 textSegment(item, now: now)
