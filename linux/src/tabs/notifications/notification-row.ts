@@ -5,8 +5,8 @@ import {fixMarkup} from 'resource:///org/gnome/shell/misc/util.js';
 import type * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
 import {formatAgo} from '../../shared/format.js';
 import {notificationIcon} from '../../features/notifications/notification-bridge-service.js';
-import {iconButton} from '../../shared/ui/buttons.js';
-import {column, label, row} from '../../shared/ui/layout.js';
+import {contentButton, iconButton} from '../../shared/ui/buttons.js';
+import {column, label, row, wrappedLabel} from '../../shared/ui/layout.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
 import type {NotificationRowActions} from './notification-row.types.js';
 
@@ -28,9 +28,8 @@ export function notificationRow(notification: MessageTray.Notification, {dismiss
     text.add_child(label(app ? `${app} · ${ago}` : ago, 'frodo-notification-meta'));
     text.add_child(label(title, 'frodo-notification-title'));
     if (body) {
-        const bodyLabel = new St.Label({style_class: 'frodo-notification-body', x_expand: true});
-        bodyLabel.clutter_text.line_wrap = true;
-        bodyLabel.clutter_text.line_wrap_mode = Pango.WrapMode.WORD_CHAR;
+        const bodyLabel = wrappedLabel('', 'frodo-notification-body', Pango.WrapMode.WORD_CHAR);
+        bodyLabel.x_expand = true;
         bodyLabel.clutter_text.set_markup(fixMarkup(body, notification.useBodyMarkup));
         text.add_child(bodyLabel);
     }
@@ -43,13 +42,5 @@ export function notificationRow(notification: MessageTray.Notification, {dismiss
     content.add_child(text);
     content.add_child(close);
 
-    const button = new St.Button({
-        style_class: 'frodo-notification',
-        child: content,
-        can_focus: true,
-        x_expand: true,
-        accessible_name: title,
-    });
-    button.connect('clicked', open);
-    return button;
+    return contentButton('frodo-notification', content, open, {x_expand: true, accessible_name: title});
 }

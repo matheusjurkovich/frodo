@@ -2,26 +2,20 @@ import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 import type {Disposables} from '../../shared/disposables.js';
 import {card} from '../../shared/ui/card.js';
-import {iconButton} from '../../shared/ui/buttons.js';
+import {contentButton, iconButton} from '../../shared/ui/buttons.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
-import {column, label, row} from '../../shared/ui/layout.js';
+import {column, label, row, wrappedLabel} from '../../shared/ui/layout.js';
 import {Segmented} from '../../shared/ui/segmented.js';
 import {Switch} from '../../shared/ui/switch.js';
 import type {Range} from './settings-rows.types.js';
-
-export function wrapped(text: string, styleClass: string): St.Label {
-    const result = label(text, styleClass);
-    result.clutter_text.line_wrap = true;
-    return result;
-}
 
 export function line(title: string | St.Widget, subtitle: string | St.Widget | null, ...controls: Clutter.Actor[]): St.BoxLayout {
     const item = row('frodo-settings-line');
     const text = column('frodo-settings-line-text');
     text.x_expand = true;
     text.y_align = Clutter.ActorAlign.CENTER;
-    text.add_child(typeof title === 'string' ? wrapped(title, 'frodo-settings-text') : title);
-    if (subtitle !== null) text.add_child(typeof subtitle === 'string' ? wrapped(subtitle, 'frodo-settings-subtitle') : subtitle);
+    text.add_child(typeof title === 'string' ? wrappedLabel(title, 'frodo-settings-text') : title);
+    if (subtitle !== null) text.add_child(typeof subtitle === 'string' ? wrappedLabel(subtitle, 'frodo-settings-subtitle') : subtitle);
     item.add_child(text);
     for (const control of controls) {
         control.y_align = Clutter.ActorAlign.CENTER;
@@ -41,15 +35,12 @@ export function group(title: string, lines: readonly St.Widget[], hint?: string)
     const box = card('frodo-settings-group-card');
     for (const child of lines) box.add_child(child);
     section.add_child(box);
-    if (hint) section.add_child(wrapped(hint, 'frodo-settings-hint'));
+    if (hint) section.add_child(wrappedLabel(hint, 'frodo-settings-hint'));
     return section;
 }
 
 export function grip(accessibleName: string): St.Button {
-    return new St.Button({
-        style_class: 'frodo-grip',
-        child: new St.Icon({gicon: frodoIcon('grip'), style_class: 'frodo-grip-icon'}),
-        can_focus: true,
+    return contentButton('frodo-grip', new St.Icon({gicon: frodoIcon('grip'), style_class: 'frodo-grip-icon'}), null, {
         y_align: Clutter.ActorAlign.CENTER,
         accessible_name: accessibleName,
     });

@@ -19,7 +19,11 @@ export class Timer {
     every(seconds: number, callback: () => void): void {
         this.stop();
         this.#id = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, seconds, () => {
-            callback();
+            try {
+                callback();
+            } catch (error) {
+                logError(error);
+            }
             return GLib.SOURCE_CONTINUE;
         });
     }
@@ -27,5 +31,9 @@ export class Timer {
     stop(): void {
         if (this.#id) GLib.source_remove(this.#id);
         this.#id = 0;
+    }
+
+    destroy(): void {
+        this.stop();
     }
 }

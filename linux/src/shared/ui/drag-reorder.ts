@@ -2,7 +2,7 @@ import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 import {Disposables} from '../disposables.js';
 import type {Disposer} from '../disposables.types.js';
-import {setSourceColor} from './progress-ring.js';
+import {setSourceColor} from './cairo.js';
 import {LINE_WIDTH, DASH} from './drag-reorder.const.js';
 import type {DragReorderOptions, Drag} from './drag-reorder.types.js';
 

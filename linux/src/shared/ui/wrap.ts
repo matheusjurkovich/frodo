@@ -16,22 +16,21 @@ export class Wrap implements Component {
     constructor(styleClass: string, items: readonly Clutter.Actor[]) {
         this.actor = new St.BoxLayout({style_class: `frodo-wrap ${styleClass}`, orientation: Clutter.Orientation.VERTICAL, x_expand: true});
         this.#items = items;
-        this.#rows = [items.length];
-        const row = rowBox();
-        for (const item of items) row.add_child(item);
-        this.actor.add_child(row);
+        this.#rows = [];
+        this.#apply([items.length]);
         this.actor.connect('notify::width', () => {
-            this.#reflow();
+            this.reflow();
         });
     }
 
     setItems(items: readonly Clutter.Actor[]): void {
         this.#items = items;
         this.#rows = [];
-        this.#reflow();
+        if (this.actor.mapped) this.reflow();
+        else this.#apply([items.length]);
     }
 
-    #reflow(): void {
+    reflow(): void {
         if (!this.actor.mapped) return;
         const width = allocatedWidth(this.actor);
         const rows: number[] = [];
@@ -48,19 +47,23 @@ export class Wrap implements Component {
         }
         if (size > 0) rows.push(size);
         if (rows.join() === this.#rows.join()) return;
+        this.#apply(rows);
+    }
+
+    destroy(): void {
+        this.actor.destroy();
+    }
+
+    #apply(rows: readonly number[]): void {
         this.#rows = rows;
         for (const item of this.#items) item.get_parent()?.remove_child(item);
         this.actor.destroy_all_children();
         let next = 0;
         for (const count of rows) {
-            const row = rowBox();
-            for (const item of this.#items.slice(next, next + count)) row.add_child(item);
+            const line = rowBox();
+            for (const item of this.#items.slice(next, next + count)) line.add_child(item);
             next += count;
-            this.actor.add_child(row);
+            this.actor.add_child(line);
         }
-    }
-
-    destroy(): void {
-        this.actor.destroy();
     }
 }

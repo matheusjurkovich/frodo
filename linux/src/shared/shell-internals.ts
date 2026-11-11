@@ -11,6 +11,7 @@ import type * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js
 import type {QuickSlider, QuickToggleMenu} from 'resource:///org/gnome/shell/ui/quickSettings.js';
 import type {EdgeSpan} from './geometry.types.js';
 import type {Disposer} from './disposables.types.js';
+import {Timer} from './timer.js';
 import {
     NATIVE_INDICATORS,
     PANEL_SIDES,
@@ -43,6 +44,20 @@ import type {
     MessageTrayInternals,
     SessionModeInternals,
 } from './shell-internals.types.js';
+
+export function patchMethod<Target extends object, Name extends keyof Target & string>(
+    target: Target,
+    name: Name,
+    wrap: (original: Target[Name]) => Target[Name],
+): Disposer {
+    const descriptor = Object.getOwnPropertyDescriptor(target, name);
+    const original = (target[name] as (...args: never[]) => unknown).bind(target) as Target[Name];
+    target[name] = wrap(original);
+    return () => {
+        if (descriptor) Object.defineProperty(target, name, descriptor);
+        else Reflect.deleteProperty(target, name);
+    };
+}
 
 function panelInternals(): PanelInternals {
     return Main.panel as unknown as PanelInternals;
@@ -128,8 +143,14 @@ export function quickSettingsParts(): QuickSettingsParts | null {
         first(quick._nightLight),
         first(quick._darkMode),
     ].filter(tile => tile !== null);
+    const {menu} = quick;
+    if (menu._overlay.get_parent() !== menu.actor) return null;
     return {
-        menu: quick.menu,
+        overlay: menu._overlay,
+        isNative: (item): item is Clutter.Actor => item?.get_parent() === menu._grid,
+        closeActiveMenu: () => {
+            menu._activeMenu?.close(PopupAnimation.NONE);
+        },
         tiles,
         output: first(quick._volumeOutput),
         input: first(quick._volumeInput),
@@ -164,31 +185,22 @@ export function quickToggleMenuButton(tile: Clutter.Actor): St.Button | null {
 }
 
 export function interceptCloseQuickSettings(onClose: () => void): Disposer {
-    const panel = panelInternals();
-    const descriptor = Object.getOwnPropertyDescriptor(panel, 'closeQuickSettings');
-    const original = panel.closeQuickSettings.bind(panel);
-    panel.closeQuickSettings = (): void => {
+    return patchMethod(panelInternals(), 'closeQuickSettings', original => () => {
         original();
         onClose();
-    };
-    return () => {
-        if (descriptor) Object.defineProperty(panel, 'closeQuickSettings', descriptor);
-        else delete (panel as Partial<PanelInternals>).closeQuickSettings;
-    };
+    });
 }
 
 export function keepMicrophoneSliderVisible(): Disposer {
     const slider = quickSettings()?._volumeInput?.quickSettingsItems[0] as InputSliderInternals | undefined;
     if (!slider) return () => undefined;
-    const descriptor = Object.getOwnPropertyDescriptor(slider, '_maybeShowInput');
-    slider._maybeShowInput = (): void => {
+    const restore = patchMethod(slider, '_maybeShowInput', () => () => {
         slider._showInput = true;
         slider._sync();
-    };
+    });
     slider._maybeShowInput();
     return () => {
-        if (descriptor) Object.defineProperty(slider, '_maybeShowInput', descriptor);
-        else delete (slider as Partial<InputSliderInternals>)._maybeShowInput;
+        restore();
         slider._maybeShowInput();
     };
 }
@@ -233,8 +245,6 @@ export function styleCalendar(): Disposer {
     if (!calendar) return () => undefined;
     const {_topBox: header, _monthLabel: title, _backButton: back} = calendar;
     const {_headerFormat: withYear, _headerFormatWithoutYear: withoutYear} = calendar;
-    const descriptor = Object.getOwnPropertyDescriptor(calendar, '_rebuildCalendar');
-    const rebuild = calendar._rebuildCalendar.bind(calendar);
 
     calendar._headerFormat = MONTH_HEADER;
     calendar._headerFormatWithoutYear = MONTH_HEADER;
@@ -244,16 +254,15 @@ export function styleCalendar(): Disposer {
         const text = title.text.charAt(0).toLocaleUpperCase() + title.text.slice(1);
         if (text !== title.text) title.text = text;
     });
-    calendar._rebuildCalendar = (): void => {
+    const restore = patchMethod(calendar, '_rebuildCalendar', rebuild => () => {
         rebuild();
         trimMonth(calendar);
-    };
+    });
     calendar._rebuildCalendar();
     calendar._update();
 
     return () => {
-        if (descriptor) Object.defineProperty(calendar, '_rebuildCalendar', descriptor);
-        else delete (calendar as Partial<CalendarInternals>)._rebuildCalendar;
+        restore();
         calendar._headerFormat = withYear;
         calendar._headerFormatWithoutYear = withoutYear;
         if (calendar._monthLabel === title) {
@@ -301,6 +310,31 @@ export function spawn(argv: readonly string[]): void {
 
 export function messageTray(): MessageTray.MessageTray & MessageTrayInternals {
     return Main.messageTray as MessageTray.MessageTray & MessageTrayInternals;
+}
+
+export function interceptBanners(
+    shouldIntercept: (notification: MessageTray.Notification) => boolean,
+    onIntercept: (notification: MessageTray.Notification) => void,
+): Disposer {
+    const tray = messageTray();
+    const refresh = new Timer();
+    const restore = patchMethod(tray, '_showNotification', original => () => {
+        const next = tray._notificationQueue[0];
+        if (!next || !shouldIntercept(next)) {
+            original();
+            return;
+        }
+        tray._notificationQueue.shift();
+        tray.emit('queue-changed');
+        onIntercept(next);
+        refresh.once(0, () => {
+            tray._updateState();
+        });
+    });
+    return () => {
+        refresh.destroy();
+        restore();
+    };
 }
 
 function sessionMode(): SessionModeInternals {

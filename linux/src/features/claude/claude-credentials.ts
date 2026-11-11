@@ -1,9 +1,6 @@
 import {REFRESH_SKEW_MS} from './claude-credentials.const.js';
+import {text} from '../../shared/json.js';
 import type {Credentials} from './claude-credentials.types.js';
-
-function optionalText(value: unknown): string | null {
-    return typeof value === 'string' && value !== '' ? value : null;
-}
 
 export function parseCredentials(json: string | null): Credentials | null {
     let root: unknown;
@@ -15,14 +12,14 @@ export function parseCredentials(json: string | null): Credentials | null {
     const oauth = typeof root === 'object' && root !== null ? (root as Record<string, unknown>).claudeAiOauth : null;
     if (typeof oauth !== 'object' || oauth === null) return null;
     const data = oauth as Record<string, unknown>;
-    const accessToken = optionalText(data.accessToken);
+    const accessToken = text(data.accessToken);
     if (!accessToken) return null;
     return {
         accessToken,
-        refreshToken: optionalText(data.refreshToken),
+        refreshToken: text(data.refreshToken),
         expiresAt: Number(data.expiresAt) || 0,
-        subscriptionType: optionalText(data.subscriptionType),
-        rateLimitTier: optionalText(data.rateLimitTier),
+        subscriptionType: text(data.subscriptionType),
+        rateLimitTier: text(data.rateLimitTier),
     };
 }
 

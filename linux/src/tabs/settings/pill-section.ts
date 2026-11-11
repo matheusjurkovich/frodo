@@ -1,6 +1,5 @@
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
-import Pango from 'gi://Pango';
 import St from 'gi://St';
 import {horizontalOf} from '../../settings/schema-values.js';
 import type {ClosedItem} from '../../settings/schema-values.types.js';
@@ -11,11 +10,11 @@ import {iconButton, textButton} from '../../shared/ui/buttons.js';
 import {card} from '../../shared/ui/card.js';
 import {dragReorder} from '../../shared/ui/drag-reorder.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
-import {column, dimLabel, label, row} from '../../shared/ui/layout.js';
+import {column, label, row, wrappedLabel} from '../../shared/ui/layout.js';
 import {Wrap} from '../../shared/ui/wrap.js';
 import {missingItems} from './pill-items.js';
 import {ITEM_LABELS} from './pill-items.const.js';
-import {Bindings, grip, group, line, wrapped} from './settings-rows.js';
+import {Bindings, grip, group, line} from './settings-rows.js';
 import {BATTERY_PERCENT_KEY} from './settings-rows.const.js';
 import type {SettingsSection} from './settings-rows.types.js';
 import {PILL_MODES, ROTATE_SECONDS, MODE_HINTS, PEEK_EVERY, PEEK_FOR} from './pill-section.const.js';
@@ -83,8 +82,7 @@ export class PillSection implements SettingsSection {
         });
 
         const options = column('frodo-settings-card');
-        const hint = dimLabel();
-        hint.clutter_text.line_wrap = true;
+        const hint = wrappedLabel('', 'frodo-dim');
         options.add_child(hint);
         const rotate = line(
             'Trocar a cada',
@@ -199,7 +197,7 @@ export class PillSection implements SettingsSection {
             line('A cada', null, every),
             line('Fica visível por', null, lasts),
         ]);
-        const hint = wrapped('', 'frodo-settings-hint');
+        const hint = wrappedLabel('', 'frodo-settings-hint');
         section.add_child(hint);
         const refresh = (): void => {
             const on = settings.peekClock;
@@ -224,7 +222,7 @@ export class PillSection implements SettingsSection {
         editor.destroy_all_children();
         if (settings.closedMode === 'minimal') {
             editor.add_child(
-                wrapped(
+                wrappedLabel(
                     'No modo Mínimo a pílula mostra só o relógio. Escolha Compacto ou Rotativo para montar os itens.',
                     'frodo-pill-note',
                 ),
@@ -281,8 +279,7 @@ export class PillSection implements SettingsSection {
         const focus = this.#focus === null ? -1 : items.indexOf(this.#focus);
         this.#focus = null;
         handles[focus]?.grab_key_focus();
-        const hint = wrapped('Arraste os itens para mudar a ordem. Pelo teclado, foque a alça e use ← →.', 'frodo-settings-hint');
-        hint.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
+        const hint = wrappedLabel('Arraste os itens para mudar a ordem. Pelo teclado, foque a alça e use ← →.', 'frodo-settings-hint');
         editor.add_child(hint);
 
         const missing = missingItems(items, settings.enabledProviders);

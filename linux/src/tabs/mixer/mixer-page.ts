@@ -1,7 +1,6 @@
 import Clutter from 'gi://Clutter';
 import Pango from 'gi://Pango';
 import St from 'gi://St';
-import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import {Slider} from 'resource:///org/gnome/shell/ui/slider.js';
 import {playingSummary, sameStreams, volumeLabel} from '../../features/system/mixer.js';
@@ -10,19 +9,15 @@ import type {Mixer} from '../../features/system/mixer-service.js';
 import type {AudioDevice} from '../../features/system/mixer-service.types.js';
 import {Disposables} from '../../shared/disposables.js';
 import type {IslandHandle} from '../../shared/island-handle.types.js';
-import {iconButton} from '../../shared/ui/buttons.js';
+import {contentButton, iconButton} from '../../shared/ui/buttons.js';
 import {card, cardHeading, cardTitle} from '../../shared/ui/card.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
-import {column, dimLabel, label, row} from '../../shared/ui/layout.js';
+import {islandMenu} from '../../shared/ui/island-menu.js';
+import {column, dimLabel, label, row, wrappedLabel} from '../../shared/ui/layout.js';
 import {whileMapped} from '../../shared/ui/lifecycle.js';
 import type {Component} from '../../shared/ui/lifecycle.types.js';
 import {SPEAKER, BARS, MICROPHONE} from './mixer-page.const.js';
 import type {Icons} from './mixer-page.types.js';
-
-function wrap(text: St.Label): void {
-    text.clutter_text.line_wrap = true;
-    text.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
-}
 
 class VolumeControl implements Component {
     readonly actor = row('frodo-mixer-control');
@@ -122,18 +117,24 @@ class RecorderRow implements Component {
     readonly #icon = new St.Icon({style_class: 'frodo-mixer-recorder-icon', y_align: Clutter.ActorAlign.CENTER});
     readonly #name = label('', 'frodo-mixer-recorder-name');
     readonly #state = label('', 'frodo-mixer-recorder-state');
-    readonly #button = new St.Button({style_class: 'frodo-button frodo-button-control frodo-mixer-recorder-button', can_focus: true});
+    readonly #buttonLabel = label('', '');
+    readonly #button: St.Button;
     #stream: AudioStream | null = null;
 
     constructor(mixer: Mixer) {
+        this.#buttonLabel.x_align = Clutter.ActorAlign.CENTER;
+        this.#button = contentButton(
+            'frodo-button frodo-button-control frodo-mixer-recorder-button',
+            this.#buttonLabel,
+            () => {
+                if (this.#stream) mixer.setMuted(this.#stream.id, !this.#stream.muted);
+            },
+            {y_align: Clutter.ActorAlign.CENTER},
+        );
         const text = column('frodo-mixer-recorder-text');
         text.y_align = Clutter.ActorAlign.CENTER;
         text.add_child(this.#name);
         text.add_child(this.#state);
-        this.#button.y_align = Clutter.ActorAlign.CENTER;
-        this.#button.connect('clicked', () => {
-            if (this.#stream) mixer.setMuted(this.#stream.id, !this.#stream.muted);
-        });
         for (const child of [this.#icon, text, this.#button]) this.actor.add_child(child);
     }
 
@@ -144,7 +145,7 @@ class RecorderRow implements Component {
         this.#state.text = stream.muted ? 'Silenciado aqui' : 'Ouvindo agora';
         if (stream.muted) this.#state.add_style_class_name('frodo-mixer-recorder-off');
         else this.#state.remove_style_class_name('frodo-mixer-recorder-off');
-        this.#button.label = stream.muted ? 'Ativar' : 'Silenciar';
+        this.#buttonLabel.text = stream.muted ? 'Ativar' : 'Silenciar';
         this.#button.accessible_name = stream.muted
             ? `Ativar o microfone para ${stream.name}`
             : `Silenciar o microfone para ${stream.name}`;
@@ -159,11 +160,7 @@ class RecorderRow implements Component {
 
 class DevicePicker implements Component {
     readonly actor: St.BoxLayout = row('frodo-mixer-device');
-    readonly #button = new St.Button({
-        style_class: 'frodo-button frodo-button-control frodo-mixer-device-button',
-        can_focus: true,
-        x_expand: true,
-    });
+    readonly #button: St.Button;
     readonly #text = label('', 'frodo-mixer-device-name');
     readonly #menu: PopupMenu.PopupMenu;
     readonly #disposables = new Disposables();
@@ -174,37 +171,29 @@ class DevicePicker implements Component {
         this.#text.x_expand = true;
         content.add_child(this.#text);
         content.add_child(new St.Icon({gicon: frodoIcon('expand'), style_class: 'frodo-mixer-device-caret'}));
-        this.#button.child = content;
+        this.#button = contentButton(
+            'frodo-button frodo-button-control frodo-mixer-device-button',
+            content,
+            () => {
+                this.#menu.removeAll();
+                const active = current();
+                for (const device of devices()) {
+                    const item = new PopupMenu.PopupMenuItem(device.name);
+                    item.add_style_class_name('frodo-power-item');
+                    item.setOrnament(device.id === active ? PopupMenu.Ornament.CHECK : PopupMenu.Ornament.NONE);
+                    item.connect('activate', () => {
+                        choose(device.id);
+                    });
+                    this.#menu.addMenuItem(item);
+                }
+                this.#menu.toggle();
+            },
+            {x_expand: true},
+        );
         const title = label('Dispositivo', 'frodo-mixer-device-label');
         this.actor.add_child(title);
         this.actor.add_child(this.#button);
-
-        this.#menu = new PopupMenu.PopupMenu(this.#button, 0.5, St.Side.TOP);
-        this.#menu.box.add_style_class_name('frodo-power-menu');
-        this.#menu.box.add_style_class_name('frodo-mixer-device-menu');
-        new PopupMenu.PopupMenuManager(this.#button).addMenu(this.#menu);
-        Main.layoutManager.uiGroup.add_child(this.#menu.actor);
-        this.#menu.actor.hide();
-        this.#disposables.add(island.holdWhileOpen(this.#menu));
-        this.#disposables.add(
-            island.on('closed', () => {
-                this.#menu.close();
-            }),
-        );
-        this.#button.connect('clicked', () => {
-            this.#menu.removeAll();
-            const active = current();
-            for (const device of devices()) {
-                const item = new PopupMenu.PopupMenuItem(device.name);
-                item.add_style_class_name('frodo-power-item');
-                item.setOrnament(device.id === active ? PopupMenu.Ornament.CHECK : PopupMenu.Ornament.NONE);
-                item.connect('activate', () => {
-                    choose(device.id);
-                });
-                this.#menu.addMenuItem(item);
-            }
-            this.#menu.toggle();
-        });
+        this.#menu = islandMenu(island, this.#button, 0.5, this.#disposables, ['frodo-power-menu', 'frodo-mixer-device-menu']);
     }
 
     set device(name: string) {
@@ -214,7 +203,6 @@ class DevicePicker implements Component {
 
     destroy(): void {
         this.#disposables.dispose();
-        this.#menu.destroy();
         this.actor.destroy();
     }
 }
@@ -267,12 +255,10 @@ export class MixerPage implements Component {
         heading.x_expand = true;
         head.add_child(heading);
         head.add_child(this.#summary);
-        const note = dimLabel('Um app aparece aqui enquanto tem som aberto. O volume escolhido vale até ele fechar.');
-        wrap(note);
+        const note = wrappedLabel('Um app aparece aqui enquanto tem som aberto. O volume escolhido vale até ele fechar.', 'frodo-dim');
         for (const child of [head, this.#apps, note]) apps.add_child(child);
 
-        const outputNote = dimLabel('O volume geral limita todos os apps ao mesmo tempo.');
-        wrap(outputNote);
+        const outputNote = wrappedLabel('O volume geral limita todos os apps ao mesmo tempo.', 'frodo-dim');
         for (const child of [cardHeading('Saída'), this.#outputDevice.actor, this.#output.actor, outputNote])
             this.#outputCard.add_child(child);
         for (const child of [

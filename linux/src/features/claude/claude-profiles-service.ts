@@ -5,13 +5,9 @@ import {parseProfiles} from '../../settings/claude-profile.js';
 import type {ClaudeProfile} from '../../settings/claude-profile.types.js';
 import {labelForDirName} from './claude-profiles.js';
 import {credentialsPath, defaultConfigDir} from './claude-client.js';
-import {readTextFile} from '../../shared/files.js';
+import {listDirectory, readTextFile} from '../../shared/files.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
 import {ORIGINAL_UUID, ORIGINAL_SCHEMA} from './claude-profiles-service.const.js';
-
-Gio._promisify(Gio.File.prototype, 'enumerate_children_async', 'enumerate_children_finish');
-
-Gio._promisify(Gio.FileEnumerator.prototype, 'next_files_async', 'next_files_finish');
 
 let sequence = 0;
 
@@ -30,24 +26,12 @@ async function hasCredentials(configDir: string): Promise<boolean> {
 
 export async function discoverConfigDirs(home = GLib.get_home_dir()): Promise<string[]> {
     const found: string[] = [];
-    try {
-        const enumerator = await Gio.File.new_for_path(home).enumerate_children_async(
-            'standard::name,standard::type',
-            Gio.FileQueryInfoFlags.NONE,
-            GLib.PRIORITY_DEFAULT,
-            null,
-        );
-        for (let infos = await enumerator.next_files_async(64, GLib.PRIORITY_DEFAULT, null); infos.length > 0;) {
-            for (const info of infos) {
-                const name = info.get_name();
-                if (info.get_file_type() !== Gio.FileType.DIRECTORY || (name !== '.claude' && !name.startsWith('.claude-'))) continue;
-                const configDir = GLib.build_filenamev([home, name]);
-                if (await hasCredentials(configDir)) found.push(configDir);
-            }
-            infos = await enumerator.next_files_async(64, GLib.PRIORITY_DEFAULT, null);
-        }
-    } catch {
-        return found;
+    const infos = await listDirectory(home, 'standard::name,standard::type', {priority: GLib.PRIORITY_DEFAULT, batch: 64}).catch(() => []);
+    for (const info of infos) {
+        const name = info.get_name();
+        if (info.get_file_type() !== Gio.FileType.DIRECTORY || (name !== '.claude' && !name.startsWith('.claude-'))) continue;
+        const configDir = GLib.build_filenamev([home, name]);
+        if (await hasCredentials(configDir)) found.push(configDir);
     }
     return found.sort((a, b) => (a.endsWith('/.claude') ? -1 : b.endsWith('/.claude') ? 1 : a.localeCompare(b)));
 }

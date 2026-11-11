@@ -2,7 +2,7 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import Shell from 'gi://Shell';
 import {Emitter} from '../../shared/emitter.js';
-import {readTextFile} from '../../shared/files.js';
+import {listDirectory, readTextFile} from '../../shared/files.js';
 import {Timer} from '../../shared/timer.js';
 import {parseMeminfo} from './memory.js';
 import {
@@ -32,30 +32,18 @@ import {
 } from './performance-service.const.js';
 import type {Child, PerformanceSnapshot, ProcessSample, Engines} from './performance-service.types.js';
 
-Gio._promisify(Gio.File.prototype, 'enumerate_children_async', 'enumerate_children_finish');
-
-Gio._promisify(Gio.FileEnumerator.prototype, 'next_files_async', 'next_files_finish');
-
 Gio._promisify(Gio.File.prototype, 'query_filesystem_info_async', 'query_filesystem_info_finish');
 
 Gio._promisify(Gio.Subprocess.prototype, 'wait_check_async', 'wait_check_finish');
 
 async function children(path: string, attributes: string, cancellable: Gio.Cancellable): Promise<Child[]> {
     try {
-        const enumerator = await Gio.File.new_for_path(path).enumerate_children_async(
-            attributes,
-            Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS,
-            GLib.PRIORITY_LOW,
+        const infos = await listDirectory(path, attributes, {
+            flags: Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS,
+            batch: ENUMERATE_BATCH,
             cancellable,
-        );
-        const result: Child[] = [];
-        for (;;) {
-            const batch = await enumerator.next_files_async(ENUMERATE_BATCH, GLib.PRIORITY_LOW, cancellable);
-            if (batch.length === 0) break;
-            for (const info of batch) result.push({name: info.get_name(), info});
-        }
-        enumerator.close(null);
-        return result;
+        });
+        return infos.map(info => ({name: info.get_name(), info}));
     } catch {
         return [];
     }

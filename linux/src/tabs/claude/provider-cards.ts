@@ -15,7 +15,7 @@ import type {Meter} from '../../shared/meter.types.js';
 import {chip, textButton} from '../../shared/ui/buttons.js';
 import {card, cardHeading, emptyState} from '../../shared/ui/card.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
-import {column, label, row, spacer} from '../../shared/ui/layout.js';
+import {column, label, row, spacer, wrappedLabel} from '../../shared/ui/layout.js';
 import {whileMapped} from '../../shared/ui/lifecycle.js';
 import type {Component} from '../../shared/ui/lifecycle.types.js';
 import {providerTile} from '../../shared/ui/provider-tile.js';
@@ -63,12 +63,6 @@ export function providerUsage(provider: AiProvider, {settings, claude, codex, ge
                 },
             };
     }
-}
-
-function note(text: string): St.Label {
-    const result = label(text, 'frodo-meter-note');
-    result.clutter_text.line_wrap = true;
-    return result;
 }
 
 function meterView(meter: Meter, provider: AiProvider, remaining: boolean, short: boolean): St.BoxLayout {
@@ -134,7 +128,7 @@ export class MetersCard implements Component {
         const meters = this.#usage.meters(Date.now());
         if (meters.length === 0) this.#body.add_child(emptyState(this.#usage.empty()));
         for (const meter of meters) this.#body.add_child(meterView(meter, this.#provider, this.#settings.claudeShowRemaining, false));
-        if (this.#provider === 'gemini' && meters.length > 0) this.#body.add_child(note(ESTIMATED));
+        if (this.#provider === 'gemini' && meters.length > 0) this.#body.add_child(wrappedLabel(ESTIMATED, 'frodo-meter-note'));
     }
 
     destroy(): void {
@@ -203,9 +197,9 @@ export class OverviewCard implements Component {
 
         this.#meters.destroy_all_children();
         const meters = this.#usage.meters(now).slice(0, 2);
-        if (meters.length === 0) this.#meters.add_child(note(this.#usage.empty()));
+        if (meters.length === 0) this.#meters.add_child(wrappedLabel(this.#usage.empty(), 'frodo-meter-note'));
         for (const meter of meters) this.#meters.add_child(meterView(meter, this.#provider, this.#settings.claudeShowRemaining, true));
-        if (this.#provider === 'gemini' && meters.length > 0) this.#meters.add_child(note(ESTIMATED));
+        if (this.#provider === 'gemini' && meters.length > 0) this.#meters.add_child(wrappedLabel(ESTIMATED, 'frodo-meter-note'));
 
         const counts = countByStatus(
             this.#sessions.sessions.filter(state => state.provider === this.#provider),

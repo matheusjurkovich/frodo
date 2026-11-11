@@ -10,6 +10,7 @@ import type {FrodoSettings} from '../../settings/frodo-settings.js';
 import {powerActions} from '../../shared/shell-internals.js';
 import {Disposables} from '../../shared/disposables.js';
 import {CollapsibleCard} from './collapsible-card.js';
+import {contentButton} from '../../shared/ui/buttons.js';
 import {column, grid, label, packGrid} from '../../shared/ui/layout.js';
 import type {Component} from '../../shared/ui/lifecycle.types.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
@@ -25,16 +26,11 @@ function shortcutButton(icon: FrodoIconName, text: string, onClick: () => void):
     const caption = label(text, 'frodo-shortcut-label');
     caption.x_align = Clutter.ActorAlign.CENTER;
     content.add_child(caption);
-    const button = new St.Button({
-        style_class: 'frodo-button frodo-button-control frodo-shortcut',
-        child: content,
-        can_focus: true,
+    return contentButton('frodo-button frodo-button-control frodo-shortcut', content, onClick, {
         x_expand: true,
         y_expand: true,
         accessible_name: text,
     });
-    button.connect('clicked', onClick);
-    return button;
 }
 
 function openNewWindow(desktopIds: readonly string[]): void {

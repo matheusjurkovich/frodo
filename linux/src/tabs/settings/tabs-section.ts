@@ -8,9 +8,9 @@ import {Disposables} from '../../shared/disposables.js';
 import {moveTo} from '../../shared/reorder.js';
 import {card} from '../../shared/ui/card.js';
 import {dragReorder} from '../../shared/ui/drag-reorder.js';
-import {column, label, row} from '../../shared/ui/layout.js';
+import {column, label, row, wrappedLabel} from '../../shared/ui/layout.js';
 import {Switch} from '../../shared/ui/switch.js';
-import {grip, line, wrapped} from './settings-rows.js';
+import {grip, line} from './settings-rows.js';
 import type {SettingsSection} from './settings-rows.types.js';
 import type {TabsSectionDependencies} from './tabs-section.types.js';
 
@@ -28,7 +28,7 @@ export class TabsSection implements SettingsSection {
         section.add_child(label('Abas visíveis', 'frodo-settings-group-title'));
         section.add_child(this.#list);
         section.add_child(
-            wrapped(
+            wrappedLabel(
                 'Arraste para mudar a ordem das abas na ilha. Pelo teclado, foque a alça e use ↑ ↓. Uma aba escondida continua abrindo pelo atalho dela.',
                 'frodo-settings-hint',
             ),

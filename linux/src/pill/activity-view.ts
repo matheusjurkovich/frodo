@@ -10,7 +10,7 @@ import type {Component} from '../shared/ui/lifecycle.types.js';
 import {SegmentBar} from '../shared/ui/segment-bar.js';
 import {PROVIDER_ICONS} from '../shared/ui/provider-tile.const.js';
 import {frodoIcon} from '../shared/ui/icons.js';
-import {setSourceColor} from '../shared/ui/progress-ring.js';
+import {setSourceColor} from '../shared/ui/cairo.js';
 import type {PillActivity} from './activity-feed.types.js';
 import {TICK_SECONDS, REPO_CHARS, STEP_CHARS, TITLE_CHARS, APP_CHARS, TRACK_CHARS, ARTIST_CHARS} from './activity-view.const.js';
 import type {ActivityServices, Of} from './activity-view.types.js';

@@ -1,4 +1,5 @@
 import Clutter from 'gi://Clutter';
+import Pango from 'gi://Pango';
 import St from 'gi://St';
 
 import type {Disposer} from '../disposables.types.js';
@@ -13,6 +14,15 @@ export function row(styleClass: string): St.BoxLayout {
 
 export function label(text: string, styleClass: string): St.Label {
     return new St.Label({text, style_class: styleClass, y_align: Clutter.ActorAlign.CENTER});
+}
+
+export function wrappedLabel(text: string, styleClass: string, mode?: Pango.WrapMode): St.Label {
+    const result = label(text, styleClass);
+    const {clutter_text: clutterText} = result;
+    clutterText.line_wrap = true;
+    clutterText.ellipsize = Pango.EllipsizeMode.NONE;
+    if (mode !== undefined) clutterText.line_wrap_mode = mode;
+    return result;
 }
 
 export function dimLabel(text = ''): St.Label {

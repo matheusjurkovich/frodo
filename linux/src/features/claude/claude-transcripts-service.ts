@@ -6,7 +6,8 @@ import type {ConsumptionSummary, Period} from '../../shared/consumption.types.js
 import {completeLines, parseAssistantLine} from './claude-transcript.js';
 import {Emitter} from '../../shared/emitter.js';
 import {Timer} from '../../shared/timer.js';
-import {readTextFile} from '../../shared/files.js';
+import {isObject} from '../../shared/json.js';
+import {listDirectory, modifiedMs, readTextFile} from '../../shared/files.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
 import {
     VERSION,
@@ -20,19 +21,11 @@ import {
 } from './claude-transcripts-service.const.js';
 import type {Cache, Listing, Found} from './claude-transcripts-service.types.js';
 
-Gio._promisify(Gio.File.prototype, 'enumerate_children_async', 'enumerate_children_finish');
-
-Gio._promisify(Gio.FileEnumerator.prototype, 'next_files_async', 'next_files_finish');
-
 Gio._promisify(Gio.File.prototype, 'read_async', 'read_finish');
 
 Gio._promisify(Gio.InputStream.prototype, 'read_bytes_async', 'read_bytes_finish');
 
 Gio._promisify(Gio.File.prototype, 'replace_contents_bytes_async', 'replace_contents_finish');
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null;
-}
 
 function emptyCache(): Cache {
     return {index: new ClaudeIndex(), offsets: new Map()};
@@ -45,7 +38,7 @@ function parseCache(text: string | null): Cache {
     } catch {
         return emptyCache();
     }
-    if (!isRecord(data) || data.version !== VERSION || !isRecord(data.files)) return emptyCache();
+    if (!isObject(data) || data.version !== VERSION || !isObject(data.files)) return emptyCache();
     const index = ClaudeIndex.fromJSON(data.index);
     if (JSON.stringify(index) !== JSON.stringify(data.index)) return emptyCache();
     const offsets = new Map<string, number>();
@@ -64,10 +57,6 @@ function concat(head: Uint8Array, tail: Uint8Array): Uint8Array {
     return bytes;
 }
 
-function modifiedMs(info: Gio.FileInfo): number {
-    return (info.get_modification_date_time()?.to_unix() ?? 0) * 1000;
-}
-
 function isTranscript(info: Gio.FileInfo, since: number): boolean {
     return info.get_file_type() === Gio.FileType.REGULAR && info.get_name().endsWith('.jsonl') && modifiedMs(info) >= since;
 }
@@ -78,22 +67,7 @@ function subagentsDir(session: string): string {
 
 async function children(dir: string, cancellable: Gio.Cancellable): Promise<Gio.FileInfo[] | null> {
     try {
-        const enumerator = await Gio.File.new_for_path(dir).enumerate_children_async(
-            ATTRIBUTES,
-            Gio.FileQueryInfoFlags.NONE,
-            GLib.PRIORITY_LOW,
-            cancellable,
-        );
-        const infos: Gio.FileInfo[] = [];
-        try {
-            for (let batch = await enumerator.next_files_async(BATCH, GLib.PRIORITY_LOW, cancellable); batch.length > 0;) {
-                infos.push(...batch);
-                batch = await enumerator.next_files_async(BATCH, GLib.PRIORITY_LOW, cancellable);
-            }
-        } finally {
-            enumerator.close(null);
-        }
-        return infos;
+        return await listDirectory(dir, ATTRIBUTES, {batch: BATCH, cancellable});
     } catch (error) {
         return error instanceof GLib.Error && error.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.NOT_FOUND) ? [] : null;
     }

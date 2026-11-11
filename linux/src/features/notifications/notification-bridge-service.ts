@@ -1,12 +1,11 @@
 import Gio from 'gi://Gio';
 import * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
 import {latest, shouldIntercept} from './notifications.js';
-import {messageTray} from '../../shared/shell-internals.js';
+import {interceptBanners, messageTray} from '../../shared/shell-internals.js';
 import {Disposables} from '../../shared/disposables.js';
 import {Emitter} from '../../shared/emitter.js';
-import {Timer} from '../../shared/timer.js';
 import {NOTIFICATIONS_SCHEMA, SHOW_BANNERS_KEY, MAX_ITEMS} from './notification-bridge-service.const.js';
-import type {NotificationBridgeEvents, InterceptedNotification} from './notification-bridge-service.types.js';
+import type {NotificationBridgeEvents} from './notification-bridge-service.types.js';
 
 export function notificationIcon(notification: MessageTray.Notification): Gio.Icon | null {
     return notification.gicon ?? notification.source?.icon ?? null;
@@ -41,7 +40,19 @@ export class NotificationBridge extends Emitter<NotificationBridgeEvents> {
             }),
         );
         for (const source of tray.getSources()) this.#addSource(source);
-        this.#interceptBanners();
+        this.#disposables.add(
+            interceptBanners(shouldIntercept, notification => {
+                notification.playSound();
+                notification.acknowledged = true;
+                this.emit('intercepted', {
+                    gicon: notificationIcon(notification),
+                    app: notification.source?.title ?? '',
+                    title: notification.title ?? '',
+                    body: notification.body ?? '',
+                });
+                if (notification.isTransient) notification.destroy(MessageTray.NotificationDestroyedReason.EXPIRED);
+            }),
+        );
     }
 
     list(): MessageTray.Notification[] {
@@ -80,46 +91,6 @@ export class NotificationBridge extends Emitter<NotificationBridgeEvents> {
 
     #emitChanged(): void {
         if (!this.#clearing) this.emit('changed');
-    }
-
-    #interceptBanners(): void {
-        const tray = messageTray();
-        const descriptor = Object.getOwnPropertyDescriptor(tray, '_showNotification');
-        const original = tray._showNotification.bind(tray);
-        const emitIntercepted = (item: InterceptedNotification): void => {
-            this.emit('intercepted', item);
-        };
-        const refresh = new Timer();
-        this.#disposables.add(() => {
-            refresh.stop();
-        });
-
-        tray._showNotification = function (this: typeof tray): void {
-            const next = this._notificationQueue[0];
-            if (!shouldIntercept(next)) {
-                original();
-                return;
-            }
-            this._notificationQueue.shift();
-            this.emit('queue-changed');
-            next.playSound();
-            next.acknowledged = true;
-            emitIntercepted({
-                gicon: notificationIcon(next),
-                app: next.source?.title ?? '',
-                title: next.title ?? '',
-                body: next.body ?? '',
-            });
-            if (next.isTransient) next.destroy(MessageTray.NotificationDestroyedReason.EXPIRED);
-            refresh.once(0, () => {
-                this._updateState();
-            });
-        };
-
-        this.#disposables.add(() => {
-            if (descriptor) Object.defineProperty(tray, '_showNotification', descriptor);
-            else delete (tray as Partial<typeof tray>)._showNotification;
-        });
     }
 
     #addSource(source: MessageTray.Source): void {

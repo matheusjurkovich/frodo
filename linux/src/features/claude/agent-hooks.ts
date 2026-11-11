@@ -1,9 +1,6 @@
 import {HOOK_SCRIPT_NAME, PLANS} from './agent-hooks.const.js';
+import {isRecord} from '../../shared/json.js';
 import type {HookedAgent} from './agent-hooks.types.js';
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 export function hasFrodoHooks(text: string | null): boolean {
     return text?.includes(HOOK_SCRIPT_NAME) ?? false;

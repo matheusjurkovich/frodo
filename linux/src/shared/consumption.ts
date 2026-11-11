@@ -1,8 +1,6 @@
-import {weekdayLabel} from './format.js';
+import {pad, weekdayLabel} from './format.js';
 import {FIRST_HOUR, LAST_HOUR, MAX_HOUR_LABELS, PERIOD_DAYS, LABEL_EVERY, MAX_PROJECTS} from './consumption.const.js';
 import type {UsageCell, Share, Bar, Period, ModelGroups, ConsumptionSummary, Latest} from './consumption.types.js';
-
-const pad = (n: number): string => String(n).padStart(2, '0');
 
 export function hourStart(ms: number): number {
     const date = new Date(ms);

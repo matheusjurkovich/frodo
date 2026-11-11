@@ -85,9 +85,9 @@ Quem precisa dele recebe pelo construtor.
 
 ## Padrões de código
 
-- **Componente:** classe com `readonly actor` e `destroy()` (`Component` em `src/shared/ui/lifecycle.ts`). O pai destrói os
-  filhos no próprio `destroy()`. Monte com as fábricas de `layout.ts`, `card.ts` e `buttons.ts` (`column`, `row`, `card`,
-  `cardTitle`, `iconButton`, `textButton`, `chip`) antes de `new St.*` solto.
+- **Componente:** classe com `readonly actor` e `destroy()` (`Component` em `src/shared/ui/lifecycle.types.ts`). O pai destrói os
+  filhos no próprio `destroy()`. Monte com as fábricas de `layout.ts`, `card.ts` e `buttons.ts` (`column`, `row`, `wrappedLabel`, `card`,
+  `cardTitle`, `contentButton`, `iconButton`, `textButton`, `chip`) e `island-menu.ts` (`islandMenu`, para `PopupMenu` da ilha) antes de `new St.*` solto.
 - **Serviço:** `extends Emitter<{changed: []}>`, estado exposto por getter, `destroy()` que para timers, cancela I/O e chama
   `clearListeners()`. Flag `#destroyed` para descartar resposta assíncrona que chega depois.
 - **Descarte:** `Disposables` para tudo que precisa ser desfeito; sinal GObject com `disposables.signal(obj, obj.connect(…))`;

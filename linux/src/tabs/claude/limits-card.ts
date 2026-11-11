@@ -16,6 +16,7 @@ import type {ClaudeService} from '../../features/claude/claude-service.js';
 import type {ProfileUsage} from '../../features/claude/claude-service.types.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
 import {Disposables} from '../../shared/disposables.js';
+import {capitalize} from '../../shared/format.js';
 import {Timer} from '../../shared/timer.js';
 import {chip, iconButton} from '../../shared/ui/buttons.js';
 import {card, cardHeading} from '../../shared/ui/card.js';
@@ -31,10 +32,6 @@ import type {MeterOptions, ClaudeTabActions} from './limits-card.types.js';
 
 function percentText(value: number): string {
     return `${Math.round(value)}%`;
-}
-
-function capitalize(text: string): string {
-    return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 function meter({name, percent, level, details, pace = null}: MeterOptions): St.BoxLayout {
@@ -63,8 +60,8 @@ export class LimitsCard implements Component {
     readonly #profiles = column('frodo-claude-profiles');
     readonly #updated = label('', 'frodo-dim frodo-limits-updated');
     readonly #refresh: St.Button;
-    readonly #tick = new Timer();
     readonly #disposables = new Disposables();
+    readonly #tick = this.#disposables.own(new Timer());
 
     constructor(service: ClaudeService, settings: FrodoSettings, actions: ClaudeTabActions) {
         this.#service = service;
@@ -200,7 +197,6 @@ export class LimitsCard implements Component {
     }
 
     destroy(): void {
-        this.#tick.stop();
         this.#disposables.dispose();
         this.actor.destroy();
     }

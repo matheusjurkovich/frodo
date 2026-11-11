@@ -1,3 +1,4 @@
+import {isObject, text} from '../../shared/json.js';
 import type {Level} from '../../shared/level.types.js';
 import {resetNote} from '../../shared/meter.js';
 import type {Meter} from '../../shared/meter.types.js';
@@ -15,18 +16,10 @@ import {
 } from './claude-usage.const.js';
 import type {Json, WindowRole, UsageWindow, Spend, TierIcon, LevelInput, AccountSummary} from './claude-usage.types.js';
 
-function isJson(value: unknown): value is Json {
-    return typeof value === 'object' && value !== null;
-}
-
 function field(value: unknown, ...path: string[]): unknown {
     let current = value;
-    for (const key of path) current = isJson(current) ? current[key] : undefined;
+    for (const key of path) current = isObject(current) ? current[key] : undefined;
     return current;
-}
-
-function text(value: unknown): string | null {
-    return typeof value === 'string' && value !== '' ? value : null;
 }
 
 function finite(value: unknown): number | null {
@@ -124,13 +117,13 @@ function legacyWindow(key: string, label: string, role: WindowRole, window: unkn
 }
 
 export function normalizeWindows(usage: unknown): UsageWindow[] {
-    if (!isJson(usage)) return [];
+    if (!isObject(usage)) return [];
     const limits = usage.limits;
     if (Array.isArray(limits)) {
         const windows: UsageWindow[] = [];
         for (const entry of limits) {
-            const utilization = isJson(entry) ? finite(entry.percent) : null;
-            if (isJson(entry) && utilization !== null) windows.push(fromLimit(entry, utilization));
+            const utilization = isObject(entry) ? finite(entry.percent) : null;
+            if (isObject(entry) && utilization !== null) windows.push(fromLimit(entry, utilization));
         }
         if (windows.length > 0) return windows.sort((a, b) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role]);
     }
@@ -302,7 +295,7 @@ export function relativeReset(resetsAt: string | null, now: number): string {
 
 export function accountSummary(profile: unknown): AccountSummary | null {
     const account = field(profile, 'account');
-    if (!isJson(account)) return null;
+    if (!isObject(account)) return null;
     const who = text(account.display_name) ?? text(account.full_name);
     const application = text(field(profile, 'application', 'name')) ?? 'Claude';
     const active = field(profile, 'organization', 'subscription_status') === 'active';

@@ -5,7 +5,7 @@ import type {CodexLimits, CodexRollout, CodexSession} from './codex-usage.types.
 import {Disposables} from '../../shared/disposables.js';
 import {Emitter} from '../../shared/emitter.js';
 import {Timer} from '../../shared/timer.js';
-import {readTextFile} from '../../shared/files.js';
+import {listDirectory, modifiedMs, readTextFile} from '../../shared/files.js';
 import {dayStart, summarize} from '../../shared/consumption.js';
 import {KEPT_DAYS} from '../../shared/consumption.const.js';
 import type {ConsumptionSource, ConsumptionSummary, Period} from '../../shared/consumption.types.js';
@@ -13,39 +13,12 @@ import type {FrodoSettings} from '../../settings/frodo-settings.js';
 import {ATTRIBUTES, BATCH, SCAN_SECONDS, TAIL_BYTES} from './codex-service.const.js';
 import type {Cached, Found} from './codex-service.types.js';
 
-Gio._promisify(Gio.File.prototype, 'enumerate_children_async', 'enumerate_children_finish');
-
-Gio._promisify(Gio.FileEnumerator.prototype, 'next_files_async', 'next_files_finish');
-
 Gio._promisify(Gio.File.prototype, 'read_async', 'read_finish');
 
 Gio._promisify(Gio.InputStream.prototype, 'read_bytes_async', 'read_bytes_finish');
 
 async function children(dir: string, cancellable: Gio.Cancellable): Promise<Gio.FileInfo[]> {
-    try {
-        const enumerator = await Gio.File.new_for_path(dir).enumerate_children_async(
-            ATTRIBUTES,
-            Gio.FileQueryInfoFlags.NONE,
-            GLib.PRIORITY_LOW,
-            cancellable,
-        );
-        const infos: Gio.FileInfo[] = [];
-        try {
-            for (let batch = await enumerator.next_files_async(BATCH, GLib.PRIORITY_LOW, cancellable); batch.length > 0;) {
-                infos.push(...batch);
-                batch = await enumerator.next_files_async(BATCH, GLib.PRIORITY_LOW, cancellable);
-            }
-        } finally {
-            enumerator.close(null);
-        }
-        return infos;
-    } catch {
-        return [];
-    }
-}
-
-function modifiedMs(info: Gio.FileInfo): number {
-    return (info.get_modification_date_time()?.to_unix() ?? 0) * 1000;
+    return listDirectory(dir, ATTRIBUTES, {batch: BATCH, cancellable}).catch(() => []);
 }
 
 function newer(a: CodexLimits | null, b: CodexLimits | null): CodexLimits | null {

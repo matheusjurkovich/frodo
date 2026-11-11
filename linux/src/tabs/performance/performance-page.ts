@@ -4,6 +4,7 @@ import St from 'gi://St';
 import {formatBytes, formatPercent, formatRate, monogram, topBy} from '../../features/system/performance.js';
 import type {PerformanceMonitor} from '../../features/system/performance-service.js';
 import type {PerformanceSnapshot, ProcessSample} from '../../features/system/performance-service.types.js';
+import {fixedDecimal} from '../../shared/format.js';
 import {Disposables} from '../../shared/disposables.js';
 import type {IslandHandle} from '../../shared/island-handle.types.js';
 import {iconButton, textButton} from '../../shared/ui/buttons.js';
@@ -167,7 +168,7 @@ export class PerformancePage implements Component {
         cpu.tag.text = snapshot ? `${snapshot.cpu.cores} núcleos` : '';
         cpu.value.text = snapshot ? formatPercent(snapshot.cpu.usage) : '—';
         cpu.spark.values = snapshot?.cpuHistory ?? [];
-        cpu.first.text = snapshot?.cpu.mhz ? `${(snapshot.cpu.mhz / 1000).toFixed(1).replace('.', ',')} GHz` : '';
+        cpu.first.text = snapshot?.cpu.mhz ? `${fixedDecimal(snapshot.cpu.mhz / 1000)} GHz` : '';
         cpu.second.text = snapshot?.cpu.celsius ? `Temperatura ${Math.round(snapshot.cpu.celsius)} °C` : '';
 
         const memory = snapshot?.memory;

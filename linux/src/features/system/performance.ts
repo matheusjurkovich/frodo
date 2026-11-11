@@ -1,3 +1,4 @@
+import {fixedDecimal} from '../../shared/format.js';
 import {WHOLE_DISK, PROTECTED_NAMES} from './performance.const.js';
 import type {CpuStat, CpuTimes, Swap, DiskIo, ProcStat, DrmClient} from './performance.types.js';
 
@@ -116,11 +117,9 @@ export function pushHistory(history: readonly number[], value: number, size: num
     return [...history, value].slice(-size);
 }
 
-const decimal = (value: number): string => value.toFixed(1).replace('.', ',');
-
 export function formatBytes(bytes: number): string {
     if (bytes >= 100 * 1024 ** 3) return `${Math.round(bytes / 1024 ** 3)} GB`;
-    if (bytes >= 1024 ** 3) return `${decimal(bytes / 1024 ** 3)} GB`;
+    if (bytes >= 1024 ** 3) return `${fixedDecimal(bytes / 1024 ** 3)} GB`;
     return `${Math.round(bytes / 1024 ** 2)} MB`;
 }
 
@@ -130,7 +129,7 @@ export function formatRate(bytesPerSecond: number): string {
 }
 
 export function formatPercent(fraction: number): string {
-    return `${decimal(fraction * 100)}%`;
+    return `${fixedDecimal(fraction * 100)}%`;
 }
 
 export function monogram(name: string): string {
