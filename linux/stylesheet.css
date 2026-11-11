@@ -627,10 +627,6 @@
     background-color: transparent;
 }
 
-.frodo-filters .frodo-segmented-row {
-    spacing: 6px;
-}
-
 .frodo-filters .frodo-segmented-item {
     height: 30px;
     min-height: 30px;
@@ -975,16 +971,12 @@
 .frodo-pill-item {
     height: 32px;
     min-height: 32px;
-    padding: 0 12px 0 8px;
+    spacing: 6px;
+    padding: 0 2px 0 4px;
     border-radius: 10px;
     background-color: #232327;
     color: #f4f4f5;
     font-size: 13px;
-}
-
-.frodo-pill-item {
-    spacing: 6px;
-    padding: 0 2px 0 4px;
 }
 
 .frodo-pill-item .frodo-pill-item-remove {
@@ -1015,10 +1007,6 @@
     spacing: 8px;
 }
 
-.frodo-pill-item-content {
-    spacing: 6px;
-}
-
 .frodo-pill-item-number {
     min-width: 16px;
     padding: 0 3px;
@@ -1027,17 +1015,6 @@
     color: #e4e4e7;
     font-size: 12px;
     text-align: center;
-}
-
-.frodo-pill-toolbar .frodo-button {
-    height: 30px;
-    min-height: 30px;
-    padding: 0 10px;
-    font-size: 12px;
-}
-
-.frodo-pill-toolbar .frodo-button:insensitive {
-    color: #52525b;
 }
 
 .frodo-pill-add {
@@ -2011,6 +1988,8 @@
 
 .frodo-workspace-thumb {
     border: 2px solid transparent;
+    border-radius: 12px;
+    background-color: #2b0b23;
 }
 
 .frodo-workspace:checked .frodo-workspace-thumb {
@@ -2019,11 +1998,6 @@
 
 .frodo-workspace-content {
     spacing: 8px;
-}
-
-.frodo-workspace-thumb {
-    border-radius: 12px;
-    background-color: #2b0b23;
 }
 
 .frodo-win {

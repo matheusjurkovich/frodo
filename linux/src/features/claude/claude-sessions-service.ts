@@ -4,6 +4,7 @@ import type Meta from 'gi://Meta';
 import {AgentHooks} from './agent-hooks-service.js';
 import type {HookedAgent} from './agent-hooks.types.js';
 import {decisionJson, nextState, oldestPending, parseHookEvent, parsePending} from './claude-sessions.js';
+import type {ClaudeSessionsDependencies} from './claude-sessions-service.types.js';
 import type {Decision, DiffStat, PendingRequest, SessionState} from './claude-sessions.types.js';
 import {focusProcessWindow} from './process-window-service.js';
 import {RepoActions} from './repo-actions-service.js';
@@ -53,11 +54,11 @@ export class ClaudeSessions extends Emitter<{changed: []}> {
     readonly #disposeHooks: () => void;
     #destroyed = false;
 
-    constructor(
-        settings: FrodoSettings,
+    constructor({
+        settings,
         root = GLib.getenv('FRODO_RUNTIME_DIR') ?? GLib.build_filenamev([GLib.get_user_runtime_dir(), 'frodo']),
-        activate: ((window: Meta.Window) => void) | null = null,
-    ) {
+        activate = null,
+    }: ClaudeSessionsDependencies) {
         super();
         this.#settings = settings;
         this.#dir = GLib.build_filenamev([root, 'sessions']);
@@ -66,7 +67,7 @@ export class ClaudeSessions extends Emitter<{changed: []}> {
         this.#activate = activate;
         for (const dir of [this.#dir, pendingDir, this.#decisionsDir]) GLib.mkdir_with_parents(dir, 0o700);
         this.#alive = GLib.build_filenamev([root, 'alive']);
-        GLib.file_set_contents(this.#alive, `${this.#pid}\n`);
+        GLib.file_set_contents(this.#alive, `${this.#pid} gnome-shell\n`);
         this.#sessionsWatch = new WatchedDirectory(this.#dir, {
             read: (file, atMs) => this.#read(file, atMs),
             forget: file => this.#forget(file),
@@ -227,7 +228,7 @@ export class ClaudeSessions extends Emitter<{changed: []}> {
         this.#pendingWatch.destroy();
         this.#hooks.destroy();
         this.#repo.destroy();
-        if (readAlive(this.#alive) === this.#pid) GLib.unlink(this.#alive);
+        if (readAlive(this.#alive)?.split(' ')[0] === this.#pid) GLib.unlink(this.#alive);
         this.clearListeners();
     }
 }

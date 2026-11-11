@@ -3,9 +3,10 @@ set -eu
 DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$DIR/../.." && pwd)"
 OUT="$ROOT/docs"
-TMP="$(mktemp -d)"
-mkdir -p "$TMP/data/gnome-shell/extensions" "$TMP/config" "$TMP/cache" "$TMP/Desktop" "$TMP/frames" "$OUT"
-ln -s "$ROOT/dist" "$TMP/data/gnome-shell/extensions/frodo@matheusjurkovich.github.io"
+HEADLESS_LIB="$ROOT/tools/headless.sh"
+. "$HEADLESS_LIB"
+headless_prepare "$ROOT"
+mkdir -p "$TMP/frames" "$OUT"
 cp -r "$DIR/probe" "$TMP/data/gnome-shell/extensions/probe@frodo"
 
 ROLLOUTS="$TMP/.codex/sessions/$(date +%Y/%m/%d)"
@@ -41,17 +42,10 @@ END:VCALENDAR
 ICS
 
 cat > "$TMP/inner.sh" << 'INNER'
-#!/bin/sh
-gnome-shell --headless --wayland --no-x11 --virtual-monitor 1440x900 --mode=ubuntu > "$TMP/shell.log" 2>&1 &
-SHELL_PID=$!
-i=0
-until gdbus introspect --session --dest org.gnome.Shell --object-path /org/gnome/Shell > /dev/null 2>&1; do
-    i=$((i + 1))
-    [ "$i" -gt 60 ] && break
-    sleep 0.5
-done
+. "$HEADLESS_LIB"
+headless_start_shell --headless --virtual-monitor 1440x900
 gnome-extensions enable probe@frodo
-gnome-extensions enable frodo@matheusjurkovich.github.io
+gnome-extensions enable "$EXTENSION_ID"
 sleep 4
 
 ev() {
@@ -135,13 +129,10 @@ pkill -f "$ROOT/dist/hooks/claude-session.sh" 2> /dev/null
 kill "$SHELL_PID"
 wait "$SHELL_PID" 2> /dev/null || true
 INNER
-chmod +x "$TMP/inner.sh"
-env HOME="$TMP" XDG_DATA_HOME="$TMP/data" XDG_CONFIG_HOME="$TMP/config" XDG_CACHE_HOME="$TMP/cache" GSETTINGS_BACKEND=memory \
-    FRODO_RUNTIME_DIR="$TMP/frodo" TMP="$TMP" DIR="$DIR" ROOT="$ROOT" OUT="$OUT" \
-    dbus-run-session -- "$TMP/inner.sh" > /dev/null 2>&1
+headless_run "$TMP/inner.sh" DIR="$DIR" ROOT="$ROOT" OUT="$OUT" > /dev/null 2>&1
 gst-launch-1.0 -q filesrc location="$TMP/demo.mp4" ! decodebin ! videoconvert ! videorate ! video/x-raw,framerate=15/1 ! pngenc ! \
     multifilesink location="$TMP/frames/%04d.png"
 python3 "$DIR/gif.py" "$TMP/frames" "$OUT/demo.gif" 720
 ls "$OUT"
 echo "log: $TMP/shell.log"
-grep -v '^DING' "$TMP/shell.log" | grep -iE 'frodo@matheusjurkovich\.github\.io/|(JS ERROR|JS WARNING|CRITICAL).*frodo' || true
+headless_errors

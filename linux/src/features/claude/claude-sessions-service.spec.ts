@@ -39,7 +39,7 @@ describe('ClaudeSessions', () => {
 
     it('cria a pasta que não existe', () => {
         const dir = `${tmp()}/nova`;
-        const sessions = new ClaudeSessions(settings, dir);
+        const sessions = new ClaudeSessions({settings, root: dir});
         for (const sub of ['sessions', 'pending', 'decisions']) expect(GLib.file_test(`${dir}/${sub}`, GLib.FileTest.IS_DIR)).toBeTrue();
         sessions.destroy();
     });
@@ -56,7 +56,7 @@ describe('ClaudeSessions', () => {
             `${dir}/sessions/c.json`,
             JSON.stringify({pid: dead, event: {session_id: 'c', cwd: '/r/y', transcript_path: '/t', hook_event_name: 'Stop'}}),
         );
-        const sessions = new ClaudeSessions(settings, dir);
+        const sessions = new ClaudeSessions({settings, root: dir});
         await changed(sessions);
         expect(sessions.sessions.map(state => state.sessionId)).toEqual(['a']);
         expect(GLib.file_test(`${dir}/sessions/c.json`, GLib.FileTest.EXISTS)).toBeFalse();
@@ -65,7 +65,7 @@ describe('ClaudeSessions', () => {
 
     it('segue arquivos novos e o fim da sessão', async () => {
         const dir = tmp();
-        const sessions = new ClaudeSessions(settings, dir);
+        const sessions = new ClaudeSessions({settings, root: dir});
         await changed(sessions);
         const write = (name: string): void => {
             GLib.file_set_contents(
@@ -90,7 +90,7 @@ describe('ClaudeSessions', () => {
             JSON.stringify({pid: self, event: {session_id: 'a', cwd: '/r/x', transcript_path: '/t', hook_event_name: 'Stop'}}),
         );
         const every = spyOn(Timer.prototype, 'every');
-        const sessions = new ClaudeSessions(settings, dir);
+        const sessions = new ClaudeSessions({settings, root: dir});
         await changed(sessions);
         expect(sessions.sessions[0]?.status).toBe('done');
         expect(every).toHaveBeenCalledTimes(1);
@@ -100,7 +100,7 @@ describe('ClaudeSessions', () => {
     it('listener que falha uma vez não para as atualizações', async () => {
         const dir = tmp();
         const log = spyOn(globalThis, 'logError');
-        const sessions = new ClaudeSessions(settings, dir);
+        const sessions = new ClaudeSessions({settings, root: dir});
         await changed(sessions);
         const first = changed(sessions);
         let failed = false;
@@ -133,7 +133,7 @@ describe('ClaudeSessions', () => {
         const dir = tmp();
         pendingFile(dir, 's.r1', self, 10);
         pendingFile(dir, 's.r2', dead, 20);
-        const sessions = new ClaudeSessions(settings, dir);
+        const sessions = new ClaudeSessions({settings, root: dir});
         await changed(sessions);
         expect(sessions.pending.map(pending => pending.key)).toEqual(['s.r1']);
         sessions.destroy();
@@ -141,7 +141,7 @@ describe('ClaudeSessions', () => {
 
     it('segue pedido novo e pedido apagado pelo hook', async () => {
         const dir = tmp();
-        const sessions = new ClaudeSessions(settings, dir);
+        const sessions = new ClaudeSessions({settings, root: dir});
         await changed(sessions);
         pendingFile(dir, 's.r1', self, 10);
         await changed(sessions);
@@ -157,7 +157,7 @@ describe('ClaudeSessions', () => {
         pendingFile(dir, 's.r1', self, 20);
         pendingFile(dir, 's.r2', self, 10);
         pendingFile(dir, 't.r3', self, 5);
-        const sessions = new ClaudeSessions(settings, dir);
+        const sessions = new ClaudeSessions({settings, root: dir});
         await changed(sessions);
         expect(sessions.pendingFor('s')?.key).toBe('s.r2');
         expect(sessions.pendingFor('x')).toBeNull();
@@ -167,7 +167,7 @@ describe('ClaudeSessions', () => {
     it('decide grava o arquivo de decisão e tira o pedido na hora', async () => {
         const dir = tmp();
         pendingFile(dir, 's.r1', self, 10);
-        const sessions = new ClaudeSessions(settings, dir);
+        const sessions = new ClaudeSessions({settings, root: dir});
         await changed(sessions);
         const pending = sessions.pendingFor('s');
         if (!pending) throw new Error('sem pedido');
@@ -181,7 +181,7 @@ describe('ClaudeSessions', () => {
     it('decide devolve false e não grava nada quando o hook já saiu', async () => {
         const dir = tmp();
         pendingFile(dir, 's.r1', self, 10);
-        const sessions = new ClaudeSessions(settings, dir);
+        const sessions = new ClaudeSessions({settings, root: dir});
         await changed(sessions);
         const pending = sessions.pendingFor('s');
         if (!pending) throw new Error('sem pedido');
@@ -192,16 +192,16 @@ describe('ClaudeSessions', () => {
 
     it('marca a extensão viva com o pid do shell e desmarca ao destruir', () => {
         const dir = tmp();
-        const sessions = new ClaudeSessions(settings, dir);
+        const sessions = new ClaudeSessions({settings, root: dir});
         const [, bytes] = GLib.file_get_contents(`${dir}/alive`);
-        expect(new TextDecoder().decode(bytes).trim()).toBe(String(self));
+        expect(new TextDecoder().decode(bytes).trim()).toBe(`${self} gnome-shell`);
         sessions.destroy();
         expect(GLib.file_test(`${dir}/alive`, GLib.FileTest.EXISTS)).toBeFalse();
     });
 
     it('não apaga a marca de outro shell ao destruir', () => {
         const dir = tmp();
-        const sessions = new ClaudeSessions(settings, dir);
+        const sessions = new ClaudeSessions({settings, root: dir});
         GLib.file_set_contents(`${dir}/alive`, '1\n');
         sessions.destroy();
         expect(GLib.file_test(`${dir}/alive`, GLib.FileTest.EXISTS)).toBeTrue();

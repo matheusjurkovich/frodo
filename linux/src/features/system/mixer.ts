@@ -20,10 +20,6 @@ export function playingSummary(apps: readonly Pick<AudioStream, 'muted'>[]): str
     return `${playing} tocando agora`;
 }
 
-export function sameStreams(a: readonly Pick<AudioStream, 'id'>[], b: readonly Pick<AudioStream, 'id'>[]): boolean {
-    return a.length === b.length && a.every((stream, index) => stream.id === b[index]?.id);
-}
-
 export function levelChange(level: number, max: number, muted: boolean): {volume: number; mute: boolean | null} {
     const volume = Math.round(Math.min(1, Math.max(0, level)) * max);
     if (volume < 1 && !muted) return {volume, mute: true};

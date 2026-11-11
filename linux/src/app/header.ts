@@ -1,11 +1,10 @@
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
-import GLib from 'gi://GLib';
 import GnomeDesktop from 'gi://GnomeDesktop';
 import St from 'gi://St';
 import type {Recording} from '../features/system/recording-service.js';
 import {Disposables} from '../shared/disposables.js';
-import {formatDate} from '../shared/format.js';
+import {formatClock, formatDate} from '../shared/format.js';
 import {iconButton, textButton} from '../shared/ui/buttons.js';
 import {label, row} from '../shared/ui/layout.js';
 import type {Component} from '../shared/ui/lifecycle.types.js';
@@ -63,9 +62,9 @@ export class Header implements Component {
         this.actor.add_child(iconButton(frodoIcon('collapse'), 'Recolher ilha', actions.collapse, 'ghost'));
 
         const sync = (): void => {
-            const format = this.#interface.get_boolean(SHOW_SECONDS_KEY) ? '%H:%M:%S' : '%H:%M';
-            clock.text = GLib.DateTime.new_now_local().format(format) ?? '';
-            date.text = formatDate(new Date());
+            const now = new Date();
+            clock.text = formatClock(now, this.#interface.get_boolean(SHOW_SECONDS_KEY));
+            date.text = formatDate(now);
         };
         this.#disposables.signal(this.#wallClock, this.#wallClock.connect('notify::clock', sync));
         this.#disposables.signal(this.#interface, this.#interface.connect(`changed::${SHOW_SECONDS_KEY}`, sync));
