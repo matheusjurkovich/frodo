@@ -164,8 +164,8 @@ private struct SystemCard: View {
                 row("Memória", "\(formatGb(memory.usedBytes)) de \(formatGb(memory.totalBytes))", fraction: Double(memory.usedBytes) / Double(max(1, memory.totalBytes)))
             }
         }
-        .onAppear { services.system.setWantsMemory(true) }
-        .onDisappear { services.system.setWantsMemory(false) }
+        .onAppear { services.system.setWantsMemory(true, by: .card) }
+        .onDisappear { services.system.setWantsMemory(false, by: .card) }
     }
 
     private func row(_ title: String, _ value: String, fraction: Double) -> some View {

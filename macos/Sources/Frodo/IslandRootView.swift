@@ -18,6 +18,19 @@ private extension View {
     }
 }
 
+private struct IslandReveal: ViewModifier {
+    let shown: Bool
+    let blur: Bool
+    let anchor: UnitPoint
+
+    func body(content: Content) -> some View {
+        content
+            .blur(radius: shown || !blur ? 0 : Motion.openBlur)
+            .scaleEffect(shown ? 1 : Motion.openScale, anchor: anchor)
+            .opacity(shown ? 1 : 0)
+    }
+}
+
 struct IslandRootView: View {
     let services: FrodoServices
     @Bindable var model: IslandModel
@@ -43,7 +56,15 @@ struct IslandRootView: View {
                 .opacity(model.isHidden ? 0 : 1)
                 .animation(model.isHidden ? Motion.conceal : Motion.fadeIn, value: model.isHidden)
                 .overlay(alignment: .top) { pillLayer }
-                .overlay(alignment: .top) { islandLayer }
+                .overlay(alignment: .top) {
+                    ZStack {
+                        if model.isOpen {
+                            islandLayer.transition(.modifier(active: reveal(shown: false), identity: reveal(shown: true)))
+                        }
+                    }
+                    .allowsHitTesting(model.isOpen)
+                    .animation(model.isOpen ? Motion.island : Motion.fadeOut, value: model.isOpen)
+                }
                 .animation(model.isOpen ? Motion.island : Motion.soft, value: size)
                 .animation(Motion.standard, value: radius)
         }
@@ -115,11 +136,10 @@ struct IslandRootView: View {
                 }
             }
         }
-        .blur(radius: model.isOpen || !services.settings.openBlur ? 0 : Motion.openBlur)
-        .scaleEffect(model.isOpen ? 1 : Motion.openScale, anchor: model.position.unitPoint)
-        .opacity(model.isOpen ? 1 : 0)
-        .allowsHitTesting(model.isOpen)
-        .animation(model.isOpen ? Motion.island : Motion.fadeOut, value: model.isOpen)
+    }
+
+    private func reveal(shown: Bool) -> IslandReveal {
+        IslandReveal(shown: shown, blur: services.settings.openBlur, anchor: model.position.unitPoint)
     }
 
     @ViewBuilder

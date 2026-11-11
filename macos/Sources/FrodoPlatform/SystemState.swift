@@ -4,6 +4,11 @@ import IOKit.ps
 
 private let memorySeconds: TimeInterval = 5
 
+public enum MemoryDemand: Hashable, Sendable {
+    case pill
+    case card
+}
+
 @MainActor
 public final class SystemState: Destroyable {
     public let battery = Event<Void>()
@@ -12,6 +17,7 @@ public final class SystemState: Destroyable {
     public private(set) var memoryInfo: MemoryInfo?
 
     private let timer: TimerSlot
+    private var memoryDemands: Set<MemoryDemand> = []
     private var powerSource: CFRunLoopSource?
 
     public init(scheduler: Scheduler) {
@@ -30,12 +36,14 @@ public final class SystemState: Destroyable {
         powerSource = source
     }
 
-    public func setWantsMemory(_ wants: Bool) {
-        if wants {
+    public func setWantsMemory(_ wants: Bool, by owner: MemoryDemand) {
+        let wasWanted = !memoryDemands.isEmpty
+        if wants { memoryDemands.insert(owner) } else { memoryDemands.remove(owner) }
+        if memoryDemands.isEmpty {
+            timer.stop()
+        } else if !wasWanted {
             readMemory()
             timer.every(memorySeconds) { [weak self] in self?.readMemory() }
-        } else {
-            timer.stop()
         }
     }
 
