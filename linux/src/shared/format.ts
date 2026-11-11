@@ -1,10 +1,13 @@
 import {WEEKDAYS, MONTHS} from './format.const.js';
 
-const pad = (n: number): string => String(n).padStart(2, '0');
+export const pad = (n: number): string => String(n).padStart(2, '0');
+
+export function capitalize(word: string): string {
+    return word.charAt(0).toUpperCase() + word.slice(1);
+}
 
 export function weekdayLabel(day: number): string {
-    const weekday = WEEKDAYS[day] ?? '';
-    return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}`;
+    return capitalize(WEEKDAYS[day] ?? '');
 }
 
 export function formatDate(date: Date): string {
@@ -12,6 +15,8 @@ export function formatDate(date: Date): string {
 }
 
 const decimal = (value: number): string => String(Math.round(value * 10) / 10).replace('.', ',');
+
+export const fixedDecimal = (value: number): string => value.toFixed(1).replace('.', ',');
 
 export function formatTokens(n: number): string {
     if (n < 1e3) return String(n);

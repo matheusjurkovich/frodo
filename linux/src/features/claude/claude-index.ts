@@ -1,4 +1,5 @@
 import type {TranscriptEntry, UsageRecord} from './claude-transcript.types.js';
+import {isObject} from '../../shared/json.js';
 import {addCell, cellKey, dayStart, hourStart, summarize} from '../../shared/consumption.js';
 import {KEPT_DAYS} from '../../shared/consumption.const.js';
 import type {ConsumptionSummary, Period} from '../../shared/consumption.types.js';
@@ -7,17 +8,13 @@ import type {Cell, Session, Seen, SessionStats} from './claude-index.types.js';
 
 export type {Bar, ConsumptionSummary, Period, Share} from '../../shared/consumption.types.js';
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null;
-}
-
 function isCount(value: unknown): value is number {
     return typeof value === 'number' && Number.isFinite(value);
 }
 
 function isCell(value: unknown): value is Cell {
     return (
-        isRecord(value) &&
+        isObject(value) &&
         isCount(value.hour) &&
         typeof value.model === 'string' &&
         typeof value.project === 'string' &&
@@ -29,12 +26,12 @@ function isCell(value: unknown): value is Cell {
 }
 
 function isTodos(value: unknown): value is {done: number; total: number} {
-    return isRecord(value) && isCount(value.done) && isCount(value.total);
+    return isObject(value) && isCount(value.done) && isCount(value.total);
 }
 
 function isSession(value: unknown): value is Session & {id: string} {
     return (
-        isRecord(value) &&
+        isObject(value) &&
         typeof value.id === 'string' &&
         isCount(value.tokens) &&
         typeof value.model === 'string' &&
@@ -49,7 +46,7 @@ function isSession(value: unknown): value is Session & {id: string} {
 }
 
 function isSeen(value: unknown): value is Seen {
-    return isRecord(value) && isCount(value.at) && isCount(value.output);
+    return isObject(value) && isCount(value.at) && isCount(value.output);
 }
 
 export class ClaudeIndex {
@@ -150,11 +147,11 @@ export class ClaudeIndex {
     static fromJSON(data: unknown): ClaudeIndex {
         const index = new ClaudeIndex();
         if (
-            !isRecord(data) ||
+            !isObject(data) ||
             data.version !== VERSION ||
             !Array.isArray(data.cells) ||
             !Array.isArray(data.sessions) ||
-            !isRecord(data.ids)
+            !isObject(data.ids)
         )
             return index;
         const cells = data.cells as unknown[];

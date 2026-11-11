@@ -1,9 +1,9 @@
 import St from 'gi://St';
-import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import {powerActions} from '../shared/shell-internals.js';
 import {Disposables} from '../shared/disposables.js';
-import {label} from '../shared/ui/layout.js';
+import {islandMenu} from '../shared/ui/island-menu.js';
+import {label, wrappedLabel} from '../shared/ui/layout.js';
 import {frodoIcon} from '../shared/ui/icons.js';
 import type {Island} from './island.js';
 import {ENTRIES} from './power-menu.const.js';
@@ -16,11 +16,7 @@ export class PowerMenu {
     readonly #disposables = new Disposables();
 
     constructor(source: St.Button, island: Island) {
-        this.#menu = new PopupMenu.PopupMenu(source, 1, St.Side.TOP);
-        this.#menu.box.add_style_class_name('frodo-power-menu');
-        new PopupMenu.PopupMenuManager(source).addMenu(this.#menu);
-        Main.layoutManager.uiGroup.add_child(this.#menu.actor);
-        this.#menu.actor.hide();
+        this.#menu = islandMenu(island, source, 1, this.#disposables, ['frodo-power-menu']);
 
         this.#items = ENTRIES.map(entry => {
             const item = new PopupMenu.PopupBaseMenuItem();
@@ -40,9 +36,8 @@ export class PowerMenu {
 
         this.#note = new PopupMenu.PopupBaseMenuItem({reactive: false, can_focus: false});
         this.#note.add_style_class_name('frodo-power-note');
-        const note = label('Programas abertos serão fechados ao encerrar a sessão, reiniciar ou desligar.', 'frodo-power-note-text');
+        const note = wrappedLabel('Programas abertos serão fechados ao encerrar a sessão, reiniciar ou desligar.', 'frodo-power-note-text');
         note.x_expand = true;
-        note.clutter_text.line_wrap = true;
         this.#note.add_child(note);
         this.#menu.addMenuItem(this.#note);
 
@@ -53,12 +48,6 @@ export class PowerMenu {
         this.#disposables.add(() => {
             this.#menu.disconnect(openId);
         });
-        this.#disposables.add(island.holdWhileOpen(this.#menu));
-        this.#disposables.add(
-            island.on('closed', () => {
-                this.#menu.close();
-            }),
-        );
     }
 
     toggle(): void {
@@ -73,6 +62,5 @@ export class PowerMenu {
 
     destroy(): void {
         this.#disposables.dispose();
-        this.#menu.destroy();
     }
 }

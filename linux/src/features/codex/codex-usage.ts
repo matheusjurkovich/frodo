@@ -1,21 +1,11 @@
 import {addCell, hourStart} from '../../shared/consumption.js';
 import type {ModelGroups, UsageCell} from '../../shared/consumption.types.js';
+import {capitalize} from '../../shared/format.js';
+import {count, isRecord, text} from '../../shared/json.js';
 import {resetNote} from '../../shared/meter.js';
 import type {Meter} from '../../shared/meter.types.js';
 import {FAMILIES} from './codex-usage.const.js';
-import type {Json, CodexLine, RateWindow, CodexLimits, CodexRollout, Mutable, CodexSession} from './codex-usage.types.js';
-
-function isJson(value: unknown): value is Json {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function count(value: unknown): number {
-    return typeof value === 'number' && Number.isFinite(value) ? value : 0;
-}
-
-function text(value: unknown): string | null {
-    return typeof value === 'string' && value !== '' ? value : null;
-}
+import type {CodexLine, RateWindow, CodexLimits, CodexRollout, Mutable, CodexSession} from './codex-usage.types.js';
 
 export function parseCodexLine(line: string): CodexLine | null {
     let data: unknown;
@@ -24,13 +14,13 @@ export function parseCodexLine(line: string): CodexLine | null {
     } catch {
         return null;
     }
-    if (!isJson(data) || typeof data.type !== 'string' || !isJson(data.payload) || typeof data.timestamp !== 'string') return null;
+    if (!isRecord(data) || typeof data.type !== 'string' || !isRecord(data.payload) || typeof data.timestamp !== 'string') return null;
     const at = Date.parse(data.timestamp);
     return Number.isNaN(at) ? null : {at, type: data.type, payload: data.payload};
 }
 
 function rateWindow(value: unknown, at: number): RateWindow | null {
-    if (!isJson(value) || typeof value.used_percent !== 'number') return null;
+    if (!isRecord(value) || typeof value.used_percent !== 'number') return null;
     const resetsAt =
         typeof value.resets_at === 'number'
             ? value.resets_at * 1000
@@ -43,7 +33,7 @@ function rateWindow(value: unknown, at: number): RateWindow | null {
 
 function limitsOf(line: CodexLine): CodexLimits | null {
     const {payload} = line;
-    if (line.type !== 'event_msg' || payload.type !== 'token_count' || !isJson(payload.rate_limits)) return null;
+    if (line.type !== 'event_msg' || payload.type !== 'token_count' || !isRecord(payload.rate_limits)) return null;
     const limits = payload.rate_limits;
     return {
         plan: text(limits.plan_type),
@@ -88,8 +78,8 @@ export function readRollout(content: string): CodexRollout {
         if (line.type !== 'event_msg' || payload.type !== 'token_count') continue;
         limits = limitsOf(line) ?? limits;
         const info = payload.info;
-        if (!isJson(info) || !isJson(info.last_token_usage)) continue;
-        const total = isJson(info.total_token_usage) ? info.total_token_usage.total_tokens : undefined;
+        if (!isRecord(info) || !isRecord(info.last_token_usage)) continue;
+        const total = isRecord(info.total_token_usage) ? info.total_token_usage.total_tokens : undefined;
         if (typeof total === 'number' && total === previousTotal) continue;
         if (typeof total === 'number') previousTotal = total;
         const last = info.last_token_usage;
@@ -115,10 +105,6 @@ export function planLabel(plan: string | null): string | null {
         .filter(Boolean)
         .map(capitalize)
         .join(' ');
-}
-
-function capitalize(word: string): string {
-    return word.charAt(0).toUpperCase() + word.slice(1);
 }
 
 function codexFamily(model: string): string {

@@ -1,26 +1,15 @@
+import {count, isObject, text} from '../../shared/json.js';
 import {ASSISTANT_MARK, SYNTHETIC_MODEL, NEWLINE, SMALL_WINDOW, LARGE_WINDOW} from './claude-transcript.const.js';
 import type {Json, TranscriptEntry, ModelFamily} from './claude-transcript.types.js';
-
-function isJson(value: unknown): value is Json {
-    return typeof value === 'object' && value !== null;
-}
-
-function text(value: unknown): string | null {
-    return typeof value === 'string' && value !== '' ? value : null;
-}
-
-function count(value: unknown): number {
-    return typeof value === 'number' && Number.isFinite(value) ? value : 0;
-}
 
 function todosOf(content: unknown): TranscriptEntry['todos'] {
     if (!Array.isArray(content)) return null;
     let todos: TranscriptEntry['todos'] = null;
     for (const block of content as unknown[]) {
-        if (!isJson(block) || block.type !== 'tool_use' || block.name !== 'TodoWrite') continue;
-        const items = isJson(block.input) ? block.input.todos : null;
+        if (!isObject(block) || block.type !== 'tool_use' || block.name !== 'TodoWrite') continue;
+        const items = isObject(block.input) ? block.input.todos : null;
         if (!Array.isArray(items)) continue;
-        const done = (items as unknown[]).filter(item => isJson(item) && item.status === 'completed').length;
+        const done = (items as unknown[]).filter(item => isObject(item) && item.status === 'completed').length;
         todos = {done, total: items.length};
     }
     return todos;
@@ -34,7 +23,7 @@ export function parseAssistantLine(line: string): TranscriptEntry | null {
     } catch {
         return null;
     }
-    if (!isJson(data) || data.type !== 'assistant' || !isJson(data.message) || !isJson(data.message.usage)) return null;
+    if (!isObject(data) || data.type !== 'assistant' || !isObject(data.message) || !isObject(data.message.usage)) return null;
     const {message} = data;
     const usage = message.usage as Json;
     const id = text(message.id);

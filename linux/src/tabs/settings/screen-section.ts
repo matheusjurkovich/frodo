@@ -3,8 +3,9 @@ import St from 'gi://St';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
 import type {PillPosition} from '../../settings/schema-values.types.js';
 import {Disposables} from '../../shared/disposables.js';
-import {column, label, row} from '../../shared/ui/layout.js';
-import {Bindings, group, line, strut, wrapped} from './settings-rows.js';
+import {contentButton} from '../../shared/ui/buttons.js';
+import {column, label, row, wrappedLabel} from '../../shared/ui/layout.js';
+import {Bindings, group, line, strut} from './settings-rows.js';
 import type {SettingsSection} from './settings-rows.types.js';
 import {POSITION_GRID, MONITORS, SURFACES} from './screen-section.const.js';
 import type {ScreenSectionDependencies} from './screen-section.types.js';
@@ -34,7 +35,7 @@ export class ScreenSection implements SettingsSection {
         text.add_child(label('Onde a ilha fica', 'frodo-settings-text'));
         text.add_child(current);
         text.add_child(
-            wrapped(
+            wrappedLabel(
                 'A ilha flutua logo abaixo da barra superior. Nos cantos e no meio das laterais, encosta na borda; embaixo, abre para cima.',
                 'frodo-settings-subtitle',
             ),
@@ -50,20 +51,19 @@ export class ScreenSection implements SettingsSection {
                     line.add_child(new St.Widget({style_class: 'frodo-position-screen', x_expand: true}));
                     return;
                 }
-                const button = new St.Button({
-                    style_class: 'frodo-position-cell',
-                    can_focus: true,
-                    x_expand: true,
-                    accessible_name: cell.label,
-                    child: new St.Widget({
-                        style_class: 'frodo-position-mark',
-                        x_align: Clutter.ActorAlign.CENTER,
-                        y_align: Clutter.ActorAlign.CENTER,
-                    }),
+                const mark = new St.Widget({
+                    style_class: 'frodo-position-mark',
+                    x_align: Clutter.ActorAlign.CENTER,
+                    y_align: Clutter.ActorAlign.CENTER,
                 });
-                button.connect('clicked', () => {
-                    settings.pillPosition = cell.id;
-                });
+                const button = contentButton(
+                    'frodo-position-cell',
+                    mark,
+                    () => {
+                        settings.pillPosition = cell.id;
+                    },
+                    {x_expand: true, accessible_name: cell.label},
+                );
                 cells.push({...cell, button});
                 line.add_child(button);
             });

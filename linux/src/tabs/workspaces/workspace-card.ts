@@ -1,8 +1,9 @@
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 import type {WorkspaceInfo} from '../../features/workspaces/workspaces-service.types.js';
+import {contentButton} from '../../shared/ui/buttons.js';
 import {column, label, row} from '../../shared/ui/layout.js';
-import {setSourceColor} from '../../shared/ui/progress-ring.js';
+import {setSourceColor} from '../../shared/ui/cairo.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
 import {THUMB_WIDTH, THUMB_HEIGHT, SCREEN_X, SCREEN_Y, DASH_WIDTH, DASH_RADIUS, DASH_PATTERN} from './workspace-card.const.js';
 
@@ -41,17 +42,12 @@ export function workspaceCard(info: WorkspaceInfo, onActivate: () => void): St.B
     content.add_child(heading);
     content.add_child(label(info.apps, 'frodo-workspace-apps'));
 
-    const button = new St.Button({
-        style_class: 'frodo-workspace',
-        child: content,
-        can_focus: true,
+    return contentButton('frodo-workspace', content, onActivate, {
         x_expand: true,
         y_expand: true,
         checked: info.active,
         accessible_name: `Área ${info.index + 1}, ${info.title}: ${info.apps}`,
     });
-    button.connect('clicked', onActivate);
-    return button;
 }
 
 function dashedOutline(): St.DrawingArea {
@@ -94,14 +90,5 @@ export function newWorkspaceCard(onAdd: () => void): St.Button {
     cell.add_child(dashedOutline());
     cell.add_child(content);
 
-    const button = new St.Button({
-        style_class: 'frodo-workspace-new',
-        child: cell,
-        can_focus: true,
-        x_expand: true,
-        y_expand: true,
-        accessible_name: 'Nova área',
-    });
-    button.connect('clicked', onAdd);
-    return button;
+    return contentButton('frodo-workspace-new', cell, onAdd, {x_expand: true, y_expand: true, accessible_name: 'Nova área'});
 }

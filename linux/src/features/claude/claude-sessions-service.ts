@@ -8,13 +8,9 @@ import {decisionJson, nextState, oldestPending, parentPid, parseHookEvent, parse
 import type {Decision, DiffStat, PendingRequest, SessionState} from './claude-sessions.types.js';
 import {Emitter} from '../../shared/emitter.js';
 import {Timer} from '../../shared/timer.js';
-import {readTextFile} from '../../shared/files.js';
+import {listDirectory, modifiedMs, readTextFile} from '../../shared/files.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
 import {BATCH, EXTENSION_UUID, HOOK_SCRIPT, SWEEP_SECONDS} from './claude-sessions-service.const.js';
-
-Gio._promisify(Gio.File.prototype, 'enumerate_children_async', 'enumerate_children_finish');
-
-Gio._promisify(Gio.FileEnumerator.prototype, 'next_files_async', 'next_files_finish');
 
 Gio._promisify(Gio.Subprocess.prototype, 'communicate_utf8_async', 'communicate_utf8_finish');
 
@@ -54,23 +50,12 @@ function sessionId(file: Gio.File): string | null {
     return name.endsWith('.json') && name.length > '.json'.length ? name.slice(0, -'.json'.length) : null;
 }
 
-async function list(directory: Gio.File, cancellable: Gio.Cancellable): Promise<Gio.FileInfo[]> {
-    const enumerator = await directory.enumerate_children_async(
-        'standard::name,time::modified',
-        Gio.FileQueryInfoFlags.NONE,
-        GLib.PRIORITY_DEFAULT,
+function list(directory: Gio.File, cancellable: Gio.Cancellable): Promise<Gio.FileInfo[]> {
+    return listDirectory(directory.get_path() ?? '', 'standard::name,time::modified', {
+        priority: GLib.PRIORITY_DEFAULT,
+        batch: BATCH,
         cancellable,
-    );
-    const infos: Gio.FileInfo[] = [];
-    try {
-        for (let batch = await enumerator.next_files_async(BATCH, GLib.PRIORITY_DEFAULT, cancellable); batch.length > 0;) {
-            infos.push(...batch);
-            batch = await enumerator.next_files_async(BATCH, GLib.PRIORITY_DEFAULT, cancellable);
-        }
-    } finally {
-        enumerator.close(null);
-    }
-    return infos;
+    });
 }
 
 async function run(argv: string[], cwd: string, cancellable: Gio.Cancellable): Promise<string | null> {
@@ -302,7 +287,7 @@ export class ClaudeSessions extends Emitter<{changed: []}> {
 
     async #load(directory: Gio.File): Promise<boolean> {
         for (const info of await list(directory, this.#cancellable).catch(() => [])) {
-            const modified = (info.get_modification_date_time()?.to_unix() ?? 0) * 1000;
+            const modified = modifiedMs(info);
             await this.#read(directory.get_child(info.get_name()), modified || Date.now());
         }
         return true;

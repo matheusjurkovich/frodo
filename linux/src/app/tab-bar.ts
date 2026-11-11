@@ -2,31 +2,22 @@ import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 import type {TabId} from '../settings/schema-values.types.js';
 import {Emitter} from '../shared/emitter.js';
-import {SPRING} from '../shared/spring.const.js';
-import {chip} from '../shared/ui/buttons.js';
+import {chip, contentButton} from '../shared/ui/buttons.js';
 import {frodoIcon} from '../shared/ui/icons.js';
-import {springEase} from '../shared/ui/motion.js';
+import {SlidingIndicator} from '../shared/ui/sliding-indicator.js';
 import type {TabItem, TabSpec} from './tab-bar.types.js';
 
 export class TabBar extends Emitter<{selected: [TabId]}> {
     readonly actor = new St.Widget({layout_manager: new Clutter.BinLayout(), x_expand: true, x_align: Clutter.ActorAlign.CENTER});
-    readonly #indicator = new St.Widget({
-        style_class: 'frodo-tab-indicator',
-        x_align: Clutter.ActorAlign.START,
-        y_align: Clutter.ActorAlign.START,
-        visible: false,
-    });
     readonly #row = new St.BoxLayout({style_class: 'frodo-tabbar'});
+    readonly #indicator = new SlidingIndicator('frodo-tab-indicator', this.#row, () => this.#selected);
     readonly #items = new Map<TabId, TabItem>();
     #selected: St.Button | null = null;
 
     constructor(specs: readonly TabSpec[]) {
         super();
-        this.actor.add_child(this.#indicator);
+        this.actor.add_child(this.#indicator.actor);
         this.actor.add_child(this.#row);
-        this.#row.connect('notify::allocation', () => {
-            if (!this.#indicator.get_transition('x')) this.#place(false);
-        });
         for (const {id, icon, label} of specs) {
             const badge = chip('0', 'counter');
             badge.visible = false;
@@ -34,16 +25,14 @@ export class TabBar extends Emitter<{selected: [TabId]}> {
             content.add_child(new St.Icon({gicon: frodoIcon(icon), style_class: 'frodo-tab-icon', y_align: Clutter.ActorAlign.CENTER}));
             content.add_child(new St.Label({text: label, y_align: Clutter.ActorAlign.CENTER}));
             content.add_child(badge);
-            const button = new St.Button({
-                style_class: 'frodo-tab',
-                child: content,
-                can_focus: true,
-                y_align: Clutter.ActorAlign.CENTER,
-                accessible_name: label,
-            });
-            button.connect('clicked', () => {
-                this.emit('selected', id);
-            });
+            const button = contentButton(
+                'frodo-tab',
+                content,
+                () => {
+                    this.emit('selected', id);
+                },
+                {y_align: Clutter.ActorAlign.CENTER, accessible_name: label},
+            );
             this.#row.add_child(button);
             this.#items.set(id, {button, badge});
         }
@@ -60,27 +49,7 @@ export class TabBar extends Emitter<{selected: [TabId]}> {
     select(id: TabId | null, animate = false): void {
         for (const [tab, {button}] of this.#items) button.checked = tab === id;
         this.#selected = id === null ? null : (this.#items.get(id)?.button ?? null);
-        this.#place(animate);
-    }
-
-    #place(animate: boolean): void {
-        const button = this.#selected;
-        const indicator = this.#indicator;
-        if (!button?.visible) {
-            indicator.hide();
-            return;
-        }
-        const row = this.#row.allocation;
-        const box = button.allocation;
-        const target = {x: row.x1 + box.x1, y: row.y1 + box.y1, width: box.get_width(), height: box.get_height()};
-        if (animate && indicator.visible && indicator.mapped) {
-            springEase(indicator, target, SPRING);
-            return;
-        }
-        indicator.remove_all_transitions();
-        indicator.set_position(target.x, target.y);
-        indicator.set_size(target.width, target.height);
-        indicator.show();
+        this.#indicator.place(animate);
     }
 
     setBadge(id: TabId, count: number): void {

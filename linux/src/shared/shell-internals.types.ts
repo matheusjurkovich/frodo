@@ -82,7 +82,9 @@ export interface QuickSettingsInternals {
 }
 
 export interface QuickSettingsParts {
-    readonly menu: QuickSettingsMenuInternals;
+    readonly overlay: Clutter.Actor;
+    readonly isNative: (item: Clutter.Actor | null) => item is Clutter.Actor;
+    readonly closeActiveMenu: () => void;
     readonly tiles: readonly Clutter.Actor[];
     readonly output: QuickSlider | null;
     readonly input: QuickSlider | null;

@@ -3,7 +3,7 @@ import Shell from 'gi://Shell';
 import St from 'gi://St';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
 import {Disposables} from '../../shared/disposables.js';
-import {chip} from '../../shared/ui/buttons.js';
+import {chip, contentButton} from '../../shared/ui/buttons.js';
 import {CollapsibleCard} from './collapsible-card.js';
 import {column, grid, label, packGrid} from '../../shared/ui/layout.js';
 import {whileMapped} from '../../shared/ui/lifecycle.js';
@@ -97,18 +97,15 @@ export class AppsCard implements Component {
         const caption = label(name, 'frodo-app-label');
         caption.x_align = Clutter.ActorAlign.CENTER;
         content.add_child(caption);
-        const button = new St.Button({
-            style_class: 'frodo-app',
-            child: content,
-            can_focus: true,
-            x_expand: true,
-            accessible_name: windows > 1 ? `${name}, ${windows} janelas` : name,
-        });
-        button.connect('clicked', () => {
-            this.#island.close();
-            app.activate();
-        });
-        return button;
+        return contentButton(
+            'frodo-app',
+            content,
+            () => {
+                this.#island.close();
+                app.activate();
+            },
+            {x_expand: true, accessible_name: windows > 1 ? `${name}, ${windows} janelas` : name},
+        );
     }
 
     destroy(): void {

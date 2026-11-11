@@ -15,3 +15,4 @@ export const BOTH_AXES: Axes = {width: true, height: true};
 export const HEIGHT_AXIS: Axes = {width: false, height: true};
 export const SPRING_KEYS = 24;
 export const DOUBLE_PROPERTIES = new Set(['scale-x', 'scale-y', 'rotation-angle-z']);
+export const FOLLOW_SAMPLE_FRAMES = 4;

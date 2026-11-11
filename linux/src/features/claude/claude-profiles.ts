@@ -1,3 +1,4 @@
+import {capitalize} from '../../shared/format.js';
 import type {ClaudeProfile} from '../../settings/claude-profile.types.js';
 
 export function labelForDirName(name: string): string {
@@ -6,7 +7,7 @@ export function labelForDirName(name: string): string {
         .replace(/^\.claude-/, '')
         .split(/[-_]+/)
         .filter(Boolean)
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1));
+        .map(capitalize);
     return words.length > 0 ? words.join(' ') : 'Claude';
 }
 

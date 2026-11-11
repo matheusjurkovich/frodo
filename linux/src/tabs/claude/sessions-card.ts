@@ -1,4 +1,4 @@
-import Pango from 'gi://Pango';
+import Clutter from 'gi://Clutter';
 import {countByStatus, displayStatus} from '../../features/claude/claude-sessions.js';
 import type {DiffStat} from '../../features/claude/claude-sessions.types.js';
 import type {ClaudeSessions} from '../../features/claude/claude-sessions-service.js';
@@ -6,7 +6,7 @@ import type {ClaudeTranscripts} from '../../features/claude/claude-transcripts-s
 import {Disposables} from '../../shared/disposables.js';
 import {Timer} from '../../shared/timer.js';
 import {card, cardHeading, emptyState} from '../../shared/ui/card.js';
-import {column, label, row} from '../../shared/ui/layout.js';
+import {column, label, row, wrappedLabel} from '../../shared/ui/layout.js';
 import {whileMapped} from '../../shared/ui/lifecycle.js';
 import type {Component} from '../../shared/ui/lifecycle.types.js';
 import {swap} from '../../shared/ui/motion.js';
@@ -38,10 +38,10 @@ export class SessionsCard implements Component {
     readonly #list = column('frodo-sessions-list');
     readonly #empty = column('frodo-sessions-empty');
     readonly #emptyText = emptyState('');
-    readonly #hint = emptyState('');
+    readonly #hint = wrappedLabel('', 'frodo-empty-state');
     readonly #rows = new Map<string, SessionRow>();
-    readonly #tick = new Timer();
     readonly #disposables = new Disposables();
+    readonly #tick = this.#disposables.own(new Timer());
     #selected: Filter = 'all';
     #provider: AiProvider | null = null;
     #expanded: string | null = null;
@@ -61,9 +61,8 @@ export class SessionsCard implements Component {
         header.add_child(title);
         header.add_child(this.#summary);
 
+        this.#hint.set({x_expand: true, x_align: Clutter.ActorAlign.CENTER});
         this.#hint.add_style_class_name('frodo-sessions-hint');
-        this.#hint.clutter_text.line_wrap = true;
-        this.#hint.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
         this.#empty.add_child(this.#emptyText);
         this.#empty.add_child(this.#hint);
 
@@ -230,7 +229,6 @@ export class SessionsCard implements Component {
 
     destroy(): void {
         this.#destroyed = true;
-        this.#tick.stop();
         this.#disposables.dispose();
         for (const existing of this.#rows.values()) existing.destroy();
         this.#rows.clear();

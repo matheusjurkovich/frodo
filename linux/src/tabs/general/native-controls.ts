@@ -87,9 +87,8 @@ export class NativeControls {
         this.#loan.dispose();
         closeQuickSettingsMenu();
         const parts = quickSettingsParts();
-        if (!parts || parts.menu._overlay.get_parent() !== parts.menu.actor) return;
-        const {menu} = parts;
-        const isNative = (item: Clutter.Actor | null): item is Clutter.Actor => item?.get_parent() === menu._grid;
+        if (!parts) return;
+        const {isNative} = parts;
 
         const tiles = parts.tiles.filter(isNative);
         for (const tile of tiles) {
@@ -110,13 +109,13 @@ export class NativeControls {
         }
         this.#loan.add(packGrid(this.tiles, tiles, TILE_COLUMNS));
 
-        this.#lendOverlay(menu._overlay);
+        this.#lendOverlay(parts.overlay);
         const menus = [...tiles, ...sliders].map(quickSettingsItemMenu).filter(item => item !== null);
         this.#loan.add(() => {
             this.#restore(menus);
         });
         this.#loan.add(() => {
-            menu._activeMenu?.close(PopupAnimation.NONE);
+            parts.closeActiveMenu();
         });
         this.#watchMenus(menus);
         this.#loan.add(keepMicrophoneSliderVisible());

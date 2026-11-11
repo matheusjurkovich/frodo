@@ -1,9 +1,11 @@
+import {capitalize} from '../../shared/format.js';
+import {count, isRecord} from '../../shared/json.js';
 import {addCell, hourStart} from '../../shared/consumption.js';
 import type {ModelGroups, UsageCell} from '../../shared/consumption.types.js';
 import {clockTime} from '../../shared/meter.js';
 import type {Meter} from '../../shared/meter.types.js';
 import {PACIFIC, HASH, MINUTE_MS, DROPPED_WORDS, FAMILIES, GEMINI_PER_MINUTE_LIMIT} from './gemini-usage.const.js';
-import type {Json, GeminiRequest, GeminiSession, GeminiQuota} from './gemini-usage.types.js';
+import type {GeminiRequest, GeminiSession, GeminiQuota} from './gemini-usage.types.js';
 
 const pacificParts = new Intl.DateTimeFormat('en-US', {
     timeZone: PACIFIC,
@@ -16,16 +18,8 @@ const pacificParts = new Intl.DateTimeFormat('en-US', {
     second: 'numeric',
 });
 
-function isJson(value: unknown): value is Json {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function count(value: unknown): number {
-    return typeof value === 'number' && Number.isFinite(value) ? value : 0;
-}
-
 function request(value: unknown): GeminiRequest | null {
-    if (!isJson(value) || value.type !== 'gemini' || !isJson(value.tokens) || typeof value.id !== 'string') return null;
+    if (!isRecord(value) || value.type !== 'gemini' || !isRecord(value.tokens) || typeof value.id !== 'string') return null;
     const at = typeof value.timestamp === 'string' ? Date.parse(value.timestamp) : NaN;
     if (Number.isNaN(at)) return null;
     const {tokens} = value;
@@ -43,7 +37,7 @@ function request(value: unknown): GeminiRequest | null {
 function records(content: string): unknown[] {
     try {
         const whole: unknown = JSON.parse(content);
-        return isJson(whole) && Array.isArray(whole.messages) ? [whole, ...(whole.messages as unknown[])] : [whole];
+        return isRecord(whole) && Array.isArray(whole.messages) ? [whole, ...(whole.messages as unknown[])] : [whole];
     } catch {
         return content.split('\n').flatMap(line => {
             try {
@@ -63,9 +57,9 @@ export function parseGeminiSession(content: string): GeminiSession | null {
         if (found) requests.set(found.id, found);
     };
     for (const record of records(content)) {
-        if (!isJson(record)) continue;
+        if (!isRecord(record)) continue;
         if (id === null && typeof record.sessionId === 'string') id = record.sessionId;
-        if (isJson(record.$set) && Array.isArray(record.$set.messages)) (record.$set.messages as unknown[]).forEach(add);
+        if (isRecord(record.$set) && Array.isArray(record.$set.messages)) (record.$set.messages as unknown[]).forEach(add);
         add(record);
     }
     return id === null ? null : {id, requests: [...requests.values()]};
@@ -81,7 +75,7 @@ export function geminiCells(requests: Iterable<GeminiRequest>, project: string, 
 export function parseProjects(content: string | null): [string, string][] {
     try {
         const data: unknown = JSON.parse(content ?? '');
-        if (!isJson(data) || !isJson(data.projects)) return [];
+        if (!isRecord(data) || !isRecord(data.projects)) return [];
         return Object.entries(data.projects).filter((entry): entry is [string, string] => typeof entry[1] === 'string');
     } catch {
         return [];
@@ -144,9 +138,7 @@ function geminiFamily(model: string): string {
 function geminiLabel(model: string): string {
     if (!model.toLowerCase().startsWith('gemini-')) return model || 'Outro';
     const [version = '', ...rest] = model.slice(7).split('-');
-    const words = rest
-        .filter(word => !DROPPED_WORDS.has(word) && !/^\d+$/.test(word))
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1));
+    const words = rest.filter(word => !DROPPED_WORDS.has(word) && !/^\d+$/.test(word)).map(capitalize);
     return ['Gemini', version, ...words].join(' ');
 }
 

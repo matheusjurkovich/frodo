@@ -18,5 +18,3 @@ export interface GeminiQuota {
     readonly perMinute: number;
     readonly resetsAt: number;
 }
-
-export type Json = Record<string, unknown>;

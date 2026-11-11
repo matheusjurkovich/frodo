@@ -10,9 +10,9 @@ import type {AiProvider} from '../../settings/schema-values.js';
 import {Disposables} from '../../shared/disposables.js';
 import {chip, iconButton, textButton} from '../../shared/ui/buttons.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
-import {column, dimLabel, label, row} from '../../shared/ui/layout.js';
+import {column, dimLabel, label, row, wrappedLabel} from '../../shared/ui/layout.js';
 import {providerTile} from '../../shared/ui/provider-tile.js';
-import {Bindings, group, line, wrapped} from './settings-rows.js';
+import {Bindings, group, line} from './settings-rows.js';
 import type {SettingsSection} from './settings-rows.types.js';
 import {POLL_MINUTES, GEMINI_LIMITS, HOOK_PATHS} from './ai-section.const.js';
 import type {AiSectionDependencies} from './ai-section.types.js';
@@ -173,7 +173,7 @@ export class AiSection implements SettingsSection {
     }
 
     #hookLine(agent: HookedAgent, title: string, subtitle: string): St.BoxLayout {
-        const status = wrapped('', 'frodo-settings-subtitle');
+        const status = wrappedLabel('', 'frodo-settings-subtitle');
         const button = textButton('Instalar hook', () => {
             void this.#deps.sessions.installAgentHooks(agent).then(ok => {
                 if (this.#destroyed) return;
@@ -192,7 +192,7 @@ export class AiSection implements SettingsSection {
         };
         void refresh();
         const text = column('frodo-settings-line-text');
-        text.add_child(wrapped(subtitle, 'frodo-settings-subtitle'));
+        text.add_child(wrappedLabel(subtitle, 'frodo-settings-subtitle'));
         text.add_child(status);
         return line(title, text, button);
     }

@@ -1,6 +1,10 @@
 import {BAR_MIN, BAR_FULL} from './geometry.const.js';
 import type {HorizontalAlign, Rect, EdgeSpan} from './geometry.types.js';
 
+export function clamp(value: number, min: number, max: number): number {
+    return Math.max(min, Math.min(value, max));
+}
+
 export function alignX(align: HorizontalAlign, width: number, monX: number, monW: number, margin = 0): number {
     if (align === 'left') return monX + margin;
     if (align === 'right') return monX + monW - width - margin;
@@ -13,7 +17,7 @@ export function anchorCenter(align: HorizontalAlign, span: {x: number; width: nu
 
 export function centerClamp(pillX: number, pillW: number, panelW: number, monX: number, monW: number, margin = 8): number {
     const x = Math.round(pillX + pillW / 2 - panelW / 2);
-    return Math.max(monX + margin, Math.min(x, monX + monW - panelW - margin));
+    return clamp(x, monX + margin, monX + monW - panelW - margin);
 }
 
 export function topEdgeSpan(monitor: Rect, monitors: readonly Rect[], span: number, align: HorizontalAlign = 'center'): EdgeSpan | null {
@@ -28,7 +32,7 @@ export function segmentWidths(fractions: readonly number[], width: number): numb
     let total = 0;
     let previousEdge = 0;
     return fractions.map(fraction => {
-        total = Math.min(1, total + Math.min(1, Math.max(0, fraction)));
+        total = Math.min(1, total + clamp(fraction, 0, 1));
         const edge = Math.round(total * width);
         const segment = edge - previousEdge;
         previousEdge = edge;

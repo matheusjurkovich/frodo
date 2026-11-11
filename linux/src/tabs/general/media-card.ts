@@ -40,8 +40,8 @@ export class MediaCard implements Component {
     readonly #previous: St.Button;
     readonly #playPause: St.Button;
     readonly #next: St.Button;
-    readonly #poll = new Timer();
     readonly #disposables = new Disposables();
+    readonly #poll = this.#disposables.own(new Timer());
     #coverUrl = '';
     #position: number | null = null;
     #mapped = false;
@@ -194,7 +194,6 @@ export class MediaCard implements Component {
 
     destroy(): void {
         this.#destroyed = true;
-        this.#poll.stop();
         this.#disposables.dispose();
         this.actor.destroy();
     }

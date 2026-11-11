@@ -5,7 +5,7 @@ import {contextUsage, sessionMeta} from '../../features/claude/claude-sessions.j
 import type {DiffStat, PendingRequest, SessionState, SessionStatus} from '../../features/claude/claude-sessions.types.js';
 import {formatTokens} from '../../shared/format.js';
 import type {Disposer} from '../../shared/disposables.types.js';
-import {textButton} from '../../shared/ui/buttons.js';
+import {contentButton, textButton} from '../../shared/ui/buttons.js';
 import {column, grid, label, packGrid, row} from '../../shared/ui/layout.js';
 import type {Component} from '../../shared/ui/lifecycle.types.js';
 import {reveal, springEase} from '../../shared/ui/motion.js';
@@ -108,8 +108,7 @@ export class SessionRow implements Component {
         content.add_child(this.#caret);
         this.#caret.set_pivot_point(0.5, 0.5);
 
-        this.#header = new St.Button({style_class: 'frodo-session-header', child: content, can_focus: true, x_expand: true});
-        this.#header.connect('clicked', toggle);
+        this.#header = contentButton('frodo-session-header', content, toggle, {x_expand: true});
 
         this.#open = textButton('Abrir no terminal', focus, 'primary');
         this.#deny = textButton(

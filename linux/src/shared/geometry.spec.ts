@@ -1,4 +1,4 @@
-import {alignX, anchorCenter, barHeight, centerClamp, segmentWidths, topEdgeSpan} from './geometry.js';
+import {alignX, anchorCenter, barHeight, centerClamp, clamp, segmentWidths, topEdgeSpan} from './geometry.js';
 
 describe('geometry', () => {
     it('centraliza o painel na pílula dentro do monitor', () => {
@@ -66,5 +66,11 @@ describe('barHeight', () => {
 
     it('barra futura fica no piso', () => {
         expect(barHeight(900, 900, true)).toBe(3);
+    });
+
+    it('clamp limita o valor ao intervalo', () => {
+        expect(clamp(-1, 0, 1)).toBe(0);
+        expect(clamp(2, 0, 1)).toBe(1);
+        expect(clamp(0.4, 0, 1)).toBe(0.4);
     });
 });

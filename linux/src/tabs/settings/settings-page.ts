@@ -6,6 +6,7 @@ import type {FrodoSettings} from '../../settings/frodo-settings.js';
 import {Disposables} from '../../shared/disposables.js';
 import {backHeader} from '../../shared/ui/card.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
+import {contentButton} from '../../shared/ui/buttons.js';
 import {column, label, row} from '../../shared/ui/layout.js';
 import type {Component} from '../../shared/ui/lifecycle.types.js';
 import {swap} from '../../shared/ui/motion.js';
@@ -59,10 +60,14 @@ export class SettingsPage implements Component {
             const item = row('frodo-settings-nav-content');
             item.add_child(new St.Icon({gicon: frodoIcon(icon), style_class: 'frodo-settings-nav-icon'}));
             item.add_child(label(text, 'frodo-settings-nav-label'));
-            const button = new St.Button({style_class: 'frodo-settings-nav-item', child: item, can_focus: true, accessible_name: text});
-            button.connect('clicked', () => {
-                this.#show(id);
-            });
+            const button = contentButton(
+                'frodo-settings-nav-item',
+                item,
+                () => {
+                    this.#show(id);
+                },
+                {accessible_name: text},
+            );
             this.#nav.set(id, button);
             nav.add_child(button);
             const section = this.#disposables.own(builders[id]());

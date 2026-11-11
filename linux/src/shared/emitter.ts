@@ -16,6 +16,15 @@ export class Emitter<Events extends EventMap<Events>> {
     }
 
     protected emit<K extends keyof Events>(event: K, ...args: Events[K]): void {
-        for (const listener of [...(this.#listeners[event] ?? [])]) listener(...args);
+        const set = this.#listeners[event];
+        if (!set) return;
+        for (const listener of [...set]) {
+            if (!set.has(listener) || this.#listeners[event] !== set) continue;
+            try {
+                listener(...args);
+            } catch (error) {
+                logError(error);
+            }
+        }
     }
 }

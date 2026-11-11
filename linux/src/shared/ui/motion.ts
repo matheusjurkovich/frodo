@@ -19,6 +19,7 @@ import {
     REVEAL_OUT_MS,
     REVEAL_IN_MS,
     REVEAL_IN_DELAY_MS,
+    FOLLOW_SAMPLE_FRAMES,
 } from './motion.const.js';
 import type {SpringProps, Axes, Axis} from './motion.types.js';
 
@@ -38,18 +39,22 @@ function typedValue(property: string, value: number): GObject.Value {
     return typed;
 }
 
+function readNumber(actor: Clutter.Actor, field: string): number {
+    const value: unknown = Reflect.get(actor, field);
+    return typeof value === 'number' ? value : 0;
+}
+
 export function springEase(actor: Clutter.Actor, props: SpringProps, spring: Spring, onComplete?: () => void): void {
     const settings = St.Settings.get();
     const scale = settings.enable_animations ? settings.slow_down_factor : 0;
     const duration = Math.round(spring.ms * scale);
     const delay = Math.round((props.delay ?? 0) * scale);
-    const fields = actor as unknown as Record<string, number>;
     const targets = Object.entries(props)
         .filter((entry): entry is [string, number] => entry[0] !== 'delay' && typeof entry[1] === 'number')
         .map(([key, to]) => ({field: snakeCase(key), property: snakeCase(key).replaceAll('_', '-'), to}));
     for (const {property} of targets) actor.remove_transition(property);
     if (duration <= 0 || !actor.mapped) {
-        for (const {field, to} of targets) fields[field] = to;
+        for (const {field, to} of targets) Reflect.set(actor, field, to);
         onComplete?.();
         return;
     }
@@ -57,7 +62,7 @@ export function springEase(actor: Clutter.Actor, props: SpringProps, spring: Spr
     let remaining = targets.length;
     let interrupted = false;
     for (const {field, property, to} of targets) {
-        const from = fields[field] ?? 0;
+        const from = readNumber(actor, field);
         const transition = new Clutter.KeyframeTransition({
             property_name: property,
             duration,
@@ -71,7 +76,7 @@ export function springEase(actor: Clutter.Actor, props: SpringProps, spring: Spr
         transition.set_values(times.map(time => typedValue(property, from + (to - from) * springProgress(spring.damping, time))));
         transition.set_modes(times.map(() => Clutter.AnimationMode.LINEAR));
         transition.connect('stopped', (_transition, finished) => {
-            if (finished) fields[field] = to;
+            if (finished) Reflect.set(actor, field, to);
             else interrupted = true;
             remaining--;
             if (remaining === 0 && !interrupted) onComplete?.();
@@ -188,8 +193,10 @@ function follow(actor: St.Widget, from: number): void {
     }
     actor.set({height: from, clip_to_allocation: true});
     springEase(actor, {height: to}, SPRING, release);
+    let frames = 0;
     actor.get_transition('height')?.connect('new-frame', () => {
-        if (Math.abs(naturalHeight(actor, width) - to) >= 1) follow(actor, actor.height);
+        frames++;
+        if (frames % FOLLOW_SAMPLE_FRAMES === 0 && Math.abs(naturalHeight(actor, width) - to) >= 1) follow(actor, actor.height);
     });
 }
 

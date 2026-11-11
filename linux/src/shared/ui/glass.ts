@@ -4,7 +4,9 @@ import GObject from 'gi://GObject';
 import Shell from 'gi://Shell';
 import St from 'gi://St';
 import {Disposables} from '../disposables.js';
+import {whileMapped} from './lifecycle.js';
 import type {Component} from './lifecycle.types.js';
+import type {Mirror} from './glass.types.js';
 import {MASK_DECLARATIONS, MASK_CODE, MARGIN, BLUR_RADIUS, BRIGHTNESS} from './glass.const.js';
 
 const RoundedMask = GObject.registerClass(
@@ -38,7 +40,8 @@ export class Glass implements Component {
     readonly #scene = new Clutter.Actor();
     readonly #mask = new RoundedMask();
     readonly #disposables = new Disposables();
-    #mirrors: GObject.Binding[] = [];
+    readonly #live = new Disposables();
+    readonly #mirrors = new Map<Clutter.Actor, Mirror>();
 
     constructor(host: St.Widget) {
         this.#host = host;
@@ -59,34 +62,60 @@ export class Glass implements Component {
         };
         this.#disposables.signal(actor, actor.connect('notify::allocation', reshape));
         this.#disposables.signal(host, host.connect('style-changed', reshape));
-        const mirror = (): void => {
-            this.#mirror();
-        };
-        const windows = global.window_group;
-        this.#disposables.signal(windows, windows.connect('child-added', mirror));
-        this.#disposables.signal(windows, windows.connect('child-removed', mirror));
-        this.#disposables.signal(global.display, global.display.connect('restacked', mirror));
-        this.#disposables.add(() => {
-            this.#unmirror();
-        });
-        this.#mirror();
+        this.#disposables.add(
+            whileMapped(
+                actor,
+                () => {
+                    this.#startMirroring();
+                },
+                () => {
+                    this.#stopMirroring();
+                },
+            ),
+        );
         host.get_parent()?.insert_child_below(actor, host);
     }
 
-    #mirror(): void {
-        this.#unmirror();
-        for (const source of global.window_group.get_children()) {
-            const clone = new Clutter.Clone({source});
-            clone.add_constraint(new Clutter.BindConstraint({source, coordinate: Clutter.BindCoordinate.ALL}));
-            this.#mirrors.push(source.bind_property('visible', clone, 'visible', GObject.BindingFlags.SYNC_CREATE));
-            this.#scene.add_child(clone);
-        }
+    #startMirroring(): void {
+        const sync = (): void => {
+            this.#sync();
+        };
+        const windows = global.window_group;
+        this.#live.signal(windows, windows.connect('child-added', sync));
+        this.#live.signal(windows, windows.connect('child-removed', sync));
+        this.#live.signal(global.display, global.display.connect('restacked', sync));
+        this.#sync();
     }
 
-    #unmirror(): void {
-        for (const binding of this.#mirrors) binding.unbind();
-        this.#mirrors = [];
-        this.#scene.destroy_all_children();
+    #stopMirroring(): void {
+        this.#live.dispose();
+        for (const source of [...this.#mirrors.keys()]) this.#drop(source);
+    }
+
+    #sync(): void {
+        const sources = global.window_group.get_children();
+        for (const source of [...this.#mirrors.keys()]) if (!sources.includes(source)) this.#drop(source);
+        sources.forEach((source, index) => {
+            const clone = this.#mirrors.get(source)?.clone ?? this.#mirror(source);
+            if (this.#scene.get_child_at_index(index) !== clone) this.#scene.set_child_at_index(clone, index);
+        });
+    }
+
+    #mirror(source: Clutter.Actor): Clutter.Clone {
+        const clone = new Clutter.Clone({source});
+        clone.add_constraint(new Clutter.BindConstraint({source, coordinate: Clutter.BindCoordinate.ALL}));
+        const binding = source.bind_property('visible', clone, 'visible', GObject.BindingFlags.SYNC_CREATE);
+        this.#mirrors.set(source, {clone, binding});
+        this.#scene.add_child(clone);
+        return clone;
+    }
+
+    #drop(source: Clutter.Actor): void {
+        const mirror = this.#mirrors.get(source);
+        if (!mirror) return;
+        this.#mirrors.delete(source);
+        mirror.binding.unbind();
+        mirror.clone.destroy();
     }
 
     #reshape(): void {

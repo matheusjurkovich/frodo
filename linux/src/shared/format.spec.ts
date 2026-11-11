@@ -1,4 +1,16 @@
-import {ellipsize, formatAgo, formatDate, formatSpan, formatTimer, formatTokens, formatUntil, secondsSince} from './format.js';
+import {
+    capitalize,
+    ellipsize,
+    fixedDecimal,
+    formatAgo,
+    formatDate,
+    formatSpan,
+    formatTimer,
+    formatTokens,
+    formatUntil,
+    pad,
+    secondsSince,
+} from './format.js';
 
 describe('format', () => {
     it('formata data curta', () => {
@@ -62,5 +74,22 @@ describe('formatos do redesign', () => {
         ]);
         expect(formatTimer(secondsSince(now + 5e3, now))).toBe('0:00');
         expect(formatTimer(secondsSince(Number.NaN, now))).toBe('0:00');
+    });
+});
+
+describe('formatadores básicos', () => {
+    it('pad completa com zero à esquerda', () => {
+        expect(pad(5)).toBe('05');
+        expect(pad(12)).toBe('12');
+    });
+
+    it('capitalize põe a primeira letra em maiúscula', () => {
+        expect(capitalize('mês')).toBe('Mês');
+        expect(capitalize('')).toBe('');
+    });
+
+    it('fixedDecimal mantém a casa e usa vírgula', () => {
+        expect(fixedDecimal(2)).toBe('2,0');
+        expect(fixedDecimal(2.46)).toBe('2,5');
     });
 });

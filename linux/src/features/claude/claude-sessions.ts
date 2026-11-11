@@ -11,15 +11,8 @@ import {
     CONTEXT_WARN_FRACTION,
     PENDING_FILE,
 } from './claude-sessions.const.js';
+import {isRecord, optionalString} from '../../shared/json.js';
 import type {HookEvent, SessionState, SessionStatus, ContextUsage, DiffStat, PendingRequest, Decision} from './claude-sessions.types.js';
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function optionalString(value: unknown): string | null {
-    return typeof value === 'string' ? value : null;
-}
 
 function basename(path: string): string {
     return path.replace(/\/+$/, '').split('/').pop() ?? '';

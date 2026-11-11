@@ -1,8 +1,7 @@
 import type {Level} from './level.types.js';
 import {CRIT_PERCENT, WARN_PERCENT, DAY_MS, WEEKDAYS, LEVEL_RANK, LEVEL_PERCENT} from './meter.const.js';
 import type {QuotaReading, QuotaNotice} from './meter.types.js';
-
-const pad = (n: number): string => String(n).padStart(2, '0');
+import {pad} from './format.js';
 
 export function meterLevel(percent: number): Level {
     if (percent >= CRIT_PERCENT) return 'crit';

@@ -7,6 +7,7 @@ import {Disposables} from '../../shared/disposables.js';
 import {SPRING} from '../../shared/spring.const.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
 import {card, cardTitle} from '../../shared/ui/card.js';
+import {contentButton} from '../../shared/ui/buttons.js';
 import {column, label, row} from '../../shared/ui/layout.js';
 import type {Component} from '../../shared/ui/lifecycle.types.js';
 import {reveal, springEase} from '../../shared/ui/motion.js';
@@ -31,16 +32,14 @@ export class CollapsibleCard implements Component {
 
         const content = row('frodo-collapsible-header-content');
         for (const child of [cardTitle(title), this.#summary, this.#count, this.#caret]) content.add_child(child);
-        const header = new St.Button({
-            style_class: 'frodo-collapsible-header',
-            child: content,
-            can_focus: true,
-            x_expand: true,
-            accessible_name: title,
-        });
-        header.connect('clicked', () => {
-            this.#toggle();
-        });
+        const header = contentButton(
+            'frodo-collapsible-header',
+            content,
+            () => {
+                this.#toggle();
+            },
+            {x_expand: true, accessible_name: title},
+        );
         this.actor.add_child(header);
         this.actor.add_child(this.body);
 
