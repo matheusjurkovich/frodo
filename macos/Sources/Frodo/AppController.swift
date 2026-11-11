@@ -6,6 +6,7 @@ import FrodoPlatform
 final class AppController {
     let services: FrodoServices
     private(set) var controllers: [IslandController] = []
+    private var controllerKeys: [String] = []
     private let disposables = Disposables()
     private var screenObserver: NSObjectProtocol?
 
@@ -19,10 +20,10 @@ final class AppController {
         screenObserver = NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.rebuild() }
         }
-        services.system.setWantsMemory(services.settings.closedItems.contains(.ram))
+        services.system.setWantsMemory(services.settings.closedItems.contains(.ram), by: .pill)
         disposables.add(services.settings.onChanged(["closed-items"]) { [weak self] in
             guard let self else { return }
-            self.services.system.setWantsMemory(self.services.settings.closedItems.contains(.ram))
+            self.services.system.setWantsMemory(self.services.settings.closedItems.contains(.ram), by: .pill)
         })
     }
 
@@ -37,8 +38,19 @@ final class AppController {
     }
 
     func rebuild() {
-        for controller in controllers { controller.tearDown() }
-        controllers = screens().map { IslandController(screen: $0, services: services) }
+        let targets = screens().map { (key: screenKey($0), screen: $0) }
+        let wanted = Set(targets.map(\.key))
+        var kept: [String: IslandController] = [:]
+        for (key, controller) in zip(controllerKeys, controllers) {
+            if wanted.contains(key), kept[key] == nil { kept[key] = controller } else { controller.tearDown() }
+        }
+        controllers = targets.map { kept[$0.key] ?? IslandController(screen: $0.screen, services: services) }
+        controllerKeys = targets.map(\.key)
+    }
+
+    private func screenKey(_ screen: NSScreen) -> String {
+        let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
+        return "\(number?.intValue ?? -1)@\(NSStringFromRect(screen.frame))"
     }
 
     private func registerHotkeys() {
