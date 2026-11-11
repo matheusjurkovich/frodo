@@ -16,7 +16,7 @@ jobs:
       linux-tag: ${{ steps.release.outputs['linux--tag_name'] }}
       linux-version: ${{ steps.release.outputs['linux--version'] }}
     steps:
-      - uses: googleapis/release-please-action@v4
+      - uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071
         id: release
 
   linux:
@@ -31,10 +31,10 @@ jobs:
       run:
         working-directory: linux
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ needs.release-please.outputs.linux-tag }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 22
           cache: npm
