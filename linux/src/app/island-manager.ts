@@ -20,8 +20,8 @@ export class IslandManager {
         this.#dependencies = dependencies;
         const {settings} = dependencies;
         this.#disposables.add(
-            settings.onChanged(['monitors', 'hide-top-bar'], () => {
-                this.#rebuild();
+            settings.onChanged('monitors', () => {
+                this.#reconcile();
             }),
         );
         this.#disposables.signal(
@@ -50,9 +50,17 @@ export class IslandManager {
 
     #rebuild(): void {
         this.#clear();
+        this.#reconcile();
+    }
+
+    #reconcile(): void {
         const {settings} = this.#dependencies;
-        const primary = Main.layoutManager.primaryIndex;
-        for (const monitorIndex of targetMonitors(settings.monitors, primary, Main.layoutManager.monitors.length)) {
+        const targets = targetMonitors(settings.monitors, Main.layoutManager.primaryIndex, Main.layoutManager.monitors.length);
+        const kept = this.#entries.filter(entry => targets.includes(entry.island.monitorIndex));
+        for (const entry of this.#entries) if (!kept.includes(entry)) this.#destroyEntry(entry);
+        this.#entries = kept;
+        for (const monitorIndex of targets) {
+            if (kept.some(entry => entry.island.monitorIndex === monitorIndex)) continue;
             const island = new Island(this.#dependencies, monitorIndex);
             island.attach();
             island.on('opening', () => {
@@ -70,13 +78,15 @@ export class IslandManager {
         });
     }
 
+    #destroyEntry({island, content}: Entry): void {
+        island.close();
+        island.setContent(null);
+        content.destroy();
+        island.destroy();
+    }
+
     #clear(): void {
-        for (const {island, content} of this.#entries) {
-            island.close();
-            island.setContent(null);
-            content.destroy();
-            island.destroy();
-        }
+        for (const entry of this.#entries) this.#destroyEntry(entry);
         this.#entries = [];
     }
 
