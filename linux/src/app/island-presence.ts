@@ -21,7 +21,10 @@ export class IslandPresence {
 
     constructor(dependencies: IslandPresenceDependencies) {
         this.#dependencies = dependencies;
-        const {settings, feed} = dependencies;
+        const {settings, feed, tongue} = dependencies;
+        tongue.connect('destroy', () => {
+            this.#disposables.dispose();
+        });
         this.#disposables.add(
             onWindowCoverChanged(() => {
                 this.sync();
