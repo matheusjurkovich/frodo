@@ -10,26 +10,44 @@ public protocol CommandRunner: Sendable {
 }
 
 public struct ProcessCommandRunner: CommandRunner {
-    public init() {}
+    private let timeout: TimeInterval
+
+    public init(timeout: TimeInterval = 10) {
+        self.timeout = timeout
+    }
 
     public func run(_ executable: String, arguments: [String], currentDirectory: String? = nil) async -> CommandResult? {
-        await withCheckedContinuation { continuation in
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: executable)
-            process.arguments = arguments
-            if let currentDirectory { process.currentDirectoryURL = URL(fileURLWithPath: currentDirectory) }
-            let pipe = Pipe()
-            process.standardOutput = pipe
-            process.standardError = FileHandle.nullDevice
-            process.terminationHandler = { finished in
-                let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                continuation.resume(returning: CommandResult(status: finished.terminationStatus, output: String(decoding: data, as: UTF8.self)))
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: executable)
+        process.arguments = arguments
+        if let currentDirectory { process.currentDirectoryURL = URL(fileURLWithPath: currentDirectory) }
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = FileHandle.nullDevice
+        let timeout = timeout
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { (continuation: CheckedContinuation<CommandResult?, Never>) in
+                do {
+                    try process.run()
+                } catch {
+                    continuation.resume(returning: nil)
+                    return
+                }
+                DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + timeout) {
+                    if process.isRunning { process.terminate() }
+                }
+                DispatchQueue.global(qos: .utility).async {
+                    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                    process.waitUntilExit()
+                    guard process.terminationReason == .exit else {
+                        continuation.resume(returning: nil)
+                        return
+                    }
+                    continuation.resume(returning: CommandResult(status: process.terminationStatus, output: String(decoding: data, as: UTF8.self)))
+                }
             }
-            do {
-                try process.run()
-            } catch {
-                continuation.resume(returning: nil)
-            }
+        } onCancel: {
+            if process.isRunning { process.terminate() }
         }
     }
 }

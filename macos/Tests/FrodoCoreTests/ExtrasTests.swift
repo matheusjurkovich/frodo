@@ -101,6 +101,17 @@ struct NotificationsStoreTests {
         #expect(store.items.isEmpty)
     }
 
+    @Test("guarda no máximo as mais novas")
+    func keepsOnlyTheNewest() {
+        let store = NotificationsStore()
+        for index in 0 ... maxNotifications {
+            store.push(app: "Claude Code", title: "\(index)", body: "x")
+        }
+        #expect(store.count == maxNotifications)
+        #expect(store.items.first?.title == "\(maxNotifications)")
+        #expect(store.items.last?.title == "1")
+    }
+
     @Test("traduz notificações do Claude Code")
     func translatesClaudeCodeNotifications() {
         func event(_ type: String?) -> HookEvent {

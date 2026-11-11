@@ -1,4 +1,5 @@
 import AppKit
+import FrodoCore
 import SwiftUI
 
 extension Color {
@@ -88,5 +89,32 @@ enum Theme {
         case .warn: warn
         case .crit: dangerStrong
         }
+    }
+
+    static func color(for status: SessionStatus) -> Color {
+        switch status {
+        case .working: claude
+        case .waiting: warn
+        case .done: ok
+        case .idle: textSecondary
+        }
+    }
+
+    static func color(forModel family: String) -> Color {
+        switch family {
+        case "Opus": opus
+        case "Sonnet": sonnet
+        case "Haiku": haiku
+        default: textSecondary
+        }
+    }
+
+    enum Snapshot {
+        static let backdrop = Color(white: 0.32)
+        static let iconTop = Color(hex: 0x1F1F23)
+        static let iconBottom = Color(hex: 0x0A0A0B)
+        static let iconPill = Color(hex: 0x000000)
+        static let iconIsland = Color(hex: 0x17171A)
+        static let stripes = [Color(hex: 0xE5484D), Color(hex: 0x3E63DD), Color(hex: 0xF5D90A), Color(hex: 0x30A46C)]
     }
 }

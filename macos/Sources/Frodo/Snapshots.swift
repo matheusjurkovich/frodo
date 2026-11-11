@@ -110,7 +110,7 @@ enum Snapshots {
     }
 
     private static func write(_ view: IslandRootView, model: IslandModel, size: CGSize, name: String, directory: String, passes: Int = 1) {
-        let canvas = view.frame(width: size.width, height: size.height, alignment: .top).background(Color(white: 0.32))
+        let canvas = view.frame(width: size.width, height: size.height, alignment: .top).background(Theme.Snapshot.backdrop)
         let renderer = ImageRenderer(content: canvas)
         renderer.scale = 2
         for _ in 0 ..< passes {
@@ -124,7 +124,7 @@ enum Snapshots {
     }
 
     private static func writeWindow<Content: View>(_ view: Content, size: CGSize, name: String, directory: String, striped: Bool = false) {
-        let backdrop = AnyView(striped ? AnyView(Stripes()) : AnyView(Color(white: 0.32)))
+        let backdrop = AnyView(striped ? AnyView(Stripes()) : AnyView(Theme.Snapshot.backdrop))
         let canvas = AnyView(view.frame(width: size.width, height: size.height, alignment: .top).background(backdrop))
         let hosting = NSHostingView(rootView: canvas)
         hosting.frame = NSRect(origin: .zero, size: size)
@@ -144,11 +144,11 @@ enum Snapshots {
 private struct AppIconArt: View {
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 230, style: .continuous).fill(LinearGradient(colors: [Color(hex: 0x1F1F23), Color(hex: 0x0A0A0B)], startPoint: .top, endPoint: .bottom))
-            Capsule().fill(Color(hex: 0x000000)).overlay(Capsule().stroke(Color.white.opacity(0.14), lineWidth: 6)).frame(width: 640, height: 190).offset(y: -150)
+            RoundedRectangle(cornerRadius: 230, style: .continuous).fill(LinearGradient(colors: [Theme.Snapshot.iconTop, Theme.Snapshot.iconBottom], startPoint: .top, endPoint: .bottom))
+            Capsule().fill(Theme.Snapshot.iconPill).overlay(Capsule().stroke(Color.white.opacity(0.14), lineWidth: 6)).frame(width: 640, height: 190).offset(y: -150)
             Circle().fill(Theme.claude).frame(width: 74, height: 74).offset(x: -230, y: -150)
             Capsule().fill(Color.white.opacity(0.85)).frame(width: 220, height: 22).offset(x: 40, y: -150)
-            RoundedRectangle(cornerRadius: 120, style: .continuous).fill(Color(hex: 0x17171A)).overlay(RoundedRectangle(cornerRadius: 120, style: .continuous).stroke(Color.white.opacity(0.1), lineWidth: 6)).frame(width: 760, height: 380).offset(y: 150)
+            RoundedRectangle(cornerRadius: 120, style: .continuous).fill(Theme.Snapshot.iconIsland).overlay(RoundedRectangle(cornerRadius: 120, style: .continuous).stroke(Color.white.opacity(0.1), lineWidth: 6)).frame(width: 760, height: 380).offset(y: 150)
             Circle().fill(Theme.claude).frame(width: 96, height: 96).offset(x: -250, y: 90)
         }
         .frame(width: 1024, height: 1024)
@@ -177,7 +177,7 @@ private struct Stripes: View {
     var body: some View {
         HStack(spacing: 0) {
             ForEach(0 ..< 20, id: \.self) { index in
-                [Color(hex: 0xE5484D), Color(hex: 0x3E63DD), Color(hex: 0xF5D90A), Color(hex: 0x30A46C)][index % 4]
+                Theme.Snapshot.stripes[index % Theme.Snapshot.stripes.count]
             }
         }
     }

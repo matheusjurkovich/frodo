@@ -85,6 +85,22 @@ struct TranscriptScannerTests {
         #expect(index.summary(.today, now: now).input == 200)
     }
 
+    @Test("flush grava o que ficou pendente enquanto a aba estava aberta")
+    func flushWritesWhatWasPendingWhileWanted() async throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanup() }
+        let now = Date()
+        try fixture.write(line(id: "m1", input: 100, at: now) + "\n")
+        let scanner = TranscriptScanner(cachePath: fixture.cache)
+        _ = await scanner.scan(configDirs: [fixture.configDir], now: now, wanted: true)
+        try fixture.write(line(id: "m2", input: 50, at: now) + "\n", append: true)
+        _ = await scanner.scan(configDirs: [fixture.configDir], now: now, wanted: true)
+        await scanner.flush()
+        let reopened = TranscriptScanner(cachePath: fixture.cache)
+        let index = await reopened.scan(configDirs: [], now: now, wanted: false)
+        #expect(index.summary(.today, now: now).input == 150)
+    }
+
     @Test("cache corrompido recomeça do zero")
     func corruptedCacheStartsOver() async throws {
         let fixture = try Fixture()

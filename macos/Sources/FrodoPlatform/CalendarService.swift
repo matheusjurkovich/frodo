@@ -4,6 +4,7 @@ import FrodoCore
 import Foundation
 
 private let refreshSeconds: TimeInterval = 30
+private let storeChangeDebounce: TimeInterval = 0.3
 
 public enum CalendarAccess: Sendable {
     case unknown
@@ -21,6 +22,11 @@ public final class CalendarService: MeetingsSource, Destroyable {
     private let store = EKEventStore()
     private let settings: FrodoSettings
     private let timer: TimerSlot
+    private let storeChange: TimerSlot
+    private var dayEvents: [Date: [CalendarEvent]] = [:]
+    private var monthDays: [Date: Set<Int>] = [:]
+    private var loading: Set<String> = []
+    private var generation = 0
     private var observer: NSObjectProtocol?
     private var settingsSubscription: Unsubscribe?
     private var demoEvents: [CalendarEvent]?
@@ -28,10 +34,11 @@ public final class CalendarService: MeetingsSource, Destroyable {
     public init(settings: FrodoSettings, scheduler: Scheduler) {
         self.settings = settings
         timer = TimerSlot(scheduler: scheduler)
+        storeChange = TimerSlot(scheduler: scheduler)
         access = Self.currentAccess()
         settingsSubscription = settings.onChanged(["meeting-notice-minutes"]) { [weak self] in self?.refresh() }
         observer = NotificationCenter.default.addObserver(forName: .EKEventStoreChanged, object: store, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.refresh() }
+            MainActor.assumeIsolated { self?.scheduleStoreChange() }
         }
         timer.every(refreshSeconds) { [weak self] in self?.refresh() }
         refresh()
@@ -49,6 +56,7 @@ public final class CalendarService: MeetingsSource, Destroyable {
         NSApp.activate(ignoringOtherApps: true)
         let granted = (try? await store.requestFullAccessToEvents()) ?? false
         access = granted ? .granted : .denied
+        invalidate()
         refresh()
         changed.emit()
     }
@@ -59,6 +67,22 @@ public final class CalendarService: MeetingsSource, Destroyable {
         next = meeting
         nextMeetingURL = url
         changed.emit()
+    }
+
+    private func scheduleStoreChange() {
+        storeChange.once(storeChangeDebounce) { [weak self] in
+            guard let self else { return }
+            self.invalidate()
+            self.refresh()
+            self.changed.emit()
+        }
+    }
+
+    private func invalidate() {
+        generation += 1
+        dayEvents = [:]
+        monthDays = [:]
+        loading = []
     }
 
     public func refresh() {
@@ -88,22 +112,45 @@ public final class CalendarService: MeetingsSource, Destroyable {
     public func events(on day: Date) -> [CalendarEvent] {
         if let demoEvents { return demoEvents.filter { Calendar.current.isDate($0.start, inSameDayAs: day) } }
         guard Self.currentAccess() == .granted else { return [] }
-        let calendar = Calendar.current
-        let start = calendar.startOfDay(for: day)
-        guard let end = calendar.date(byAdding: .day, value: 1, to: start) else { return [] }
-        return store.events(matching: store.predicateForEvents(withStart: start, end: end, calendars: nil))
-            .sorted { $0.startDate < $1.startDate }
-            .map(Self.map)
+        let start = Calendar.current.startOfDay(for: day)
+        if let cached = dayEvents[start] { return cached }
+        if let end = Calendar.current.date(byAdding: .day, value: 1, to: start) {
+            load(key: "day-\(start.timeIntervalSince1970)", start: start, end: end) { [weak self] events in
+                self?.dayEvents[start] = events.sorted { $0.start < $1.start }
+            }
+        }
+        return []
     }
 
     public func daysWithEvents(inMonthOf date: Date) -> Set<Int> {
         if let demoEvents { return Set(demoEvents.map { Calendar.current.component(.day, from: $0.start) }) }
         guard Self.currentAccess() == .granted, let interval = Calendar.current.dateInterval(of: .month, for: date) else { return [] }
-        let events = store.events(matching: store.predicateForEvents(withStart: interval.start, end: interval.end, calendars: nil))
-        return Set(events.map { Calendar.current.component(.day, from: $0.startDate) })
+        if let cached = monthDays[interval.start] { return cached }
+        load(key: "month-\(interval.start.timeIntervalSince1970)", start: interval.start, end: interval.end) { [weak self] events in
+            self?.monthDays[interval.start] = Set(events.map { Calendar.current.component(.day, from: $0.start) })
+        }
+        return []
     }
 
-    private static func map(_ event: EKEvent) -> CalendarEvent {
+    private func load(key: String, start: Date, end: Date, apply: @escaping @MainActor ([CalendarEvent]) -> Void) {
+        guard !loading.contains(key) else { return }
+        loading.insert(key)
+        let expected = generation
+        let store = store
+        Task {
+            let events = await Self.fetch(store: store, start: start, end: end)
+            guard expected == generation else { return }
+            loading.remove(key)
+            apply(events)
+            changed.emit()
+        }
+    }
+
+    nonisolated private static func fetch(store: EKEventStore, start: Date, end: Date) async -> [CalendarEvent] {
+        store.events(matching: store.predicateForEvents(withStart: start, end: end, calendars: nil)).map(Self.map)
+    }
+
+    nonisolated private static func map(_ event: EKEvent) -> CalendarEvent {
         let texts = [event.location ?? "", event.notes ?? "", event.url?.absoluteString ?? ""]
         let color = event.calendar.color.usingColorSpace(.sRGB) ?? .systemBlue
         let hex = String(format: "#%02X%02X%02X", Int(color.redComponent * 255), Int(color.greenComponent * 255), Int(color.blueComponent * 255))
@@ -115,6 +162,7 @@ public final class CalendarService: MeetingsSource, Destroyable {
 
     public func destroy() {
         timer.stop()
+        storeChange.stop()
         settingsSubscription?()
         if let observer { NotificationCenter.default.removeObserver(observer) }
         changed.clearListeners()

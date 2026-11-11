@@ -72,28 +72,40 @@ public struct ClaudeClient: Sendable {
         self.now = now
     }
 
+    public func loadCredentials() async -> Credentials? {
+        parseCredentials(await store.read(configDir: configDir))
+    }
+
     public func fetchUsage() async throws -> JSONValue {
-        try await get(usageURL)
+        try await fetchUsage(with: await loadCredentials())
     }
 
     public func fetchProfile() async throws -> JSONValue {
-        try await get(profileURL)
+        try await fetchProfile(with: await loadCredentials())
+    }
+
+    public func fetchUsage(with credentials: Credentials?) async throws -> JSONValue {
+        try await get(usageURL, credentials: credentials)
+    }
+
+    public func fetchProfile(with credentials: Credentials?) async throws -> JSONValue {
+        try await get(profileURL, credentials: credentials)
     }
 
     public func readTier() async -> Tier {
-        let credentials = parseCredentials(await store.read(configDir: configDir))
+        let credentials = await loadCredentials()
         return Tier(subscriptionType: credentials?.subscriptionType, rateLimitTier: credentials?.rateLimitTier)
     }
 
-    private func get(_ url: String) async throws -> JSONValue {
-        let token = try await validToken()
+    private func get(_ url: String, credentials: Credentials?) async throws -> JSONValue {
+        let token = try validToken(credentials)
         let response = try await transport(HTTPRequest(url: url, token: token))
         guard (200 ..< 300).contains(response.status) else { throw ClaudeApiError(status: response.status, body: response.body) }
         return response.body.isEmpty ? .object([:]) : (JSONValue(text: response.body) ?? .object([:]))
     }
 
-    private func validToken() async throws -> String {
-        guard let raw = await store.read(configDir: configDir), let credentials = parseCredentials(raw) else { throw SignedOutError() }
+    private func validToken(_ credentials: Credentials?) throws -> String {
+        guard let credentials else { throw SignedOutError() }
         if credentials.expiresAt > 0, credentials.expiresAt / 1000 <= now().timeIntervalSince1970 {
             throw ClaudeApiError(status: 401, body: "")
         }

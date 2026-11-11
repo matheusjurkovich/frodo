@@ -215,6 +215,7 @@ public struct ClaudeIndex: Sendable {
         let from = dayStart(now, daysBack: period.days - 1, calendar: calendar)
         let until = dayStart(now, daysBack: -1, calendar: calendar)
         var slots: [Int: Int] = [:]
+        var daySlots: [Date: Int] = [:]
         var sessionIds = Set<String>()
         var models: [ModelFamily: Latest] = [:]
         var projects: [String: Int] = [:]
@@ -237,7 +238,15 @@ public struct ClaudeIndex: Sendable {
                 latest.model = cell.model
             }
             models[family] = latest
-            let slot = period == .today ? calendar.component(.hour, from: cell.hour) : Int(dayStart(cell.hour, calendar: calendar).timeIntervalSince1970)
+            let slot: Int
+            if period == .today {
+                slot = calendar.component(.hour, from: cell.hour)
+            } else if let cached = daySlots[cell.hour] {
+                slot = cached
+            } else {
+                slot = Int(dayStart(cell.hour, calendar: calendar).timeIntervalSince1970)
+                daySlots[cell.hour] = slot
+            }
             slots[slot, default: 0] += tokens
         }
         let total = input + output

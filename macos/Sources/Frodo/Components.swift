@@ -21,24 +21,32 @@ extension View {
     }
 }
 
-struct CardView<Content: View>: View {
-    var title: String?
-    var trailing: AnyView?
-    @ViewBuilder var content: Content
+extension View {
+    func innerCard(radius: CGFloat = Theme.Radius.item) -> some View {
+        background(RoundedRectangle(cornerRadius: radius, style: .continuous).fill(Theme.cardInner))
+    }
+}
 
-    init(title: String? = nil, trailing: AnyView? = nil, @ViewBuilder content: () -> Content) {
+struct CardView<Content: View, Trailing: View>: View {
+    let title: String?
+    let hasTrailing: Bool
+    let content: Content
+    let trailing: Trailing
+
+    init(title: String? = nil, @ViewBuilder content: () -> Content, @ViewBuilder trailing: () -> Trailing) {
         self.title = title
-        self.trailing = trailing
+        hasTrailing = true
         self.content = content()
+        self.trailing = trailing()
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if title != nil || trailing != nil {
+            if title != nil || hasTrailing {
                 HStack {
                     if let title { Text(title).font(Theme.Font.title()).foregroundStyle(Theme.text) }
                     Spacer(minLength: 8)
-                    if let trailing { trailing }
+                    trailing
                 }
             }
             content
@@ -46,6 +54,53 @@ struct CardView<Content: View>: View {
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous).fill(Theme.card))
+    }
+}
+
+extension CardView where Trailing == EmptyView {
+    init(title: String? = nil, @ViewBuilder content: () -> Content) {
+        self.title = title
+        hasTrailing = false
+        self.content = content()
+        trailing = EmptyView()
+    }
+}
+
+struct FilterChip: View {
+    let title: String
+    let selected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title).font(Theme.Font.label(.medium)).foregroundStyle(selected ? Theme.text : Theme.textSecondary)
+                .padding(.horizontal, 10).frame(height: 24)
+                .background(Capsule().fill(selected ? Theme.controlHover : Theme.control))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+struct TileButton<Label: View>: View {
+    let highlighted: Bool
+    let action: () -> Void
+    let label: Label
+
+    init(highlighted: Bool = false, action: @escaping () -> Void, @ViewBuilder label: () -> Label) {
+        self.highlighted = highlighted
+        self.action = action
+        self.label = label()
+    }
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 6) { label }
+                .frame(maxWidth: .infinity)
+                .frame(height: 64)
+                .hoverBackground(highlighted ? Theme.accent : Theme.control)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -330,7 +385,7 @@ struct PositionPicker: View {
             }
         }
         .padding(6)
-        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Theme.cardInner))
+        .innerCard(radius: 10)
     }
 
     @ViewBuilder

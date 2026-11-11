@@ -10,6 +10,7 @@ private func address(_ selector: AudioObjectPropertySelector, scope: AudioObject
 @MainActor
 public final class VolumeService: VolumeSource, Destroyable {
     public let changed = Event<Int>()
+    public let statusChanged = Event<Void>()
     public private(set) var percent = 0
     public private(set) var outputName = ""
 
@@ -97,6 +98,7 @@ public final class VolumeService: VolumeSource, Destroyable {
         } else {
             return false
         }
+        statusChanged.emit()
         return isInputMuted == muted
     }
 
@@ -139,6 +141,7 @@ public final class VolumeService: VolumeSource, Destroyable {
         volumeListener = listener
         var volumeAddress = address(kAudioHardwareServiceDeviceProperty_VirtualMainVolume, scope: kAudioDevicePropertyScopeOutput)
         AudioObjectAddPropertyListenerBlock(device, &volumeAddress, .main, listener)
+        if primed { statusChanged.emit() }
     }
 
     private func volumeChanged() {
@@ -157,5 +160,6 @@ public final class VolumeService: VolumeSource, Destroyable {
             AudioObjectRemovePropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject), &defaultOutput, .main, listener)
         }
         changed.clearListeners()
+        statusChanged.clearListeners()
     }
 }

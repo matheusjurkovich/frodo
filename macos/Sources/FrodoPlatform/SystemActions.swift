@@ -2,8 +2,8 @@ import AppKit
 
 @MainActor
 public enum SystemActions {
-    private static func runAppleScript(_ source: String) {
-        NSAppleScript(source: source)?.executeAndReturnError(nil)
+    private static func tell(_ source: String) {
+        Task { _ = await runAppleScript(source) }
     }
 
     private static func run(_ executable: String, _ arguments: [String]) {
@@ -15,9 +15,9 @@ public enum SystemActions {
 
     public static func sleep() { run("/usr/bin/pmset", ["sleepnow"]) }
     public static func lockScreen() { run("/usr/bin/pmset", ["displaysleepnow"]) }
-    public static func restart() { runAppleScript("tell application \"System Events\" to restart") }
-    public static func shutDown() { runAppleScript("tell application \"System Events\" to shut down") }
-    public static func logOut() { runAppleScript("tell application \"System Events\" to log out") }
+    public static func restart() { tell("tell application \"System Events\" to restart") }
+    public static func shutDown() { tell("tell application \"System Events\" to shut down") }
+    public static func logOut() { tell("tell application \"System Events\" to log out") }
 
     public static func openScreenshotTool() {
         NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/Utilities/Screenshot.app"))

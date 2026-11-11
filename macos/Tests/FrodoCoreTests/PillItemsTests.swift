@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 
 @testable import FrodoCore
@@ -72,6 +73,44 @@ struct PillItemsTests {
         let items: [ClosedItem] = [.clock, .date, .battery]
         #expect(movingItem(items, .clock, by: -1) == items)
         #expect(movingItem(items, .battery, by: 1) == items)
+    }
+
+    @Test("modo mínimo mostra só o relógio")
+    func minimalModeShowsOnlyTheClock() {
+        #expect(visibleItems(mode: .minimal, items: [.date, .battery, .ram]) == [.clock])
+    }
+
+    @Test("modo compacto mostra todos na ordem")
+    func compactModeShowsAllInOrder() {
+        #expect(visibleItems(mode: .compact, items: [.battery, .clock, .ram]) == [.battery, .clock, .ram])
+    }
+
+    @Test("modo rotativo guarda um lugar só para os itens de texto, no primeiro deles")
+    func rotatingModeKeepsOneSlotForTextItems() {
+        #expect(visibleItems(mode: .rotating, items: [.clock, .battery, .date, .ram, .claudeSession]) == [.clock, .battery, .date])
+        #expect(visibleItems(mode: .rotating, items: [.clock, .date]) == [.clock, .date])
+    }
+
+    @Test("o item rotativo troca a cada intervalo, só entre os de texto")
+    func rotatingItemChangesEveryInterval() {
+        let items: [ClosedItem] = [.clock, .battery, .ram, .claudeSession]
+        #expect(rotatingItem(items, now: Date(timeIntervalSince1970: 0), everySeconds: 5) == .battery)
+        #expect(rotatingItem(items, now: Date(timeIntervalSince1970: 4), everySeconds: 5) == .battery)
+        #expect(rotatingItem(items, now: Date(timeIntervalSince1970: 5), everySeconds: 5) == .ram)
+        #expect(rotatingItem(items, now: Date(timeIntervalSince1970: 15), everySeconds: 5) == .battery)
+    }
+
+    @Test("sem item de texto não há item rotativo")
+    func noTextItemMeansNoRotatingItem() {
+        #expect(rotatingItem([.clock, .date], now: Date(), everySeconds: 5) == nil)
+        #expect(rotatingItem([], now: Date(), everySeconds: 5) == nil)
+    }
+
+    @Test("intervalo zero vale como um segundo")
+    func zeroIntervalCountsAsOneSecond() {
+        let items: [ClosedItem] = [.battery, .ram]
+        #expect(rotatingItem(items, now: Date(timeIntervalSince1970: 1), everySeconds: 0) == .ram)
+        #expect(rotatingItem(items, now: Date(timeIntervalSince1970: -1), everySeconds: 1) == .ram)
     }
 
     @Test("rótulos iguais aos do Linux")

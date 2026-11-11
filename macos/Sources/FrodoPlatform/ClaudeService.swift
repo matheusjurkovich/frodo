@@ -29,6 +29,8 @@ public final class ClaudeService: Destroyable {
     private let disposables = Disposables()
     private var entries: [Entry] = []
     private var lastRefresh: Date?
+    private var inFlight: (id: Int, task: Task<Void, Never>)?
+    private var nextRefreshId = 0
     private var destroyed = false
     public private(set) var lastFailed = false
 
@@ -51,7 +53,7 @@ public final class ClaudeService: Destroyable {
         Task { [weak self] in
             guard let self else { return }
             let profiles = await ensureProfiles(settings: self.settings, store: self.store, paths: self.paths)
-            if !self.destroyed { self.rebuild(profiles) }
+            if !self.destroyed, self.entries.map(\.usage.profile) != profiles { self.rebuild(profiles) }
         }
     }
 
@@ -64,14 +66,27 @@ public final class ClaudeService: Destroyable {
     }
 
     public func refreshIfStale(maxAge: TimeInterval) {
-        if lastRefresh.map({ now().timeIntervalSince($0) >= maxAge }) ?? true {
-            Task { await refresh(force: true) }
-        }
+        guard lastRefresh.map({ now().timeIntervalSince($0) >= maxAge }) ?? true else { return }
+        lastRefresh = now()
+        Task { await refresh(force: true) }
     }
 
     public func refresh(force: Bool = false) async {
+        if let inFlight {
+            await inFlight.task.value
+            return
+        }
         if !force, let lastRefresh, now().timeIntervalSince(lastRefresh) < minRefresh { return }
         lastRefresh = now()
+        let id = nextRefreshId
+        nextRefreshId += 1
+        let task = Task { await self.load() }
+        inFlight = (id, task)
+        await task.value
+        if inFlight?.id == id { inFlight = nil }
+    }
+
+    private func load() async {
         let snapshot = entries
         await withTaskGroup(of: (Int, ProfileUsage).self) { group in
             for (index, entry) in snapshot.enumerated() {
@@ -97,6 +112,7 @@ public final class ClaudeService: Destroyable {
             )
         }
         changed.emit()
+        inFlight = nil
         Task { await refresh(force: true) }
     }
 
@@ -108,12 +124,12 @@ public final class ClaudeService: Destroyable {
 
     private static func fetch(_ client: ClaudeClient, current: ProfileUsage, now: Date) async -> ProfileUsage {
         var tier = current.tier
-        let known = await client.readTier()
-        if known.subscriptionType != nil || known.rateLimitTier != nil {
-            tier = tierLabel(plan: known.subscriptionType, rateLimitTier: known.rateLimitTier)
+        let credentials = await client.loadCredentials()
+        if let credentials, credentials.subscriptionType != nil || credentials.rateLimitTier != nil {
+            tier = tierLabel(plan: credentials.subscriptionType, rateLimitTier: credentials.rateLimitTier)
         }
-        async let usageResult = capture { try await client.fetchUsage() }
-        async let profileResult = capture { try await client.fetchProfile() }
+        async let usageResult = capture { try await client.fetchUsage(with: credentials) }
+        async let profileResult = capture { try await client.fetchProfile(with: credentials) }
         let (usage, profile) = await (usageResult, profileResult)
         switch usage {
         case let .failure(error):
@@ -145,6 +161,8 @@ public final class ClaudeService: Destroyable {
 
     public func destroy() {
         destroyed = true
+        inFlight?.task.cancel()
+        inFlight = nil
         timer.stop()
         disposables.dispose()
         changed.clearListeners()

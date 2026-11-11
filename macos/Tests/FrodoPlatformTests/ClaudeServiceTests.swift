@@ -16,6 +16,25 @@ private final class StubScheduler: Scheduler {
     func schedule(after interval: TimeInterval, repeating: Bool, action: @escaping @MainActor () -> Void) -> Unsubscribe { {} }
 }
 
+private actor ReadCounter {
+    private(set) var reads = 0
+
+    func add() { reads += 1 }
+}
+
+private struct CountingStore: CredentialStore {
+    let counter: ReadCounter
+    let text: String
+
+    func read(configDir: String) async -> String? {
+        await counter.add()
+        try? await Task.sleep(for: .milliseconds(50))
+        return text
+    }
+
+    func exists(configDir: String) async -> Bool { true }
+}
+
 private func credentials(_ token: String) -> String {
     let expiresAt = Int((Date().timeIntervalSince1970 + 3600) * 1000)
     return #"{"claudeAiOauth":{"accessToken":"\#(token)","expiresAt":\#(expiresAt),"subscriptionType":"max","rateLimitTier":"default_claude_max_5x"}}"#
@@ -93,6 +112,29 @@ struct ClaudeServiceTests {
         await waitUntil { service.active?.status == .error }
         #expect(service.active?.error == "Sessão expirada. Entre de novo no Claude Code.")
         #expect(service.lastFailed)
+    }
+
+    @Test("lê as credenciais uma vez por perfil a cada atualização e junta atualizações simultâneas")
+    func readsCredentialsOncePerRefreshAndJoinsConcurrentRefreshes() async {
+        let settings = makeSettings()
+        settings.claudeProfiles = [ClaudeProfile(id: "a", label: "Claude", configDir: "/home/u/.claude")]
+        settings.claudeProfilesInitialized = true
+        let paths = FrodoPaths(home: "/home/u", runtimeDir: "/tmp/x", cacheDir: "/tmp/y", supportDir: "/tmp/z")
+        let counter = ReadCounter()
+        let service = ClaudeService(
+            settings: settings, store: CountingStore(counter: counter, text: credentials("t")),
+            transport: { request in HTTPResponse(status: 200, body: request.url == usageURL ? usageBody : profileBody) },
+            paths: paths, scheduler: StubScheduler()
+        )
+        defer { service.destroy() }
+        await waitUntil { service.active?.status == .ok }
+        try? await Task.sleep(for: .milliseconds(100))
+        #expect(await counter.reads == 1)
+        let first = Task { await service.refresh(force: true) }
+        let second = Task { await service.refresh(force: true) }
+        await first.value
+        await second.value
+        #expect(await counter.reads == 2)
     }
 
     @Test("descobre perfis pelas pastas .claude que têm login")

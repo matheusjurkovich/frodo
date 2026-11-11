@@ -30,13 +30,13 @@ As credenciais do Claude Code ficam no Keychain (`Claude Code-credentials`, e `C
 
 | Recurso do Linux                                  | No macOS                                                               |
 | ------------------------------------------------- | ---------------------------------------------------------------------- |
-| Notificações de outros apps                       | Só as do Claude Code. O macOS não expõe as notificações de outros apps |
+| Notificações de outros apps                       | Só as do Claude Code, até as 100 mais novas. O macOS não expõe as notificações de outros apps |
 | Áreas de trabalho                                 | Sem aba: não há API pública para Spaces                                |
 | Tiles de Wi-Fi, Bluetooth, avião, economia e Foco | Atalhos que abrem o painel certo dos Ajustes do Sistema                |
 | Brilho                                            | Sem controle: não há API pública para a tela embutida                  |
 | Indicador de gravação de tela                     | Sem indicador: não dá para detectar a gravação de outro app            |
 | Barra superior oculta                             | Só a pílula flutuante                                                  |
-| Player (MPRIS)                                    | Música e Spotify. Sem capa nem progresso                               |
+| Player (MPRIS)                                    | Música e Spotify. Sem capa nem progresso. Sem permissão de Automação, o cartão avisa |
 
 ## Desenvolvimento
 
