@@ -29,16 +29,19 @@ jobs:
       run:
         working-directory: linux
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: linux/package-lock.json
       - name: Instala gjs e typelibs
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends gjs gir1.2-soup-3.0 libglib2.0-bin dbus-daemon
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends gjs gir1.2-soup-3.0 libglib2.0-bin dbus-daemon zip unzip jq
       - run: npm ci
       - run: npm run check
+      - run: npm run build
+      - name: Empacota a extensão
+        run: sh tools/pack.sh 0.0.0-ci
       - name: Testa o protocolo do hook
         working-directory: .
         run: sh shared/hooks/claude-session.test.sh
