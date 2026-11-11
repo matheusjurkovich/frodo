@@ -13,5 +13,4 @@ export interface IslandPresenceDependencies {
     readonly monitorIndex: number;
     isOpen(): boolean;
     close(): void;
-    coverChanged(): void;
 }

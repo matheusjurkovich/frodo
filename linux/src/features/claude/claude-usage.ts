@@ -12,6 +12,10 @@ import {
     LEVEL_RANK,
     LOCKOUT_CRIT_FRACTION,
     DISPLAY_WARN_UTILIZATION,
+    CRIT_UTILIZATION,
+    WARN_UTILIZATION,
+    PROJECTION_WARN_UTILIZATION,
+    MIN_ELAPSED_FRACTION,
     SHORT_LABELS,
 } from './claude-usage.const.js';
 import type {Json, WindowRole, UsageWindow, Spend, TierIcon, LevelInput, AccountSummary} from './claude-usage.types.js';
@@ -138,12 +142,14 @@ export function normalizeWindows(usage: unknown): UsageWindow[] {
     return windows.filter((window): window is UsageWindow => window !== null);
 }
 
+function formatAmount(amount: number, exponent: number, currency: string | null): string {
+    return `${currency ? `${currency} ` : ''}${(amount / 10 ** exponent).toFixed(exponent)}`;
+}
+
 function formatMinor(money: unknown): string | null {
     const amount = finite(field(money, 'amount_minor'));
     if (amount === null) return null;
-    const exponent = finite(field(money, 'exponent')) ?? 2;
-    const currency = text(field(money, 'currency'));
-    return `${currency ? `${currency} ` : ''}${(amount / 10 ** exponent).toFixed(exponent)}`;
+    return formatAmount(amount, finite(field(money, 'exponent')) ?? 2, text(field(money, 'currency')));
 }
 
 export function normalizeSpend(usage: unknown): Spend | null {
@@ -160,8 +166,7 @@ export function normalizeSpend(usage: unknown): Spend | null {
     if (field(extra, 'is_enabled') !== true) return null;
     const places = finite(field(extra, 'decimal_places')) ?? 2;
     const currency = text(field(extra, 'currency'));
-    const money = (value: number | null): string | null =>
-        value === null ? null : `${currency ? `${currency} ` : ''}${(value / 10 ** places).toFixed(places)}`;
+    const money = (value: number | null): string | null => (value === null ? null : formatAmount(value, places, currency));
     const used = money(finite(field(extra, 'used_credits')));
     const monthlyLimit = finite(field(extra, 'monthly_limit'));
     const limit = monthlyLimit !== null && monthlyLimit > 0 ? money(monthlyLimit) : null;
@@ -208,8 +213,8 @@ export function tierIcon(label: string): TierIcon | null {
 }
 
 function utilizationLevel(utilization: number): Level {
-    if (utilization >= 90) return 'crit';
-    if (utilization >= 75) return 'warn';
+    if (utilization >= CRIT_UTILIZATION) return 'crit';
+    if (utilization >= WARN_UTILIZATION) return 'warn';
     return 'ok';
 }
 
@@ -223,7 +228,7 @@ function elapsedSeconds({resetsAt, totalSeconds}: LevelInput, now: number): {ela
     const remaining = (reset - now) / 1000;
     if (remaining <= 0) return null;
     const elapsed = totalSeconds - remaining;
-    if (elapsed <= 0 || elapsed / totalSeconds < 0.05) return null;
+    if (elapsed <= 0 || elapsed / totalSeconds < MIN_ELAPSED_FRACTION) return null;
     return {elapsed, remaining, total: totalSeconds};
 }
 
@@ -250,7 +255,7 @@ export function effectiveLevel(window: LevelInput, now: number): Level {
     const lockout = lockoutSeconds(window, now);
     if (lockout !== null && window.totalSeconds) {
         level = maxLevel(level, lockout >= window.totalSeconds * LOCKOUT_CRIT_FRACTION ? 'crit' : 'warn');
-    } else if (projectedUtilization(window, now) >= 75) {
+    } else if (projectedUtilization(window, now) >= PROJECTION_WARN_UTILIZATION) {
         level = maxLevel(level, 'warn');
     }
     return maxLevel(level, window.apiLevel);
@@ -279,7 +284,7 @@ export function projectionNote(window: LevelInput, remaining: boolean, now: numb
         return 'no ritmo atual acaba pouco antes do reset';
     }
     const projected = projectedUtilization(window, now);
-    if (projected < 75 || Math.round(projected) <= Math.round(window.utilization)) return '';
+    if (projected < PROJECTION_WARN_UTILIZATION || Math.round(projected) <= Math.round(window.utilization)) return '';
     return remaining
         ? `tendência de ~${shownPercent(projected, true)}% restante até o reset`
         : `tendência de ~${Math.round(projected)}% até o reset`;

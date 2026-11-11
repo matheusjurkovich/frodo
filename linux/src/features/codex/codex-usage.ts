@@ -4,8 +4,8 @@ import {capitalize} from '../../shared/format.js';
 import {count, isRecord, text} from '../../shared/json.js';
 import {resetNote} from '../../shared/meter.js';
 import type {Meter} from '../../shared/meter.types.js';
-import {FAMILIES} from './codex-usage.const.js';
-import type {CodexLine, RateWindow, CodexLimits, CodexRollout, Mutable, CodexSession} from './codex-usage.types.js';
+import {DAY_DIR_SLACK_MS, FAMILIES} from './codex-usage.const.js';
+import type {CodexLine, RateWindow, CodexLimits, CodexRollout, Mutable, CodexSession, Json} from './codex-usage.types.js';
 
 export function parseCodexLine(line: string): CodexLine | null {
     let data: unknown;
@@ -53,49 +53,94 @@ export function latestLimits(content: string): CodexLimits | null {
     return null;
 }
 
-export function readRollout(content: string): CodexRollout {
-    const cells = new Map<string, UsageCell>();
-    let id: string | null = null;
-    let project = '';
-    let model = '';
-    let previousTotal: number | null = null;
-    let session: Mutable<CodexSession> | null = null;
-    let limits: CodexLimits | null = null;
+export class RolloutParser {
+    readonly #cells = new Map<string, UsageCell>();
+    #id: string | null = null;
+    #project = '';
+    #model = '';
+    #previousTotal: number | null = null;
+    #session: Mutable<CodexSession> | null = null;
+    #limits: CodexLimits | null = null;
 
-    for (const raw of content.split('\n')) {
+    feed(content: string): void {
+        for (const raw of content.split('\n')) this.line(raw);
+    }
+
+    line(raw: string): boolean {
         const line = parseCodexLine(raw);
-        if (!line) continue;
+        if (!line) return false;
         const {payload} = line;
         if (line.type === 'session_meta') {
-            id ??= text(payload.id);
-            project = (text(payload.cwd) ?? '').split('/').filter(Boolean).pop() ?? '';
-            continue;
+            this.#id ??= text(payload.id);
+            this.#project = (text(payload.cwd) ?? '').split('/').filter(Boolean).pop() ?? '';
+            return true;
         }
         if (line.type === 'turn_context') {
-            model = text(payload.model) ?? model;
-            continue;
+            this.#model = text(payload.model) ?? this.#model;
+            return true;
         }
-        if (line.type !== 'event_msg' || payload.type !== 'token_count') continue;
-        limits = limitsOf(line) ?? limits;
+        if (line.type !== 'event_msg' || payload.type !== 'token_count') return true;
+        this.#limits = limitsOf(line) ?? this.#limits;
+        this.#count(line, payload);
+        return true;
+    }
+
+    result(): CodexRollout {
+        return {
+            id: this.#id,
+            cells: [...this.#cells.values()].map(cell => ({...cell})),
+            session: this.#id && this.#session ? {...this.#session} : null,
+            limits: this.#limits,
+        };
+    }
+
+    #count(line: CodexLine, payload: Json): void {
         const info = payload.info;
-        if (!isRecord(info) || !isRecord(info.last_token_usage)) continue;
+        if (!isRecord(info) || !isRecord(info.last_token_usage)) return;
         const total = isRecord(info.total_token_usage) ? info.total_token_usage.total_tokens : undefined;
-        if (typeof total === 'number' && total === previousTotal) continue;
-        if (typeof total === 'number') previousTotal = total;
+        if (typeof total === 'number' && total === this.#previousTotal) return;
+        if (typeof total === 'number') this.#previousTotal = total;
         const last = info.last_token_usage;
         const cached = count(last.cached_input_tokens);
         const input = Math.max(0, count(last.input_tokens) - cached);
         const output = count(last.output_tokens);
-        if (input + cached + output === 0) continue;
-        addCell(cells, {hour: hourStart(line.at), model, project, session: id ?? '', input, output, cacheRead: cached});
-        session ??= {model, tokens: 0, contextTokens: 0, contextWindow: 0, startedAt: line.at, lastAt: line.at};
+        if (input + cached + output === 0) return;
+        const model = this.#model;
+        addCell(this.#cells, {
+            hour: hourStart(line.at),
+            model,
+            project: this.#project,
+            session: this.#id ?? '',
+            input,
+            output,
+            cacheRead: cached,
+        });
+        const session = (this.#session ??= {model, tokens: 0, contextTokens: 0, contextWindow: 0, startedAt: line.at, lastAt: line.at});
         session.model = model;
         session.tokens += input + output;
         session.contextTokens = input + cached + output;
         session.contextWindow = count(info.model_context_window) || session.contextWindow;
         session.lastAt = line.at;
     }
-    return {id, cells: [...cells.values()], session: id ? session : null, limits};
+}
+
+export function readRollout(content: string): CodexRollout {
+    const parser = new RolloutParser();
+    parser.feed(content);
+    return parser.result();
+}
+
+export function dayDirEnded(parts: readonly string[], since: number): boolean {
+    const [year, month, day] = parts.map(Number);
+    if (year === undefined || Number.isNaN(year)) return false;
+    if (month !== undefined && Number.isNaN(month)) return false;
+    if (day !== undefined && Number.isNaN(day)) return false;
+    const end = new Date(
+        year,
+        month === undefined ? 12 : day === undefined ? month : month - 1,
+        month === undefined ? 1 : day === undefined ? 1 : day + 1,
+    );
+    return end.getTime() + DAY_DIR_SLACK_MS <= since;
 }
 
 export function planLabel(plan: string | null): string | null {

@@ -3,6 +3,7 @@ import {
     geminiModels,
     geminiCells,
     geminiQuota,
+    GeminiSessionParser,
     nextPacificReset,
     pacificDayStart,
     parseGeminiSession,
@@ -45,6 +46,16 @@ describe('gemini-usage', () => {
             ['g1', 405, 100],
             ['g2', 1005, 100],
         ]);
+    });
+
+    it('retoma o JSONL de onde parou e reconhece linha incompleta', () => {
+        const lines = [meta, ...messages].map(line => JSON.stringify(line));
+        const whole = parseGeminiSession(lines.join('\n'));
+        const parser = new GeminiSessionParser();
+        parser.feed(`${lines.slice(0, 3).join('\n')}\n`);
+        expect(parser.line((lines[3] ?? '').slice(0, 10))).toBeFalse();
+        parser.feed(`${lines.slice(3).join('\n')}\n`);
+        expect(parser.result()).toEqual(whole);
     });
 
     it('descarta arquivo sem sessionId', () => {

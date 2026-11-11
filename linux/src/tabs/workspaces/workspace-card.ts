@@ -5,49 +5,74 @@ import {contentButton} from '../../shared/ui/buttons.js';
 import {column, label, row} from '../../shared/ui/layout.js';
 import {setSourceColor} from '../../shared/ui/cairo.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
+import type {Component} from '../../shared/ui/lifecycle.types.js';
 import {THUMB_WIDTH, THUMB_HEIGHT, SCREEN_X, SCREEN_Y, DASH_WIDTH, DASH_RADIUS, DASH_PATTERN} from './workspace-card.const.js';
 
-function thumbnail(windows: WorkspaceInfo['windows']): St.Widget {
-    const thumb = new St.Widget({
+export class WorkspaceCard implements Component {
+    readonly actor: St.Button;
+    readonly #number = label('', '');
+    readonly #badge: St.Bin;
+    readonly #title = label('', 'frodo-workspace-title');
+    readonly #apps = label('', 'frodo-workspace-apps');
+    readonly #thumb = new St.Widget({
         style_class: 'frodo-workspace-thumb',
         width: THUMB_WIDTH,
         height: THUMB_HEIGHT,
         x_align: Clutter.ActorAlign.CENTER,
     });
-    for (const {rect, slot} of windows) {
-        const window = new St.Widget({style_class: `frodo-win frodo-win-slot-${slot}`});
-        window.set_position(SCREEN_X + rect.x, SCREEN_Y + rect.y);
-        window.set_size(rect.width, rect.height);
-        thumb.add_child(window);
+    #index = 0;
+    #shown = '';
+    #shownWindows = '';
+
+    constructor(onActivate: (index: number) => void) {
+        this.#number.x_align = Clutter.ActorAlign.CENTER;
+        this.#badge = new St.Bin({style_class: 'frodo-workspace-badge', child: this.#number, y_align: Clutter.ActorAlign.CENTER});
+        this.#title.x_expand = true;
+        const heading = row('frodo-workspace-heading');
+        heading.add_child(this.#badge);
+        heading.add_child(this.#title);
+        const content = column('frodo-workspace-content');
+        content.add_child(this.#thumb);
+        content.add_child(heading);
+        content.add_child(this.#apps);
+        this.actor = contentButton(
+            'frodo-workspace',
+            content,
+            () => {
+                onActivate(this.#index);
+            },
+            {x_expand: true, y_expand: true},
+        );
     }
-    return thumb;
-}
 
-export function workspaceCard(info: WorkspaceInfo, onActivate: () => void): St.Button {
-    const number = label(String(info.index + 1), '');
-    number.x_align = Clutter.ActorAlign.CENTER;
-    const badge = new St.Bin({
-        style_class: `frodo-workspace-badge${info.active ? ' frodo-workspace-badge-active' : ''}`,
-        child: number,
-        y_align: Clutter.ActorAlign.CENTER,
-    });
-    const title = label(info.title, 'frodo-workspace-title');
-    title.x_expand = true;
-    const heading = row('frodo-workspace-heading');
-    heading.add_child(badge);
-    heading.add_child(title);
+    update(info: WorkspaceInfo): void {
+        this.#index = info.index;
+        const key = JSON.stringify([info.index, info.title, info.apps, info.active]);
+        if (key !== this.#shown) {
+            this.#shown = key;
+            this.#number.text = String(info.index + 1);
+            this.#title.text = info.title;
+            this.#apps.text = info.apps;
+            this.actor.checked = info.active;
+            this.actor.accessible_name = `Área ${info.index + 1}, ${info.title}: ${info.apps}`;
+            if (info.active) this.#badge.add_style_class_name('frodo-workspace-badge-active');
+            else this.#badge.remove_style_class_name('frodo-workspace-badge-active');
+        }
+        const windows = JSON.stringify(info.windows);
+        if (windows === this.#shownWindows) return;
+        this.#shownWindows = windows;
+        this.#thumb.destroy_all_children();
+        for (const {rect, slot} of info.windows) {
+            const window = new St.Widget({style_class: `frodo-win frodo-win-slot-${slot}`});
+            window.set_position(SCREEN_X + rect.x, SCREEN_Y + rect.y);
+            window.set_size(rect.width, rect.height);
+            this.#thumb.add_child(window);
+        }
+    }
 
-    const content = column('frodo-workspace-content');
-    content.add_child(thumbnail(info.windows));
-    content.add_child(heading);
-    content.add_child(label(info.apps, 'frodo-workspace-apps'));
-
-    return contentButton('frodo-workspace', content, onActivate, {
-        x_expand: true,
-        y_expand: true,
-        checked: info.active,
-        accessible_name: `Área ${info.index + 1}, ${info.title}: ${info.apps}`,
-    });
+    destroy(): void {
+        this.actor.destroy();
+    }
 }
 
 function dashedOutline(): St.DrawingArea {

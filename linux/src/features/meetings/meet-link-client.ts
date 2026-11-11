@@ -15,14 +15,19 @@ import type {OpenCalendar, ManagedObjects} from './meet-link-client.types.js';
 Gio._promisify(Gio.DBusConnection.prototype, 'call', 'call_finish');
 
 export class MeetLinkClient {
+    readonly #connection: Gio.DBusConnection;
     readonly #cancellable = new Gio.Cancellable();
-    readonly #opened = new Map<string, OpenCalendar>();
+    readonly #opened = new Map<string, Promise<OpenCalendar>>();
+
+    constructor(connection: Gio.DBusConnection = Gio.DBus.session) {
+        this.#connection = connection;
+    }
 
     async find(title: string, startsAt: number): Promise<string | null> {
         try {
             return await this.#find(title, startsAt);
         } catch {
-            this.#opened.clear();
+            this.#closeAll();
         }
         try {
             return await this.#find(title, startsAt);
@@ -69,9 +74,18 @@ export class MeetLinkClient {
         return uids;
     }
 
-    async #open(uid: string): Promise<OpenCalendar> {
+    #open(uid: string): Promise<OpenCalendar> {
         const known = this.#opened.get(uid);
         if (known) return known;
+        const opening = this.#openNow(uid).catch((error: unknown) => {
+            this.#opened.delete(uid);
+            throw error;
+        });
+        this.#opened.set(uid, opening);
+        return opening;
+    }
+
+    async #openNow(uid: string): Promise<OpenCalendar> {
         const reply = await this.#call(
             CALENDAR_BUS,
             FACTORY_PATH,
@@ -81,13 +95,11 @@ export class MeetLinkClient {
             '(ss)',
         );
         const [path, bus] = reply.deepUnpack<[string, string]>();
-        const calendar = {path, bus};
-        this.#opened.set(uid, calendar);
-        return calendar;
+        return {path, bus};
     }
 
     #call(bus: string, path: string, iface: string, method: string, parameters: GLib.Variant | null, reply: string): Promise<GLib.Variant> {
-        return Gio.DBus.session.call(
+        return this.#connection.call(
             bus,
             path,
             iface,
@@ -100,10 +112,19 @@ export class MeetLinkClient {
         );
     }
 
+    #closeAll(): void {
+        for (const opening of this.#opened.values())
+            void opening.then(
+                ({bus, path}) => {
+                    this.#connection.call(bus, path, CALENDAR_INTERFACE, 'Close', null, null, Gio.DBusCallFlags.NONE, -1, null, null);
+                },
+                () => undefined,
+            );
+        this.#opened.clear();
+    }
+
     destroy(): void {
         this.#cancellable.cancel();
-        for (const {bus, path} of this.#opened.values())
-            Gio.DBus.session.call(bus, path, CALENDAR_INTERFACE, 'Close', null, null, Gio.DBusCallFlags.NONE, -1, null, null);
-        this.#opened.clear();
+        this.#closeAll();
     }
 }

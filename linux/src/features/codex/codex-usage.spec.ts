@@ -1,4 +1,4 @@
-import {codexModels, codexMeters, latestLimits, parseCodexLine, planLabel, readRollout} from './codex-usage.js';
+import {codexModels, codexMeters, dayDirEnded, latestLimits, parseCodexLine, planLabel, readRollout, RolloutParser} from './codex-usage.js';
 
 const at = (minute: number): string => new Date(2026, 9, 27, 10, minute).toISOString();
 
@@ -131,5 +131,41 @@ describe('codex-usage', () => {
         ]);
         expect(meters[0]?.note).toBe('Reinicia em 2 h 10 min');
         expect(codexMeters(null, now)).toEqual([]);
+    });
+
+    it('retoma a leitura do rollout de onde parou e fecha a linha incompleta depois', () => {
+        const header = JSON.stringify({timestamp: at(0), type: 'session_meta', payload: {id: 'a', cwd: '/home/u/frodo'}});
+        const turn = (total: number): string =>
+            JSON.stringify({
+                timestamp: at(1),
+                type: 'event_msg',
+                payload: {
+                    type: 'token_count',
+                    info: {
+                        total_token_usage: {total_tokens: total},
+                        last_token_usage: {input_tokens: 10, cached_input_tokens: 0, output_tokens: 1},
+                    },
+                },
+            });
+        const whole = readRollout([header, turn(11), turn(22)].join('\n'));
+        const parser = new RolloutParser();
+        parser.feed(`${header}\n${turn(11)}\n`);
+        expect(parser.line(turn(22).slice(0, 20))).toBeFalse();
+        parser.feed(`${turn(22)}\n`);
+        expect(parser.result()).toEqual(whole);
+        expect(whole.session?.tokens).toBe(22);
+    });
+
+    it('sabe quando a pasta de um dia já ficou para trás da janela', () => {
+        const since = new Date(2026, 9, 28).getTime();
+        expect(dayDirEnded(['2025'], since)).toBeTrue();
+        expect(dayDirEnded(['2026'], since)).toBeFalse();
+        expect(dayDirEnded(['2026', '08'], since)).toBeTrue();
+        expect(dayDirEnded(['2026', '10'], since)).toBeFalse();
+        expect(dayDirEnded(['2026', '10', '25'], since)).toBeTrue();
+        expect(dayDirEnded(['2026', '10', '27'], since)).toBeFalse();
+        expect(dayDirEnded(['2026', '10', '28'], since)).toBeFalse();
+        expect(dayDirEnded(['x'], since)).toBeFalse();
+        expect(dayDirEnded(['2026', 'x'], since)).toBeFalse();
     });
 });

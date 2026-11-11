@@ -49,20 +49,43 @@ function records(content: string): unknown[] {
     }
 }
 
-export function parseGeminiSession(content: string): GeminiSession | null {
-    let id: string | null = null;
-    const requests = new Map<string, GeminiRequest>();
-    const add = (value: unknown): void => {
-        const found = request(value);
-        if (found) requests.set(found.id, found);
-    };
-    for (const record of records(content)) {
-        if (!isRecord(record)) continue;
-        if (id === null && typeof record.sessionId === 'string') id = record.sessionId;
+export class GeminiSessionParser {
+    readonly #requests = new Map<string, GeminiRequest>();
+    #id: string | null = null;
+
+    feed(content: string): void {
+        for (const raw of content.split('\n')) this.line(raw);
+    }
+
+    line(raw: string): boolean {
+        try {
+            this.ingest(JSON.parse(raw));
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    ingest(record: unknown): void {
+        if (!isRecord(record)) return;
+        const add = (value: unknown): void => {
+            const found = request(value);
+            if (found) this.#requests.set(found.id, found);
+        };
+        if (this.#id === null && typeof record.sessionId === 'string') this.#id = record.sessionId;
         if (isRecord(record.$set) && Array.isArray(record.$set.messages)) (record.$set.messages as unknown[]).forEach(add);
         add(record);
     }
-    return id === null ? null : {id, requests: [...requests.values()]};
+
+    result(): GeminiSession | null {
+        return this.#id === null ? null : {id: this.#id, requests: [...this.#requests.values()]};
+    }
+}
+
+export function parseGeminiSession(content: string): GeminiSession | null {
+    const parser = new GeminiSessionParser();
+    for (const record of records(content)) parser.ingest(record);
+    return parser.result();
 }
 
 export function geminiCells(requests: Iterable<GeminiRequest>, project: string, session: string): UsageCell[] {

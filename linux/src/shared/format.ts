@@ -2,6 +2,11 @@ import {WEEKDAYS, MONTHS} from './format.const.js';
 
 export const pad = (n: number): string => String(n).padStart(2, '0');
 
+export function formatClock(date = new Date(), showSeconds = false): string {
+    const time = `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    return showSeconds ? `${time}:${pad(date.getSeconds())}` : time;
+}
+
 export function capitalize(word: string): string {
     return word.charAt(0).toUpperCase() + word.slice(1);
 }

@@ -4,3 +4,5 @@ export interface ShortcutModifiers {
     readonly alt: boolean;
     readonly shift: boolean;
 }
+
+export type ShortcutClaim = 'free' | 'unchanged' | 'taken';

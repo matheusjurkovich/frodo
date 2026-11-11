@@ -92,6 +92,7 @@ describe('ClaudeClient', () => {
     it('lê o plano direto das credenciais', async () => {
         writeCredentials({accessToken: 'a', subscriptionType: 'max', rateLimitTier: 'default_claude_max_20x'});
         const client = new ClaudeClient(dir, transport({}));
-        expect(await client.readTier()).toEqual({subscriptionType: 'max', rateLimitTier: 'default_claude_max_20x'});
+        const credentials = await client.credentials();
+        expect([credentials?.subscriptionType, credentials?.rateLimitTier]).toEqual(['max', 'default_claude_max_20x']);
     });
 });

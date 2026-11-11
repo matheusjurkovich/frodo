@@ -4,7 +4,8 @@ import Soup from 'gi://Soup?version=3.0';
 import {needsRefresh, parseCredentials} from './claude-credentials.js';
 import {readTextFile} from '../../shared/files.js';
 import {BETA_HEADER, API_VERSION, USAGE_URL, PROFILE_URL} from './claude-client.const.js';
-import type {Transport, Tier} from './claude-client.types.js';
+import type {Credentials} from './claude-credentials.types.js';
+import type {Transport} from './claude-client.types.js';
 
 Gio._promisify(Soup.Session.prototype, 'send_and_read_async');
 
@@ -77,30 +78,23 @@ export class ClaudeClient {
         this.#transport = transport;
     }
 
-    fetchUsage(): Promise<unknown> {
-        return this.#get(USAGE_URL);
+    async credentials(): Promise<Credentials | null> {
+        return parseCredentials(await readTextFile(credentialsPath(this.#configDir)));
     }
 
-    fetchProfile(): Promise<unknown> {
-        return this.#get(PROFILE_URL);
+    async fetchUsage(credentials?: Credentials | null): Promise<unknown> {
+        return this.#get(USAGE_URL, credentials === undefined ? await this.credentials() : credentials);
     }
 
-    async readTier(): Promise<Tier> {
-        const credentials = parseCredentials(await readTextFile(credentialsPath(this.#configDir)));
-        return {subscriptionType: credentials?.subscriptionType ?? null, rateLimitTier: credentials?.rateLimitTier ?? null};
+    async fetchProfile(credentials?: Credentials | null): Promise<unknown> {
+        return this.#get(PROFILE_URL, credentials === undefined ? await this.credentials() : credentials);
     }
 
-    async #get(url: string): Promise<unknown> {
-        const token = await this.#token();
-        const response = await this.#transport({method: 'GET', url, token});
-        if (response.status < 200 || response.status >= 300) throw new ClaudeApiError(response.status, response.body);
-        return parseJson(response.body);
-    }
-
-    async #token(): Promise<string> {
-        const credentials = parseCredentials(await readTextFile(credentialsPath(this.#configDir)));
+    async #get(url: string, credentials: Credentials | null): Promise<unknown> {
         if (!credentials) throw new SignedOutError();
         if (needsRefresh(credentials.expiresAt, Date.now())) throw new ExpiredTokenError();
-        return credentials.accessToken;
+        const response = await this.#transport({method: 'GET', url, token: credentials.accessToken});
+        if (response.status < 200 || response.status >= 300) throw new ClaudeApiError(response.status, response.body);
+        return parseJson(response.body);
     }
 }

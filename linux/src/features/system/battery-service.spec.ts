@@ -2,7 +2,7 @@ import GLib from 'gi://GLib';
 import type Gio from 'gi://Gio';
 
 import {BatteryMonitor} from './battery-service.js';
-import {PrivateBus, waitFor} from '../../../tests/fixtures.js';
+import {PrivateBus, settle, waitFor} from '../../../tests/fixtures.js';
 import {loadInterfaceXML} from '../../../tests/shell/fileUtils.js';
 
 describe('BatteryMonitor', () => {
@@ -53,6 +53,19 @@ describe('BatteryMonitor', () => {
         change({State: 2, Percentage: 41});
         await waitFor(battery, () => battery.battery?.percent === 41);
         expect(battery.battery).toEqual({percent: 41, charging: false});
+    });
+
+    it('não emite quando mudam propriedades mas não a porcentagem nem o carregamento', async () => {
+        const battery = monitor();
+        await waitFor(battery, () => battery.battery !== null);
+        const changed = jasmine.createSpy('changed');
+        battery.on('changed', changed);
+        change({Percentage: 57.8});
+        await settle(100);
+        expect(changed).not.toHaveBeenCalled();
+        change({Percentage: 40});
+        await waitFor(battery, () => battery.battery?.percent === 40);
+        expect(changed).toHaveBeenCalledTimes(1);
     });
 
     it('fica sem bateria quando o dispositivo não está presente', async () => {

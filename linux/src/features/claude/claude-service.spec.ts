@@ -41,6 +41,7 @@ describe('ClaudeService', () => {
         });
         services.push(service);
         await waitFor(service, () => service.profiles.length === configDirs.length && service.profiles.every(p => p.status !== 'loading'));
+        await service.refresh();
         return service;
     }
 
@@ -78,6 +79,16 @@ describe('ClaudeService', () => {
         expect(claude.active?.status).toBe('signed-out');
         expect(claude.active?.error).toBe('Sem login do Claude Code neste perfil.');
         expect(calls).toEqual([]);
+    });
+
+    it('refresh simultâneo reaproveita a execução em andamento e lê as credenciais uma vez', async () => {
+        const dir = tmpDir(dirs);
+        signIn(dir, 'a');
+        answer('a', ok());
+        const claude = await start(dir);
+        calls = [];
+        await Promise.all([claude.refresh(true), claude.refresh(true), claude.refresh(true)]);
+        expect(calls.length).toBe(2);
     });
 
     it('marca falha geral só quando todos os perfis dão erro', async () => {

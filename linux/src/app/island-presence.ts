@@ -5,7 +5,8 @@ import {nextPeek} from '../shared/peek.js';
 import {SOFT_SPRING, SPRING} from '../shared/spring.const.js';
 import {Timer} from '../shared/timer.js';
 import {springEase} from '../shared/ui/motion.js';
-import {TONGUE_EDGES, FADE_IN_MS} from './island-presence.const.js';
+import {pillCover, tongueVisible} from './island-cover.js';
+import {FADE_IN_MS} from './island-presence.const.js';
 import type {IslandPresenceDependencies} from './island-presence.types.js';
 
 export class IslandPresence {
@@ -16,6 +17,7 @@ export class IslandPresence {
     #fullscreen = false;
     #peeking = false;
     #pillWanted = true;
+    #edge: string | null = null;
 
     constructor(dependencies: IslandPresenceDependencies) {
         this.#dependencies = dependencies;
@@ -37,6 +39,7 @@ export class IslandPresence {
         );
         this.#disposables.add(
             settings.onChanged(['peek-clock', 'peek-every-minutes', 'peek-seconds'], () => {
+                if (!this.#peeking) this.#peekTimer.stop();
                 this.#schedulePeek();
             }),
         );
@@ -52,15 +55,14 @@ export class IslandPresence {
     sync(): void {
         const {settings, feed, monitorIndex} = this.#dependencies;
         const fullscreen = hasRealFullscreen(monitorIndex);
-        const covered = fullscreen || (!settings.alwaysShowPill && hasMaximizedWindow(monitorIndex));
-        const kind = feed.current?.kind;
-        const alert = kind === 'claude-permission' || kind === 'claude-waiting' || (!fullscreen && kind === 'notification');
+        const alwaysShowPill = settings.alwaysShowPill;
+        const maximized = !fullscreen && !alwaysShowPill && hasMaximizedWindow(monitorIndex);
+        const {covered, pillWanted} = pillCover({fullscreen, maximized, alwaysShowPill, kind: feed.current?.kind, peeking: this.#peeking});
         const entering = covered && !this.#covered;
         this.#covered = covered;
         this.#fullscreen = fullscreen;
         this.#schedulePeek();
-        this.#showPill(!covered || alert || this.#peeking, !fullscreen && !this.#dependencies.isOpen());
-        this.#dependencies.coverChanged();
+        this.#showPill(pillWanted, !fullscreen && !this.#dependencies.isOpen());
         if (entering) {
             feed.cancelTransient();
             this.#dependencies.close();
@@ -69,11 +71,20 @@ export class IslandPresence {
     }
 
     syncTongue(): void {
-        const {tongue, placement} = this.#dependencies;
-        const visible = this.#covered && !this.#fullscreen && !this.#dependencies.isOpen() && !this.#dependencies.pill.actor.visible;
+        const {tongue, placement, pill} = this.#dependencies;
+        const visible = tongueVisible({
+            covered: this.#covered,
+            fullscreen: this.#fullscreen,
+            open: this.#dependencies.isOpen(),
+            pillVisible: pill.actor.visible,
+        });
         if (tongue.visible !== visible) tongue.set({visible, hover: false});
-        for (const other of TONGUE_EDGES) tongue.remove_style_class_name(`frodo-tongue-${other}`);
-        tongue.add_style_class_name(`frodo-tongue-${placement.tongueEdge}`);
+        const edge = placement.tongueEdge;
+        if (edge !== this.#edge) {
+            if (this.#edge) tongue.remove_style_class_name(`frodo-tongue-${this.#edge}`);
+            tongue.add_style_class_name(`frodo-tongue-${edge}`);
+            this.#edge = edge;
+        }
         if (!tongue.visible) return;
         const origin = placement.tongueOrigin(tongue.width, tongue.height);
         if (origin) tongue.set_position(origin.x, origin.y);
@@ -100,7 +111,7 @@ export class IslandPresence {
             this.#endPeek();
             return;
         }
-        if (this.#peeking) return;
+        if (this.#peeking || this.#peekTimer.active) return;
         const now = new Date();
         this.#peekTimer.once(nextPeek(now, settings.peekEveryMinutes).getTime() - now.getTime(), () => {
             this.#startPeek();

@@ -43,8 +43,6 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
     readonly #pointer: IslandPointer;
     readonly #presence: IslandPresence;
     readonly #surface: IslandSurface;
-    #attached = false;
-    #unredirectDisabled = false;
     #isOpen = false;
     #openedBy: OpenReason | null = null;
     readonly #warmTimer = new Timer();
@@ -70,6 +68,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         Main.layoutManager.addTopChrome(this.#backdrop, {affectsStruts: false});
         Main.layoutManager.addTopChrome(this.panel, {affectsStruts: false});
         Main.layoutManager.addTopChrome(this.#tongue, {affectsStruts: false});
+        Main.layoutManager.addTopChrome(this.pill.actor, {affectsStruts: false});
 
         const placement = new IslandPlacement({
             settings,
@@ -136,9 +135,6 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
                 monitorIndex,
                 isOpen,
                 close,
-                coverChanged: () => {
-                    this.#syncUnredirect();
-                },
             }),
         );
         this.#disposables.add(
@@ -168,21 +164,14 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
                 panel: this.panel,
                 tongue: this.#tongue,
                 pill,
-                attached: () => this.#attached,
             }),
         );
         this.#surface.sync();
         this.#syncMemoryNeed();
-    }
-
-    attach(): void {
-        if (this.#attached) return;
-        Main.layoutManager.addTopChrome(this.pill.actor, {affectsStruts: false});
-        this.#attached = true;
-        this.pill.setVertical(this.#placement.middle);
+        this.pill.setVertical(placement.middle);
         this.#positionFloating();
-        this.#surface.sync();
         this.#presence.sync();
+        global.compositor.disable_unredirect();
     }
 
     setContent(content: Clutter.Actor | null): void {
@@ -202,7 +191,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
 
     prewarm(mapContent: () => Disposer): void {
         if (this.#isOpen || this.#unwarm || this.panel.visible) return;
-        this.panel.set({opacity: PREWARM_OPACITY, reactive: false});
+        this.panel.set({opacity: PREWARM_OPACITY, reactive: false, x: global.stage.width, y: global.stage.height});
         this.panel.show();
         this.#unwarm = mapContent();
         this.#warmTimer.once(PREWARM_MS, () => {
@@ -294,7 +283,6 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
     }
 
     #positionFloating(): void {
-        if (!this.#attached) return;
         const pill = this.pill.actor;
         const origin = this.#placement.floatingOrigin(pill.width, pill.height);
         if (origin) pill.set_position(origin.x, origin.y);
@@ -303,22 +291,6 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
     #flushPendingRelayout(): void {
         this.pill.actor.get_allocation_box();
         this.panel.get_allocation_box();
-    }
-
-    #release(): void {
-        if (this.#attached) Main.layoutManager.untrackChrome(this.pill.actor);
-        this.#attached = false;
-    }
-
-    #syncUnredirect(): void {
-        this.#setUnredirect(this.#presence.covered || this.#attached);
-    }
-
-    #setUnredirect(disable: boolean): void {
-        if (disable === this.#unredirectDisabled) return;
-        this.#unredirectDisabled = disable;
-        if (disable) global.compositor.disable_unredirect();
-        else global.compositor.enable_unredirect();
     }
 
     #syncMemoryNeed(): void {
@@ -333,8 +305,8 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         this.clearListeners();
         this.panel.set_child(null);
         this.#flushPendingRelayout();
-        this.#release();
-        this.#setUnredirect(false);
+        Main.layoutManager.untrackChrome(this.pill.actor);
+        global.compositor.enable_unredirect();
         Main.layoutManager.untrackChrome(this.panel);
         Main.layoutManager.removeChrome(this.#tongue);
         Main.layoutManager.removeChrome(this.#backdrop);

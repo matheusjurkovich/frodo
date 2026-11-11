@@ -47,10 +47,10 @@ describe('PerformanceMonitor', () => {
         expect(snapshot?.memory?.totalKb).toBeGreaterThan(0);
         expect(snapshot?.disk?.totalBytes).toBeGreaterThan(0);
         const own = snapshot?.processes.find(process => process.pid === self);
-        expect(own?.name).toBe('Frodo');
         expect(own?.ramBytes).toBeGreaterThan(0);
         expect(own?.protected).toBeFalse();
-        expect(own?.gicon).toEqual(jasmine.objectContaining({name: 'Frodo'}));
+        expect(own && monitor.describe(own).name).toBe('Frodo');
+        expect(own && monitor.describe(own).gicon).toEqual(jasmine.objectContaining({name: 'Frodo'}));
     });
 
     it('a cada amostra seguinte acumula o histórico de CPU', async () => {
@@ -73,6 +73,7 @@ describe('PerformanceMonitor', () => {
         tick();
         await sampled(monitor);
         monitor.stop();
+        expect(monitor.snapshot).toBeNull();
         const changed = jasmine.createSpy('changed');
         monitor.on('changed', changed);
         tick();
@@ -88,6 +89,26 @@ describe('PerformanceMonitor', () => {
         monitor.start();
         monitor.start();
         expect(every).toHaveBeenCalledTimes(1);
+    });
+
+    it('só para de amostrar quando todo mundo que pediu parou', async () => {
+        const monitor = create();
+        monitor.start();
+        monitor.start();
+        monitor.stop();
+        await sampled(monitor);
+        expect(monitor.snapshot).not.toBeNull();
+        monitor.stop();
+        expect(monitor.snapshot).toBeNull();
+    });
+
+    it('parar e começar de novo logo em seguida volta a amostrar', async () => {
+        const monitor = create();
+        monitor.start();
+        monitor.stop();
+        monitor.start();
+        await sampled(monitor);
+        expect(monitor.snapshot).not.toBeNull();
     });
 
     it('descarta a amostra em andamento quando é destruído', async () => {

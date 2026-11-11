@@ -1,4 +1,4 @@
-import {accelerator, shortcutLabel} from './shortcut.js';
+import {accelerator, claimShortcut, shortcutLabel} from './shortcut.js';
 
 const NONE = {super: false, control: false, alt: false, shift: false};
 
@@ -24,5 +24,11 @@ describe('shortcut', () => {
         expect(shortcutLabel('<Super><Shift>z')).toBe('Super + Shift + Z');
         expect(shortcutLabel('<Control><Alt>Delete')).toBe('Ctrl + Alt + Delete');
         expect(shortcutLabel('')).toBe('');
+    });
+
+    it('recusa a combinação que a outra ação já usa', () => {
+        expect(claimShortcut('<Super>x', '<Super>z', '<Super>x')).toBe('taken');
+        expect(claimShortcut('<Super>x', '<Super>z', '<Super>c')).toBe('free');
+        expect(claimShortcut('<Super>z', '<Super>z', '<Super>c')).toBe('unchanged');
     });
 });

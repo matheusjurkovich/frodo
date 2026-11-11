@@ -62,7 +62,6 @@ export class IslandManager {
         for (const monitorIndex of targets) {
             if (kept.some(entry => entry.island.monitorIndex === monitorIndex)) continue;
             const island = new Island(this.#dependencies, monitorIndex);
-            island.attach();
             island.on('opening', () => {
                 for (const other of this.#entries) if (other.island !== island) other.island.close();
             });
@@ -73,13 +72,14 @@ export class IslandManager {
             });
             this.#entries.push({island, content});
         }
+        if (this.#entries.length === 0) this.#dependencies.state.setMemoryWanted(false);
         this.#prewarm.once(PREWARM_DELAY_MS, () => {
             for (const entry of this.#entries) entry.island.prewarm(() => entry.content.prewarm());
         });
     }
 
     #destroyEntry({island, content}: Entry): void {
-        island.close();
+        island.close(false);
         island.setContent(null);
         content.destroy();
         island.destroy();
@@ -94,5 +94,6 @@ export class IslandManager {
         this.#prewarm.stop();
         this.#disposables.dispose();
         this.#clear();
+        this.#dependencies.state.setMemoryWanted(false);
     }
 }

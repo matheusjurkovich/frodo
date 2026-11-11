@@ -1,25 +1,18 @@
 import GLib from 'gi://GLib';
-import Gio from 'gi://Gio';
+import type Gio from 'gi://Gio';
 import type Meta from 'gi://Meta';
-import {hasFrodoHooks, withFrodoHooks} from './agent-hooks.js';
-import {HOOK_SCRIPT_NAME} from './agent-hooks.const.js';
+import {AgentHooks} from './agent-hooks-service.js';
 import type {HookedAgent} from './agent-hooks.types.js';
-import {decisionJson, nextState, oldestPending, parentPid, parseHookEvent, parsePending, parseShortstat} from './claude-sessions.js';
+import {decisionJson, nextState, oldestPending, parseHookEvent, parsePending} from './claude-sessions.js';
 import type {Decision, DiffStat, PendingRequest, SessionState} from './claude-sessions.types.js';
+import {focusProcessWindow} from './process-window-service.js';
+import {RepoActions} from './repo-actions-service.js';
+import {WatchedDirectory} from './watched-directory-service.js';
 import {Emitter} from '../../shared/emitter.js';
 import {Timer} from '../../shared/timer.js';
-import {listDirectory, modifiedMs, readTextFile} from '../../shared/files.js';
+import {readTextFile} from '../../shared/files.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
-import {BATCH, EXTENSION_UUID, HOOK_SCRIPT, SWEEP_SECONDS} from './claude-sessions-service.const.js';
-
-Gio._promisify(Gio.Subprocess.prototype, 'communicate_utf8_async', 'communicate_utf8_finish');
-
-function agentConfigPath(agent: HookedAgent): string {
-    const home = GLib.get_home_dir();
-    return agent === 'codex'
-        ? GLib.build_filenamev([GLib.getenv('CODEX_HOME') ?? GLib.build_filenamev([home, '.codex']), 'hooks.json'])
-        : GLib.build_filenamev([home, '.gemini', 'settings.json']);
-}
+import {SWEEP_SECONDS} from './claude-sessions-service.const.js';
 
 function pidAlive(pid: number): boolean {
     return GLib.file_test(`/proc/${pid}`, GLib.FileTest.EXISTS);
@@ -37,43 +30,14 @@ function isAlive(state: Pick<SessionState, 'pid'>): boolean {
     return state.pid === null || pidAlive(state.pid);
 }
 
-function readStat(pid: number): string {
-    try {
-        return new TextDecoder().decode(GLib.file_get_contents(`/proc/${pid}/stat`)[1]);
-    } catch {
-        return '';
-    }
-}
-
-function sessionId(file: Gio.File): string | null {
+function jsonKey(file: Gio.File): string | null {
     const name = file.get_basename() ?? '';
     return name.endsWith('.json') && name.length > '.json'.length ? name.slice(0, -'.json'.length) : null;
-}
-
-function list(directory: Gio.File, cancellable: Gio.Cancellable): Promise<Gio.FileInfo[]> {
-    return listDirectory(directory.get_path() ?? '', 'standard::name,time::modified', {
-        priority: GLib.PRIORITY_DEFAULT,
-        batch: BATCH,
-        cancellable,
-    });
-}
-
-async function run(argv: string[], cwd: string, cancellable: Gio.Cancellable): Promise<string | null> {
-    try {
-        const launcher = new Gio.SubprocessLauncher({flags: Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_SILENCE});
-        launcher.set_cwd(cwd);
-        const process = launcher.spawnv(argv);
-        const [stdout] = await process.communicate_utf8_async(null, cancellable);
-        return process.get_successful() ? stdout : null;
-    } catch {
-        return null;
-    }
 }
 
 export class ClaudeSessions extends Emitter<{changed: []}> {
     readonly #settings: FrodoSettings;
     readonly #dir: string;
-    readonly #pendingDir: string;
     readonly #decisionsDir: string;
     readonly #alive: string;
     readonly #pid = GLib.file_read_link('/proc/self');
@@ -81,15 +45,12 @@ export class ClaudeSessions extends Emitter<{changed: []}> {
     readonly #states = new Map<string, SessionState>();
     readonly #pending = new Map<string, PendingRequest>();
     readonly #timer = new Timer();
-    readonly #cancellable = new Gio.Cancellable();
-    readonly #monitor: Gio.FileMonitor;
-    readonly #monitorId: number;
-    readonly #pendingMonitor: Gio.FileMonitor;
-    readonly #pendingMonitorId: number;
+    readonly #hooks: AgentHooks;
+    readonly #repo = new RepoActions();
+    readonly #sessionsWatch: WatchedDirectory;
+    readonly #pendingWatch: WatchedDirectory;
     readonly #disposeSettings: () => void;
-    #queue: Promise<void> = Promise.resolve();
-    #hooksInstalled = false;
-    #checkingHooks = false;
+    readonly #disposeHooks: () => void;
     #destroyed = false;
 
     constructor(
@@ -100,27 +61,33 @@ export class ClaudeSessions extends Emitter<{changed: []}> {
         super();
         this.#settings = settings;
         this.#dir = GLib.build_filenamev([root, 'sessions']);
-        this.#pendingDir = GLib.build_filenamev([root, 'pending']);
+        const pendingDir = GLib.build_filenamev([root, 'pending']);
         this.#decisionsDir = GLib.build_filenamev([root, 'decisions']);
         this.#activate = activate;
-        for (const dir of [this.#dir, this.#pendingDir, this.#decisionsDir]) GLib.mkdir_with_parents(dir, 0o700);
+        for (const dir of [this.#dir, pendingDir, this.#decisionsDir]) GLib.mkdir_with_parents(dir, 0o700);
         this.#alive = GLib.build_filenamev([root, 'alive']);
         GLib.file_set_contents(this.#alive, `${this.#pid}\n`);
-        const directory = Gio.File.new_for_path(this.#dir);
-        this.#monitor = directory.monitor_directory(Gio.FileMonitorFlags.WATCH_MOVES, this.#cancellable);
-        this.#monitorId = this.#monitor.connect('changed', (_monitor, file, other, type) => {
-            this.#onFileChanged(file, other, type);
+        this.#sessionsWatch = new WatchedDirectory(this.#dir, {
+            read: (file, atMs) => this.#read(file, atMs),
+            forget: file => this.#forget(file),
+            onChanged: () => {
+                this.#changed();
+            },
         });
-        const pendingDirectory = Gio.File.new_for_path(this.#pendingDir);
-        this.#pendingMonitor = pendingDirectory.monitor_directory(Gio.FileMonitorFlags.WATCH_MOVES, this.#cancellable);
-        this.#pendingMonitorId = this.#pendingMonitor.connect('changed', (_monitor, file, other, type) => {
-            this.#onPendingChanged(file, other, type);
+        this.#pendingWatch = new WatchedDirectory(pendingDir, {
+            read: file => this.#readPending(file),
+            forget: file => this.#forgetPending(file),
+            onChanged: () => {
+                this.#changed();
+            },
         });
-        this.#enqueue(async () => {
-            await this.#load(directory);
-            return this.#loadPending(pendingDirectory);
+        void Promise.all([this.#sessionsWatch.ready, this.#pendingWatch.ready]).then(() => {
+            this.#changed();
         });
-        void this.#checkHooks();
+        this.#hooks = new AgentHooks(settings);
+        this.#disposeHooks = this.#hooks.on('changed', () => {
+            this.#changed();
+        });
         this.#disposeSettings = settings.onChanged('disabled-ai', () => {
             this.#changed();
         });
@@ -157,15 +124,7 @@ export class ClaudeSessions extends Emitter<{changed: []}> {
 
     focus(id: string): boolean {
         const pid = this.#states.get(id)?.pid ?? null;
-        if (pid === null || !this.#activate) return false;
-        const windows = global.display.list_all_windows();
-        for (let current: number | null = pid; current !== null && current > 1; current = parentPid(readStat(current))) {
-            const window = windows.find(candidate => (candidate.get_pid() as number) === current);
-            if (!window) continue;
-            this.#activate(window);
-            return true;
-        }
-        return false;
+        return pid !== null && this.#activate !== null && focusProcessWindow(pid, this.#activate);
     }
 
     dismiss(id: string): void {
@@ -173,148 +132,49 @@ export class ClaudeSessions extends Emitter<{changed: []}> {
     }
 
     canOpenPullRequest(): boolean {
-        return GLib.find_program_in_path('gh') !== null;
+        return this.#repo.canOpenPullRequest();
     }
 
     openPullRequest(id: string): void {
         const cwd = this.#states.get(id)?.cwd;
-        if (cwd) void run(['gh', 'pr', 'view', '--web'], cwd, this.#cancellable);
+        if (cwd) this.#repo.openPullRequest(cwd);
     }
 
     async diffStat(id: string): Promise<DiffStat | null> {
         const cwd = this.#states.get(id)?.cwd;
-        if (!cwd) return null;
-        const stdout = await run(['git', 'diff', '--shortstat', 'HEAD'], cwd, this.#cancellable);
-        return stdout === null ? null : parseShortstat(stdout);
+        return cwd ? this.#repo.diffStat(cwd) : null;
     }
 
     hooksInstalled(): boolean {
-        if (!this.#hooksInstalled) void this.#checkHooks();
-        return this.#hooksInstalled;
+        return this.#hooks.claudeInstalled();
     }
 
-    async agentHooksInstalled(agent: HookedAgent): Promise<boolean> {
-        return hasFrodoHooks(await readTextFile(agentConfigPath(agent)));
+    agentHooksInstalled(agent: HookedAgent): Promise<boolean> {
+        return this.#hooks.installed(agent);
     }
 
-    async installAgentHooks(agent: HookedAgent): Promise<boolean> {
-        const path = agentConfigPath(agent);
-        const before = await readTextFile(path);
-        const script = GLib.build_filenamev([
-            GLib.get_user_data_dir(),
-            'gnome-shell',
-            'extensions',
-            EXTENSION_UUID,
-            'hooks',
-            HOOK_SCRIPT_NAME,
-        ]);
-        const after = withFrodoHooks(before, agent, script);
-        if (after === null) return false;
-        if (after === before) return true;
-        try {
-            GLib.mkdir_with_parents(GLib.path_get_dirname(path), 0o700);
-            if (before !== null) GLib.file_set_contents(`${path}.frodo.bak`, before);
-            GLib.file_set_contents(path, after);
-            return true;
-        } catch (error) {
-            logError(error as object);
-            return false;
-        }
-    }
-
-    async #checkHooks(): Promise<void> {
-        if (this.#checkingHooks) return;
-        this.#checkingHooks = true;
-        const texts = await Promise.all(
-            this.#settings.claudeProfiles.map(({configDir}) => readTextFile(GLib.build_filenamev([configDir, 'settings.json']))),
-        );
-        this.#checkingHooks = false;
-        const installed = texts.some(text => text?.includes(HOOK_SCRIPT) ?? false);
-        if (installed === this.#hooksInstalled) return;
-        this.#hooksInstalled = installed;
-        this.#changed();
-    }
-
-    #onFileChanged(file: Gio.File, other: Gio.File | null, type: Gio.FileMonitorEvent): void {
-        switch (type) {
-            case Gio.FileMonitorEvent.CREATED:
-            case Gio.FileMonitorEvent.CHANGES_DONE_HINT:
-            case Gio.FileMonitorEvent.MOVED_IN:
-                this.#enqueue(() => this.#read(file, Date.now()));
-                break;
-            case Gio.FileMonitorEvent.RENAMED:
-                this.#enqueue(async () => {
-                    const forgotten = this.#forget(file);
-                    return (other !== null && (await this.#read(other, Date.now()))) || forgotten;
-                });
-                break;
-            case Gio.FileMonitorEvent.DELETED:
-            case Gio.FileMonitorEvent.MOVED_OUT:
-                this.#enqueue(() => Promise.resolve(this.#forget(file)));
-                break;
-        }
-    }
-
-    #onPendingChanged(file: Gio.File, other: Gio.File | null, type: Gio.FileMonitorEvent): void {
-        switch (type) {
-            case Gio.FileMonitorEvent.CREATED:
-            case Gio.FileMonitorEvent.CHANGES_DONE_HINT:
-            case Gio.FileMonitorEvent.MOVED_IN:
-                this.#enqueue(() => this.#readPending(file));
-                break;
-            case Gio.FileMonitorEvent.RENAMED:
-                this.#enqueue(async () => {
-                    const forgotten = this.#forgetPending(file);
-                    return (other !== null && (await this.#readPending(other))) || forgotten;
-                });
-                break;
-            case Gio.FileMonitorEvent.DELETED:
-            case Gio.FileMonitorEvent.MOVED_OUT:
-                this.#enqueue(() => Promise.resolve(this.#forgetPending(file)));
-                break;
-        }
-    }
-
-    #enqueue(work: () => Promise<boolean>): void {
-        this.#queue = this.#queue
-            .then(async () => {
-                if (!this.#destroyed && (await work())) this.#changed();
-            })
-            .catch((error: unknown) => {
-                logError(error as object);
-            });
-    }
-
-    async #load(directory: Gio.File): Promise<boolean> {
-        for (const info of await list(directory, this.#cancellable).catch(() => [])) {
-            const modified = modifiedMs(info);
-            await this.#read(directory.get_child(info.get_name()), modified || Date.now());
-        }
-        return true;
-    }
-
-    async #loadPending(directory: Gio.File): Promise<boolean> {
-        for (const info of await list(directory, this.#cancellable).catch(() => []))
-            await this.#readPending(directory.get_child(info.get_name()));
-        return true;
+    installAgentHooks(agent: HookedAgent): Promise<boolean> {
+        return this.#hooks.install(agent);
     }
 
     async #readPending(file: Gio.File): Promise<boolean> {
+        const key = jsonKey(file);
         const text = await readTextFile(file.get_path() ?? '');
         const pending = text === null ? null : parsePending(file.get_basename() ?? '', text);
-        if (this.#destroyed || !pending || !pidAlive(pending.pid)) return false;
+        if (this.#destroyed) return false;
+        if (!pending || !pidAlive(pending.pid)) return key !== null && this.#pending.delete(key);
         const previous = this.#pending.get(pending.key);
         this.#pending.set(pending.key, pending);
         return JSON.stringify(previous) !== JSON.stringify(pending);
     }
 
     #forgetPending(file: Gio.File): boolean {
-        const name = file.get_basename() ?? '';
-        return name.endsWith('.json') && this.#pending.delete(name.slice(0, -'.json'.length));
+        const key = jsonKey(file);
+        return key !== null && this.#pending.delete(key);
     }
 
     async #read(file: Gio.File, atMs: number): Promise<boolean> {
-        const id = sessionId(file);
+        const id = jsonKey(file);
         if (id === null) return false;
         const text = await readTextFile(file.get_path() ?? '');
         const event = text === null ? null : parseHookEvent(text);
@@ -327,7 +187,7 @@ export class ClaudeSessions extends Emitter<{changed: []}> {
     }
 
     #forget(file: Gio.File): boolean {
-        const id = sessionId(file);
+        const id = jsonKey(file);
         return id !== null && this.#states.delete(id);
     }
 
@@ -346,9 +206,7 @@ export class ClaudeSessions extends Emitter<{changed: []}> {
 
     #changed(): void {
         if (this.#destroyed) return;
-        const busy =
-            this.#pending.size > 0 || [...this.#states.values()].some(state => state.status === 'working' || state.status === 'waiting');
-        if (!busy) this.#timer.stop();
+        if (this.#pending.size === 0 && this.#states.size === 0) this.#timer.stop();
         else if (!this.#timer.active)
             this.#timer.every(SWEEP_SECONDS, () => {
                 this.#sweep();
@@ -363,12 +221,12 @@ export class ClaudeSessions extends Emitter<{changed: []}> {
     destroy(): void {
         this.#destroyed = true;
         this.#disposeSettings();
+        this.#disposeHooks();
         this.#timer.stop();
-        this.#cancellable.cancel();
-        this.#monitor.disconnect(this.#monitorId);
-        this.#monitor.cancel();
-        this.#pendingMonitor.disconnect(this.#pendingMonitorId);
-        this.#pendingMonitor.cancel();
+        this.#sessionsWatch.destroy();
+        this.#pendingWatch.destroy();
+        this.#hooks.destroy();
+        this.#repo.destroy();
         if (readAlive(this.#alive) === this.#pid) GLib.unlink(this.#alive);
         this.clearListeners();
     }

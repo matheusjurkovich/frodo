@@ -1,17 +1,17 @@
 import Clutter from 'gi://Clutter';
 import {countByStatus, displayStatus} from '../../features/claude/claude-sessions.js';
-import type {DiffStat} from '../../features/claude/claude-sessions.types.js';
+import type {DiffStat, SessionStatus} from '../../features/claude/claude-sessions.types.js';
 import type {ClaudeSessions} from '../../features/claude/claude-sessions-service.js';
 import type {ClaudeTranscripts} from '../../features/claude/claude-transcripts-service.js';
 import {Disposables} from '../../shared/disposables.js';
 import {Timer} from '../../shared/timer.js';
 import {card, cardHeading, emptyState} from '../../shared/ui/card.js';
 import {column, label, row, wrappedLabel} from '../../shared/ui/layout.js';
-import {whileMapped} from '../../shared/ui/lifecycle.js';
 import type {Component} from '../../shared/ui/lifecycle.types.js';
 import {swap} from '../../shared/ui/motion.js';
 import {Segmented} from '../../shared/ui/segmented.js';
 import type {AiProvider} from '../../shared/ai-provider.types.js';
+import {renderWhileMapped} from './render-while-mapped.js';
 import {SessionRow} from './session-row.js';
 import type {SessionRowActions} from './session-row.types.js';
 import {ORDER, FILTERS, TICK_SECONDS} from './sessions-card.const.js';
@@ -46,6 +46,7 @@ export class SessionsCard implements Component {
     #provider: AiProvider | null = null;
     #expanded: string | null = null;
     #diff: {readonly id: string; readonly stat: DiffStat | null} | null = null;
+    #diffStatus: SessionStatus | null = null;
     #hooks = false;
     #destroyed = false;
 
@@ -82,31 +83,32 @@ export class SessionsCard implements Component {
             }),
         );
         this.#disposables.add(
-            sessions.on('changed', () => {
-                if (!this.actor.mapped) return;
-                this.#hooks = sessions.hooksInstalled();
-                this.#render();
-            }),
-        );
-        this.#disposables.add(
-            transcripts.on('changed', () => {
-                if (this.actor.mapped) this.#render();
-            }),
-        );
-        this.#disposables.add(
-            whileMapped(
+            renderWhileMapped(
                 this.actor,
+                [
+                    callback =>
+                        sessions.on('changed', () => {
+                            if (this.actor.mapped) this.#hooks = sessions.hooksInstalled();
+                            callback();
+                        }),
+                    callback => transcripts.on('changed', callback),
+                ],
                 () => {
-                    this.#hooks = sessions.hooksInstalled();
                     this.#render();
-                    transcripts.setWanted(true);
-                    this.#tick.every(TICK_SECONDS, () => {
-                        this.#render();
-                    });
                 },
-                () => {
-                    this.#tick.stop();
-                    transcripts.setWanted(false);
+                {
+                    start: () => {
+                        this.#hooks = sessions.hooksInstalled();
+                        transcripts.setWanted(true);
+                        this.#tick.every(TICK_SECONDS, () => {
+                            this.#reloadDiff();
+                            this.#render();
+                        });
+                    },
+                    stop: () => {
+                        this.#tick.stop();
+                        transcripts.setWanted(false);
+                    },
                 },
             ),
         );
@@ -116,7 +118,7 @@ export class SessionsCard implements Component {
     showProvider(provider: AiProvider | null): void {
         if (provider === this.#provider) return;
         this.#provider = provider;
-        this.#render();
+        if (this.actor.mapped) this.#render();
     }
 
     #render(): void {
@@ -165,6 +167,7 @@ export class SessionsCard implements Component {
             }
             if (this.#list.get_child_at_index(position) !== current.actor) this.#list.set_child_at_index(current.actor, position);
             const expanded = this.#expanded === id;
+            if (expanded) this.#followStatus(id, status);
             current.update({
                 state,
                 status,
@@ -218,6 +221,17 @@ export class SessionsCard implements Component {
     #collapse(): void {
         this.#expanded = null;
         this.#diff = null;
+        this.#diffStatus = null;
+    }
+
+    #followStatus(id: string, status: SessionStatus): void {
+        const previous = this.#diffStatus;
+        this.#diffStatus = status;
+        if (previous !== null && previous !== status) void this.#loadDiff(id);
+    }
+
+    #reloadDiff(): void {
+        if (this.#expanded !== null) void this.#loadDiff(this.#expanded);
     }
 
     async #loadDiff(id: string): Promise<void> {

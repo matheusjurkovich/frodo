@@ -82,6 +82,21 @@ describe('ClaudeSessions', () => {
         sessions.destroy();
     });
 
+    it('arma a varredura de pid morto também com sessão parada', async () => {
+        const dir = tmp();
+        GLib.mkdir_with_parents(`${dir}/sessions`, 0o700);
+        GLib.file_set_contents(
+            `${dir}/sessions/a.json`,
+            JSON.stringify({pid: self, event: {session_id: 'a', cwd: '/r/x', transcript_path: '/t', hook_event_name: 'Stop'}}),
+        );
+        const every = spyOn(Timer.prototype, 'every');
+        const sessions = new ClaudeSessions(settings, dir);
+        await changed(sessions);
+        expect(sessions.sessions[0]?.status).toBe('done');
+        expect(every).toHaveBeenCalledTimes(1);
+        sessions.destroy();
+    });
+
     it('listener que falha uma vez não para as atualizações', async () => {
         const dir = tmp();
         const log = spyOn(globalThis, 'logError');

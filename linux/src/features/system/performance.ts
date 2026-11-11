@@ -110,7 +110,32 @@ export function isProtected(name: string, uid: number, ownUid: number): boolean 
 }
 
 export function topBy<T>(items: readonly T[], value: (item: T) => number, count: number): T[] {
-    return [...items].sort((a, b) => value(b) - value(a)).slice(0, count);
+    const top: {item: T; score: number}[] = [];
+    for (const item of items) {
+        const score = value(item);
+        if (top.length === count && score <= (top[count - 1]?.score ?? 0)) continue;
+        const index = top.findIndex(entry => score > entry.score);
+        top.splice(index < 0 ? top.length : index, 0, {item, score});
+        if (top.length > count) top.pop();
+    }
+    return top.map(entry => entry.item);
+}
+
+export function processCpu(
+    previousTicks: number | undefined,
+    ticks: number,
+    elapsedSeconds: number,
+    cores: number,
+    ticksPerSecond: number,
+): number {
+    if (previousTicks === undefined || elapsedSeconds <= 0) return 0;
+    return Math.max(0, (ticks - previousTicks) / (elapsedSeconds * ticksPerSecond * cores));
+}
+
+export function sumEngines(parts: readonly Readonly<Record<string, number>>[]): Record<string, number> {
+    const total: Record<string, number> = {};
+    for (const part of parts) for (const [engine, fraction] of Object.entries(part)) total[engine] = (total[engine] ?? 0) + fraction;
+    return total;
 }
 
 export function pushHistory(history: readonly number[], value: number, size: number): number[] {

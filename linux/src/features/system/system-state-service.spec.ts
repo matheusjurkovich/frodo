@@ -63,6 +63,17 @@ describe('SystemState', () => {
         expect(every).toHaveBeenCalledTimes(2);
     });
 
+    it('descarta a leitura em voo quando a memória deixa de ser pedida', async () => {
+        state = new SystemState(new BatteryMonitor(client));
+        const emitted = jasmine.createSpy('memory');
+        state.on('memory', emitted);
+        state.setMemoryWanted(true);
+        state.setMemoryWanted(false);
+        await settle(100);
+        expect(emitted).not.toHaveBeenCalled();
+        expect(state.memory).toBeNull();
+    });
+
     it('destrói o monitor de bateria e descarta leitura de memória pendente', async () => {
         const battery = new BatteryMonitor(client);
         const destroy = spyOn(battery, 'destroy').and.callThrough();

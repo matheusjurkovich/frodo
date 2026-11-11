@@ -1,47 +1,44 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
-import {codexModels, latestLimits, readRollout} from './codex-usage.js';
-import type {CodexLimits, CodexRollout, CodexSession} from './codex-usage.types.js';
+import {codexModels, dayDirEnded, latestLimits, RolloutParser} from './codex-usage.js';
+import type {CodexLimits, CodexSession} from './codex-usage.types.js';
 import {Disposables} from '../../shared/disposables.js';
 import {Emitter} from '../../shared/emitter.js';
-import {Timer} from '../../shared/timer.js';
-import {listDirectory, modifiedMs, readTextFile} from '../../shared/files.js';
+import {ScanGate} from '../../shared/scan-gate.js';
+import {modifiedMs} from '../../shared/files.js';
+import {consumeLines, listIfPresent, readRange} from '../../shared/scan-files.js';
 import {dayStart, summarize} from '../../shared/consumption.js';
 import {KEPT_DAYS} from '../../shared/consumption.const.js';
 import type {ConsumptionSource, ConsumptionSummary, Period} from '../../shared/consumption.types.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
-import {ATTRIBUTES, BATCH, SCAN_SECONDS, TAIL_BYTES} from './codex-service.const.js';
-import type {Cached, Found} from './codex-service.types.js';
-
-Gio._promisify(Gio.File.prototype, 'read_async', 'read_finish');
-
-Gio._promisify(Gio.InputStream.prototype, 'read_bytes_async', 'read_bytes_finish');
-
-async function children(dir: string, cancellable: Gio.Cancellable): Promise<Gio.FileInfo[]> {
-    return listDirectory(dir, ATTRIBUTES, {batch: BATCH, cancellable}).catch(() => []);
-}
+import {ATTRIBUTES, BATCH, SCAN_SECONDS, STALE_SECONDS, TAIL_BYTES} from './codex-service.const.js';
+import type {Cached, Found, Listing, Tracked} from './codex-service.types.js';
 
 function newer(a: CodexLimits | null, b: CodexLimits | null): CodexLimits | null {
     if (!a) return b;
     return b && b.at > a.at ? b : a;
 }
 
+function isRollout(name: string): boolean {
+    return name.startsWith('rollout-') && name.endsWith('.jsonl');
+}
+
+function byNameDescending(a: Gio.FileInfo, b: Gio.FileInfo): number {
+    return b.get_name().localeCompare(a.get_name());
+}
+
 export class CodexUsage extends Emitter<{changed: []}> implements ConsumptionSource {
     readonly #settings: FrodoSettings;
     readonly #sessionsDir: string;
-    readonly #pollTimer = new Timer();
-    readonly #scanTimer = new Timer();
     readonly #disposables = new Disposables();
     readonly #cancellable = new Gio.Cancellable();
-    readonly #rollouts = new Map<string, Cached<CodexRollout>>();
-    readonly #tails = new Map<string, Cached<CodexLimits | null>>();
+    readonly #refresher: ScanGate;
+    readonly #scanner: ScanGate;
+    readonly #rollouts = new Map<string, Tracked>();
+    #tails = new Map<string, Cached<CodexLimits | null>>();
     #sessions = new Map<string, CodexSession>();
     #limits: CodexLimits | null = null;
     #available = false;
-    #lastRefresh = 0;
-    #refreshing: Promise<void> | null = null;
-    #scanning: Promise<void> | null = null;
-    #wanted = 0;
     #destroyed = false;
 
     constructor(settings: FrodoSettings, root = GLib.build_filenamev([GLib.get_home_dir(), '.codex'])) {
@@ -49,6 +46,11 @@ export class CodexUsage extends Emitter<{changed: []}> implements ConsumptionSou
         this.#settings = settings;
         this.#sessionsDir = GLib.build_filenamev([root, 'sessions']);
         this.#available = GLib.file_test(this.#sessionsDir, GLib.FileTest.IS_DIR);
+        const onChange = (): void => {
+            this.emit('changed');
+        };
+        this.#refresher = this.#disposables.own(new ScanGate({task: () => this.#refreshLimits(), onChange}));
+        this.#scanner = this.#disposables.own(new ScanGate({task: () => this.#scan(), onChange, announceStart: true}));
         this.#disposables.add(
             settings.onChanged(['disabled-ai', 'claude-poll-minutes'], () => {
                 this.#schedule();
@@ -66,11 +68,11 @@ export class CodexUsage extends Emitter<{changed: []}> implements ConsumptionSou
     }
 
     get lastRefresh(): number {
-        return this.#lastRefresh;
+        return this.#refresher.lastRun;
     }
 
     get scanning(): boolean {
-        return this.#scanning !== null;
+        return this.#scanner.running;
     }
 
     summary(period: Period, now: Date): ConsumptionSummary {
@@ -87,103 +89,98 @@ export class CodexUsage extends Emitter<{changed: []}> implements ConsumptionSou
     }
 
     refreshIfStale(maxAgeSeconds: number): void {
-        if (Date.now() - this.#lastRefresh >= maxAgeSeconds * 1000) void this.refresh();
+        if (Date.now() - this.lastRefresh >= maxAgeSeconds * 1000) void this.refresh();
     }
 
     refresh(): Promise<void> {
-        this.#refreshing ??= this.#refreshLimits().finally(() => {
-            this.#refreshing = null;
-            if (!this.#destroyed) this.emit('changed');
-        });
-        return this.#refreshing;
+        return this.#refresher.run();
     }
 
     setWanted(wanted: boolean): void {
-        if (this.#destroyed) return;
-        const before = this.#wanted;
-        this.#wanted = Math.max(0, before + (wanted ? 1 : -1));
-        if (this.#wanted === 0) {
-            this.#scanTimer.stop();
-            return;
-        }
-        if (before > 0) return;
-        this.#scanTimer.every(SCAN_SECONDS, () => {
-            void this.scan();
-        });
-        void this.scan();
+        this.#scanner.setWanted(wanted, SCAN_SECONDS);
     }
 
     scan(): Promise<void> {
-        if (this.#scanning) return this.#scanning;
-        this.#scanning = this.#scan().finally(() => {
-            this.#scanning = null;
-            if (!this.#destroyed) this.emit('changed');
-        });
-        this.emit('changed');
-        return this.#scanning;
+        return this.#scanner.run();
     }
 
     #schedule(): void {
-        this.#pollTimer.stop();
-        if (!this.#settings.providerEnabled('codex')) return;
-        this.#pollTimer.every(Math.max(1, this.#settings.claudePollMinutes) * 60, () => {
-            void this.refresh();
-        });
-        this.refreshIfStale(60);
+        const enabled = this.#settings.providerEnabled('codex');
+        this.#refresher.poll(enabled ? Math.max(1, this.#settings.claudePollMinutes) * 60 : null);
+        if (enabled) this.refreshIfStale(STALE_SECONDS);
     }
 
     async #refreshLimits(): Promise<void> {
-        this.#lastRefresh = Date.now();
         this.#available = GLib.file_test(this.#sessionsDir, GLib.FileTest.IS_DIR);
-        const found = (await this.#list(0)).sort((a, b) => b.modified - a.modified);
-        for (const file of found) {
-            if (this.#destroyed) return;
-            const cached = this.#tails.get(file.path);
-            const limits = cached?.key === file.key ? cached.value : await this.#tail(file).catch(() => null);
-            this.#tails.set(file.path, {key: file.key, value: limits});
-            if (!limits) continue;
-            this.#limits = newer(this.#limits, limits);
-            break;
-        }
-        const paths = new Set(found.map(file => file.path));
-        for (const path of this.#tails.keys()) if (!paths.has(path)) this.#tails.delete(path);
+        const visited = new Map<string, Cached<CodexLimits | null>>();
+        const limits = await this.#newestLimits(visited);
+        if (this.#destroyed) return;
+        this.#tails = visited;
+        if (limits) this.#limits = newer(this.#limits, limits);
     }
 
-    async #tail({path, size}: Found): Promise<CodexLimits | null> {
-        const stream = await Gio.File.new_for_path(path).read_async(GLib.PRIORITY_LOW, this.#cancellable);
-        try {
-            const offset = Math.max(0, size - TAIL_BYTES);
-            stream.seek(offset, GLib.SeekType.SET, this.#cancellable);
-            const bytes = new Uint8Array(size - offset);
-            let filled = 0;
-            while (filled < bytes.length) {
-                const chunk = (await stream.read_bytes_async(bytes.length - filled, GLib.PRIORITY_LOW, this.#cancellable)).toArray();
-                if (chunk.length === 0) break;
-                bytes.set(chunk, filled);
-                filled += chunk.length;
+    async #newestLimits(visited: Map<string, Cached<CodexLimits | null>>): Promise<CodexLimits | null> {
+        const descend = async (dir: string, depth: number): Promise<CodexLimits | null> => {
+            const infos = (await listIfPresent(dir, ATTRIBUTES, {batch: BATCH, cancellable: this.#cancellable})) ?? [];
+            const folders = depth < 3 ? infos.filter(info => info.get_file_type() === Gio.FileType.DIRECTORY).sort(byNameDescending) : [];
+            for (const info of folders) {
+                const limits = await descend(GLib.build_filenamev([dir, info.get_name()]), depth + 1);
+                if (limits) return limits;
             }
-            return latestLimits(new TextDecoder().decode(bytes.subarray(0, filled)));
-        } finally {
-            stream.close(null);
+            return this.#limitsIn(dir, infos, visited);
+        };
+        return descend(this.#sessionsDir, 0);
+    }
+
+    async #limitsIn(dir: string, infos: Gio.FileInfo[], visited: Map<string, Cached<CodexLimits | null>>): Promise<CodexLimits | null> {
+        const files = infos.filter(info => isRollout(info.get_name())).sort((a, b) => modifiedMs(b) - modifiedMs(a));
+        for (const info of files) {
+            if (this.#destroyed) return null;
+            const path = GLib.build_filenamev([dir, info.get_name()]);
+            const size = info.get_size();
+            const key = `${modifiedMs(info)}:${size}`;
+            const cached = this.#tails.get(path);
+            const limits = cached?.key === key ? cached.value : await this.#tail(path, size).catch(() => null);
+            visited.set(path, {key, value: limits});
+            if (limits) return limits;
         }
+        return null;
+    }
+
+    async #tail(path: string, size: number): Promise<CodexLimits | null> {
+        const offset = Math.max(0, size - TAIL_BYTES);
+        const bytes = await readRange(path, offset, size - offset, this.#cancellable);
+        return latestLimits(new TextDecoder().decode(bytes));
     }
 
     async #scan(): Promise<void> {
-        const found = await this.#list(dayStart(Date.now(), KEPT_DAYS - 1));
+        const {found, complete} = await this.#list(dayStart(Date.now(), KEPT_DAYS - 1));
         for (const file of found) {
             if (this.#destroyed) return;
-            if (this.#rollouts.get(file.path)?.key === file.key) continue;
-            const text = await readTextFile(file.path);
-            if (text !== null) this.#rollouts.set(file.path, {key: file.key, value: readRollout(text)});
+            await this.#load(file);
         }
         if (this.#destroyed) return;
-        const paths = new Set(found.map(file => file.path));
-        for (const path of this.#rollouts.keys()) if (!paths.has(path)) this.#rollouts.delete(path);
+        if (complete) {
+            const paths = new Set(found.map(file => file.path));
+            for (const path of this.#rollouts.keys()) if (!paths.has(path)) this.#rollouts.delete(path);
+        }
         this.#sessions = new Map();
         for (const {value} of this.#rollouts.values()) {
             this.#limits = newer(this.#limits, value.limits);
             if (value.id && value.session) this.#addSession(value.id, value.session);
         }
+    }
+
+    async #load({path, key, size}: Found): Promise<void> {
+        const known = this.#rollouts.get(path);
+        if (known?.key === key) return;
+        const resume = known !== undefined && known.offset <= size;
+        const parser = resume ? known.parser : new RolloutParser();
+        const start = resume ? known.offset : 0;
+        const bytes = await readRange(path, start, size - start, this.#cancellable).catch(() => null);
+        if (bytes === null || this.#destroyed) return;
+        const offset = start + consumeLines(bytes, parser);
+        this.#rollouts.set(path, {key, offset, parser, value: parser.result()});
     }
 
     #addSession(id: string, session: CodexSession): void {
@@ -200,30 +197,35 @@ export class CodexUsage extends Emitter<{changed: []}> implements ConsumptionSou
         });
     }
 
-    async #list(since: number): Promise<Found[]> {
+    async #list(since: number): Promise<Listing> {
         const found: Found[] = [];
-        const walk = async (dir: string, depth: number): Promise<void> => {
-            for (const info of await children(dir, this.#cancellable)) {
-                const path = GLib.build_filenamev([dir, info.get_name()]);
+        let complete = true;
+        const walk = async (dir: string, parts: readonly string[]): Promise<void> => {
+            const infos = await listIfPresent(dir, ATTRIBUTES, {batch: BATCH, cancellable: this.#cancellable});
+            if (infos === null) {
+                complete = false;
+                return;
+            }
+            for (const info of infos) {
+                const name = info.get_name();
+                const path = GLib.build_filenamev([dir, name]);
                 if (info.get_file_type() === Gio.FileType.DIRECTORY) {
-                    if (depth < 3) await walk(path, depth + 1);
+                    const next = [...parts, name];
+                    if (parts.length < 3 && !dayDirEnded(next, since)) await walk(path, next);
                     continue;
                 }
                 const modified = modifiedMs(info);
-                const name = info.get_name();
-                if (modified < since || !name.startsWith('rollout-') || !name.endsWith('.jsonl')) continue;
+                if (modified < since || !isRollout(name)) continue;
                 const size = info.get_size();
                 found.push({path, key: `${modified}:${size}`, modified, size});
             }
         };
-        await walk(this.#sessionsDir, 0);
-        return found;
+        await walk(this.#sessionsDir, []);
+        return {found, complete};
     }
 
     destroy(): void {
         this.#destroyed = true;
-        this.#pollTimer.stop();
-        this.#scanTimer.stop();
         this.#disposables.dispose();
         this.#cancellable.cancel();
         this.clearListeners();

@@ -22,34 +22,19 @@ import {chip, iconButton} from '../../shared/ui/buttons.js';
 import {card, cardHeading} from '../../shared/ui/card.js';
 import {providerTile} from '../../shared/ui/provider-tile.js';
 import {column, dimLabel, label, row, spacer} from '../../shared/ui/layout.js';
-import {whileMapped} from '../../shared/ui/lifecycle.js';
 import type {Component} from '../../shared/ui/lifecycle.types.js';
 import {levelClass} from '../../shared/level.js';
-import {SegmentBar} from '../../shared/ui/segment-bar.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
 import {TICK_SECONDS, USAGE_PAGE} from './limits-card.const.js';
-import type {MeterOptions, ClaudeTabActions} from './limits-card.types.js';
+import {MeterRow} from './meter-row.js';
+import type {MeterView} from './meter-row.types.js';
+import {renderWhileMapped} from './render-while-mapped.js';
+import type {ClaudeTabActions} from './limits-card.types.js';
 
-function percentText(value: number): string {
-    return `${Math.round(value)}%`;
-}
-
-function meter({name, percent, level, details, pace = null}: MeterOptions): St.BoxLayout {
-    const root = column('frodo-meter');
-    const top = row('frodo-meter-top');
-    top.add_child(label(name, 'frodo-meter-name'));
-    top.add_child(spacer());
-    if (percent !== null) top.add_child(label(percentText(percent), 'frodo-meter-value frodo-mono'));
-    root.add_child(top);
-    if (percent !== null) {
-        const bar = new SegmentBar();
-        bar.segments = [{fraction: percent / 100, styleClass: `frodo-fill-claude ${levelClass(level)}`}];
-        bar.marker = pace === null ? null : pace / 100;
-        root.add_child(bar.actor);
-    }
-    const visibleDetails = details.filter(detail => detail !== '');
-    if (visibleDetails.length > 0) root.add_child(label(visibleDetails.join(' · '), 'frodo-meter-note'));
-    return root;
+function meter(view: MeterView): St.BoxLayout {
+    const result = new MeterRow();
+    result.show(view);
+    return result.actor;
 }
 
 export class LimitsCard implements Component {
@@ -79,29 +64,24 @@ export class LimitsCard implements Component {
         this.actor.add_child(this.#header());
         this.actor.add_child(this.#profiles);
         this.#disposables.add(
-            service.on('changed', () => {
-                this.#render();
-            }),
-        );
-        this.#disposables.add(
-            settings.onChanged('claude-show-remaining', () => {
-                this.#render();
-            }),
-        );
-        this.#disposables.add(
-            whileMapped(
+            renderWhileMapped(
                 this.actor,
+                [callback => service.on('changed', callback), callback => settings.onChanged('claude-show-remaining', callback)],
                 () => {
-                    this.#tick.every(TICK_SECONDS, () => {
-                        this.#render();
-                    });
+                    this.#render();
                 },
-                () => {
-                    this.#tick.stop();
+                {
+                    start: () => {
+                        this.#tick.every(TICK_SECONDS, () => {
+                            this.#render();
+                        });
+                    },
+                    stop: () => {
+                        this.#tick.stop();
+                    },
                 },
             ),
         );
-        this.#render();
     }
 
     #header(): St.BoxLayout {
@@ -177,22 +157,24 @@ export class LimitsCard implements Component {
     }
 
     #windowMeter(window: UsageWindow, remaining: boolean, now: number): St.BoxLayout {
+        const pace = shownPace(pacePercent(window.resetsAt, window.totalSeconds, now), remaining);
         return meter({
             name: `${window.label}${remaining ? ' · restante' : ''}`,
             percent: shownPercent(window.utilization, remaining),
-            level: displayLevel(window, now),
-            details: [capitalize(relativeReset(window.resetsAt, now)), projectionNote(window, remaining, now)],
-            pace: shownPace(pacePercent(window.resetsAt, window.totalSeconds, now), remaining),
+            fillClass: `frodo-fill-claude ${levelClass(displayLevel(window, now))}`,
+            marker: pace === null ? null : pace / 100,
+            note: [capitalize(relativeReset(window.resetsAt, now)), projectionNote(window, remaining, now)]
+                .filter(detail => detail !== '')
+                .join(' · '),
         });
     }
 
     #spendMeter(spend: Spend, remaining: boolean): St.BoxLayout {
-        const amounts = [spend.used, spend.limit].filter((value): value is string => value !== null).join(' / ');
         return meter({
             name: 'Uso extra',
             percent: spend.percent === null ? null : shownPercent(spend.percent, remaining),
-            level: spend.level,
-            details: [amounts],
+            fillClass: `frodo-fill-claude ${levelClass(spend.level)}`,
+            note: [spend.used, spend.limit].filter((value): value is string => value !== null).join(' / '),
         });
     }
 

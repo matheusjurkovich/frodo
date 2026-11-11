@@ -13,10 +13,9 @@ import type {AgendaSectionDependencies} from './agenda-section.types.js';
 export class AgendaSection implements SettingsSection {
     readonly actor = column('frodo-settings-section');
     readonly #disposables = new Disposables();
-    readonly #bindings = new Bindings(this.#disposables);
 
     constructor(deps: AgendaSectionDependencies) {
-        const settings = deps.settings;
+        const bindings = new Bindings(this.#disposables, deps.settings);
         const google = line(
             'Google Agenda',
             'Pelas Contas Online do GNOME',
@@ -34,20 +33,10 @@ export class AgendaSection implements SettingsSection {
                 line(
                     'Avisar na pílula antes da reunião',
                     'Mostra o título e o botão Entrar',
-                    this.#bindings.segmented(
-                        NOTICES,
-                        () => String(settings.meetingNoticeMinutes),
-                        value => {
-                            settings.meetingNoticeMinutes = Number(value);
-                        },
-                    ),
+                    bindings.numbers(NOTICES, 'meetingNoticeMinutes'),
                 ),
             ]),
         );
-    }
-
-    sync(): void {
-        this.#bindings.sync();
     }
 
     destroy(): void {

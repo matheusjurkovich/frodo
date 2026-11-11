@@ -77,14 +77,27 @@ export class SoundCard implements Component {
     }
 
     #follow(bin: St.Bin, value: St.Label): void {
-        const item = bin.get_first_child();
-        if (!(item instanceof QuickSlider)) return;
-        const {slider} = item;
-        const sync = (): void => {
-            value.text = `${Math.round(slider.value * 100)}%`;
+        let slider = new Disposables();
+        this.#values.add(() => {
+            slider.dispose();
+        });
+        const attach = (): void => {
+            slider.dispose();
+            slider = new Disposables();
+            const item = bin.get_first_child();
+            if (!(item instanceof QuickSlider)) {
+                value.text = '';
+                return;
+            }
+            const sync = (): void => {
+                value.text = `${Math.round(item.slider.value * 100)}%`;
+            };
+            slider.signal(item.slider, item.slider.connect('notify::value', sync));
+            sync();
         };
-        this.#values.signal(slider, slider.connect('notify::value', sync));
-        sync();
+        this.#values.signal(bin, bin.connect('child-added', attach));
+        this.#values.signal(bin, bin.connect('child-removed', attach));
+        attach();
     }
 
     destroy(): void {

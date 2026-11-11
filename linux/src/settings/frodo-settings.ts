@@ -10,273 +10,152 @@ import {
     SURFACE_STYLES,
     TAB_IDS,
 } from './schema-values.const.js';
-import type {
-    CardId,
-    ClosedItem,
-    ClosedMode,
-    MonitorMode,
-    PillAiActivity,
-    PillPosition,
-    SurfaceStyle,
-    TabId,
-} from './schema-values.types.js';
+import type {TabId} from './schema-values.types.js';
 import {parseProfiles} from './claude-profile.js';
 import type {ClaudeProfile} from './claude-profile.types.js';
 import {orderedTabs} from './tabs.js';
 import type {Disposer} from '../shared/disposables.types.js';
-import type {SettingsKey} from './frodo-settings.types.js';
+import type {Accessor, SettingsKey, SettingsValues} from './frodo-settings.types.js';
 
 const known = <T extends string>(values: readonly T[], list: readonly string[]): T[] =>
     [...new Set(list)].filter((item): item is T => isOneOf(values, item));
 
-export class FrodoSettings {
+const accessor = <K extends string, V>(
+    key: K,
+    read: (settings: Gio.Settings) => V,
+    write: (settings: Gio.Settings, value: V) => void,
+): Accessor<K, V> => ({key, read, write});
+
+const bool = <K extends string>(key: K): Accessor<K, boolean> =>
+    accessor(
+        key,
+        settings => settings.get_boolean(key),
+        (settings, value) => {
+            settings.set_boolean(key, value);
+        },
+    );
+
+const int = <K extends string>(key: K): Accessor<K, number> =>
+    accessor(
+        key,
+        settings => settings.get_int(key),
+        (settings, value) => {
+            settings.set_int(key, value);
+        },
+    );
+
+const choice = <K extends string, T extends string>(key: K, values: readonly T[], fallback: T): Accessor<K, T> =>
+    accessor(
+        key,
+        settings => {
+            const value = settings.get_string(key);
+            return isOneOf(values, value) ? value : fallback;
+        },
+        (settings, value) => {
+            settings.set_string(key, value);
+        },
+    );
+
+const subset = <K extends string, T extends string>(key: K, values: readonly T[]): Accessor<K, T[]> =>
+    accessor(
+        key,
+        settings => known(values, settings.get_strv(key)),
+        (settings, value) => {
+            settings.set_strv(key, [...new Set(value)]);
+        },
+    );
+
+const shortcut = <K extends string>(key: K): Accessor<K, string> =>
+    accessor(
+        key,
+        settings => settings.get_strv(key)[0] ?? '',
+        (settings, value) => {
+            settings.set_strv(key, [value]);
+        },
+    );
+
+export const accessors = {
+    closedMode: choice('closed-mode', CLOSED_MODES, 'compact'),
+    closedItems: subset('closed-items', CLOSED_ITEMS),
+    rotateSeconds: int('rotate-seconds'),
+    pillPosition: choice('pill-position', PILL_POSITIONS, 'center'),
+    monitors: choice('monitors', MONITOR_MODES, 'primary'),
+    hideTopBar: bool('hide-top-bar'),
+    surfaceStyle: choice('surface-style', SURFACE_STYLES, 'solid'),
+    claudePollMinutes: int('claude-poll-minutes'),
+    claudeShowRemaining: bool('claude-show-remaining'),
+    claudeProfiles: accessor<'claude-profiles', ClaudeProfile[]>(
+        'claude-profiles',
+        settings => parseProfiles(settings.get_string('claude-profiles')),
+        (settings, profiles) => {
+            settings.set_string('claude-profiles', JSON.stringify(profiles));
+        },
+    ),
+    claudeProfilesInitialized: bool('claude-profiles-initialized'),
+    toggleShortcut: shortcut('toggle-shortcut'),
+    claudeShortcut: shortcut('claude-shortcut'),
+    openOnHover: bool('open-on-hover'),
+    autoClose: bool('auto-close'),
+    alwaysShowPill: bool('always-show-pill'),
+    pillAiActivity: choice('pill-ai-activity', PILL_AI_ACTIVITIES, 'change'),
+    notifyDone: bool('notify-done'),
+    notifyQuota: bool('notify-quota'),
+    ramPercent: bool('ram-percent'),
+    hiddenTabs: subset('hidden-tabs', TAB_IDS),
+    tabOrder: accessor<'tab-order', TabId[]>(
+        'tab-order',
+        settings => orderedTabs(settings.get_strv('tab-order')),
+        (settings, tabs) => {
+            settings.set_strv('tab-order', orderedTabs(tabs));
+        },
+    ),
+    collapsedCards: subset('collapsed-cards', CARD_IDS),
+    enabledProviders: accessor<'disabled-ai', AiProvider[]>(
+        'disabled-ai',
+        settings => {
+            const disabled = settings.get_strv('disabled-ai');
+            return AI_PROVIDERS.filter(provider => !disabled.includes(provider));
+        },
+        (settings, enabled) => {
+            settings.set_strv(
+                'disabled-ai',
+                AI_PROVIDERS.filter(provider => !enabled.includes(provider)),
+            );
+        },
+    ),
+    geminiDailyLimit: int('gemini-daily-limit'),
+    meetingNoticeMinutes: int('meeting-notice-minutes'),
+    peekClock: bool('peek-clock'),
+    peekEveryMinutes: int('peek-every-minutes'),
+    peekSeconds: int('peek-seconds'),
+};
+
+const SettingsBase = class {
     constructor(readonly gsettings: Gio.Settings) {}
+} as new (gsettings: Gio.Settings) => {readonly gsettings: Gio.Settings} & SettingsValues;
 
-    get closedMode(): ClosedMode {
-        const value = this.gsettings.get_string('closed-mode');
-        return isOneOf(CLOSED_MODES, value) ? value : 'compact';
-    }
+for (const [name, entry] of Object.entries(accessors) as [string, Accessor<string, unknown>][]) {
+    Object.defineProperty(SettingsBase.prototype, name, {
+        get(this: {readonly gsettings: Gio.Settings}): unknown {
+            return entry.read(this.gsettings);
+        },
+        set(this: {readonly gsettings: Gio.Settings}, value: unknown) {
+            entry.write(this.gsettings, value);
+        },
+        enumerable: true,
+        configurable: true,
+    });
+}
 
-    set closedMode(value: ClosedMode) {
-        this.gsettings.set_string('closed-mode', value);
-    }
-
-    get closedItems(): ClosedItem[] {
-        return known(CLOSED_ITEMS, this.gsettings.get_strv('closed-items'));
-    }
-
-    set closedItems(items: readonly ClosedItem[]) {
-        this.gsettings.set_strv('closed-items', [...new Set(items)]);
-    }
-
-    get rotateSeconds(): number {
-        return this.gsettings.get_int('rotate-seconds');
-    }
-
-    set rotateSeconds(value: number) {
-        this.gsettings.set_int('rotate-seconds', value);
-    }
-
-    get pillPosition(): PillPosition {
-        const value = this.gsettings.get_string('pill-position');
-        return isOneOf(PILL_POSITIONS, value) ? value : 'center';
-    }
-
-    set pillPosition(value: PillPosition) {
-        this.gsettings.set_string('pill-position', value);
-    }
-
-    get monitors(): MonitorMode {
-        const value = this.gsettings.get_string('monitors');
-        return isOneOf(MONITOR_MODES, value) ? value : 'primary';
-    }
-
-    set monitors(value: MonitorMode) {
-        this.gsettings.set_string('monitors', value);
-    }
-
-    get hideTopBar(): boolean {
-        return this.gsettings.get_boolean('hide-top-bar');
-    }
-
-    set hideTopBar(value: boolean) {
-        this.gsettings.set_boolean('hide-top-bar', value);
-    }
-
-    get surfaceStyle(): SurfaceStyle {
-        const value = this.gsettings.get_string('surface-style');
-        return isOneOf(SURFACE_STYLES, value) ? value : 'solid';
-    }
-
-    set surfaceStyle(value: SurfaceStyle) {
-        this.gsettings.set_string('surface-style', value);
-    }
-
-    get claudePollMinutes(): number {
-        return this.gsettings.get_int('claude-poll-minutes');
-    }
-
-    set claudePollMinutes(value: number) {
-        this.gsettings.set_int('claude-poll-minutes', value);
-    }
-
-    get claudeShowRemaining(): boolean {
-        return this.gsettings.get_boolean('claude-show-remaining');
-    }
-
-    set claudeShowRemaining(value: boolean) {
-        this.gsettings.set_boolean('claude-show-remaining', value);
-    }
-
-    get claudeProfiles(): ClaudeProfile[] {
-        return parseProfiles(this.gsettings.get_string('claude-profiles'));
-    }
-
-    set claudeProfiles(profiles: readonly ClaudeProfile[]) {
-        this.gsettings.set_string('claude-profiles', JSON.stringify(profiles));
-    }
-
-    get claudeProfilesInitialized(): boolean {
-        return this.gsettings.get_boolean('claude-profiles-initialized');
-    }
-
-    set claudeProfilesInitialized(value: boolean) {
-        this.gsettings.set_boolean('claude-profiles-initialized', value);
-    }
-
-    get toggleShortcut(): string {
-        return this.gsettings.get_strv('toggle-shortcut')[0] ?? '';
-    }
-
-    set toggleShortcut(value: string) {
-        this.gsettings.set_strv('toggle-shortcut', [value]);
-    }
-
-    get claudeShortcut(): string {
-        return this.gsettings.get_strv('claude-shortcut')[0] ?? '';
-    }
-
-    set claudeShortcut(value: string) {
-        this.gsettings.set_strv('claude-shortcut', [value]);
-    }
-
-    get openOnHover(): boolean {
-        return this.gsettings.get_boolean('open-on-hover');
-    }
-
-    set openOnHover(value: boolean) {
-        this.gsettings.set_boolean('open-on-hover', value);
-    }
-
-    get autoClose(): boolean {
-        return this.gsettings.get_boolean('auto-close');
-    }
-
-    set autoClose(value: boolean) {
-        this.gsettings.set_boolean('auto-close', value);
-    }
-
-    get alwaysShowPill(): boolean {
-        return this.gsettings.get_boolean('always-show-pill');
-    }
-
-    set alwaysShowPill(value: boolean) {
-        this.gsettings.set_boolean('always-show-pill', value);
-    }
-
-    get pillAiActivity(): PillAiActivity {
-        const value = this.gsettings.get_string('pill-ai-activity');
-        return isOneOf(PILL_AI_ACTIVITIES, value) ? value : 'change';
-    }
-
-    set pillAiActivity(value: PillAiActivity) {
-        this.gsettings.set_string('pill-ai-activity', value);
-    }
-
-    get notifyDone(): boolean {
-        return this.gsettings.get_boolean('notify-done');
-    }
-
-    set notifyDone(value: boolean) {
-        this.gsettings.set_boolean('notify-done', value);
-    }
-
-    get notifyQuota(): boolean {
-        return this.gsettings.get_boolean('notify-quota');
-    }
-
-    set notifyQuota(value: boolean) {
-        this.gsettings.set_boolean('notify-quota', value);
-    }
-
-    get ramPercent(): boolean {
-        return this.gsettings.get_boolean('ram-percent');
-    }
-
-    set ramPercent(value: boolean) {
-        this.gsettings.set_boolean('ram-percent', value);
-    }
-
-    get hiddenTabs(): TabId[] {
-        return known(TAB_IDS, this.gsettings.get_strv('hidden-tabs'));
-    }
-
-    set hiddenTabs(tabs: readonly TabId[]) {
-        this.gsettings.set_strv('hidden-tabs', [...new Set(tabs)]);
-    }
-
-    get tabOrder(): TabId[] {
-        return orderedTabs(this.gsettings.get_strv('tab-order'));
-    }
-
-    set tabOrder(tabs: readonly TabId[]) {
-        this.gsettings.set_strv('tab-order', orderedTabs(tabs));
-    }
-
-    get collapsedCards(): CardId[] {
-        return known(CARD_IDS, this.gsettings.get_strv('collapsed-cards'));
-    }
-
-    set collapsedCards(cards: readonly CardId[]) {
-        this.gsettings.set_strv('collapsed-cards', [...new Set(cards)]);
-    }
-
-    get enabledProviders(): AiProvider[] {
-        const disabled = this.gsettings.get_strv('disabled-ai');
-        return AI_PROVIDERS.filter(provider => !disabled.includes(provider));
-    }
-
+export class FrodoSettings extends SettingsBase {
     providerEnabled(provider: AiProvider): boolean {
         return this.enabledProviders.includes(provider);
     }
 
     setProviderEnabled(provider: AiProvider, enabled: boolean): void {
-        const enabledNow = this.enabledProviders.filter(other => other !== provider);
-        if (enabled) enabledNow.push(provider);
-        this.gsettings.set_strv(
-            'disabled-ai',
-            AI_PROVIDERS.filter(other => !enabledNow.includes(other)),
-        );
-    }
-
-    get geminiDailyLimit(): number {
-        return this.gsettings.get_int('gemini-daily-limit');
-    }
-
-    set geminiDailyLimit(value: number) {
-        this.gsettings.set_int('gemini-daily-limit', value);
-    }
-
-    get meetingNoticeMinutes(): number {
-        return this.gsettings.get_int('meeting-notice-minutes');
-    }
-
-    set meetingNoticeMinutes(value: number) {
-        this.gsettings.set_int('meeting-notice-minutes', value);
-    }
-
-    get peekClock(): boolean {
-        return this.gsettings.get_boolean('peek-clock');
-    }
-
-    set peekClock(value: boolean) {
-        this.gsettings.set_boolean('peek-clock', value);
-    }
-
-    get peekEveryMinutes(): number {
-        return this.gsettings.get_int('peek-every-minutes');
-    }
-
-    set peekEveryMinutes(value: number) {
-        this.gsettings.set_int('peek-every-minutes', value);
-    }
-
-    get peekSeconds(): number {
-        return this.gsettings.get_int('peek-seconds');
-    }
-
-    set peekSeconds(value: number) {
-        this.gsettings.set_int('peek-seconds', value);
+        this.enabledProviders = enabled
+            ? [...this.enabledProviders.filter(other => other !== provider), provider]
+            : this.enabledProviders.filter(other => other !== provider);
     }
 
     onChanged(keys: SettingsKey | readonly SettingsKey[], callback: () => void): Disposer {

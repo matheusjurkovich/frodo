@@ -1,24 +1,28 @@
 import Clutter from 'gi://Clutter';
 import type St from 'gi://St';
-import {accelerator, shortcutLabel} from '../../settings/shortcut.js';
+import {accelerator, claimShortcut, shortcutLabel} from '../../settings/shortcut.js';
 import {Disposables} from '../../shared/disposables.js';
+import {Timer} from '../../shared/timer.js';
 import {textButton} from '../../shared/ui/buttons.js';
 import {column, label} from '../../shared/ui/layout.js';
 import {Bindings, group, line} from './settings-rows.js';
 import {SHOW_SECONDS_KEY} from './settings-rows.const.js';
 import type {SettingsSection} from './settings-rows.types.js';
-import {MODIFIER_KEYS} from './general-section.const.js';
+import {MODIFIER_KEYS, NOTICE_MS} from './general-section.const.js';
 import type {GeneralSectionDependencies, ShortcutKey} from './general-section.types.js';
 
 export class GeneralSection implements SettingsSection {
     readonly actor = column('frodo-settings-section');
     readonly #deps: GeneralSectionDependencies;
     readonly #disposables = new Disposables();
-    readonly #bindings = new Bindings(this.#disposables);
+    readonly #bindings: Bindings;
+    readonly #notice = this.#disposables.own(new Timer());
+    readonly #kbds = new Map<ShortcutKey, St.Label>();
     #capture: {readonly button: St.Button; readonly ids: readonly number[]} | null = null;
 
     constructor(deps: GeneralSectionDependencies) {
         this.#deps = deps;
+        this.#bindings = new Bindings(this.#disposables, deps.settings);
         this.actor.add_child(this.#behavior());
         this.actor.add_child(this.#shortcuts());
         this.#disposables.add(() => {
@@ -32,46 +36,12 @@ export class GeneralSection implements SettingsSection {
         );
     }
 
-    sync(): void {
-        this.#bindings.sync();
-    }
-
     #behavior(): St.BoxLayout {
-        const {settings, interfaceSettings} = this.#deps;
+        const bindings = this.#bindings;
         return group('Comportamento', [
-            line(
-                'Abrir ao passar o mouse',
-                null,
-                this.#bindings.switch(
-                    'Abrir ao passar o mouse',
-                    () => settings.openOnHover,
-                    checked => {
-                        settings.openOnHover = checked;
-                    },
-                ),
-            ),
-            line(
-                'Recolher sozinha após 5 s',
-                'Quando aberta por clique ou atalho',
-                this.#bindings.switch(
-                    'Recolher sozinha após 5 s',
-                    () => settings.autoClose,
-                    checked => {
-                        settings.autoClose = checked;
-                    },
-                ),
-            ),
-            line(
-                'Mostrar segundos no relógio',
-                null,
-                this.#bindings.switch(
-                    'Mostrar segundos no relógio',
-                    () => interfaceSettings.get_boolean(SHOW_SECONDS_KEY),
-                    checked => {
-                        interfaceSettings.set_boolean(SHOW_SECONDS_KEY, checked);
-                    },
-                ),
-            ),
+            bindings.toggleLine('Abrir ao passar o mouse', null, 'openOnHover'),
+            bindings.toggleLine('Recolher sozinha após 5 s', 'Quando aberta por clique ou atalho', 'autoClose'),
+            bindings.toggleLine('Mostrar segundos no relógio', null, {settings: this.#deps.interfaceSettings, key: SHOW_SECONDS_KEY}),
         ]);
     }
 
@@ -88,9 +58,10 @@ export class GeneralSection implements SettingsSection {
         const change = textButton('Alterar', () => {
             this.#startCapture(change, kbd, key);
         });
+        this.#kbds.set(key, kbd);
         this.#bindings.add(() => {
-            kbd.text = shortcutLabel(this.#shortcut(key)) || 'Nenhum';
-        });
+            this.#showShortcut(key);
+        }, [key]);
         return line(text, null, kbd, change);
     }
 
@@ -98,8 +69,18 @@ export class GeneralSection implements SettingsSection {
         return key === 'toggle-shortcut' ? this.#deps.settings.toggleShortcut : this.#deps.settings.claudeShortcut;
     }
 
+    #showShortcut(key: ShortcutKey): void {
+        const kbd = this.#kbds.get(key);
+        if (kbd) kbd.text = shortcutLabel(this.#shortcut(key)) || 'Nenhum';
+    }
+
+    #syncShortcuts(): void {
+        for (const key of this.#kbds.keys()) this.#showShortcut(key);
+    }
+
     #startCapture(button: St.Button, kbd: St.Label, key: ShortcutKey): void {
-        this.#stopCapture();
+        this.#cancelCapture();
+        this.#notice.stop();
         kbd.text = 'Pressione o atalho…';
         this.#deps.grabKeyboard(button);
         const id = button.connect('key-press-event', (_actor, event) => {
@@ -116,9 +97,15 @@ export class GeneralSection implements SettingsSection {
                           alt: (state & Clutter.ModifierType.MOD1_MASK) !== 0,
                           shift: (state & Clutter.ModifierType.SHIFT_MASK) !== 0,
                       });
-            if (shortcut === null || shortcut === this.#shortcut(key)) this.sync();
-            else if (key === 'toggle-shortcut') this.#deps.settings.toggleShortcut = shortcut;
-            else this.#deps.settings.claudeShortcut = shortcut;
+            const other = key === 'toggle-shortcut' ? 'claude-shortcut' : 'toggle-shortcut';
+            const claim = shortcut === null ? 'unchanged' : claimShortcut(shortcut, this.#shortcut(key), this.#shortcut(other));
+            if (claim === 'free' && shortcut !== null) {
+                if (key === 'toggle-shortcut') this.#deps.settings.toggleShortcut = shortcut;
+                else this.#deps.settings.claudeShortcut = shortcut;
+            } else {
+                this.#syncShortcuts();
+                if (claim === 'taken') this.#warn(kbd);
+            }
             return Clutter.EVENT_STOP;
         });
         const focusOut = button.connect('key-focus-out', () => {
@@ -127,10 +114,17 @@ export class GeneralSection implements SettingsSection {
         this.#capture = {button, ids: [id, focusOut]};
     }
 
+    #warn(kbd: St.Label): void {
+        kbd.text = 'Já usado na outra ação';
+        this.#notice.once(NOTICE_MS, () => {
+            this.#syncShortcuts();
+        });
+    }
+
     #cancelCapture(): void {
         if (!this.#capture) return;
         this.#stopCapture();
-        this.sync();
+        this.#syncShortcuts();
     }
 
     #stopCapture(): void {
