@@ -29,8 +29,11 @@ export function createServices(gsettings: Gio.Settings, disposables: Disposables
     const claude = disposables.own(new ClaudeService(settings));
     const transcripts = disposables.own(new ClaudeTranscripts(settings));
     const sessions = disposables.own(
-        new ClaudeSessions(settings, undefined, window => {
-            Main.activateWindow(window);
+        new ClaudeSessions({
+            settings,
+            activate: window => {
+                Main.activateWindow(window);
+            },
         }),
     );
     const codex = disposables.own(new CodexUsage(settings));

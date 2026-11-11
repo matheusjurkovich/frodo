@@ -25,7 +25,7 @@ event() {
 }
 
 run_hook() {
-    env -u CLAUDE_PID -u CLAUDE_CODE_ENTRYPOINT FRODO_RUNTIME_DIR="$TMP/run dir" FRODO_TERMINAL_WAIT_SECONDS=5 sh "$HOOK" "$@"
+    env -u CLAUDE_PID -u CLAUDE_CODE_ENTRYPOINT FRODO_RUNTIME_DIR="$TMP/run dir" FRODO_TERMINAL_WAIT_SECONDS="${WAIT:-5}" sh "$HOOK" "$@"
 }
 
 event abc-123 SessionStart | run_hook
@@ -81,6 +81,38 @@ check "deny devolve a decisao com mensagem" \
     '{"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"deny","message":"Negado pela ilha do Frodo."}}}' \
     "$(answer_with deny '{"behavior":"deny"}')"
 check "pedido some depois da resposta" "0" "$(ls "$TMP/run dir/pending" 2> /dev/null | wc -l | tr -d ' ')"
+
+rm -rf "$TMP/run dir/pending" "$TMP/run dir/decisions"
+start=$(date +%s)
+output="$(event abc-123 PermissionRequest | WAIT=1 run_hook)"
+check "sem decisao o timeout sai sem resposta" "" "$output"
+check "timeout respeita o tempo configurado" "1" "$([ $(($(date +%s) - start)) -lt 4 ] && echo 1 || echo 0)"
+check "timeout nao deixa pedido" "0" "$(ls "$TMP/run dir/pending" 2> /dev/null | wc -l | tr -d ' ')"
+
+event abc-123 PermissionRequest | run_hook > "$TMP/out" &
+hook_pid=$!
+wait_for_pending > /dev/null
+sleep 1.1
+event abc-123 PostToolUse > "$TMP/run dir/sessions/abc-123.json"
+wait "$hook_pid"
+check "resposta no terminal encerra sem saida" "" "$(cat "$TMP/out")"
+check "resposta no terminal nao deixa pedido" "0" "$(ls "$TMP/run dir/pending" 2> /dev/null | wc -l | tr -d ' ')"
+
+event abc-123 PermissionRequest | run_hook > "$TMP/out" &
+hook_pid=$!
+pending_file="$(wait_for_pending)"
+rm -f "$pending_file"
+wait "$hook_pid"
+check "pedido removido encerra sem saida" "" "$(cat "$TMP/out")"
+
+printf '{}' | run_hook
+check "json sem session_id nao grava nada" "0" "$(ls "$TMP/run dir/sessions" | grep -c '^\.json$')"
+
+printf '%s gnome-shell\n' "$SLEEPER" > "$TMP/run dir/alive"
+start=$(date +%s)
+output="$(event abc-123 PermissionRequest | run_hook)"
+check "alive no formato do linux com outro processo nao espera" "" "$output"
+check "alive no formato do linux sai na hora" "1" "$([ $(($(date +%s) - start)) -lt 3 ] && echo 1 || echo 0)"
 
 printf '%s wrongname\n' "$SLEEPER" > "$TMP/run dir/alive"
 start=$(date +%s)

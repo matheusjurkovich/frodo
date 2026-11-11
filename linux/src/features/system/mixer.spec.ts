@@ -1,4 +1,4 @@
-import {levelChange, levelOf, playingSummary, sameStreams, streamDetail, volumeLabel} from './mixer.js';
+import {levelChange, levelOf, playingSummary, streamDetail, volumeLabel} from './mixer.js';
 
 describe('mixer', () => {
     it('esconde descrição genérica do stream', () => {
@@ -26,12 +26,6 @@ describe('mixer', () => {
         expect(playingSummary([])).toBe('Nenhum app com som');
         expect(playingSummary([{muted: true}])).toBe('Tudo silenciado');
         expect(playingSummary([{muted: false}, {muted: true}, {muted: false}])).toBe('2 tocando agora');
-    });
-
-    it('compara listas de streams pelo id e pela ordem', () => {
-        expect(sameStreams([{id: 1}, {id: 2}], [{id: 1}, {id: 2}])).toBeTrue();
-        expect(sameStreams([{id: 1}, {id: 2}], [{id: 2}, {id: 1}])).toBeFalse();
-        expect(sameStreams([{id: 1}], [{id: 1}, {id: 2}])).toBeFalse();
     });
 
     it('muta ao zerar o volume e desmuta ao subir', () => {

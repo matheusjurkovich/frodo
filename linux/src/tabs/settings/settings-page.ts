@@ -17,7 +17,8 @@ import {PillSection} from './pill-section.js';
 import {ScreenSection} from './screen-section.js';
 import type {SettingsSection} from './settings-rows.types.js';
 import {TabsSection} from './tabs-section.js';
-import {INTERFACE_SCHEMA, SECTIONS} from './settings-page.const.js';
+import {SECTIONS} from './settings-page.const.js';
+import {INTERFACE_SCHEMA} from '../../shared/desktop-interface.const.js';
 import type {SectionId, SettingsActions} from './settings-page.types.js';
 
 export class SettingsPage implements Component {

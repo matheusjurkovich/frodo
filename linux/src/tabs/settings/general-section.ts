@@ -6,7 +6,7 @@ import {Timer} from '../../shared/timer.js';
 import {textButton} from '../../shared/ui/buttons.js';
 import {column, label} from '../../shared/ui/layout.js';
 import {Bindings, group, line} from './settings-rows.js';
-import {SHOW_SECONDS_KEY} from './settings-rows.const.js';
+import {SHOW_SECONDS_KEY} from '../../shared/desktop-interface.const.js';
 import type {SettingsSection} from './settings-rows.types.js';
 import {MODIFIER_KEYS, NOTICE_MS} from './general-section.const.js';
 import type {GeneralSectionDependencies, ShortcutKey} from './general-section.types.js';

@@ -62,8 +62,13 @@ printf '{"pid":%s,"tool":"%s","since":%s}\n' "$$" "$tool" "$(now_ms)" > "$pendin
 if [ "${CLAUDE_CODE_ENTRYPOINT:-}" = claude-desktop ]; then wait=${FRODO_WAIT_SECONDS:-590}; else wait=${FRODO_TERMINAL_WAIT_SECONDS:-15}; fi
 ticks=$((wait * 4))
 while [ "$ticks" -gt 0 ]; do
-    sleep 0.25
-    ticks=$((ticks - 1))
+    if [ "$ticks" -gt $((wait * 4 - 40)) ] || [ "$ticks" -lt 4 ]; then
+        sleep 0.25
+        ticks=$((ticks - 1))
+    else
+        sleep 1
+        ticks=$((ticks - 4))
+    fi
     [ -f "$pending" ] || exit 0
     if [ -f "$decision" ]; then
         answer=$(cat "$decision")

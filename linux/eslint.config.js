@@ -14,6 +14,7 @@ const restrict = (files, patterns, ignores = []) => ({
     ignores,
     rules: {'@typescript-eslint/no-restricted-imports': ['error', {patterns}]},
 });
+const noUi = {regex: '(^|/)shared/ui/', message: 'Feature não importa componente St.'};
 const otherFeature = sibling('features', 'Feature não importa outra feature; o que é comum vai para shared/.');
 const topLevel = selector => `:matches(Program, Program > ExportNamedDeclaration) > ${selector}`;
 const constant = topLevel("VariableDeclaration[kind='const'] > VariableDeclarator > Identifier.id[name=/^[A-Z][A-Z0-9_]*$/]");
@@ -25,6 +26,27 @@ const syntax = (files, ignores, ...rules) => ({
     ignores,
     rules: {'no-restricted-syntax': ['error', ...rules.map(([selector, message]) => ({selector, message}))]},
 });
+
+const noComments = {
+    plugins: {
+        frodo: {
+            rules: {
+                'no-comments': {
+                    meta: {type: 'suggestion', schema: [], messages: {comment: 'Sem comentário no código; explique no PR ou no chat.'}},
+                    create: context => ({
+                        Program() {
+                            for (const comment of context.sourceCode.getAllComments()) {
+                                if (/^\s*(eslint-|@ts-)/.test(comment.value) || comment.value.startsWith('/')) continue;
+                                context.report({loc: comment.loc, messageId: 'comment'});
+                            }
+                        },
+                    }),
+                },
+            },
+        },
+    },
+    rules: {'frodo/no-comments': 'error'},
+};
 
 export default tseslint.config(
     {ignores: ['dist/', '.build/', 'node_modules/', '.superpowers/']},
@@ -60,10 +82,10 @@ export default tseslint.config(
     restrict(['src/settings/**/*.ts'], [above('features', 'pill', 'tabs', 'app'), pure], ['src/settings/**/*.spec.ts']),
     restrict(
         ['src/features/**/*.ts'],
-        [above('pill', 'tabs', 'app'), otherFeature, pure],
+        [above('pill', 'tabs', 'app'), noUi, otherFeature, pure],
         ['src/features/**/*-service.ts', 'src/features/**/*-client.ts', 'src/features/**/*.spec.ts'],
     ),
-    restrict(['src/features/**/*-service.ts', 'src/features/**/*-client.ts'], [above('pill', 'tabs', 'app'), otherFeature]),
+    restrict(['src/features/**/*-service.ts', 'src/features/**/*-client.ts'], [above('pill', 'tabs', 'app'), noUi, otherFeature]),
     restrict(['src/pill/**/*.ts'], [above('tabs', 'app')]),
     restrict(['src/tabs/**/*.ts'], [above('pill', 'app'), sibling('tabs', 'Aba não importa outra aba.')]),
     syntax(
@@ -79,5 +101,6 @@ export default tseslint.config(
         [behavior, '<módulo>.const.ts só guarda constantes.'],
     ),
     syntax(['src/**/*.types.ts'], [], [variable, '<módulo>.types.ts só guarda tipos.'], [behavior, '<módulo>.types.ts só guarda tipos.']),
+    {files: ['**/*.ts'], ...noComments},
     prettier,
 );
