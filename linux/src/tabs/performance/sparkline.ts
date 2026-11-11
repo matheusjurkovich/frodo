@@ -6,11 +6,13 @@ import {DIM_OPACITY, HISTORY_SLOTS, MIN_BAR_HEIGHT, RECENT_BARS, SPARK_HEIGHT} f
 export class Sparkline implements Component {
     readonly actor = new St.BoxLayout({style_class: 'frodo-perf-spark', x_expand: true});
     readonly #bars: St.Widget[] = [];
+    readonly #heights: number[] = [];
 
     constructor() {
         for (let index = 0; index < HISTORY_SLOTS; index++) {
             const bar = new St.Widget({style_class: 'frodo-perf-spark-bar', x_expand: true, y_align: Clutter.ActorAlign.END});
             bar.height = MIN_BAR_HEIGHT;
+            this.#heights.push(MIN_BAR_HEIGHT);
             bar.opacity = index >= HISTORY_SLOTS - RECENT_BARS ? 255 : DIM_OPACITY;
             this.#bars.push(bar);
             this.actor.add_child(bar);
@@ -23,7 +25,9 @@ export class Sparkline implements Component {
         this.#bars.forEach((bar, index) => {
             const value = shown[index - offset] ?? 0;
             const height = Math.max(MIN_BAR_HEIGHT, Math.round(Math.min(1, value) * SPARK_HEIGHT));
-            if (bar.height !== height) bar.height = height;
+            if (this.#heights[index] === height) return;
+            this.#heights[index] = height;
+            bar.height = height;
         });
     }
 

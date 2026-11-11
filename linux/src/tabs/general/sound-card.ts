@@ -77,26 +77,54 @@ export class SoundCard implements Component {
     }
 
     #follow(bin: St.Bin, value: St.Label): void {
-        let slider = new Disposables();
-        this.#values.add(() => {
-            slider.dispose();
-        });
+        let gone = false;
+        let slider: Disposables | null = null;
+        const release = (): void => {
+            slider?.dispose();
+            slider = null;
+        };
+        this.#values.add(release);
         const attach = (): void => {
-            slider.dispose();
-            slider = new Disposables();
+            release();
+            if (gone) return;
             const item = bin.get_first_child();
             if (!(item instanceof QuickSlider)) {
                 value.text = '';
                 return;
             }
+            const target = item.slider;
             const sync = (): void => {
-                value.text = `${Math.round(item.slider.value * 100)}%`;
+                value.text = `${Math.round(target.value * 100)}%`;
             };
-            slider.signal(item.slider, item.slider.connect('notify::value', sync));
+            const id = target.connect('notify::value', sync);
+            const destroyId = target.connect('destroy', () => {
+                slider = null;
+            });
+            const current = new Disposables();
+            current.add(() => {
+                target.disconnect(id);
+                target.disconnect(destroyId);
+            });
+            slider = current;
             sync();
         };
-        this.#values.signal(bin, bin.connect('child-added', attach));
-        this.#values.signal(bin, bin.connect('child-removed', attach));
+        const valueId = value.connect('destroy', () => {
+            gone = true;
+            slider = null;
+        });
+        const binIds = [
+            bin.connect('destroy', () => {
+                gone = true;
+                slider = null;
+            }),
+            bin.connect('child-added', attach),
+            bin.connect('child-removed', attach),
+        ];
+        this.#values.add(() => {
+            if (gone) return;
+            value.disconnect(valueId);
+            for (const id of binIds) bin.disconnect(id);
+        });
         attach();
     }
 
