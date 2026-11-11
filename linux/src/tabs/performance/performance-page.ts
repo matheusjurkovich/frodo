@@ -137,7 +137,8 @@ export class PerformancePage implements Component {
                 () => {
                     running.add(
                         monitor.on('changed', () => {
-                            this.#render();
+                            if (this.#confirm === null) this.#render();
+                            else this.#renderMetrics(monitor.snapshot);
                         }),
                     );
                     monitor.start();

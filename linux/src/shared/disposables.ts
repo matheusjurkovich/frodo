@@ -23,6 +23,14 @@ export class Disposables {
     dispose(): void {
         const items = this.#items.reverse();
         this.#items = [];
-        for (const dispose of items) dispose();
+        const errors: unknown[] = [];
+        for (const dispose of items) {
+            try {
+                dispose();
+            } catch (error) {
+                errors.push(error);
+            }
+        }
+        if (errors.length > 0) throw errors[0];
     }
 }
