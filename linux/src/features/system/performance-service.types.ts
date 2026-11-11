@@ -7,6 +7,10 @@ export interface ProcessSample {
     readonly ramBytes: number;
     readonly gpu: number | null;
     readonly protected: boolean;
+}
+
+export interface ProcessApp {
+    readonly name: string;
     readonly gicon: Gio.Icon | null;
 }
 

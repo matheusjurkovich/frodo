@@ -15,10 +15,9 @@ import {AiSection} from './ai-section.js';
 import {GeneralSection} from './general-section.js';
 import {PillSection} from './pill-section.js';
 import {ScreenSection} from './screen-section.js';
-import {BATTERY_PERCENT_KEY, SHOW_SECONDS_KEY} from './settings-rows.const.js';
 import type {SettingsSection} from './settings-rows.types.js';
 import {TabsSection} from './tabs-section.js';
-import {INTERFACE_SCHEMA, SYNC_KEYS, SECTIONS} from './settings-page.const.js';
+import {INTERFACE_SCHEMA, SECTIONS} from './settings-page.const.js';
 import type {SectionId, SettingsActions} from './settings-page.types.js';
 
 export class SettingsPage implements Component {
@@ -28,19 +27,15 @@ export class SettingsPage implements Component {
     readonly #nav = new Map<SectionId, St.Button>();
     readonly #sections = new Map<SectionId, SettingsSection>();
     readonly #content = column('frodo-settings-content');
+    readonly #builders: Record<SectionId, () => SettingsSection>;
     #section: SectionId = 'general';
 
     constructor(settings: FrodoSettings, sessions: ClaudeSessions, preview: Clutter.Actor, actions: SettingsActions) {
-        const sync = (): void => {
-            this.#sync();
-        };
-        this.#disposables.add(settings.onChanged(SYNC_KEYS, sync));
-
         const grabKeyboard = (focus: Clutter.Actor): void => {
             actions.grabKeyboard(focus);
         };
         const interfaceSettings = this.#interface;
-        const builders: Record<SectionId, () => SettingsSection> = {
+        this.#builders = {
             general: () => new GeneralSection({settings, interfaceSettings, grabKeyboard}),
             screen: () => new ScreenSection({settings}),
             pill: () => new PillSection({settings, interfaceSettings, preview, overlay: actions.overlay}),
@@ -70,18 +65,12 @@ export class SettingsPage implements Component {
             );
             this.#nav.set(id, button);
             nav.add_child(button);
-            const section = this.#disposables.own(builders[id]());
-            this.#sections.set(id, section);
-            content.add_child(section.actor);
         }
         body.add_child(nav);
         body.add_child(content);
         this.actor.add_child(body);
 
-        for (const key of [SHOW_SECONDS_KEY, BATTERY_PERCENT_KEY])
-            this.#disposables.signal(this.#interface, this.#interface.connect(`changed::${key}`, sync));
         this.#show(this.#section);
-        this.#sync();
     }
 
     #show(id: SectionId): void {
@@ -90,15 +79,17 @@ export class SettingsPage implements Component {
         const changed = id !== this.#section;
         this.#section = id;
         for (const [other, button] of this.#nav) button.checked = other === id;
+        if (!this.#sections.has(id)) {
+            const section = this.#disposables.own(this.#builders[id]());
+            this.#sections.set(id, section);
+            section.actor.visible = false;
+            this.#content.add_child(section.actor);
+        }
         const apply = (): void => {
             for (const [other, section] of this.#sections) section.actor.visible = other === id;
         };
         if (changed) swap(this.#content, direction, apply, 'y');
         else apply();
-    }
-
-    #sync(): void {
-        for (const section of this.#sections.values()) section.sync?.();
     }
 
     destroy(): void {

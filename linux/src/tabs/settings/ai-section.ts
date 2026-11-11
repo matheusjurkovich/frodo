@@ -26,13 +26,14 @@ export class AiSection implements SettingsSection {
     readonly actor = column('frodo-settings-section');
     readonly #deps: AiSectionDependencies;
     readonly #disposables = new Disposables();
-    readonly #bindings = new Bindings(this.#disposables);
+    readonly #bindings: Bindings;
     readonly #profiles = column('frodo-settings-profiles');
     readonly #newProfile = new St.Entry({style_class: 'frodo-entry', hint_text: '~/.claude-trabalho', can_focus: true, x_expand: true});
     #destroyed = false;
 
     constructor(deps: AiSectionDependencies) {
         this.#deps = deps;
+        this.#bindings = new Bindings(this.#disposables, deps.settings);
         this.#typing(this.#newProfile);
         this.actor.add_child(this.#usage());
         this.actor.add_child(this.#claude());
@@ -46,10 +47,6 @@ export class AiSection implements SettingsSection {
         this.#renderProfiles();
     }
 
-    sync(): void {
-        this.#bindings.sync();
-    }
-
     #typing(entry: St.Entry): void {
         entry.clutter_text.connect('key-focus-in', () => {
             this.#deps.grabKeyboard(entry.clutter_text);
@@ -57,53 +54,12 @@ export class AiSection implements SettingsSection {
     }
 
     #usage(): St.BoxLayout {
-        const settings = this.#deps.settings;
+        const bindings = this.#bindings;
         return group('Uso', [
-            line(
-                'Atualizar uso a cada',
-                null,
-                this.#bindings.stepper(
-                    POLL_MINUTES,
-                    'min',
-                    () => settings.claudePollMinutes,
-                    value => {
-                        settings.claudePollMinutes = value;
-                    },
-                ),
-            ),
-            line(
-                'Avisar quando terminar',
-                'Notificação quando Claude, Codex ou Gemini termina a resposta',
-                this.#bindings.switch(
-                    'Avisar quando terminar',
-                    () => settings.notifyDone,
-                    checked => {
-                        settings.notifyDone = checked;
-                    },
-                ),
-            ),
-            line(
-                'Avisar cota em 80% e 95%',
-                'E quando a cota renova',
-                this.#bindings.switch(
-                    'Avisar cota em 80% e 95%',
-                    () => settings.notifyQuota,
-                    checked => {
-                        settings.notifyQuota = checked;
-                    },
-                ),
-            ),
-            line(
-                'Mostrar uso restante em vez do usado',
-                null,
-                this.#bindings.switch(
-                    'Mostrar uso restante em vez do usado',
-                    () => settings.claudeShowRemaining,
-                    checked => {
-                        settings.claudeShowRemaining = checked;
-                    },
-                ),
-            ),
+            line('Atualizar uso a cada', null, bindings.stepper(POLL_MINUTES, 'min', 'claudePollMinutes')),
+            bindings.toggleLine('Avisar quando terminar', 'Notificação quando Claude, Codex ou Gemini termina a resposta', 'notifyDone'),
+            bindings.toggleLine('Avisar cota em 80% e 95%', 'E quando a cota renova', 'notifyQuota'),
+            bindings.toggleLine('Mostrar uso restante em vez do usado', null, 'claudeShowRemaining'),
         ]);
     }
 
@@ -118,6 +74,7 @@ export class AiSection implements SettingsSection {
                 checked => {
                     settings.setProviderEnabled(provider, checked);
                 },
+                ['disabled-ai'],
             ),
         );
         item.insert_child_at_index(providerTile(provider, 32), 0);
@@ -150,19 +107,12 @@ export class AiSection implements SettingsSection {
     }
 
     #gemini(): St.BoxLayout {
-        const settings = this.#deps.settings;
         return group('Gemini CLI', [
             this.#follow('gemini', 'Acompanhar o Gemini CLI', 'Tokens e sessões lidos de ~/.gemini/tmp'),
             line(
                 'Limite diário de pedidos',
                 'O Gemini CLI não informa a cota; a ilha conta os pedidos do dia',
-                this.#bindings.segmented(
-                    GEMINI_LIMITS,
-                    () => String(settings.geminiDailyLimit),
-                    value => {
-                        settings.geminiDailyLimit = Number(value);
-                    },
-                ),
+                this.#bindings.numbers(GEMINI_LIMITS, 'geminiDailyLimit'),
             ),
             this.#hookLine(
                 'gemini',

@@ -2,8 +2,9 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import Shell from 'gi://Shell';
 import {Emitter} from '../../shared/emitter.js';
-import {listDirectory, readTextFile} from '../../shared/files.js';
+import {readTextFile} from '../../shared/files.js';
 import {Timer} from '../../shared/timer.js';
+import {DrmReader} from './drm-service.js';
 import {parseMeminfo} from './memory.js';
 import {
     averageMhz,
@@ -11,57 +12,49 @@ import {
     cpuUsage,
     engineBusy,
     isProtected,
-    mergeEngines,
     parseCpuStat,
     parseDiskStats,
-    parseDrmFdinfo,
     parseProcStat,
     parseSwap,
+    processCpu,
     pushHistory,
+    sumEngines,
 } from './performance.js';
-import type {CpuTimes, DiskIo, DrmClient} from './performance.types.js';
+import type {CpuTimes, DiskIo} from './performance.types.js';
 import {
-    ENUMERATE_BATCH,
     SAMPLE_SECONDS,
     DRM_SCAN_EVERY,
+    FIRST_SAMPLE_MS,
+    MHZ_READ_EVERY,
     HISTORY_SIZE,
     TICKS_PER_SECOND,
     PAGE_BYTES,
     SECTOR_BYTES,
     CPU_SENSORS,
 } from './performance-service.const.js';
-import type {Child, PerformanceSnapshot, ProcessSample, Engines} from './performance-service.types.js';
+import type {PerformanceSnapshot, ProcessApp, ProcessSample} from './performance-service.types.js';
+import {children} from './proc-service.js';
 
 Gio._promisify(Gio.File.prototype, 'query_filesystem_info_async', 'query_filesystem_info_finish');
 
 Gio._promisify(Gio.Subprocess.prototype, 'wait_check_async', 'wait_check_finish');
 
-async function children(path: string, attributes: string, cancellable: Gio.Cancellable): Promise<Child[]> {
-    try {
-        const infos = await listDirectory(path, attributes, {
-            flags: Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS,
-            batch: ENUMERATE_BATCH,
-            cancellable,
-        });
-        return infos.map(info => ({name: info.get_name(), info}));
-    } catch {
-        return [];
-    }
-}
-
 export class PerformanceMonitor extends Emitter<{changed: []}> {
     readonly #timer = new Timer();
+    readonly #first = new Timer();
+    readonly #drm = new DrmReader();
     readonly #uid = new Gio.Credentials().get_unix_user();
     #cancellable = new Gio.Cancellable();
-    #running = false;
+    #wants = 0;
     #busy = false;
+    #generation = 0;
     #destroyed = false;
     #cycle = 0;
     #sampledAt = 0;
+    #mhz: number | null = null;
     #cpu: CpuTimes | null = null;
     #disk: DiskIo | null = null;
     #ticks = new Map<number, number>();
-    #drmFds = new Map<number, string[]>();
     #gpu = new Map<number, Record<string, number>>();
     #cpuHistory: number[] = [];
     #gpuHistory: number[] = [];
@@ -73,27 +66,46 @@ export class PerformanceMonitor extends Emitter<{changed: []}> {
     }
 
     start(): void {
-        if (this.#running || this.#destroyed) return;
-        this.#running = true;
+        if (this.#destroyed) return;
+        this.#wants++;
+        if (this.#wants > 1) return;
         this.#cancellable = new Gio.Cancellable();
-        void this.#sample();
+        this.#first.once(FIRST_SAMPLE_MS, () => {
+            void this.#sample();
+        });
         this.#timer.every(SAMPLE_SECONDS, () => {
             void this.#sample();
         });
     }
 
     stop(): void {
-        this.#running = false;
+        if (this.#wants === 0) return;
+        this.#wants--;
+        if (this.#wants === 0) this.#halt();
+    }
+
+    describe(process: ProcessSample): ProcessApp {
+        const app = Shell.WindowTracker.get_default().get_app_from_pid(process.pid) as Shell.App | null;
+        return {name: app?.get_name() ?? process.name, gicon: app?.get_icon() ?? null};
+    }
+
+    #halt(): void {
+        this.#generation++;
+        this.#busy = false;
         this.#timer.stop();
+        this.#first.stop();
         this.#cancellable.cancel();
         this.#cpu = null;
         this.#disk = null;
         this.#ticks = new Map();
         this.#gpu = new Map();
-        this.#drmFds = new Map();
+        this.#drm.reset();
         this.#cycle = 0;
+        this.#sampledAt = 0;
+        this.#mhz = null;
         this.#cpuHistory = [];
         this.#gpuHistory = [];
+        this.#snapshot = null;
     }
 
     async kill(pid: number): Promise<boolean> {
@@ -106,12 +118,13 @@ export class PerformanceMonitor extends Emitter<{changed: []}> {
     }
 
     async #sample(): Promise<void> {
-        if (this.#busy || !this.#running) return;
+        if (this.#busy || this.#wants === 0) return;
+        const generation = this.#generation;
         this.#busy = true;
         try {
             await this.#collect();
         } finally {
-            this.#busy = false;
+            if (generation === this.#generation) this.#busy = false;
         }
     }
 
@@ -119,10 +132,11 @@ export class PerformanceMonitor extends Emitter<{changed: []}> {
         const cancellable = this.#cancellable;
         const now = GLib.get_monotonic_time();
         const elapsedSeconds = this.#sampledAt > 0 ? (now - this.#sampledAt) / 1e6 : 0;
+        const readMhz = this.#cycle % MHZ_READ_EVERY === 0;
         const [stat, meminfo, cpuinfo, diskstats, filesystem, temperature, entries] = await Promise.all([
             readTextFile('/proc/stat'),
             readTextFile('/proc/meminfo'),
-            readTextFile('/proc/cpuinfo'),
+            readMhz ? readTextFile('/proc/cpuinfo') : Promise.resolve(null),
             readTextFile('/proc/diskstats'),
             this.#filesystem(cancellable),
             this.#temperature(cancellable),
@@ -132,15 +146,22 @@ export class PerformanceMonitor extends Emitter<{changed: []}> {
             .filter(entry => /^\d+$/.test(entry.name))
             .map(entry => ({pid: Number(entry.name), uid: entry.info.get_attribute_uint32('unix::uid')}));
         const stats = await Promise.all(pids.map(({pid}) => readTextFile(`/proc/${pid}/stat`)));
+        const tracker = Shell.WindowTracker.get_default();
         if (this.#cycle % DRM_SCAN_EVERY === 0)
-            await this.#scanDrm(
-                pids.filter(({uid}) => uid === this.#uid).map(({pid}) => pid),
+            await this.#drm.scan(
+                pids
+                    .filter(
+                        ({pid, uid}) =>
+                            uid === this.#uid && (this.#drm.has(pid) || (tracker.get_app_from_pid(pid) as Shell.App | null) !== null),
+                    )
+                    .map(({pid}) => pid),
                 cancellable,
             );
-        const engines = await this.#readEngines();
-        if (this.#destroyed || !this.#running || cancellable.is_cancelled()) return;
+        const engines = await this.#drm.read();
+        if (this.#destroyed || this.#wants === 0 || cancellable.is_cancelled()) return;
         this.#cycle++;
         this.#sampledAt = now;
+        if (readMhz) this.#mhz = cpuinfo === null ? null : averageMhz(cpuinfo);
 
         const cpuStat = stat === null ? null : parseCpuStat(stat);
         const cores = cpuStat?.cores ?? 1;
@@ -149,9 +170,8 @@ export class PerformanceMonitor extends Emitter<{changed: []}> {
         this.#cpu = cpuStat?.times ?? null;
 
         const elapsedNs = elapsedSeconds * 1e9;
-        const tracker = Shell.WindowTracker.get_default();
         const ticks = new Map<number, number>();
-        const gpuTotals: Record<string, number> = {};
+        const busyParts: Record<string, number>[] = [];
         const nextGpu = new Map<number, Record<string, number>>();
         let driver = '';
         const processes: ProcessSample[] = [];
@@ -160,34 +180,27 @@ export class PerformanceMonitor extends Emitter<{changed: []}> {
             const parsed = text ? parseProcStat(text) : null;
             if (!parsed) return;
             ticks.set(pid, parsed.ticks);
-            const before = this.#ticks.get(pid);
-            const cpu =
-                before === undefined || elapsedSeconds <= 0
-                    ? 0
-                    : Math.max(0, (parsed.ticks - before) / (elapsedSeconds * TICKS_PER_SECOND * cores));
             let gpu: number | null = null;
             const own = engines.get(pid);
             if (own) {
                 driver ||= own.driver;
                 nextGpu.set(pid, own.engines);
                 const busy = engineBusy(this.#gpu.get(pid) ?? {}, own.engines, elapsedNs, own.capacity);
-                for (const [engine, fraction] of Object.entries(busy)) gpuTotals[engine] = (gpuTotals[engine] ?? 0) + fraction;
+                busyParts.push(busy);
                 gpu = busiest(busy);
             }
-            const app = tracker.get_app_from_pid(pid) as Shell.App | null;
             processes.push({
                 pid,
-                name: app?.get_name() ?? parsed.name,
-                cpu,
+                name: parsed.name,
+                cpu: processCpu(this.#ticks.get(pid), parsed.ticks, elapsedSeconds, cores, TICKS_PER_SECOND),
                 ramBytes: parsed.rssPages * PAGE_BYTES,
                 gpu,
                 protected: isProtected(parsed.name, uid, this.#uid),
-                gicon: app?.get_icon() ?? null,
             });
         });
         this.#ticks = ticks;
         this.#gpu = nextGpu;
-        const gpuUsage = busiest(gpuTotals);
+        const gpuUsage = busiest(sumEngines(busyParts));
         if (driver !== '' && elapsedSeconds > 0) this.#gpuHistory = pushHistory(this.#gpuHistory, gpuUsage, HISTORY_SIZE);
 
         const memory = meminfo === null ? null : parseMeminfo(meminfo);
@@ -199,7 +212,7 @@ export class PerformanceMonitor extends Emitter<{changed: []}> {
             elapsedSeconds > 0 ? Math.max(0, ((now - before) * SECTOR_BYTES) / elapsedSeconds) : 0;
 
         this.#snapshot = {
-            cpu: {usage, cores, mhz: cpuinfo === null ? null : averageMhz(cpuinfo), celsius: temperature},
+            cpu: {usage, cores, mhz: this.#mhz, celsius: temperature},
             cpuHistory: this.#cpuHistory,
             memory: memory && {...memory, swapUsedKb: swap?.usedKb ?? 0, swapTotalKb: swap?.totalKb ?? 0},
             gpu: driver === '' ? null : {usage: gpuUsage, driver},
@@ -243,39 +256,10 @@ export class PerformanceMonitor extends Emitter<{changed: []}> {
         return Number.isFinite(milli) && milli > 0 ? milli / 1000 : null;
     }
 
-    async #scanDrm(pids: readonly number[], cancellable: Gio.Cancellable): Promise<void> {
-        const found = new Map<number, string[]>();
-        await Promise.all(
-            pids.map(async pid => {
-                const fds = await children(`/proc/${pid}/fd`, 'standard::name,standard::symlink-target', cancellable);
-                const drm = fds
-                    .filter(({info}) => info.get_attribute_byte_string('standard::symlink-target')?.startsWith('/dev/dri/'))
-                    .map(({name}) => name);
-                if (drm.length > 0) found.set(pid, drm);
-            }),
-        );
-        this.#drmFds = found;
-    }
-
-    async #readEngines(): Promise<Map<number, Engines>> {
-        const result = new Map<number, Engines>();
-        await Promise.all(
-            [...this.#drmFds].map(async ([pid, fds]) => {
-                const texts = await Promise.all(fds.map(fd => readTextFile(`/proc/${pid}/fdinfo/${fd}`)));
-                const clients = texts
-                    .map(text => (text === null ? null : parseDrmFdinfo(text)))
-                    .filter((client): client is DrmClient => client !== null);
-                const first = clients[0];
-                if (!first) return;
-                result.set(pid, {engines: mergeEngines(clients), capacity: {...first.capacity}, driver: first.driver});
-            }),
-        );
-        return result;
-    }
-
     destroy(): void {
         this.#destroyed = true;
-        this.stop();
+        this.#wants = 0;
+        this.#halt();
         this.clearListeners();
     }
 }

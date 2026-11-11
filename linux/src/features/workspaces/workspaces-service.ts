@@ -4,6 +4,7 @@ import Shell from 'gi://Shell';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {appsSummary, colorSlot, thumbnailRects, workspaceTitle} from './workspaces.js';
 import {WINDOW_COLOR_SLOTS} from './workspaces.const.js';
+import {Disposables} from '../../shared/disposables.js';
 import {Emitter} from '../../shared/emitter.js';
 import {WM_PREFERENCES_SCHEMA, WORKSPACE_NAMES_KEY} from './workspaces-service.const.js';
 import type {WorkspaceInfo, WorkspaceWindow} from './workspaces-service.types.js';
@@ -12,9 +13,8 @@ export class Workspaces extends Emitter<{changed: []}> {
     readonly #manager = global.workspace_manager;
     readonly #tracker = Shell.WindowTracker.get_default();
     readonly #preferences: Gio.Settings;
-    readonly #tracked = new Map<Meta.Workspace, number[]>();
-    readonly #managerIds: number[];
-    readonly #namesId: number;
+    readonly #disposables = new Disposables();
+    readonly #tracked = new Map<Meta.Workspace, Disposables>();
 
     constructor(preferences = new Gio.Settings({schema_id: WM_PREFERENCES_SCHEMA})) {
         super();
@@ -26,13 +26,12 @@ export class Workspaces extends Emitter<{changed: []}> {
             this.#track();
             this.emit('changed');
         };
-        this.#managerIds = [
-            this.#manager.connect('workspace-added', retrack),
-            this.#manager.connect('workspace-removed', retrack),
-            this.#manager.connect('workspaces-reordered', notify),
-            this.#manager.connect('active-workspace-changed', notify),
-        ];
-        this.#namesId = this.#preferences.connect(`changed::${WORKSPACE_NAMES_KEY}`, notify);
+        const manager = this.#manager;
+        this.#disposables.signal(manager, manager.connect('workspace-added', retrack));
+        this.#disposables.signal(manager, manager.connect('workspace-removed', retrack));
+        this.#disposables.signal(manager, manager.connect('workspaces-reordered', notify));
+        this.#disposables.signal(manager, manager.connect('active-workspace-changed', notify));
+        this.#disposables.signal(this.#preferences, this.#preferences.connect(`changed::${WORKSPACE_NAMES_KEY}`, notify));
         this.#track();
     }
 
@@ -89,9 +88,9 @@ export class Workspaces extends Emitter<{changed: []}> {
             const workspace = this.#manager.get_workspace_by_index(index);
             if (workspace) current.add(workspace);
         }
-        for (const [workspace, ids] of this.#tracked) {
+        for (const [workspace, signals] of this.#tracked) {
             if (current.has(workspace)) continue;
-            for (const id of ids) workspace.disconnect(id);
+            signals.dispose();
             this.#tracked.delete(workspace);
         }
         const notify = (): void => {
@@ -99,14 +98,16 @@ export class Workspaces extends Emitter<{changed: []}> {
         };
         for (const workspace of current) {
             if (this.#tracked.has(workspace)) continue;
-            this.#tracked.set(workspace, [workspace.connect('window-added', notify), workspace.connect('window-removed', notify)]);
+            const signals = new Disposables();
+            signals.signal(workspace, workspace.connect('window-added', notify));
+            signals.signal(workspace, workspace.connect('window-removed', notify));
+            this.#tracked.set(workspace, signals);
         }
     }
 
     destroy(): void {
-        for (const id of this.#managerIds) this.#manager.disconnect(id);
-        this.#preferences.disconnect(this.#namesId);
-        for (const [workspace, ids] of this.#tracked) for (const id of ids) workspace.disconnect(id);
+        this.#disposables.dispose();
+        for (const signals of this.#tracked.values()) signals.dispose();
         this.#tracked.clear();
         this.clearListeners();
     }

@@ -15,6 +15,8 @@ import {
     parseProcStat,
     parseSwap,
     pushHistory,
+    processCpu,
+    sumEngines,
     topBy,
 } from './performance.js';
 
@@ -82,6 +84,29 @@ describe('desempenho', () => {
 
     it('ordena e corta o topo', () => {
         expect(topBy([3, 9, 1, 7], value => value, 2)).toEqual([9, 7]);
+    });
+
+    it('ordena o topo sem alterar a lista e mantém a ordem dos empates', () => {
+        const items = [
+            {id: 'a', v: 1},
+            {id: 'b', v: 5},
+            {id: 'c', v: 5},
+            {id: 'd', v: 3},
+        ];
+        expect(topBy(items, item => item.v, 3).map(item => item.id)).toEqual(['b', 'c', 'd']);
+        expect(topBy(items, item => item.v, 10).map(item => item.id)).toEqual(['b', 'c', 'd', 'a']);
+        expect(items.map(item => item.id)).toEqual(['a', 'b', 'c', 'd']);
+    });
+
+    it('calcula a cpu do processo pelos ticks e zera sem amostra anterior', () => {
+        expect(processCpu(undefined, 500, 2, 4, 100)).toBe(0);
+        expect(processCpu(100, 500, 0, 4, 100)).toBe(0);
+        expect(processCpu(100, 140, 1, 4, 100)).toBeCloseTo(0.1);
+        expect(processCpu(100, 90, 1, 4, 100)).toBe(0);
+    });
+
+    it('soma o uso das engines de vários processos', () => {
+        expect(sumEngines([{gfx: 0.2, video: 0.1}, {gfx: 0.3}, {}])).toEqual({gfx: 0.5, video: 0.1});
     });
 
     it('mantém o histórico no tamanho pedido', () => {

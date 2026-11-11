@@ -1,4 +1,4 @@
-import type {ShortcutModifiers} from './shortcut.types.js';
+import type {ShortcutClaim, ShortcutModifiers} from './shortcut.types.js';
 
 export function accelerator(keyName: string, modifiers: ShortcutModifiers): string | null {
     if (keyName === '' || !(modifiers.super || modifiers.control || modifiers.alt)) return null;
@@ -15,4 +15,9 @@ export function shortcutLabel(accelerator: string): string {
         .filter(Boolean)
         .map(part => (part.length === 1 ? part.toUpperCase() : part === 'Control' ? 'Ctrl' : part))
         .join(' + ');
+}
+
+export function claimShortcut(candidate: string, current: string, other: string): ShortcutClaim {
+    if (candidate === current) return 'unchanged';
+    return candidate === other ? 'taken' : 'free';
 }

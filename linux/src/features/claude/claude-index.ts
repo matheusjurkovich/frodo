@@ -144,7 +144,7 @@ export class ClaudeIndex {
         };
     }
 
-    static fromJSON(data: unknown): ClaudeIndex {
+    static fromJSON(data: unknown): ClaudeIndex | null {
         const index = new ClaudeIndex();
         if (
             !isObject(data) ||
@@ -153,12 +153,12 @@ export class ClaudeIndex {
             !Array.isArray(data.sessions) ||
             !isObject(data.ids)
         )
-            return index;
+            return null;
         const cells = data.cells as unknown[];
         const sessions = data.sessions as unknown[];
         const ids = Object.entries(data.ids);
         if (!cells.every(isCell) || !sessions.every(isSession) || !ids.every((entry): entry is [string, Seen] => isSeen(entry[1])))
-            return index;
+            return null;
         for (const cell of cells) index.cells.set(cellKey(cell), {...cell});
         for (const {id, ...session} of sessions) index.sessions.set(id, session);
         for (const [id, {at, output}] of ids) index.ids.set(id, {at, output});

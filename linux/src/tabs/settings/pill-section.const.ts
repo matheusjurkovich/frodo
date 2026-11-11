@@ -1,5 +1,7 @@
+import Clutter from 'gi://Clutter';
 import {PEEK_EVERY_MINUTES, PEEK_SECONDS} from '../../settings/schema-values.const.js';
-import type {ClosedMode} from '../../settings/schema-values.types.js';
+import type {ClosedMode, HorizontalPosition, PillAiActivity} from '../../settings/schema-values.types.js';
+import type {NumberOption} from './settings-rows.types.js';
 
 export const ROTATE_SECONDS = {min: 2, max: 30} as const;
 
@@ -15,9 +17,18 @@ export const MODE_HINTS: Record<ClosedMode, string> = {
     rotating: 'Bateria, RAM e as cotas de IA dividem um espaço e se revezam.',
 };
 
-export const PEEK_EVERY: readonly {id: string; label: string}[] = PEEK_EVERY_MINUTES.map(minutes => ({
-    id: String(minutes),
-    label: `${minutes} min`,
-}));
+export const AI_ACTIVITIES: readonly {id: PillAiActivity; label: string}[] = [
+    {id: 'always', label: 'Sempre'},
+    {id: 'change', label: 'Ao mudar'},
+    {id: 'never', label: 'Nunca'},
+];
 
-export const PEEK_FOR: readonly {id: string; label: string}[] = PEEK_SECONDS.map(seconds => ({id: String(seconds), label: `${seconds} s`}));
+export const ALIGN_BY_SIDE: Record<HorizontalPosition, Clutter.ActorAlign> = {
+    left: Clutter.ActorAlign.START,
+    center: Clutter.ActorAlign.CENTER,
+    right: Clutter.ActorAlign.END,
+};
+
+export const PEEK_EVERY: readonly NumberOption[] = PEEK_EVERY_MINUTES.map(minutes => ({id: minutes, label: `${minutes} min`}));
+
+export const PEEK_FOR: readonly NumberOption[] = PEEK_SECONDS.map(seconds => ({id: seconds, label: `${seconds} s`}));

@@ -1,4 +1,4 @@
-import {levelOf, playingSummary, sameStreams, streamDetail, volumeLabel} from './mixer.js';
+import {levelChange, levelOf, playingSummary, sameStreams, streamDetail, volumeLabel} from './mixer.js';
 
 describe('mixer', () => {
     it('esconde descrição genérica do stream', () => {
@@ -32,5 +32,17 @@ describe('mixer', () => {
         expect(sameStreams([{id: 1}, {id: 2}], [{id: 1}, {id: 2}])).toBeTrue();
         expect(sameStreams([{id: 1}, {id: 2}], [{id: 2}, {id: 1}])).toBeFalse();
         expect(sameStreams([{id: 1}], [{id: 1}, {id: 2}])).toBeFalse();
+    });
+
+    it('muta ao zerar o volume e desmuta ao subir', () => {
+        expect(levelChange(0, 65536, false)).toEqual({volume: 0, mute: true});
+        expect(levelChange(0, 65536, true)).toEqual({volume: 0, mute: null});
+        expect(levelChange(0.5, 65536, true)).toEqual({volume: 32768, mute: false});
+        expect(levelChange(0.5, 65536, false)).toEqual({volume: 32768, mute: null});
+    });
+
+    it('limita o nível entre 0 e 1', () => {
+        expect(levelChange(2, 65536, false).volume).toBe(65536);
+        expect(levelChange(-1, 65536, false).volume).toBe(0);
     });
 });

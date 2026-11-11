@@ -9,11 +9,11 @@ import {MEMORY_SECONDS} from './system-state-service.const.js';
 import type {SystemStateEvents} from './system-state-service.types.js';
 
 export class SystemState extends Emitter<SystemStateEvents> {
-    memory: MemoryInfo | null = null;
-
     readonly #battery: BatteryMonitor;
     readonly #memoryTimer = new Timer();
     readonly #disposables = new Disposables();
+    #memory: MemoryInfo | null = null;
+    #epoch = 0;
     #destroyed = false;
 
     constructor(battery = new BatteryMonitor()) {
@@ -26,12 +26,17 @@ export class SystemState extends Emitter<SystemStateEvents> {
         );
     }
 
+    get memory(): MemoryInfo | null {
+        return this.#memory;
+    }
+
     get battery(): BatteryInfo | null {
         return this.#battery.battery;
     }
 
     setMemoryWanted(wanted: boolean): void {
         if (wanted === this.#memoryTimer.active) return;
+        this.#epoch++;
         if (!wanted) {
             this.#memoryTimer.stop();
             return;
@@ -41,9 +46,10 @@ export class SystemState extends Emitter<SystemStateEvents> {
     }
 
     async #readMemory(): Promise<void> {
+        const epoch = this.#epoch;
         const memory = await readMemory();
-        if (this.#destroyed) return;
-        this.memory = memory;
+        if (this.#destroyed || epoch !== this.#epoch) return;
+        this.#memory = memory;
         this.emit('memory');
     }
 

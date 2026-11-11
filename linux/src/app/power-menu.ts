@@ -5,7 +5,7 @@ import {Disposables} from '../shared/disposables.js';
 import {islandMenu} from '../shared/ui/island-menu.js';
 import {label, wrappedLabel} from '../shared/ui/layout.js';
 import {frodoIcon} from '../shared/ui/icons.js';
-import type {Island} from './island.js';
+import type {IslandHandle} from '../shared/island-handle.types.js';
 import {ENTRIES} from './power-menu.const.js';
 import type {Entry} from './power-menu.types.js';
 
@@ -15,7 +15,7 @@ export class PowerMenu {
     readonly #note: PopupMenu.PopupBaseMenuItem;
     readonly #disposables = new Disposables();
 
-    constructor(source: St.Button, island: Island) {
+    constructor(source: St.Button, island: IslandHandle) {
         this.#menu = islandMenu(island, source, 1, this.#disposables, ['frodo-power-menu']);
 
         this.#items = ENTRIES.map(entry => {
@@ -41,13 +41,13 @@ export class PowerMenu {
         this.#note.add_child(note);
         this.#menu.addMenuItem(this.#note);
 
-        const openId = this.#menu.connect('open-state-changed', (_menu, open) => {
-            source.checked = open;
-            if (open) this.#syncAvailability();
-        });
-        this.#disposables.add(() => {
-            this.#menu.disconnect(openId);
-        });
+        this.#disposables.signal(
+            this.#menu,
+            this.#menu.connect('open-state-changed', (_menu, open) => {
+                source.checked = open;
+                if (open) this.#syncAvailability();
+            }),
+        );
     }
 
     toggle(): void {

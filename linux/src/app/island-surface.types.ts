@@ -7,5 +7,4 @@ export interface IslandSurfaceDependencies {
     readonly panel: St.Widget;
     readonly tongue: St.Widget;
     readonly pill: St.Widget;
-    attached(): boolean;
 }

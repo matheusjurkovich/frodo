@@ -1,86 +1,50 @@
 import Clutter from 'gi://Clutter';
-import GLib from 'gi://GLib';
 import GnomeDesktop from 'gi://GnomeDesktop';
 import Pango from 'gi://Pango';
 import St from 'gi://St';
-import {formatDate} from '../shared/format.js';
-import {formatRam} from '../features/system/memory.js';
-import type {ClosedItem} from '../settings/schema-values.types.js';
-import {displayLevel, shownPercent} from '../features/claude/claude-usage.js';
-import type {UsageWindow} from '../features/claude/claude-usage.types.js';
-import type {ClaudeService} from '../features/claude/claude-service.js';
-import {codexMeters} from '../features/codex/codex-usage.js';
-import type {CodexUsage} from '../features/codex/codex-service.js';
-import {geminiMeters} from '../features/gemini/gemini-usage.js';
-import type {GeminiUsage} from '../features/gemini/gemini-service.js';
-import {meterLevel, shownMeterPercent} from '../shared/meter.js';
-import type {Meter} from '../shared/meter.types.js';
-import {providerIcon} from '../shared/ui/provider-tile.js';
-import type {NotificationBridge} from '../features/notifications/notification-bridge-service.js';
-import type {FrodoSettings} from '../settings/frodo-settings.js';
-import type {SystemState} from '../features/system/system-state-service.js';
-import {
-    extensionIndicators,
-    networkIndicator,
-    onIndicatorsChanged,
-    otherSystemIndicators,
-    systemIndicator,
-} from '../shared/shell-internals.js';
 import {Disposables} from '../shared/disposables.js';
 import {Emitter} from '../shared/emitter.js';
 import {Timer} from '../shared/timer.js';
-import {dimLabel, label} from '../shared/ui/layout.js';
 import type {Component} from '../shared/ui/lifecycle.types.js';
-import {ProgressRing} from '../shared/ui/progress-ring.js';
-import {frodoIcon} from '../shared/ui/icons.js';
-import {TEXT_ITEMS, METER_ITEMS, FADE_MS} from './idle-view.const.js';
-import type {TextItem, Segment, IdleViewDependencies, MeterItem} from './idle-view.types.js';
-
-function isTextItem(item: ClosedItem): item is TextItem {
-    return TEXT_ITEMS.includes(item);
-}
-
-function present(actor: Clutter.Actor | null): Clutter.Actor[] {
-    return actor ? [actor] : [];
-}
-
-function clockText(): string {
-    return GLib.DateTime.new_now_local().format('%H:%M') ?? '';
-}
+import {closedItemsFor, isTextItem, rotatingItems} from './closed-items.js';
+import {createSegment, itemText} from './idle-segments.js';
+import type {IdleViewDependencies, Segment, SegmentContext} from './idle-view.types.js';
+import {RotatingSlot} from './rotating-slot.js';
 
 export class IdleView extends Emitter<{rebuilt: []}> implements Component {
     readonly actor = new St.BoxLayout({style_class: 'frodo-pill-content'});
 
-    readonly #settings: FrodoSettings;
-    readonly #state: SystemState;
-    readonly #claude: ClaudeService;
-    readonly #codex: CodexUsage;
-    readonly #gemini: GeminiUsage;
-    readonly #bridge: NotificationBridge;
+    readonly #deps: IdleViewDependencies;
     readonly #clock = new GnomeDesktop.WallClock();
-    readonly #rotateTimer = new Timer();
     readonly #disposables = new Disposables();
     readonly #built = new Disposables();
+    readonly #rotateTimer = this.#disposables.own(new Timer());
+    readonly #context: SegmentContext;
     #segments: Segment[] = [];
-    #clockLabels: St.Label[] = [];
-    #dateLabels: St.Label[] = [];
-    #rotateIndex = 0;
-    #rotatingSlot: St.Label | null = null;
+    #slot: RotatingSlot | null = null;
     #vertical = false;
 
-    constructor({settings, state, claude, codex, gemini, bridge}: IdleViewDependencies) {
+    constructor(deps: IdleViewDependencies) {
         super();
-        this.#settings = settings;
-        this.#state = state;
-        this.#claude = claude;
-        this.#codex = codex;
-        this.#gemini = gemini;
-        this.#bridge = bridge;
+        this.#deps = deps;
+        const {settings, state, claude, codex, gemini, bridge} = deps;
+        this.#context = {
+            ...deps,
+            built: this.#built,
+            refresh: () => {
+                this.#update();
+            },
+            rebuild: () => {
+                this.#build();
+            },
+        };
+        const refresh = this.#context.refresh;
 
+        this.#disposables.signal(this.#clock, this.#clock.connect('notify::clock', refresh));
         this.#disposables.signal(
-            this.#clock,
-            this.#clock.connect('notify::clock', () => {
-                this.#syncClock();
+            this.actor,
+            this.actor.connect('notify::mapped', () => {
+                this.#syncRotation();
             }),
         );
         this.#disposables.add(
@@ -88,38 +52,12 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
                 this.#build();
             }),
         );
-        this.#disposables.add(
-            claude.on('changed', () => {
-                this.#update();
-            }),
-        );
-        for (const source of [codex, gemini])
-            this.#disposables.add(
-                source.on('changed', () => {
-                    this.#update();
-                }),
-            );
-        this.#disposables.add(
-            settings.onChanged('disabled-ai', () => {
-                this.#update();
-            }),
-        );
-        this.#disposables.add(
-            bridge.on('changed', () => {
-                this.#update();
-            }),
-        );
-        this.#disposables.add(
-            settings.onChanged(['claude-show-remaining', 'ram-percent'], () => {
-                this.#update();
-            }),
-        );
-        for (const event of ['memory', 'battery'] as const)
-            this.#disposables.add(
-                state.on(event, () => {
-                    this.#update();
-                }),
-            );
+        this.#disposables.add(settings.onChanged(['disabled-ai', 'claude-show-remaining', 'ram-percent'], refresh));
+        this.#disposables.add(claude.on('changed', refresh));
+        this.#disposables.add(codex.on('changed', refresh));
+        this.#disposables.add(gemini.on('changed', refresh));
+        this.#disposables.add(bridge.on('changed', refresh));
+        for (const event of ['memory', 'battery'] as const) this.#disposables.add(state.on(event, refresh));
         this.#build();
     }
 
@@ -131,282 +69,56 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
     }
 
     get wantsMemory(): boolean {
-        return this.#settings.closedMode !== 'minimal' && this.#settings.closedItems.includes('ram');
-    }
-
-    #syncClock(): void {
-        const text = clockText();
-        for (const clock of this.#clockLabels) clock.text = text;
-        const date = formatDate(new Date());
-        for (const day of this.#dateLabels) day.text = date;
-    }
-
-    #items(): ClosedItem[] {
-        const mode = this.#settings.closedMode;
-        if (mode === 'minimal') return ['clock'];
-        const items = this.#settings.closedItems;
-        if (mode === 'compact') return items;
-        const firstText = items.findIndex(isTextItem);
-        return items.filter((item, index) => !isTextItem(item) || index === firstText);
+        return this.#deps.settings.closedMode !== 'minimal' && this.#deps.settings.closedItems.includes('ram');
     }
 
     #build(): void {
+        const {settings} = this.#deps;
         this.#rotateTimer.stop();
         this.#built.dispose();
         this.actor.destroy_all_children();
         this.#segments = [];
-        this.#clockLabels = [];
-        this.#dateLabels = [];
-        this.#rotateIndex = 0;
-        this.#rotatingSlot = null;
+        this.#slot = null;
 
-        const rotating = this.#settings.closedMode === 'rotating';
-        for (const item of this.#items()) {
-            const segment = rotating && isTextItem(item) ? this.#rotatingSegment() : this.#segment(item);
-            if (!segment) continue;
+        const rotating = settings.closedMode === 'rotating';
+        for (const item of closedItemsFor(settings.closedMode, settings.closedItems)) {
+            const segment = rotating && isTextItem(item) ? this.#rotatingSegment() : createSegment(item, this.#context);
             if (this.#vertical) segment.actor.x_align = Clutter.ActorAlign.CENTER;
             if (this.#vertical && segment.actor instanceof St.Label) segment.actor.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
             this.actor.add_child(segment.actor);
             this.#segments.push(segment);
         }
-        if (rotating)
-            this.#rotateTimer.every(this.#settings.rotateSeconds, () => {
-                this.#rotate();
-            });
-
-        this.#syncClock();
+        this.#syncRotation();
         this.#update();
         this.emit('rebuilt');
     }
 
-    #segment(item: ClosedItem): Segment | null {
-        switch (item) {
-            case 'clock':
-                return this.#clockSegment();
-            case 'date':
-                return this.#dateSegment();
-            case 'notifications':
-                return this.#notificationsSegment();
-            case 'network':
-                return this.#cloneSegment(() => present(networkIndicator()));
-            case 'bluetooth':
-            case 'volume':
-            case 'microphone':
-            case 'do-not-disturb':
-                return this.#cloneSegment(() => present(systemIndicator(item)));
-            case 'system':
-                return this.#cloneSegment(otherSystemIndicators);
-            case 'extensions':
-                return this.#cloneSegment(extensionIndicators);
-            case 'battery':
-                return this.#cloneSegment(() => present(systemIndicator('battery')));
-            case 'ram':
-                return this.#textSegment('ram');
-            case 'claude-session':
-            case 'claude-weekly':
-                return this.#claudeSegment(item);
-            case 'codex-session':
-            case 'codex-weekly':
-            case 'gemini-daily':
-                return this.#meterSegment(item);
-        }
-    }
-
-    #meter(item: MeterItem): Meter | null {
-        const {provider, key} = METER_ITEMS[item];
-        if (!this.#settings.providerEnabled(provider)) return null;
-        const meters = provider === 'codex' ? codexMeters(this.#codex.limits, Date.now()) : geminiMeters(this.#gemini.quota);
-        return meters.find(meter => meter.key === key) ?? null;
-    }
-
-    #meterSegment(item: MeterItem): Segment {
-        const {provider, suffix} = METER_ITEMS[item];
-        const box = new St.BoxLayout({style_class: 'frodo-claude', y_align: Clutter.ActorAlign.CENTER});
-        box.add_child(providerIcon(provider, 'frodo-claude-icon'));
-        const ring = new ProgressRing();
-        ring.actor.add_style_class_name(`frodo-provider-${provider}`);
-        const value = dimLabel('—');
-        box.add_child(ring.actor);
-        box.add_child(value);
-        return {
-            actor: box,
-            isVisible: () => this.#settings.providerEnabled(provider),
-            update: () => {
-                const meter = this.#meter(item);
-                ring.actor.visible = meter !== null;
-                if (!meter) {
-                    value.text = '—';
-                    return;
-                }
-                const shown = shownMeterPercent(meter.percent, this.#settings.claudeShowRemaining);
-                ring.level = meterLevel(meter.percent);
-                ring.percent = shown;
-                value.text = `${Math.round(shown)}%${suffix}`;
-            },
-        };
-    }
-
-    #clockSegment(): Segment {
-        const label = new St.Label({style_class: 'frodo-clock', y_align: Clutter.ActorAlign.CENTER});
-        this.#clockLabels.push(label);
-        return {actor: label, isVisible: () => true, update: () => undefined};
-    }
-
-    #dateSegment(): Segment {
-        const date = label('', 'frodo-pill-date');
-        this.#dateLabels.push(date);
-        return {actor: date, isVisible: () => true, update: () => undefined};
-    }
-
-    #notificationsSegment(): Segment {
-        const box = new St.BoxLayout({style_class: 'frodo-pill-notifications', y_align: Clutter.ActorAlign.CENTER});
-        const count = label('', 'frodo-pill-count');
-        box.add_child(new St.Icon({gicon: frodoIcon('bell'), style_class: 'frodo-pill-status-icon'}));
-        box.add_child(count);
-        return {
-            actor: box,
-            isVisible: () => this.#bridge.count > 0,
-            update: () => {
-                count.text = String(this.#bridge.count);
-            },
-        };
-    }
-
-    #cloneSegment(read: () => Clutter.Actor[]): Segment {
-        const sources = read();
-        const box = new St.BoxLayout({style_class: 'frodo-system-icons', y_align: Clutter.ActorAlign.CENTER});
-        const clones = sources.map(source => new Clutter.Clone({source, y_align: Clutter.ActorAlign.CENTER}));
-        for (const clone of clones) box.add_child(clone);
-        for (const source of sources)
-            for (const property of ['visible', 'width', 'height'])
-                this.#built.signal(
-                    source,
-                    source.connect(`notify::${property}`, () => {
-                        this.#update();
-                    }),
-                );
-        this.#built.add(
-            onIndicatorsChanged(() => {
-                const current = read();
-                if (current.length !== sources.length || current.some((source, index) => source !== sources[index])) this.#build();
-            }),
-        );
-        return {
-            actor: box,
-            isVisible: () => sources.some(source => source.visible),
-            update: () => {
-                clones.forEach((clone, index) => {
-                    const source = sources[index];
-                    clone.visible = source?.visible ?? false;
-                    if (source && source.width > 0 && source.height > 0) clone.set_size(source.width, source.height);
-                    else clone.set_size(-1, -1);
-                });
-            },
-        };
-    }
-
-    #textSegment(item: TextItem): Segment {
-        const label = dimLabel();
-        return {
-            actor: label,
-            isVisible: () => item !== 'battery' || this.#state.battery !== null,
-            update: () => {
-                label.text = this.#itemText(item);
-            },
-        };
-    }
-
-    #claudeWindow(item: 'claude-session' | 'claude-weekly'): UsageWindow | null {
-        const role = item === 'claude-session' ? 'session' : 'weekly';
-        return this.#claude.active?.windows.find(window => window.role === role) ?? null;
-    }
-
-    #claudeSegment(item: 'claude-session' | 'claude-weekly'): Segment {
-        const box = new St.BoxLayout({style_class: 'frodo-claude', y_align: Clutter.ActorAlign.CENTER});
-        box.add_child(new St.Icon({gicon: frodoIcon('claude'), style_class: 'frodo-claude-icon'}));
-        const ring = new ProgressRing();
-        const value = dimLabel('—');
-        box.add_child(ring.actor);
-        box.add_child(value);
-        return {
-            actor: box,
-            isVisible: () => true,
-            update: () => {
-                const window = this.#claudeWindow(item);
-                ring.actor.visible = window !== null;
-                if (!window) {
-                    value.text = '—';
-                    return;
-                }
-                const shown = shownPercent(window.utilization, this.#settings.claudeShowRemaining);
-                ring.level = displayLevel(window, Date.now());
-                ring.percent = shown;
-                value.text = `${Math.round(shown)}%`;
-            },
-        };
-    }
-
     #rotatingSegment(): Segment {
-        const label = dimLabel();
-        this.#rotatingSlot = label;
+        const {settings, state} = this.#deps;
+        const slot = new RotatingSlot(
+            () =>
+                rotatingItems(settings.closedItems, {
+                    hasBattery: state.battery !== null,
+                    providerEnabled: provider => settings.providerEnabled(provider),
+                }),
+            item => itemText(item, this.#context),
+        );
+        this.#slot = slot;
         return {
-            actor: label,
-            isVisible: () => this.#rotatingItems().length > 0,
+            actor: slot.actor,
+            isVisible: () => slot.isVisible(),
             update: () => {
-                const items = this.#rotatingItems();
-                const item = items[this.#rotateIndex % Math.max(1, items.length)];
-                if (item) label.text = this.#itemText(item);
+                slot.update();
             },
         };
     }
 
-    #rotatingItems(): TextItem[] {
-        return this.#settings.closedItems
-            .filter(isTextItem)
-            .filter(item => item !== 'battery' || this.#state.battery !== null)
-            .filter(item => !(item in METER_ITEMS) || this.#settings.providerEnabled(METER_ITEMS[item as MeterItem].provider));
-    }
-
-    #itemText(item: TextItem): string {
-        const {battery, memory} = this.#state;
-        switch (item) {
-            case 'battery':
-                return battery ? `Bat ${battery.percent}%` : 'Bat —';
-            case 'ram':
-                return formatRam(memory, this.#settings.ramPercent);
-            case 'claude-session':
-            case 'claude-weekly': {
-                const window = this.#claudeWindow(item);
-                const name = item === 'claude-session' ? 'Claude' : 'Semana';
-                return window
-                    ? `${name} ${Math.round(shownPercent(window.utilization, this.#settings.claudeShowRemaining))}%`
-                    : `${name} —`;
-            }
-            case 'codex-session':
-            case 'codex-weekly':
-            case 'gemini-daily': {
-                const meter = this.#meter(item);
-                const {name, suffix} = METER_ITEMS[item];
-                return meter
-                    ? `${name} ${Math.round(shownMeterPercent(meter.percent, this.#settings.claudeShowRemaining))}%${suffix}`
-                    : `${name} —`;
-            }
-        }
-    }
-
-    #rotate(): void {
-        const slot = this.#rotatingSlot;
-        const count = this.#rotatingItems().length;
-        if (!slot || count === 0) return;
-        slot.ease({
-            opacity: 0,
-            duration: FADE_MS,
-            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-            onComplete: () => {
-                this.#rotateIndex = (this.#rotateIndex + 1) % count;
-                this.#update();
-                slot.ease({opacity: 255, duration: FADE_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
-            },
+    #syncRotation(): void {
+        this.#rotateTimer.stop();
+        const slot = this.#slot;
+        if (!slot || !this.actor.mapped) return;
+        this.#rotateTimer.every(this.#deps.settings.rotateSeconds, () => {
+            slot.advance();
         });
     }
 
@@ -419,7 +131,6 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
     }
 
     destroy(): void {
-        this.#rotateTimer.stop();
         this.#built.dispose();
         this.#disposables.dispose();
         this.clearListeners();

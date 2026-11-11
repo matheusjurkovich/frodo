@@ -1,135 +1,31 @@
-import Clutter from 'gi://Clutter';
-import Shell from 'gi://Shell';
-import St from 'gi://St';
-import {formatBytes, formatPercent, formatRate, monogram, topBy} from '../../features/system/performance.js';
+import {formatBytes, formatPercent, formatRate} from '../../features/system/performance.js';
 import type {PerformanceMonitor} from '../../features/system/performance-service.js';
-import type {PerformanceSnapshot, ProcessSample} from '../../features/system/performance-service.types.js';
+import type {PerformanceSnapshot} from '../../features/system/performance-service.types.js';
 import {fixedDecimal} from '../../shared/format.js';
 import {Disposables} from '../../shared/disposables.js';
 import type {IslandHandle} from '../../shared/island-handle.types.js';
-import {iconButton, textButton} from '../../shared/ui/buttons.js';
-import {card, cardTitle} from '../../shared/ui/card.js';
-import {frodoIcon} from '../../shared/ui/icons.js';
-import {column, dimLabel, grid, label, packGrid, row} from '../../shared/ui/layout.js';
+import {column, grid, packGrid} from '../../shared/ui/layout.js';
 import {whileMapped} from '../../shared/ui/lifecycle.js';
 import type {Component} from '../../shared/ui/lifecycle.types.js';
-import {SegmentBar} from '../../shared/ui/segment-bar.js';
-import {Segmented} from '../../shared/ui/segmented.js';
-import {
-    HISTORY_SLOTS,
-    SPARK_HEIGHT,
-    RECENT_BARS,
-    DIM_OPACITY,
-    HIGH_USAGE,
-    IDLE_FOOTER,
-    SPACING,
-    SORTS,
-    MONITOR_APPS,
-    SORT_VALUE,
-    TOP,
-} from './performance-page.const.js';
-import type {SortKey} from './performance-page.types.js';
-
-class Sparkline {
-    readonly actor = new St.BoxLayout({style_class: 'frodo-perf-spark', x_expand: true});
-
-    set values(history: readonly number[]) {
-        this.actor.destroy_all_children();
-        const values = [...Array<number>(Math.max(0, HISTORY_SLOTS - history.length)).fill(0), ...history.slice(-HISTORY_SLOTS)];
-        values.forEach((value, index) => {
-            const bar = new St.Widget({style_class: 'frodo-perf-spark-bar', x_expand: true, y_align: Clutter.ActorAlign.END});
-            bar.height = Math.max(2, Math.round(Math.min(1, value) * SPARK_HEIGHT));
-            bar.opacity = index >= values.length - RECENT_BARS ? 255 : DIM_OPACITY;
-            this.actor.add_child(bar);
-        });
-    }
-}
-
-class MetricCard {
-    readonly actor = card('frodo-perf-card');
-    readonly tag = label('', 'frodo-chip frodo-chip-neutral');
-    readonly value = label('—', 'frodo-perf-value');
-    readonly unit = label('', 'frodo-perf-unit');
-    readonly first = dimLabel();
-    readonly second = dimLabel();
-    readonly spark = new Sparkline();
-    readonly bar = new SegmentBar('frodo-perf-bar');
-
-    constructor(title: string, graph: 'spark' | 'bar') {
-        const header = row('frodo-perf-card-header');
-        const heading = cardTitle(title);
-        heading.x_expand = true;
-        header.add_child(heading);
-        header.add_child(this.tag);
-        const figure = row('frodo-perf-figure');
-        figure.add_child(this.value);
-        this.unit.y_align = Clutter.ActorAlign.END;
-        figure.add_child(this.unit);
-        const footer = row('frodo-perf-card-footer');
-        this.first.x_expand = true;
-        footer.add_child(this.first);
-        footer.add_child(this.second);
-        this.actor.add_child(header);
-        this.actor.add_child(figure);
-        this.actor.add_child(graph === 'spark' ? this.spark.actor : this.bar.actor);
-        this.actor.add_child(footer);
-    }
-
-    fill(fraction: number): void {
-        this.bar.segments = [{fraction: Math.min(1, Math.max(0, fraction)), styleClass: fraction >= HIGH_USAGE ? 'frodo-perf-high' : ''}];
-    }
-}
+import {MetricCard} from './metric-card.js';
+import {SPACING} from './performance-page.const.js';
+import {ProcessTable} from './process-table.js';
 
 export class PerformancePage implements Component {
     readonly actor = column('frodo-performance');
-    readonly #monitor: PerformanceMonitor;
     readonly #disposables = new Disposables();
     readonly #cpu = new MetricCard('CPU', 'spark');
     readonly #memory = new MetricCard('Memória', 'bar');
     readonly #gpu = new MetricCard('GPU', 'spark');
     readonly #disk = new MetricCard('Disco', 'bar');
-    readonly #headers = row('frodo-perf-row frodo-perf-head');
-    readonly #rows = column('frodo-perf-rows');
-    readonly #footer = dimLabel(IDLE_FOOTER);
-    readonly #sorter: Segmented<SortKey>;
-    #sort: SortKey = 'cpu';
-    #confirm: number | null = null;
-    #destroyed = false;
+    readonly #table: ProcessTable;
 
     constructor(monitor: PerformanceMonitor, island: IslandHandle) {
-        this.#monitor = monitor;
-
         const metrics = grid(SPACING);
         this.#disposables.add(packGrid(metrics, [this.#cpu.actor, this.#memory.actor, this.#gpu.actor, this.#disk.actor], 4));
         this.actor.add_child(metrics);
-
-        const processes = card('frodo-perf-processes');
-        const top = row('frodo-perf-processes-header');
-        const title = label('Processos que mais gastam', 'frodo-card-heading');
-        title.x_expand = true;
-        top.add_child(title);
-        top.add_child(dimLabel('Ordenar por'));
-        this.#sorter = this.#disposables.own(new Segmented(SORTS, this.#sort, ''));
-        this.#sorter.on('changed', sort => {
-            this.#sort = sort;
-            this.#render();
-        });
-        top.add_child(this.#sorter.actor);
-        const apps = Shell.AppSystem.get_default();
-        const app = MONITOR_APPS.map(id => apps.lookup_app(id) as Shell.App | null).find(found => found !== null);
-        if (app)
-            top.add_child(
-                textButton('Abrir Monitor do Sistema', () => {
-                    app.activate();
-                    island.close();
-                }),
-            );
-        processes.add_child(top);
-        processes.add_child(this.#headers);
-        processes.add_child(this.#rows);
-        this.#footer.add_style_class_name('frodo-perf-footer');
-        processes.add_child(this.#footer);
-        this.actor.add_child(processes);
+        this.#table = new ProcessTable(monitor, island);
+        this.actor.add_child(this.#table.actor);
 
         const running = new Disposables();
         this.#disposables.add(
@@ -138,29 +34,25 @@ export class PerformancePage implements Component {
                 () => {
                     running.add(
                         monitor.on('changed', () => {
-                            if (this.#confirm === null) this.#render();
-                            else this.#renderMetrics(monitor.snapshot);
+                            this.#render(monitor.snapshot);
                         }),
                     );
                     monitor.start();
-                    this.#render();
+                    this.#render(monitor.snapshot);
                 },
                 () => {
                     monitor.stop();
                     running.dispose();
-                    this.#confirm = null;
-                    this.#setFooter(IDLE_FOOTER, null);
+                    this.#table.reset();
                 },
             ),
         );
-        this.#render();
+        this.#render(monitor.snapshot);
     }
 
-    #render(): void {
-        const snapshot = this.#monitor.snapshot;
+    #render(snapshot: PerformanceSnapshot | null): void {
         this.#renderMetrics(snapshot);
-        this.#renderHeaders();
-        this.#renderRows(snapshot);
+        this.#table.update(snapshot);
     }
 
     #renderMetrics(snapshot: PerformanceSnapshot | null): void {
@@ -195,130 +87,10 @@ export class PerformancePage implements Component {
         this.#disk.second.text = disk ? `Escrita ${formatRate(disk.writeBps)}` : '';
     }
 
-    #renderHeaders(): void {
-        const headers = this.#headers;
-        headers.destroy_all_children();
-        const name = label('Processo', 'frodo-perf-col-name');
-        name.x_expand = true;
-        headers.add_child(name);
-        for (const {id, label: text} of SORTS) {
-            const column = label(id === this.#sort ? `${text} ↓` : text, 'frodo-perf-col');
-            if (id === this.#sort) column.add_style_class_name('frodo-perf-col-active');
-            headers.add_child(column);
-        }
-        headers.add_child(label('Ações', 'frodo-perf-col-action'));
-    }
-
-    #renderRows(snapshot: PerformanceSnapshot | null): void {
-        const rows = this.#rows;
-        rows.destroy_all_children();
-        if (!snapshot) {
-            rows.add_child(dimLabel('Lendo o uso do sistema…'));
-            return;
-        }
-        const value = SORT_VALUE[this.#sort];
-        const top = topBy(snapshot.processes, value, TOP);
-        const max = Math.max(1e-9, ...top.map(value));
-        if (this.#confirm !== null && !top.some(process => process.pid === this.#confirm)) this.#confirm = null;
-        for (const process of top) {
-            rows.add_child(this.#row(process, value(process) / max));
-            if (process.pid === this.#confirm) rows.add_child(this.#confirmation(process));
-        }
-    }
-
-    #row(process: ProcessSample, share: number): St.BoxLayout {
-        const line = row('frodo-perf-row');
-        const who = row('frodo-perf-who');
-        who.x_expand = true;
-        const badge = new St.Bin({style_class: 'frodo-perf-badge', y_align: Clutter.ActorAlign.CENTER});
-        badge.child = process.gicon
-            ? new St.Icon({gicon: process.gicon, icon_size: 20})
-            : label(monogram(process.name), 'frodo-perf-monogram');
-        who.add_child(badge);
-        const text = column('frodo-perf-who-text');
-        const names = row('frodo-perf-names');
-        names.add_child(label(process.name, 'frodo-perf-name'));
-        names.add_child(label(`pid ${process.pid}`, 'frodo-perf-pid frodo-mono'));
-        text.add_child(names);
-        const bar = new SegmentBar('frodo-perf-share');
-        bar.segments = [{fraction: share, styleClass: ''}];
-        text.add_child(bar.actor);
-        who.add_child(text);
-        line.add_child(who);
-        const cells: Record<SortKey, string> = {
-            cpu: formatPercent(process.cpu),
-            ram: formatBytes(process.ramBytes),
-            gpu: process.gpu === null || process.gpu < 0.005 ? '—' : `${Math.round(process.gpu * 100)}%`,
-        };
-        for (const {id} of SORTS) {
-            const cell = label(cells[id], 'frodo-perf-col frodo-mono');
-            if (id === this.#sort) cell.add_style_class_name('frodo-perf-col-active');
-            line.add_child(cell);
-        }
-        const action = new St.Bin({style_class: 'frodo-perf-col-action'});
-        if (process.protected) {
-            const lock = new St.Icon({gicon: frodoIcon('lock'), style_class: 'frodo-perf-lock', icon_size: 15});
-            lock.accessible_name = 'Processo do sistema: encerrar derruba a sessão';
-            action.child = lock;
-        } else {
-            const ask = iconButton(
-                frodoIcon('close'),
-                `Encerrar ${process.name}`,
-                () => {
-                    this.#confirm = this.#confirm === process.pid ? null : process.pid;
-                    this.#render();
-                },
-                'ghost',
-                32,
-            );
-            if (this.#confirm === process.pid) ask.add_style_class_name('frodo-perf-asking');
-            action.child = ask;
-        }
-        line.add_child(action);
-        return line;
-    }
-
-    #confirmation(process: ProcessSample): St.BoxLayout {
-        const box = row('frodo-perf-confirm');
-        const question = label(`Encerrar ${process.name}? O que não foi salvo nele pode se perder.`, 'frodo-perf-confirm-text');
-        question.x_expand = true;
-        box.add_child(question);
-        box.add_child(
-            textButton('Cancelar', () => {
-                this.#confirm = null;
-                this.#render();
-            }),
-        );
-        const kill = textButton(
-            'Encerrar',
-            () => {
-                this.#confirm = null;
-                this.#render();
-                void this.#monitor.kill(process.pid).then(killed => {
-                    this.#setFooter(
-                        killed ? `${process.name} (pid ${process.pid}) foi encerrado.` : `Não deu para encerrar ${process.name}.`,
-                        killed ? 'frodo-perf-footer-ok' : 'frodo-perf-footer-error',
-                    );
-                });
-            },
-            'danger',
-        );
-        kill.add_style_class_name('frodo-perf-kill');
-        box.add_child(kill);
-        return box;
-    }
-
-    #setFooter(text: string, styleClass: string | null): void {
-        if (this.#destroyed) return;
-        this.#footer.text = text;
-        this.#footer.remove_style_class_name('frodo-perf-footer-ok');
-        this.#footer.remove_style_class_name('frodo-perf-footer-error');
-        if (styleClass) this.#footer.add_style_class_name(styleClass);
-    }
-
     destroy(): void {
-        this.#destroyed = true;
         this.#disposables.dispose();
+        for (const card of [this.#cpu, this.#memory, this.#gpu, this.#disk]) card.destroy();
+        this.#table.destroy();
         this.actor.destroy();
     }
 }

@@ -12,7 +12,7 @@ import type {Component} from '../../shared/ui/lifecycle.types.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
 import {fadeIn, reveal, slideOut} from '../../shared/ui/motion.js';
 import type {IslandHandle} from '../../shared/island-handle.types.js';
-import {notificationRow} from './notification-row.js';
+import {NotificationRow} from './notification-row.js';
 
 export class NotificationsPage implements Component {
     readonly actor = card('frodo-notifications');
@@ -31,7 +31,7 @@ export class NotificationsPage implements Component {
     readonly #clear: St.Button;
     readonly #disposables = new Disposables();
     readonly #running = new Disposables();
-    readonly #rows = new Map<MessageTray.Notification, St.Button>();
+    readonly #rows = new Map<MessageTray.Notification, NotificationRow>();
     #leaving = 0;
 
     constructor(bridge: NotificationBridge, island: IslandHandle) {
@@ -87,37 +87,34 @@ export class NotificationsPage implements Component {
                 if (animate) this.#dismissRow(row);
                 else row.destroy();
             }
-        let previous: St.Button | null = null;
-        for (const notification of notifications) {
-            const row = notificationRow(notification, {
-                dismiss: () => {
-                    this.#bridge.dismiss(notification);
-                },
-                open: () => {
-                    this.#island.close();
-                    notification.activate();
-                },
-            });
-            const old = this.#rows.get(notification);
-            if (old) {
-                this.#list.replace_child(old, row);
-                old.destroy();
-            } else {
-                if (previous) this.#list.insert_child_above(row, previous);
-                else this.#list.insert_child_at_index(row, 0);
-                if (animate) fadeIn(row);
+        notifications.forEach((notification, index) => {
+            let row = this.#rows.get(notification);
+            const isNew = !row;
+            if (!row) {
+                row = new NotificationRow({
+                    dismiss: () => {
+                        this.#bridge.dismiss(notification);
+                    },
+                    open: () => {
+                        this.#island.close();
+                        notification.activate();
+                    },
+                });
+                this.#rows.set(notification, row);
+                this.#list.add_child(row.actor);
             }
-            this.#rows.set(notification, row);
-            previous = row;
-        }
+            row.update(notification);
+            this.#list.set_child_at_index(row.actor, index);
+            if (isNew && animate) fadeIn(row.actor);
+        });
         this.#syncEmpty();
     }
 
-    #dismissRow(row: St.Button): void {
-        row.reactive = false;
+    #dismissRow(row: NotificationRow): void {
+        row.actor.reactive = false;
         this.#leaving++;
-        slideOut(row, -1, () => {
-            reveal(row, false, () => {
+        slideOut(row.actor, -1, () => {
+            reveal(row.actor, false, () => {
                 row.destroy();
                 this.#leaving--;
                 this.#syncEmpty();
@@ -136,6 +133,7 @@ export class NotificationsPage implements Component {
 
     destroy(): void {
         this.#disposables.dispose();
+        for (const row of this.#rows.values()) row.destroy();
         this.actor.destroy();
     }
 }

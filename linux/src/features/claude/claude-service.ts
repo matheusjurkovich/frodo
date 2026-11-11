@@ -30,6 +30,7 @@ export class ClaudeService extends Emitter<{changed: []}> {
     readonly #disposables = new Disposables();
     readonly #transport: Transport;
     #entries: Entry[] = [];
+    #running: {entries: Entry[]; promise: Promise<void>} | null = null;
     #lastRefresh = 0;
     #lastFailed = false;
     #destroyed = false;
@@ -49,7 +50,7 @@ export class ClaudeService extends Emitter<{changed: []}> {
             }),
         );
         void ensureProfiles(settings).then(profiles => {
-            if (!this.#destroyed) this.#rebuild(profiles);
+            if (!this.#destroyed && this.#entries.length === 0) this.#rebuild(profiles);
         });
         this.#schedule();
     }
@@ -74,10 +75,19 @@ export class ClaudeService extends Emitter<{changed: []}> {
         if (Date.now() - this.#lastRefresh >= maxAgeSeconds * 1000) void this.refresh(true);
     }
 
-    async refresh(force = false): Promise<void> {
-        if (!force && Date.now() - this.#lastRefresh < MIN_REFRESH_MS) return;
-        this.#lastRefresh = Date.now();
+    refresh(force = false): Promise<void> {
         const entries = this.#entries;
+        if (this.#running?.entries === entries) return this.#running.promise;
+        if (!force && Date.now() - this.#lastRefresh < MIN_REFRESH_MS) return Promise.resolve();
+        this.#lastRefresh = Date.now();
+        const promise = this.#refreshAll(entries).finally(() => {
+            if (this.#running?.promise === promise) this.#running = null;
+        });
+        this.#running = {entries, promise};
+        return promise;
+    }
+
+    async #refreshAll(entries: Entry[]): Promise<void> {
         await Promise.all(entries.map(entry => this.#refreshEntry(entry)));
         if (this.#destroyed || entries !== this.#entries) return;
         this.#lastFailed = entries.length > 0 && entries.every(entry => entry.usage.status === 'error');
@@ -107,10 +117,11 @@ export class ClaudeService extends Emitter<{changed: []}> {
     }
 
     async #refreshEntry(entry: Entry): Promise<void> {
-        const tier = await entry.client.readTier();
-        if (tier.subscriptionType || tier.rateLimitTier) this.#update(entry, {tier: tierLabel(tier.subscriptionType, tier.rateLimitTier)});
+        const credentials = await entry.client.credentials();
+        if (credentials?.subscriptionType || credentials?.rateLimitTier)
+            this.#update(entry, {tier: tierLabel(credentials.subscriptionType, credentials.rateLimitTier)});
 
-        const [usage, profile] = await Promise.allSettled([entry.client.fetchUsage(), entry.client.fetchProfile()]);
+        const [usage, profile] = await Promise.allSettled([entry.client.fetchUsage(credentials), entry.client.fetchProfile(credentials)]);
         if (this.#destroyed) return;
 
         if (usage.status === 'rejected') {

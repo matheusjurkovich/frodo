@@ -36,9 +36,12 @@ export class BatteryMonitor extends Emitter<{changed: []}> {
 
     #sync(): void {
         const device = this.#proxy;
-        this.#battery = device.IsPresent
+        const next = device.IsPresent
             ? {percent: Math.round(device.Percentage), charging: device.State === UPower.DeviceState.CHARGING}
             : null;
+        const before = this.#battery;
+        if (before !== null && next !== null && before.percent === next.percent && before.charging === next.charging) return;
+        this.#battery = next;
         this.emit('changed');
     }
 

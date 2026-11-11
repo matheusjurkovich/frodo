@@ -21,7 +21,9 @@ export class ProgressRing {
     }
 
     set percent(value: number) {
-        this.#percent = clamp(value, 0, 100);
+        const next = clamp(value, 0, 100);
+        if (next === this.#percent) return;
+        this.#percent = next;
         this.actor.queue_repaint();
     }
 

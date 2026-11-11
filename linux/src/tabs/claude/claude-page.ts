@@ -9,7 +9,8 @@ import {swap} from '../../shared/ui/motion.js';
 import {Segmented} from '../../shared/ui/segmented.js';
 import {ConsumptionCard} from './consumption-card.js';
 import {LimitsCard} from './limits-card.js';
-import {MetersCard, OverviewCard} from './provider-cards.js';
+import {MetersCard} from './meters-card.js';
+import {OverviewCard} from './overview-card.js';
 import {SessionsCard} from './sessions-card.js';
 import {VIEWS} from './claude-page.const.js';
 import type {View, ClaudePageDependencies} from './claude-page.types.js';
@@ -26,7 +27,8 @@ export class ClaudePage implements Component {
     readonly #left = column('frodo-section');
     readonly #right = column('frodo-section frodo-claude-side');
     readonly #details = new Map<AiProvider, readonly Component[]>();
-    readonly #sessions: SessionsCard;
+    readonly #sessionsAll: SessionsCard;
+    readonly #sessionsSingle: SessionsCard;
     readonly #disposables = new Disposables();
     #segmented: Segmented<View> | null = null;
     #view: View = 'all';
@@ -34,7 +36,8 @@ export class ClaudePage implements Component {
     constructor({claude, transcripts, sessions, codex, gemini, settings, actions}: ClaudePageDependencies) {
         this.#settings = settings;
         const sources = {settings, claude, codex, gemini};
-        this.#sessions = new SessionsCard(sessions, transcripts, actions.close);
+        this.#sessionsAll = new SessionsCard(sessions, transcripts, actions.close);
+        this.#sessionsSingle = new SessionsCard(sessions, transcripts, actions.close);
 
         for (const provider of AI_PROVIDERS) {
             const overview = new OverviewCard(provider, sources, sessions, () => {
@@ -45,6 +48,7 @@ export class ClaudePage implements Component {
         }
         this.#overview.layout_manager.homogeneous = true;
         this.#all.add_child(this.#overview);
+        this.#all.add_child(this.#sessionsAll.actor);
 
         this.#details.set('claude', [new LimitsCard(claude, settings, actions), new ConsumptionCard(transcripts, 'claude')]);
         this.#details.set('codex', [new MetersCard('codex', sources), new ConsumptionCard(codex, 'codex')]);
@@ -52,6 +56,7 @@ export class ClaudePage implements Component {
         for (const cards of this.#details.values()) for (const detail of cards) this.#left.add_child(detail.actor);
 
         this.#right.x_expand = false;
+        this.#right.add_child(this.#sessionsSingle.actor);
         for (const side of [this.#left, this.#right]) {
             side.y_align = Clutter.ActorAlign.START;
             this.#single.add_child(side);
@@ -101,16 +106,15 @@ export class ClaudePage implements Component {
 
     #apply(view: View): void {
         const all = view === 'all';
-        this.#all.visible = all;
-        this.#single.visible = !all;
+        if (!all) this.#sessionsSingle.showProvider(view);
         for (const [provider, cards] of this.#details) for (const detail of cards) detail.actor.visible = provider === view;
-        const target = all ? this.#all : this.#right;
-        const actor = this.#sessions.actor;
-        if (actor.get_parent() !== target) {
-            actor.get_parent()?.remove_child(actor);
-            target.add_child(actor);
+        if (all) {
+            this.#all.visible = true;
+            this.#single.visible = false;
+        } else {
+            this.#single.visible = true;
+            this.#all.visible = false;
         }
-        this.#sessions.showProvider(all ? null : view);
     }
 
     destroy(): void {
@@ -118,7 +122,8 @@ export class ClaudePage implements Component {
         this.#segmented?.destroy();
         for (const overview of this.#overviewCards.values()) overview.destroy();
         for (const cards of this.#details.values()) for (const detail of cards) detail.destroy();
-        this.#sessions.destroy();
+        this.#sessionsAll.destroy();
+        this.#sessionsSingle.destroy();
         this.actor.destroy();
     }
 }

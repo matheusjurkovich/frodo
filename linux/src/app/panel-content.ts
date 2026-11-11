@@ -1,7 +1,6 @@
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 import {tabToOpen, visibleTabs} from '../settings/tabs.js';
-import {TAB_LABELS} from '../settings/tabs.const.js';
 import {TAB_IDS} from '../settings/schema-values.const.js';
 import type {TabId} from '../settings/schema-values.types.js';
 import type {FrodoSettings} from '../settings/frodo-settings.js';
@@ -11,19 +10,12 @@ import {column} from '../shared/ui/layout.js';
 import {morphSize, settle, slideIn, slideOut} from '../shared/ui/motion.js';
 import {HEIGHT_AXIS} from '../shared/ui/motion.const.js';
 import type {Component} from '../shared/ui/lifecycle.types.js';
-import {CalendarPage} from '../tabs/calendar/calendar-page.js';
-import {ClaudePage} from '../tabs/claude/claude-page.js';
-import {GeneralPage} from '../tabs/general/general-page.js';
 import {Header} from './header.js';
-import {NotificationsPage} from '../tabs/notifications/notifications-page.js';
-import {PerformancePage} from '../tabs/performance/performance-page.js';
 import {PowerMenu} from './power-menu.js';
 import {SettingsPage} from '../tabs/settings/settings-page.js';
 import {TabBar} from './tab-bar.js';
-import type {TabSpec} from './tab-bar.types.js';
+import {createTabPages} from './tab-pages.js';
 import {IdleView} from '../pill/idle-view.js';
-import {MixerPage} from '../tabs/mixer/mixer-page.js';
-import {WorkspacesPage} from '../tabs/workspaces/workspaces-page.js';
 import type {PanelView, PanelDependencies} from './panel-content.types.js';
 
 export class PanelContent {
@@ -31,7 +23,7 @@ export class PanelContent {
     readonly #settings: FrodoSettings;
     readonly #tabBar: TabBar;
     readonly #header: Header;
-    readonly #pages = new Map<TabId, Component>();
+    readonly #pages: ReadonlyMap<TabId, Component>;
     readonly #settingsPage: Component;
     readonly #preview: IdleView;
     readonly #stack = new St.Viewport({style_class: 'frodo-pages', layout_manager: new Clutter.BinLayout(), x_expand: true});
@@ -47,69 +39,11 @@ export class PanelContent {
     #lastTab: TabId = TAB_IDS[0];
     #nextTab: TabId | null = null;
 
-    constructor({
-        island,
-        claude,
-        transcripts,
-        sessions,
-        codex,
-        gemini,
-        settings,
-        state,
-        bridge,
-        media,
-        workspaces,
-        recording,
-        performance,
-        mixer,
-    }: PanelDependencies) {
+    constructor(dependencies: PanelDependencies) {
+        const {island, claude, sessions, codex, gemini, settings, state, bridge, recording} = dependencies;
         this.#settings = settings;
 
-        const specs: readonly TabSpec[] = [
-            {
-                id: 'general',
-                icon: 'general',
-                label: TAB_LABELS.general,
-                create: () =>
-                    new GeneralPage({
-                        island,
-                        settings,
-                        media,
-                        scrollToTop: () => {
-                            this.#scrollToTop();
-                        },
-                    }),
-            },
-            {id: 'calendar', icon: 'calendar', label: TAB_LABELS.calendar, create: () => new CalendarPage(island)},
-            {id: 'workspaces', icon: 'workspaces', label: 'Áreas', create: () => new WorkspacesPage(workspaces, island)},
-            {
-                id: 'claude',
-                icon: 'claude',
-                label: TAB_LABELS.claude,
-                create: () =>
-                    new ClaudePage({
-                        claude,
-                        transcripts,
-                        sessions,
-                        codex,
-                        gemini,
-                        settings,
-                        actions: {
-                            openSettings: () => {
-                                this.show({kind: 'settings'}, true);
-                            },
-                            close: () => {
-                                island.close();
-                            },
-                        },
-                    }),
-            },
-            {id: 'notifications', icon: 'bell', label: TAB_LABELS.notifications, create: () => new NotificationsPage(bridge, island)},
-            {id: 'performance', icon: 'performance', label: TAB_LABELS.performance, create: () => new PerformancePage(performance, island)},
-            {id: 'mixer', icon: 'volume', label: 'Mixer', create: () => new MixerPage(mixer, island)},
-        ];
-
-        this.#tabBar = new TabBar(specs);
+        this.#tabBar = new TabBar();
         this.#header = new Header(
             this.#tabBar,
             {
@@ -147,11 +81,18 @@ export class PanelContent {
                 this.#nextTab = null;
             }),
         );
-        for (const spec of specs) {
-            const page = spec.create();
-            this.#pages.set(spec.id, page);
-            this.#stack.add_child(page.actor);
-        }
+        this.#pages = createTabPages({
+            ...dependencies,
+            actions: {
+                scrollToTop: () => {
+                    this.#scrollToTop();
+                },
+                openSettings: () => {
+                    this.show({kind: 'settings'}, true);
+                },
+            },
+        });
+        for (const page of this.#pages.values()) this.#stack.add_child(page.actor);
         this.#stack.add_child(this.#settingsPage.actor);
         for (const page of this.#allActors()) page.y_align = Clutter.ActorAlign.START;
         this.actor.clip_to_allocation = true;

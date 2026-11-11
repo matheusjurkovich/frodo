@@ -32,7 +32,7 @@ export class IslandSurface {
         }
         for (const surface of surfaces) surface.add_style_class_name(`frodo-surface-${style}`);
         this.#backdropGlass ??= new Glass(backdrop);
-        if (this.#dependencies.attached()) this.#pillGlass ??= new Glass(pill);
+        this.#pillGlass ??= new Glass(pill);
     }
 
     destroy(): void {

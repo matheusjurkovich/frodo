@@ -1,30 +1,16 @@
-export type SettingsKey =
-    | 'closed-mode'
-    | 'closed-items'
-    | 'rotate-seconds'
-    | 'pill-position'
-    | 'monitors'
-    | 'hide-top-bar'
-    | 'surface-style'
-    | 'claude-poll-minutes'
-    | 'claude-show-remaining'
-    | 'claude-profiles'
-    | 'claude-profiles-initialized'
-    | 'claude-shortcut'
-    | 'toggle-shortcut'
-    | 'open-on-hover'
-    | 'auto-close'
-    | 'always-show-pill'
-    | 'ram-percent'
-    | 'pill-ai-activity'
-    | 'notify-done'
-    | 'notify-quota'
-    | 'hidden-tabs'
-    | 'collapsed-cards'
-    | 'disabled-ai'
-    | 'gemini-daily-limit'
-    | 'meeting-notice-minutes'
-    | 'tab-order'
-    | 'peek-clock'
-    | 'peek-every-minutes'
-    | 'peek-seconds';
+import type Gio from 'gi://Gio';
+import type {accessors} from './frodo-settings.js';
+
+export interface Accessor<K extends string, V> {
+    readonly key: K;
+    read(settings: Gio.Settings): V;
+    write(settings: Gio.Settings, value: V): void;
+}
+
+type Accessors = typeof accessors;
+
+export type SettingsKey = Accessors[keyof Accessors]['key'];
+
+export type SettingsProperty = keyof Accessors;
+
+export type SettingsValues = {[P in SettingsProperty]: Accessors[P] extends Accessor<string, infer V> ? V : never};

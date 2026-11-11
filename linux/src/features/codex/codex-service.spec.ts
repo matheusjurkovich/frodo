@@ -1,3 +1,5 @@
+import GLib from 'gi://GLib';
+
 import {CodexUsage} from './codex-service.js';
 import {createSettings, removeDirs, tmpDir, waitFor, writeFile} from '../../../tests/fixtures.js';
 
@@ -170,20 +172,75 @@ describe('CodexUsage', () => {
         expect(codex.session('a')).toBeNull();
     });
 
-    it('scan relê o rollout que cresceu', async () => {
+    it('scan lê só o que o rollout ganhou e espera a linha incompleta terminar', async () => {
         const root = tmpDir(dirs);
         const path = `${root}/sessions/rollout-a.jsonl`;
-        writeFile(path, rollout('a', [{minutesAgo: 5, input: 100, output: 10}]), Date.now() - MINUTE);
+        const first = rollout('a', [{minutesAgo: 5, input: 100, output: 10}]);
+        const second = rollout('a', [{minutesAgo: 1, input: 50, output: 5}])
+            .split('\n')
+            .slice(1);
+        const cut = (second[1] ?? '').length - 10;
+        writeFile(path, first, Date.now() - MINUTE);
         const codex = create(root);
         await codex.scan();
+        expect(codex.summary('7d', new Date()).total).toBe(110);
+        writeFile(path, `${first}\n${second[0] ?? ''}\n${(second[1] ?? '').slice(0, cut)}`);
+        await codex.scan();
+        expect(codex.summary('7d', new Date()).total).toBe(110);
+        writeFile(path, `${first}\n${second.join('\n')}`);
+        await codex.scan();
+        expect(codex.summary('7d', new Date()).total).toBe(165);
+    });
+
+    it('scan relê o rollout que encolheu', async () => {
+        const root = tmpDir(dirs);
+        const path = `${root}/sessions/rollout-a.jsonl`;
         writeFile(
             path,
             rollout('a', [
                 {minutesAgo: 5, input: 100, output: 10},
                 {minutesAgo: 1, input: 50, output: 5},
             ]),
+            Date.now() - MINUTE,
         );
+        const codex = create(root);
         await codex.scan();
         expect(codex.summary('7d', new Date()).total).toBe(165);
+        writeFile(path, rollout('a', [{minutesAgo: 5, input: 7, output: 3}]));
+        await codex.scan();
+        expect(codex.summary('7d', new Date()).total).toBe(10);
+    });
+
+    it('scan com pasta ilegível não esquece o que já leu', async () => {
+        const root = tmpDir(dirs);
+        const today = new Date();
+        const day = `${root}/sessions/${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}`;
+        writeFile(`${day}/rollout-a.jsonl`, rollout('a', [{minutesAgo: 5, input: 100, output: 10}]));
+        const codex = create(root);
+        await codex.scan();
+        expect(codex.summary('7d', new Date()).total).toBe(110);
+        GLib.chmod(day, 0);
+        try {
+            await codex.scan();
+            expect(codex.summary('7d', new Date()).total).toBe(110);
+        } finally {
+            GLib.chmod(day, 0o700);
+        }
+    });
+
+    it('limites vêm do dia mais novo sem abrir os dias antigos', async () => {
+        const root = tmpDir(dirs);
+        const now = Date.now();
+        const old = `${root}/sessions/2025/01/01`;
+        writeFile(`${old}/rollout-a.jsonl`, rollout('a', [{minutesAgo: 5, input: 10, output: 1, limits: 5}]), now);
+        writeFile(`${root}/sessions/2026/10/27/rollout-b.jsonl`, rollout('b', [{minutesAgo: 5, input: 10, output: 1, limits: 44}]), now);
+        GLib.chmod(old, 0);
+        try {
+            const codex = create(root);
+            await codex.refresh();
+            expect(codex.limits?.primary?.usedPercent).toBe(44);
+        } finally {
+            GLib.chmod(old, 0o700);
+        }
     });
 });

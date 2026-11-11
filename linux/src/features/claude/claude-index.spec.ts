@@ -32,6 +32,12 @@ function feed(index: ClaudeIndex, text: string): void {
     if (entry) index.add(entry);
 }
 
+function restore(data: unknown): ClaudeIndex {
+    const index = ClaudeIndex.fromJSON(data);
+    if (!index) throw new Error('índice inválido');
+    return index;
+}
+
 function build(): ClaudeIndex {
     const index = new ClaudeIndex();
     for (const text of lines) feed(index, text);
@@ -151,7 +157,7 @@ describe('ClaudeIndex', () => {
     it('deixa vazios o modelo e o contexto da sessão só com subagente', () => {
         const index = new ClaudeIndex();
         feed(index, line({id: 'c', at: at(27, 9), session: 'so', input: 5, output: 1, sidechain: true}));
-        const copy = ClaudeIndex.fromJSON(JSON.parse(JSON.stringify(index.toJSON())));
+        const copy = restore(JSON.parse(JSON.stringify(index.toJSON())));
         expect(copy.session('so')).toEqual({
             tokens: 6,
             model: '',
@@ -192,7 +198,7 @@ describe('ClaudeIndex', () => {
             expect(index.session('so')?.tokens).toBe(15);
             expect(index.session('so')?.contextTokens).toBe(103);
         }
-        const copy = ClaudeIndex.fromJSON(JSON.parse(JSON.stringify(grows.toJSON())));
+        const copy = restore(JSON.parse(JSON.stringify(grows.toJSON())));
         feed(copy, line({id: 'o', at: at(27, 10), session: 'so', input: 3, output: 20, cacheRead: 100, sidechain: true}));
         expect(copy.summary('today', now).output).toBe(20);
         expect(
@@ -208,13 +214,13 @@ describe('ClaudeIndex', () => {
         const index = build();
         const entry = parseAssistantLine(line({id: 't', at: at(27, 9), session: 'sx', todos: ['completed', 'pending']}));
         if (entry) index.add(entry);
-        const copy = ClaudeIndex.fromJSON(JSON.parse(JSON.stringify(index.toJSON())));
+        const copy = restore(JSON.parse(JSON.stringify(index.toJSON())));
         expect(copy.summary('7d', now)).toEqual(index.summary('7d', now));
         expect(copy.session('sx')).toEqual(index.session('sx'));
         expect(copy.session('sx')?.todos).toEqual({done: 1, total: 2});
         expect(['m1', 'm4', 'm5'].map(id => copy.has(id))).toEqual([true, true, false]);
-        expect(ClaudeIndex.fromJSON('lixo').summary('today', now).total).toBe(0);
-        expect(ClaudeIndex.fromJSON({version: 99}).summary('today', now).total).toBe(0);
+        expect(ClaudeIndex.fromJSON('lixo')).toBeNull();
+        expect(ClaudeIndex.fromJSON({version: 99})).toBeNull();
     });
 
     it('serializa uma cópia que não muda com o índice', () => {

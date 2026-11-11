@@ -7,7 +7,10 @@ import {frodoIcon} from '../../shared/ui/icons.js';
 import {column, label, row, wrappedLabel} from '../../shared/ui/layout.js';
 import {Segmented} from '../../shared/ui/segmented.js';
 import {Switch} from '../../shared/ui/switch.js';
-import type {Range} from './settings-rows.types.js';
+import type {FrodoSettings} from '../../settings/frodo-settings.js';
+import {accessors} from '../../settings/frodo-settings.js';
+import type {SettingsValues} from '../../settings/frodo-settings.types.js';
+import type {BooleanProperty, InterfaceFlag, NumberOption, NumberProperty, Range, StringProperty, Watch} from './settings-rows.types.js';
 
 export function line(title: string | St.Widget, subtitle: string | St.Widget | null, ...controls: Clutter.Actor[]): St.BoxLayout {
     const item = row('frodo-settings-line');
@@ -48,46 +51,99 @@ export function grip(accessibleName: string): St.Button {
 
 export class Bindings {
     readonly #disposables: Disposables;
-    readonly #syncs: (() => void)[] = [];
+    readonly #settings: FrodoSettings;
 
-    constructor(disposables: Disposables) {
+    constructor(disposables: Disposables, settings: FrodoSettings) {
         this.#disposables = disposables;
+        this.#settings = settings;
     }
 
-    add(sync: () => void): void {
-        this.#syncs.push(sync);
+    add(sync: () => void, watch: Watch): void {
+        sync();
+        if ('key' in watch) this.#disposables.signal(watch.settings, watch.settings.connect(`changed::${watch.key}`, sync));
+        else this.#disposables.add(this.#settings.onChanged(watch, sync));
     }
 
-    sync(): void {
-        for (const sync of this.#syncs) sync();
-    }
-
-    switch(name: string, read: () => boolean, write: (checked: boolean) => void): St.Button {
+    switch(name: string, read: () => boolean, write: (checked: boolean) => void, watch: Watch): St.Button {
         const toggle = this.#disposables.own(new Switch(name));
-        toggle.checked = read();
         toggle.on('toggled', checked => {
             if (checked !== read()) write(checked);
         });
         this.add(() => {
             toggle.checked = read();
-        });
+        }, watch);
         return toggle.actor;
     }
 
-    segmented<T extends string>(options: readonly {id: T; label: string}[], read: () => T, write: (value: T) => void): St.Widget {
+    toggle(name: string, source: BooleanProperty | InterfaceFlag): St.Button {
+        if (typeof source !== 'string')
+            return this.switch(
+                name,
+                () => source.settings.get_boolean(source.key),
+                checked => {
+                    source.settings.set_boolean(source.key, checked);
+                },
+                source,
+            );
+        return this.switch(
+            name,
+            () => this.#settings[source],
+            checked => {
+                this.#settings[source] = checked;
+            },
+            [accessors[source].key],
+        );
+    }
+
+    toggleLine(title: string, subtitle: string | null, source: BooleanProperty | InterfaceFlag, flat = false): St.BoxLayout {
+        const item = line(title, subtitle, this.toggle(title, source));
+        if (flat) item.add_style_class_name('frodo-settings-line-flat');
+        return item;
+    }
+
+    segmented<T extends string>(
+        options: readonly {id: T; label: string}[],
+        read: () => T,
+        write: (value: T) => void,
+        watch: Watch,
+    ): St.Widget {
         const segmented = this.#disposables.own(new Segmented(options, read(), ''));
         segmented.on('changed', write);
         this.add(() => {
             segmented.selected = read();
-        });
+        }, watch);
         return segmented.actor;
     }
 
-    stepper(range: Range, unit: string, read: () => number, write: (value: number) => void): St.BoxLayout {
+    choice<P extends StringProperty>(options: readonly {id: SettingsValues[P]; label: string}[], property: P): St.Widget {
+        const values: SettingsValues = this.#settings;
+        return this.segmented(
+            options,
+            () => values[property],
+            value => {
+                values[property] = value;
+            },
+            [accessors[property].key],
+        );
+    }
+
+    numbers(options: readonly NumberOption[], property: NumberProperty): St.Widget {
+        return this.segmented(
+            options.map(({id, label: text}) => ({id: String(id), label: text})),
+            () => String(this.#settings[property]),
+            value => {
+                this.#settings[property] = Number(value);
+            },
+            [accessors[property].key],
+        );
+    }
+
+    stepper(range: Range, unit: string, property: NumberProperty): St.BoxLayout {
+        const settings = this.#settings;
         const value = label('', 'frodo-stepper-value frodo-mono');
         const step = (delta: number) => (): void => {
-            const next = Math.min(range.max, Math.max(range.min, read() + delta));
-            if (next !== read()) write(next);
+            const next = Math.min(range.max, Math.max(range.min, settings[property] + delta));
+            if (next !== settings[property]) settings[property] = next;
         };
         const minus = iconButton(frodoIcon('minus'), 'Diminuir', step(-1), 'control', 32);
         const plus = iconButton(frodoIcon('plus'), 'Aumentar', step(1), 'control', 32);
@@ -96,11 +152,11 @@ export class Bindings {
         stepper.add_child(value);
         stepper.add_child(plus);
         this.add(() => {
-            const current = read();
+            const current = settings[property];
             value.text = `${current} ${unit}`;
             minus.reactive = current > range.min;
             plus.reactive = current < range.max;
-        });
+        }, [accessors[property].key]);
         return stepper;
     }
 }

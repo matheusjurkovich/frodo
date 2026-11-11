@@ -1,22 +1,19 @@
-import Clutter from 'gi://Clutter';
-import St from 'gi://St';
-import type {ConsumptionSource, Period, Share} from '../../shared/consumption.types.js';
+import type St from 'gi://St';
+import type {ConsumptionSource, Period} from '../../shared/consumption.types.js';
 import type {AiProvider} from '../../shared/ai-provider.types.js';
 import {formatTokens} from '../../shared/format.js';
 import {Disposables} from '../../shared/disposables.js';
 import {card, cardHeading, cardTitle} from '../../shared/ui/card.js';
 import {column, dimLabel, label, row} from '../../shared/ui/layout.js';
-import {whileMapped} from '../../shared/ui/lifecycle.js';
 import type {Component} from '../../shared/ui/lifecycle.types.js';
 import {swap} from '../../shared/ui/motion.js';
 import {SegmentBar} from '../../shared/ui/segment-bar.js';
 import {Segmented} from '../../shared/ui/segmented.js';
 import {BarChart} from './bar-chart.js';
+import {ConsumptionLegend} from './consumption-legend.js';
+import {ProjectList} from './project-list.js';
+import {renderWhileMapped} from './render-while-mapped.js';
 import {STATS, ORDER, PERIODS} from './consumption-card.const.js';
-
-function percent(fraction: number): string {
-    return `${Math.round(fraction * 100)}%`;
-}
 
 function section(title: string): St.BoxLayout {
     const box = column('frodo-consumption-section');
@@ -24,31 +21,9 @@ function section(title: string): St.BoxLayout {
     return box;
 }
 
-function legendItem({name, label: text, fraction}: Share): St.BoxLayout {
-    const item = row('frodo-legend-item');
-    item.x_expand = false;
-    item.add_child(
-        new St.Widget({style_class: `frodo-legend-swatch frodo-model-${name.toLowerCase()}`, y_align: Clutter.ActorAlign.CENTER}),
-    );
-    item.add_child(label(text, 'frodo-legend-name'));
-    item.add_child(label(percent(fraction), 'frodo-legend-percent frodo-mono'));
-    return item;
-}
-
-function projectRow({name, tokens, fraction}: Share, largest: number, provider: AiProvider): St.BoxLayout {
-    const item = row('frodo-project');
-    item.add_child(label(name, 'frodo-project-name frodo-mono'));
-    const bar = new SegmentBar();
-    bar.segments = [{fraction: largest > 0 ? tokens / largest : 0, styleClass: `frodo-fill-${provider}`}];
-    item.add_child(bar.actor);
-    item.add_child(label(`${formatTokens(tokens)} · ${percent(fraction)}`, 'frodo-project-value'));
-    return item;
-}
-
 export class ConsumptionCard implements Component {
     readonly actor = card('frodo-consumption');
     readonly #transcripts: ConsumptionSource;
-    readonly #provider: AiProvider;
     readonly #period: Segmented<Period>;
     readonly #loading = dimLabel('Lendo histórico…');
     readonly #body = column('frodo-consumption-body');
@@ -58,15 +33,15 @@ export class ConsumptionCard implements Component {
     readonly #chart = new BarChart();
     readonly #modelsSection = section('Por modelo');
     readonly #modelBar = new SegmentBar('frodo-model-bar');
-    readonly #legend = row('frodo-legend');
+    readonly #legend = new ConsumptionLegend();
     readonly #projectsSection = section('Por projeto');
-    readonly #projects = column('frodo-projects');
+    readonly #projects: ProjectList;
     readonly #disposables = new Disposables();
     #selected: Period = 'today';
 
     constructor(transcripts: ConsumptionSource, provider: AiProvider) {
         this.#transcripts = transcripts;
-        this.#provider = provider;
+        this.#projects = new ProjectList(provider);
         this.#period = new Segmented(
             ORDER.map(id => ({id, label: PERIODS[id].label})),
             this.#selected,
@@ -97,8 +72,8 @@ export class ConsumptionCard implements Component {
         chart.add_child(this.#chart.actor);
 
         this.#modelsSection.add_child(this.#modelBar.actor);
-        this.#modelsSection.add_child(this.#legend);
-        this.#projectsSection.add_child(this.#projects);
+        this.#modelsSection.add_child(this.#legend.actor);
+        this.#projectsSection.add_child(this.#projects.actor);
 
         for (const child of [stats, chart, this.#modelsSection, this.#projectsSection]) this.#body.add_child(child);
         this.actor.add_child(header);
@@ -115,23 +90,22 @@ export class ConsumptionCard implements Component {
             }),
         );
         this.#disposables.add(
-            transcripts.on('changed', () => {
-                if (this.actor.mapped) this.#render();
-            }),
-        );
-        this.#disposables.add(
-            whileMapped(
+            renderWhileMapped(
                 this.actor,
+                [callback => transcripts.on('changed', callback)],
                 () => {
                     this.#render();
-                    transcripts.setWanted(true);
                 },
-                () => {
-                    transcripts.setWanted(false);
+                {
+                    start: () => {
+                        transcripts.setWanted(true);
+                    },
+                    stop: () => {
+                        transcripts.setWanted(false);
+                    },
                 },
             ),
         );
-        this.#render();
     }
 
     #render(): void {
@@ -151,13 +125,10 @@ export class ConsumptionCard implements Component {
 
         this.#modelsSection.visible = summary.models.length > 0;
         this.#modelBar.segments = summary.models.map(({name, fraction}) => ({fraction, styleClass: `frodo-model-${name.toLowerCase()}`}));
-        this.#legend.destroy_all_children();
-        for (const model of summary.models) this.#legend.add_child(legendItem(model));
+        this.#legend.show(summary.models);
 
         this.#projectsSection.visible = summary.projects.length > 0;
-        this.#projects.destroy_all_children();
-        const largest = Math.max(0, ...summary.projects.map(({tokens}) => tokens));
-        for (const project of summary.projects) this.#projects.add_child(projectRow(project, largest, this.#provider));
+        this.#projects.show(summary.projects);
     }
 
     destroy(): void {

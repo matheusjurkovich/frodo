@@ -3,6 +3,7 @@ import {
     ellipsize,
     fixedDecimal,
     formatAgo,
+    formatClock,
     formatDate,
     formatSpan,
     formatTimer,
@@ -20,6 +21,16 @@ describe('format', () => {
     it('corta textos longos', () => {
         expect(ellipsize('abc', 40)).toBe('abc');
         expect(ellipsize('a'.repeat(45), 40)).toBe(`${'a'.repeat(39)}…`);
+    });
+});
+
+describe('formatClock', () => {
+    it('hora e minuto com zero à esquerda', () => {
+        expect(formatClock(new Date(2026, 9, 27, 7, 5, 9))).toBe('07:05');
+    });
+
+    it('segundos só quando pedidos', () => {
+        expect(formatClock(new Date(2026, 9, 27, 17, 45, 3), true)).toBe('17:45:03');
     });
 });
 

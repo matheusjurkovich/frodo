@@ -15,16 +15,14 @@ import {
 } from '../../shared/shell-internals.js';
 import {Disposables} from '../../shared/disposables.js';
 import type {Disposer} from '../../shared/disposables.types.js';
-import {SPRING} from '../../shared/spring.const.js';
 import {ActorLoan} from '../../shared/ui/actor-loan.js';
 import {whileShown} from '../../shared/ui/lifecycle.js';
 import {iconButton} from '../../shared/ui/buttons.js';
 import {packGrid} from '../../shared/ui/layout.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
-import {morphSize, settle, slideIn, slideOut} from '../../shared/ui/motion.js';
-import {HEIGHT_AXIS} from '../../shared/ui/motion.const.js';
 import type {IslandHandle} from '../../shared/island-handle.types.js';
 import {TILE_SPACING, TILE_COLUMNS, OVERLAY_BINDINGS} from './native-controls.const.js';
+import {MenuTransition} from './menu-transition.js';
 import type {SliderSlots, Toggle} from './native-controls.types.js';
 
 function sliderSlots(): SliderSlots {
@@ -56,19 +54,17 @@ export class NativeControls {
     readonly input = sliderSlots();
     readonly brightness = sliderSlots();
     readonly #island: IslandHandle;
-    readonly #page: Clutter.Actor;
     readonly #overlayHost: St.Widget;
     readonly #content: St.Widget;
-    readonly #scrollToTop: () => void;
+    readonly #transition: MenuTransition;
     readonly #disposables = new Disposables();
     readonly #loan = new Disposables();
 
     constructor(island: IslandHandle, page: Clutter.Actor, overlayHost: St.Widget, content: St.Widget, scrollToTop: () => void) {
         this.#island = island;
-        this.#page = page;
         this.#overlayHost = overlayHost;
         this.#content = content;
-        this.#scrollToTop = scrollToTop;
+        this.#transition = new MenuTransition(page, content, scrollToTop);
         this.#disposables.add(
             whileShown(
                 page,
@@ -112,7 +108,7 @@ export class NativeControls {
         this.#lendOverlay(parts.overlay);
         const menus = [...tiles, ...sliders].map(quickSettingsItemMenu).filter(item => item !== null);
         this.#loan.add(() => {
-            this.#restore(menus);
+            this.#transition.restore(menus);
         });
         this.#loan.add(() => {
             parts.closeActiveMenu();
@@ -190,68 +186,12 @@ export class NativeControls {
             this.#loan.add(detachConstraints(menu.actor));
             this.#addBackButton(menu);
             const id = menu.connect('open-state-changed', (_menu, open) => {
-                this.#push(menu, open);
+                this.#transition.push(menu, open);
             });
             this.#loan.add(() => {
                 menu.disconnect(id);
             });
         }
-    }
-
-    #push(menu: QuickToggleMenu, open: boolean): void {
-        const content = this.#content;
-        menu.actor.remove_all_transitions();
-        menu.box.remove_all_transitions();
-        menu.actor.height = -1;
-        menu.box.opacity = 255;
-        if (open) {
-            this.#scrollToTop();
-            morphSize(
-                this.#page,
-                () => {
-                    content.set({height: 0, reactive: false});
-                },
-                SPRING,
-                HEIGHT_AXIS,
-            );
-            content.height = -1;
-            slideOut(content, 1, () => {
-                settle(content);
-                content.set({opacity: 0, height: 0, clip_to_allocation: true});
-            });
-            slideIn(menu.actor, 1);
-            return;
-        }
-        morphSize(
-            this.#page,
-            () => {
-                menu.actor.hide();
-                content.set({height: -1, opacity: 255, reactive: true, clip_to_allocation: false});
-            },
-            SPRING,
-            HEIGHT_AXIS,
-        );
-        menu.actor.show();
-        slideOut(menu.actor, -1, () => {
-            menu.actor.hide();
-            settle(menu.actor);
-            menu.emit('menu-closed');
-        });
-        slideIn(content, -1);
-    }
-
-    #restore(menus: readonly QuickToggleMenu[]): void {
-        for (const menu of menus) {
-            settle(menu.actor);
-            if (menu.isOpen) continue;
-            menu.actor.hide();
-            menu.actor.height = 0;
-            menu.box.opacity = 0;
-        }
-        settle(this.#content);
-        this.#content.set({height: -1, opacity: 255, reactive: true, clip_to_allocation: false});
-        settle(this.#page);
-        this.#page.height = -1;
     }
 
     #addBackButton(menu: QuickToggleMenu): void {

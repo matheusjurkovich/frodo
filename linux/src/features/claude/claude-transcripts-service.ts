@@ -40,7 +40,7 @@ function parseCache(text: string | null): Cache {
     }
     if (!isObject(data) || data.version !== VERSION || !isObject(data.files)) return emptyCache();
     const index = ClaudeIndex.fromJSON(data.index);
-    if (JSON.stringify(index) !== JSON.stringify(data.index)) return emptyCache();
+    if (!index) return emptyCache();
     const offsets = new Map<string, number>();
     for (const [path, offset] of Object.entries(data.files)) {
         if (typeof offset !== 'number' || !Number.isSafeInteger(offset) || offset < 0) return emptyCache();

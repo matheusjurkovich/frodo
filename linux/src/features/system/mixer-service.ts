@@ -2,7 +2,7 @@ import type Gvc from 'gi://Gvc';
 import {getMixerControl} from 'resource:///org/gnome/shell/ui/status/volume.js';
 import {Disposables} from '../../shared/disposables.js';
 import {Emitter} from '../../shared/emitter.js';
-import {levelOf, streamDetail} from './mixer.js';
+import {levelChange, levelOf, streamDetail} from './mixer.js';
 import type {AudioStream} from './mixer.types.js';
 import {CONTROL_SIGNALS, STREAM_SIGNALS} from './mixer-service.const.js';
 import type {AudioDevice} from './mixer-service.types.js';
@@ -68,11 +68,9 @@ export class Mixer extends Emitter<{changed: []}> {
     setLevel(id: number, level: number): void {
         const stream = this.#stream(id);
         if (!stream) return;
-        const volume = Math.round(Math.min(1, Math.max(0, level)) * this.#control.get_vol_max_norm());
-        const muted = stream.is_muted;
+        const {volume, mute} = levelChange(level, this.#control.get_vol_max_norm(), stream.is_muted);
         stream.volume = volume;
-        if (volume < 1 && !muted) stream.change_is_muted(true);
-        else if (volume >= 1 && muted) stream.change_is_muted(false);
+        if (mute !== null) stream.change_is_muted(mute);
         stream.push_volume();
     }
 

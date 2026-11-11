@@ -1,15 +1,14 @@
-import Clutter from 'gi://Clutter';
 import Shell from 'gi://Shell';
 import St from 'gi://St';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
 import {Disposables} from '../../shared/disposables.js';
-import {chip, contentButton} from '../../shared/ui/buttons.js';
+import {AppButton} from './app-button.js';
 import {CollapsibleCard} from './collapsible-card.js';
-import {column, grid, label, packGrid} from '../../shared/ui/layout.js';
+import {grid, packGrid} from '../../shared/ui/layout.js';
 import {whileMapped} from '../../shared/ui/lifecycle.js';
 import type {Component} from '../../shared/ui/lifecycle.types.js';
 import type {IslandHandle} from '../../shared/island-handle.types.js';
-import {SPACING, COLUMNS, SUMMARY_LIMIT, SUMMARY_ICON_SIZE, ICON_SIZE, BADGE_OFFSET_X, BADGE_OFFSET_Y} from './apps-card.const.js';
+import {SPACING, COLUMNS, SUMMARY_LIMIT, SUMMARY_ICON_SIZE} from './apps-card.const.js';
 
 export class AppsCard implements Component {
     readonly #island: IslandHandle;
@@ -19,6 +18,9 @@ export class AppsCard implements Component {
     readonly #disposables = new Disposables();
     readonly #packing = new Disposables();
     readonly #running = new Disposables();
+    readonly #buttons = new Map<Shell.App, AppButton>();
+    #fillers: St.Widget[] = [];
+    #shown: readonly Shell.App[] | null = null;
 
     constructor(island: IslandHandle, settings: FrodoSettings) {
         this.#island = island;
@@ -39,11 +41,12 @@ export class AppsCard implements Component {
                 },
                 () => {
                     this.#running.dispose();
+                    this.#clear();
                 },
             ),
         );
         this.#disposables.add(() => {
-            this.#packing.dispose();
+            this.#clear();
         });
     }
 
@@ -53,59 +56,48 @@ export class AppsCard implements Component {
 
     #render(): void {
         const apps = this.#apps.get_running();
-        const cells: St.Widget[] = apps.map(app => this.#appButton(app));
-        while (cells.length > 0 && cells.length < COLUMNS) cells.push(new St.Widget({x_expand: true}));
+        if (this.#shown?.length === apps.length && apps.every((app, index) => app === this.#shown?.[index])) return;
+        this.#shown = apps;
         this.#packing.dispose();
-        this.#grid.destroy_all_children();
+        for (const [app, button] of this.#buttons) {
+            if (apps.includes(app)) continue;
+            button.destroy();
+            this.#buttons.delete(app);
+        }
+        for (const app of apps)
+            if (!this.#buttons.has(app))
+                this.#buttons.set(
+                    app,
+                    new AppButton(app, () => {
+                        this.#island.close();
+                    }),
+                );
+        for (const filler of this.#fillers) filler.destroy();
+        this.#fillers = [];
+        const cells: St.Widget[] = apps.flatMap(app => this.#buttons.get(app)?.actor ?? []);
+        while (cells.length > 0 && cells.length < COLUMNS) {
+            const filler = new St.Widget({x_expand: true});
+            this.#fillers.push(filler);
+            cells.push(filler);
+        }
         this.#packing.add(packGrid(this.#grid, cells, COLUMNS));
         this.#card.setCount(apps.length);
         this.#card.setSummary(apps.length > 0 ? this.#summary(apps) : null);
+    }
+
+    #clear(): void {
+        this.#packing.dispose();
+        for (const button of this.#buttons.values()) button.destroy();
+        this.#buttons.clear();
+        for (const filler of this.#fillers) filler.destroy();
+        this.#fillers = [];
+        this.#shown = null;
     }
 
     #summary(apps: readonly Shell.App[]): St.BoxLayout {
         const summary = new St.BoxLayout({style_class: 'frodo-apps-summary'});
         for (const app of apps.slice(0, SUMMARY_LIMIT)) summary.add_child(app.create_icon_texture(SUMMARY_ICON_SIZE));
         return summary;
-    }
-
-    #appButton(app: Shell.App): St.Button {
-        const windows = app.get_n_windows();
-        const name = app.get_name();
-
-        const icon = new St.Widget({
-            style_class: 'frodo-app-icon',
-            layout_manager: new Clutter.BinLayout(),
-            x_align: Clutter.ActorAlign.CENTER,
-        });
-        const texture = app.create_icon_texture(ICON_SIZE);
-        texture.set({x_align: Clutter.ActorAlign.CENTER, y_align: Clutter.ActorAlign.CENTER});
-        icon.add_child(texture);
-        if (windows > 1) {
-            const badge = chip(String(windows), 'counter');
-            badge.set({
-                x_align: Clutter.ActorAlign.END,
-                y_align: Clutter.ActorAlign.START,
-                translation_x: BADGE_OFFSET_X,
-                translation_y: BADGE_OFFSET_Y,
-            });
-            icon.add_child(badge);
-        }
-
-        const content = column('frodo-app-content');
-        content.y_align = Clutter.ActorAlign.CENTER;
-        content.add_child(icon);
-        const caption = label(name, 'frodo-app-label');
-        caption.x_align = Clutter.ActorAlign.CENTER;
-        content.add_child(caption);
-        return contentButton(
-            'frodo-app',
-            content,
-            () => {
-                this.#island.close();
-                app.activate();
-            },
-            {x_expand: true, accessible_name: windows > 1 ? `${name}, ${windows} janelas` : name},
-        );
     }
 
     destroy(): void {

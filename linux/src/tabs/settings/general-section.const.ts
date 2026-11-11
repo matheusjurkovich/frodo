@@ -13,3 +13,5 @@ export const MODIFIER_KEYS: readonly number[] = [
     Clutter.KEY_Meta_R,
     Clutter.KEY_ISO_Level3_Shift,
 ];
+
+export const NOTICE_MS = 2500;

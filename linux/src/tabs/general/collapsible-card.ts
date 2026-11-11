@@ -25,10 +25,12 @@ export class CollapsibleCard implements Component {
         y_align: Clutter.ActorAlign.CENTER,
     });
     readonly #disposables = new Disposables();
+    #collapsed: boolean;
 
     constructor(id: CardId, title: string, settings: FrodoSettings) {
         this.#id = id;
         this.#settings = settings;
+        this.#collapsed = this.#stored();
 
         const content = row('frodo-collapsible-header-content');
         for (const child of [cardTitle(title), this.#summary, this.#count, this.#caret]) content.add_child(child);
@@ -48,6 +50,9 @@ export class CollapsibleCard implements Component {
         this.#count.visible = false;
         this.#disposables.add(
             settings.onChanged('collapsed-cards', () => {
+                const collapsed = this.#stored();
+                if (collapsed === this.#collapsed) return;
+                this.#collapsed = collapsed;
                 this.#sync();
             }),
         );
@@ -64,7 +69,11 @@ export class CollapsibleCard implements Component {
         if (actor === current) return;
         this.#summary.set_child(actor);
         current?.destroy();
-        this.#sync();
+        if (actor) actor.visible = this.#collapsed;
+    }
+
+    #stored(): boolean {
+        return this.#settings.collapsedCards.includes(this.#id);
     }
 
     #toggle(): void {
@@ -73,7 +82,7 @@ export class CollapsibleCard implements Component {
     }
 
     #sync(): void {
-        const collapsed = this.#settings.collapsedCards.includes(this.#id);
+        const collapsed = this.#collapsed;
         if (!collapsed) this.actor.y_expand = true;
         reveal(this.body, !collapsed, () => {
             if (collapsed) this.actor.y_expand = false;

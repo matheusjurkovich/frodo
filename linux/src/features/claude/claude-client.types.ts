@@ -10,8 +10,3 @@ export interface HttpResponse {
 }
 
 export type Transport = (request: HttpRequest) => Promise<HttpResponse>;
-
-export interface Tier {
-    readonly subscriptionType: string | null;
-    readonly rateLimitTier: string | null;
-}
