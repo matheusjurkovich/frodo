@@ -35,6 +35,7 @@ struct ReorderableList<Item: Hashable, Row: View>: View {
 
     @State private var drag: Drag?
     @State private var frames: [Item: CGRect] = [:]
+    @GestureState private var gestureActive = false
     @FocusState private var focused: Item?
     @Environment(IslandModel.self) private var island: IslandModel?
 
@@ -57,6 +58,9 @@ struct ReorderableList<Item: Hashable, Row: View>: View {
         }
         .overlay(alignment: .topLeading) { floating }
         .coordinateSpace(.named(reorderSpace))
+        .onChange(of: gestureActive) { _, active in
+            if !active { finishDrag() }
+        }
         .onDisappear {
             guard drag != nil else { return }
             drag = nil
@@ -124,6 +128,7 @@ struct ReorderableList<Item: Hashable, Row: View>: View {
                 .onTapGesture { focused = item }
                 .gesture(
                     DragGesture(minimumDistance: 3, coordinateSpace: .named(reorderSpace))
+                        .updating($gestureActive) { _, active, _ in active = true }
                         .onChanged { value in dragChanged(item, value) }
                         .onEnded { _ in finishDrag() }
                 )
