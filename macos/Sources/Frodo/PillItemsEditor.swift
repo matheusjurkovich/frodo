@@ -35,7 +35,7 @@ struct PillItemsEditor: View {
                     .disabled(items.count < 2)
                     .opacity(items.count < 2 ? 0.4 : 1)
                 }
-                note("Arraste os itens para mudar a ordem. Pelo teclado, foque a alça e use ← →.")
+                note("Arraste os itens pela alça ou use as setas para mudar a ordem. Pelo teclado, foque a alça e use ← →.")
                 addSection(items: items)
             }
         }

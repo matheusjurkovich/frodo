@@ -89,6 +89,7 @@ struct ReorderableList<Item: Hashable, Row: View>: View {
     private func cell(_ item: Item, index: Int, interactive: Bool) -> some View {
         let content = HStack(spacing: 8) {
             handle(item, interactive: interactive)
+            arrows(item)
             Text("\(index + 1)").font(Theme.Font.mono(11)).foregroundStyle(Theme.textSecondary)
             row(item)
         }
@@ -114,7 +115,7 @@ struct ReorderableList<Item: Hashable, Row: View>: View {
             .contentShape(Rectangle())
         if interactive {
             grip
-                .focusable()
+                .focusable(interactions: .edit)
                 .focused($focused, equals: item)
                 .focusEffectDisabled()
                 .onKeyPress(keys: stepKeys) { press in
@@ -130,6 +131,26 @@ struct ReorderableList<Item: Hashable, Row: View>: View {
         } else {
             grip
         }
+    }
+
+    @ViewBuilder
+    private func arrows(_ item: Item) -> some View {
+        let index = items.firstIndex(of: item) ?? 0
+        let vertical = axis == .vertical
+        HStack(spacing: 2) {
+            arrow(icon: vertical ? "collapse" : "back", help: vertical ? "Mover para cima" : "Mover para a esquerda", enabled: index > 0) {
+                _ = step(item, by: -1)
+            }
+            arrow(icon: vertical ? "expand" : "forward", help: vertical ? "Mover para baixo" : "Mover para a direita", enabled: index < items.count - 1) {
+                _ = step(item, by: 1)
+            }
+        }
+    }
+
+    private func arrow(icon: String, help: String, enabled: Bool, action: @escaping () -> Void) -> some View {
+        IconButton(icon: icon, size: 22, iconSize: 10, tint: Theme.textSecondary, help: help, action: action)
+            .disabled(!enabled)
+            .opacity(enabled ? 1 : 0.3)
     }
 
     private var stepKeys: Set<KeyEquivalent> {

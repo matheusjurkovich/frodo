@@ -105,7 +105,7 @@ extension SettingsView {
         let shown = visibleTabs(hidden: settings.hiddenTabs, order: settings.tabOrder)
         return SettingsGroup(
             "Abas visíveis",
-            hint: "Arraste para mudar a ordem das abas na ilha. Pelo teclado, foque a alça e use ↑ ↓."
+            hint: "Arraste pela alça ou use as setas para mudar a ordem das abas na ilha. Pelo teclado, foque a alça e use ↑ ↓."
         ) {
             ReorderableList(items: settings.tabOrder, axis: .vertical, onMove: { settings.tabOrder = $0 }) { tab in
                 Text(tab.label).font(Theme.Font.body()).foregroundStyle(Theme.text)
