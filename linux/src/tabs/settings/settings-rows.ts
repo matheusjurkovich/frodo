@@ -1,6 +1,7 @@
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 import type {Disposables} from '../../shared/disposables.js';
+import {clamp} from '../../shared/geometry.js';
 import {card} from '../../shared/ui/card.js';
 import {contentButton, iconButton} from '../../shared/ui/buttons.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
@@ -142,7 +143,7 @@ export class Bindings {
         const settings = this.#settings;
         const value = label('', 'frodo-stepper-value frodo-mono');
         const step = (delta: number) => (): void => {
-            const next = Math.min(range.max, Math.max(range.min, settings[property] + delta));
+            const next = clamp(settings[property] + delta, range.min, range.max);
             if (next !== settings[property]) settings[property] = next;
         };
         const minus = iconButton(frodoIcon('minus'), 'Diminuir', step(-1), 'control', 32);

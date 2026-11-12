@@ -1,5 +1,5 @@
 import Clutter from 'gi://Clutter';
-import {hasMaximizedWindow, hasRealFullscreen, onWindowCoverChanged} from '../shared/shell-internals.js';
+import {onWindowCoverChanged, windowCover} from '../shared/shell-internals.js';
 import {Disposables} from '../shared/disposables.js';
 import {nextPeek} from '../shared/peek.js';
 import {SOFT_SPRING, SPRING} from '../shared/spring.const.js';
@@ -11,8 +11,8 @@ import type {IslandPresenceDependencies} from './island-presence.types.js';
 
 export class IslandPresence {
     readonly #dependencies: IslandPresenceDependencies;
-    readonly #peekTimer = new Timer();
     readonly #disposables = new Disposables();
+    readonly #peekTimer = this.#disposables.own(new Timer());
     #covered = false;
     #fullscreen = false;
     #peeking = false;
@@ -46,9 +46,6 @@ export class IslandPresence {
                 this.#schedulePeek();
             }),
         );
-        this.#disposables.add(() => {
-            this.#peekTimer.stop();
-        });
     }
 
     get covered(): boolean {
@@ -57,9 +54,10 @@ export class IslandPresence {
 
     sync(): void {
         const {settings, feed, monitorIndex} = this.#dependencies;
-        const fullscreen = hasRealFullscreen(monitorIndex);
+        const cover = windowCover(monitorIndex);
+        const fullscreen = cover.fullscreen;
         const alwaysShowPill = settings.alwaysShowPill;
-        const maximized = !fullscreen && !alwaysShowPill && hasMaximizedWindow(monitorIndex);
+        const maximized = !fullscreen && !alwaysShowPill && cover.maximized;
         const {covered, pillWanted} = pillCover({fullscreen, maximized, alwaysShowPill, kind: feed.current?.kind, peeking: this.#peeking});
         const entering = covered && !this.#covered;
         this.#covered = covered;

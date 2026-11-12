@@ -1,3 +1,4 @@
+import {clamp} from '../../shared/geometry.js';
 import {fixedDecimal} from '../../shared/format.js';
 import {WHOLE_DISK, PROTECTED_NAMES} from './performance.const.js';
 import type {CpuStat, CpuTimes, Swap, DiskIo, ProcStat, DrmClient} from './performance.types.js';
@@ -15,7 +16,7 @@ export function parseCpuStat(text: string): CpuStat | null {
 export function cpuUsage(previous: CpuTimes, next: CpuTimes): number {
     const total = next.total - previous.total;
     if (total <= 0) return 0;
-    return Math.min(1, Math.max(0, (next.busy - previous.busy) / total));
+    return clamp((next.busy - previous.busy) / total, 0, 1);
 }
 
 export function averageMhz(cpuinfo: string): number | null {

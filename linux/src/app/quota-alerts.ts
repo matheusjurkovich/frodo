@@ -27,8 +27,8 @@ export class QuotaAlerts {
             this.#states,
             quotaReadings({
                 claude: active ? {configDir: active.profile.configDir, windows: active.windows} : null,
-                codex: codex.limits,
-                gemini: gemini.quota,
+                codex,
+                gemini,
                 enabled: provider => settings.providerEnabled(provider),
                 nowMs: Date.now(),
             }),

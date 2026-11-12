@@ -309,7 +309,7 @@ docs/                     imagens geradas por npm run screenshots
 Fontes de dados em `src/features/`:
 
 - Configurações (`src/settings/frodo-settings.ts`): GSettings tipado.
-- RAM e bateria (`system/system-state-service.ts`, `system/memory-service.ts`, `system/battery-service.ts`): leitura de `/proc/meminfo` e UPower.
+- RAM e bateria (`system/system-state-service.ts`, `system/memory-service.ts`, `system/battery-service.ts`): leitura de `/proc/meminfo` e UPower. A memória é lida a cada 30 s para o alerta de RAM alta e a cada 5 s só enquanto a pílula mostra RAM.
 - Notificações (`notifications/notification-bridge-service.ts`): fila do shell, contagem e avisos para a pílula.
 - Claude (`claude/claude-service.ts`, `claude/claude-client.ts`, `claude/claude-profiles-service.ts`): uso e limites por perfil. Só lê o token de `.credentials.json`; quem renova é o próprio Claude Code. Com o token vencido, os últimos números ficam na tela com "Uso desatualizado. Abra o Claude Code para atualizar." até o Claude Code ser usado de novo.
 - Transcrições do Claude (`claude/claude-transcripts-service.ts`): índice persistente em `$XDG_CACHE_HOME/frodo/claude-index.json`, lido em pedaços e só nos bytes novos.

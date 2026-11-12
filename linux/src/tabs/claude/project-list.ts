@@ -1,6 +1,6 @@
 import type {Share} from '../../shared/consumption.types.js';
 import type {AiProvider} from '../../shared/ai-provider.types.js';
-import {formatTokens} from '../../shared/format.js';
+import {formatTokens, percentLabel} from '../../shared/format.js';
 import {column, label, row} from '../../shared/ui/layout.js';
 import {SegmentBar} from '../../shared/ui/segment-bar.js';
 
@@ -17,7 +17,7 @@ class ProjectRow {
     show({name, tokens, fraction}: Share, largest: number, fillClass: string): void {
         this.#name.text = name;
         this.#bar.segments = [{fraction: largest > 0 ? tokens / largest : 0, styleClass: fillClass}];
-        this.#value.text = `${formatTokens(tokens)} · ${Math.round(fraction * 100)}%`;
+        this.#value.text = `${formatTokens(tokens)} · ${percentLabel(fraction * 100)}`;
     }
 }
 

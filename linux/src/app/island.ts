@@ -45,7 +45,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
     readonly #surface: IslandSurface;
     #isOpen = false;
     #openedBy: OpenReason | null = null;
-    readonly #warmTimer = new Timer();
+    readonly #warmTimer = this.#disposables.own(new Timer());
     #unwarm: Disposer | null = null;
 
     constructor(dependencies: FrodoServices, monitorIndex: number) {
@@ -298,7 +298,6 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
     }
 
     destroy(): void {
-        this.#warmTimer.stop();
         this.#unwarm = null;
         this.close(false);
         this.#disposables.dispose();

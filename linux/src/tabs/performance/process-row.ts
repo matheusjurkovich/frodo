@@ -1,3 +1,4 @@
+import {percentLabel} from '../../shared/format.js';
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 import {formatBytes, formatPercent, monogram} from '../../features/system/performance.js';
@@ -67,7 +68,7 @@ export class ProcessRow implements Component {
         const values: Record<SortKey, string> = {
             cpu: formatPercent(process.cpu),
             ram: formatBytes(process.ramBytes),
-            gpu: process.gpu === null || process.gpu < 0.005 ? '—' : `${Math.round(process.gpu * 100)}%`,
+            gpu: process.gpu === null || process.gpu < 0.005 ? '—' : percentLabel(process.gpu * 100),
         };
         for (const [id, cell] of this.#cells) {
             cell.text = values[id];

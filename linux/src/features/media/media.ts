@@ -1,3 +1,4 @@
+import {clamp} from '../../shared/geometry.js';
 import {PLAYERCTLD} from './media.const.js';
 import type {TrackMetadata, PlayerCandidate} from './media.types.js';
 
@@ -21,7 +22,7 @@ export function parseMetadata(metadata: Record<string, unknown>): TrackMetadata 
 
 export function trackFraction(positionUs: number | null, lengthUs: number | null): number | null {
     if (positionUs === null || lengthUs === null || lengthUs <= 0) return null;
-    return Math.min(1, Math.max(0, positionUs / lengthUs));
+    return clamp(positionUs / lengthUs, 0, 1);
 }
 
 export function pickPlayer<Candidate extends PlayerCandidate>(players: readonly Candidate[]): Candidate | null {

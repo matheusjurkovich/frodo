@@ -1,8 +1,10 @@
+import {Disposables} from './disposables.js';
 import {Timer} from './timer.js';
 import type {ScanGateOptions} from './scan-gate.types.js';
 
 export class ScanGate {
-    readonly #timer = new Timer();
+    readonly #disposables = new Disposables();
+    readonly #timer = this.#disposables.own(new Timer());
     readonly #options: ScanGateOptions;
     #running: Promise<void> | null = null;
     #lastRun = 0;
@@ -57,6 +59,6 @@ export class ScanGate {
 
     destroy(): void {
         this.#destroyed = true;
-        this.#timer.stop();
+        this.#disposables.dispose();
     }
 }

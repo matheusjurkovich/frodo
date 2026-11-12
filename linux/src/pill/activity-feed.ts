@@ -40,9 +40,9 @@ function same(a: PillActivity | null, b: PillActivity | null): boolean {
 export class ActivityFeed extends Emitter<{changed: []}> {
     readonly #sources: FeedSources;
     readonly #disposables = new Disposables();
-    readonly #notificationTimer = new Timer();
-    readonly #volumeTimer = new Timer();
-    readonly #shownTimer = new Timer();
+    readonly #notificationTimer = this.#disposables.own(new Timer());
+    readonly #volumeTimer = this.#disposables.own(new Timer());
+    readonly #shownTimer = this.#disposables.own(new Timer());
     readonly #gate = new StepGate();
     #held: Extract<PillActivity, {kind: 'claude-working'}> | null = null;
     #seen: PillActivity[] = [];
@@ -187,9 +187,6 @@ export class ActivityFeed extends Emitter<{changed: []}> {
     }
 
     destroy(): void {
-        this.#notificationTimer.stop();
-        this.#volumeTimer.stop();
-        this.#shownTimer.stop();
         this.#disposables.dispose();
         this.clearListeners();
     }

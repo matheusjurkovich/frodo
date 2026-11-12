@@ -1,5 +1,6 @@
 import Clutter from 'gi://Clutter';
 import {card, cardTitle} from '../../shared/ui/card.js';
+import {clamp} from '../../shared/geometry.js';
 import {dimLabel, label, row} from '../../shared/ui/layout.js';
 import type {Component} from '../../shared/ui/lifecycle.types.js';
 import {SegmentBar} from '../../shared/ui/segment-bar.js';
@@ -37,7 +38,7 @@ export class MetricCard implements Component {
     }
 
     fill(fraction: number): void {
-        this.bar.segments = [{fraction: Math.min(1, Math.max(0, fraction)), styleClass: fraction >= HIGH_USAGE ? 'frodo-perf-high' : ''}];
+        this.bar.segments = [{fraction: clamp(fraction, 0, 1), styleClass: fraction >= HIGH_USAGE ? 'frodo-perf-high' : ''}];
     }
 
     destroy(): void {

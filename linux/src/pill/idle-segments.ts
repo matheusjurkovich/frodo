@@ -1,6 +1,6 @@
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
-import {formatClock, formatDate} from '../shared/format.js';
+import {formatClock, formatDate, percentLabel} from '../shared/format.js';
 import {formatRam} from '../features/system/memory.js';
 import type {ClosedItem} from '../settings/schema-values.types.js';
 import {
@@ -27,8 +27,8 @@ function present(actor: Clutter.Actor | null): Clutter.Actor[] {
 function reading(item: QuotaItem, {settings, claude, codex, gemini}: SegmentContext): UsageReading | null {
     const sources: QuotaSources = {
         claudeWindows: claude.active?.windows ?? [],
-        codexLimits: codex.limits,
-        geminiQuota: gemini.quota,
+        codex,
+        gemini,
         providerEnabled: provider => settings.providerEnabled(provider),
         showRemaining: settings.claudeShowRemaining,
     };
@@ -46,7 +46,7 @@ export function itemText(item: TextItem, context: SegmentContext): string {
         default: {
             const {name, suffix} = QUOTA_ITEMS[item];
             const current = reading(item, context);
-            return current ? `${name} ${Math.round(current.percent)}%${suffix}` : `${name} —`;
+            return current ? `${name} ${percentLabel(current.percent)}${suffix}` : `${name} —`;
         }
     }
 }

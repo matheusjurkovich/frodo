@@ -1,3 +1,4 @@
+import {percentLabel} from '../../shared/format.js';
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 import type {Share} from '../../shared/consumption.types.js';
@@ -17,7 +18,7 @@ class LegendItem {
     show({name, label: text, fraction}: Share): void {
         this.#swatch.style_class = `frodo-legend-swatch frodo-model-${name.toLowerCase()}`;
         this.#name.text = text;
-        this.#percent.text = `${Math.round(fraction * 100)}%`;
+        this.#percent.text = percentLabel(fraction * 100);
     }
 }
 

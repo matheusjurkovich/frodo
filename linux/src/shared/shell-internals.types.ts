@@ -154,3 +154,8 @@ export interface SessionModeInternals {
     connect(signal: 'updated', callback: () => void): number;
     disconnect(id: number): void;
 }
+
+export interface WindowCover {
+    readonly fullscreen: boolean;
+    readonly maximized: boolean;
+}

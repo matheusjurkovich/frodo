@@ -1,6 +1,7 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import {
+    geminiMeters,
     geminiModels,
     geminiCells,
     geminiQuota,
@@ -11,6 +12,7 @@ import {
     projectName,
 } from './gemini-usage.js';
 import type {GeminiQuota} from './gemini-usage.types.js';
+import type {Meter, MeterSource} from '../../shared/meter.types.js';
 import {Disposables} from '../../shared/disposables.js';
 import {Emitter} from '../../shared/emitter.js';
 import {ScanGate} from '../../shared/scan-gate.js';
@@ -30,7 +32,7 @@ function isSessionFile(info: Gio.FileInfo, since: number): boolean {
     );
 }
 
-export class GeminiUsage extends Emitter<{changed: []}> implements ConsumptionSource {
+export class GeminiUsage extends Emitter<{changed: []}> implements ConsumptionSource, MeterSource {
     readonly #settings: FrodoSettings;
     readonly #root: string;
     readonly #disposables = new Disposables();
@@ -80,6 +82,10 @@ export class GeminiUsage extends Emitter<{changed: []}> implements ConsumptionSo
     get quota(): GeminiQuota | null {
         if (!this.#available || this.lastRefresh === 0) return null;
         return geminiQuota(this.#times, this.#settings.geminiDailyLimit, Date.now());
+    }
+
+    meters(): Meter[] {
+        return geminiMeters(this.quota);
     }
 
     get lastRefresh(): number {

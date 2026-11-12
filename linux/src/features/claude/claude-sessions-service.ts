@@ -10,6 +10,7 @@ import {focusProcessWindow} from './process-window-service.js';
 import {RepoActions} from './repo-actions-service.js';
 import {WatchedDirectory} from './watched-directory-service.js';
 import {Emitter} from '../../shared/emitter.js';
+import {Disposables} from '../../shared/disposables.js';
 import {Timer} from '../../shared/timer.js';
 import {readTextFile} from '../../shared/files.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
@@ -45,7 +46,8 @@ export class ClaudeSessions extends Emitter<{changed: []}> {
     readonly #activate: ((window: Meta.Window) => void) | null;
     readonly #states = new Map<string, SessionState>();
     readonly #pending = new Map<string, PendingRequest>();
-    readonly #timer = new Timer();
+    readonly #disposables = new Disposables();
+    readonly #timer = this.#disposables.own(new Timer());
     readonly #hooks: AgentHooks;
     readonly #repo = new RepoActions();
     readonly #sessionsWatch: WatchedDirectory;
@@ -223,11 +225,11 @@ export class ClaudeSessions extends Emitter<{changed: []}> {
         this.#destroyed = true;
         this.#disposeSettings();
         this.#disposeHooks();
-        this.#timer.stop();
         this.#sessionsWatch.destroy();
         this.#pendingWatch.destroy();
         this.#hooks.destroy();
         this.#repo.destroy();
+        this.#disposables.dispose();
         if (readAlive(this.#alive)?.split(' ')[0] === this.#pid) GLib.unlink(this.#alive);
         this.clearListeners();
     }

@@ -27,6 +27,7 @@ import type {
     PanelSide,
     QuickSettingsInternals,
     SystemIndicatorName,
+    WindowCover,
     QuickSettingsParts,
     QuickSettingsIndicator,
     QuickSliderButtons,
@@ -358,14 +359,12 @@ function isVisibleOnActiveWorkspace(window: Meta.Window): boolean {
     return !window.minimized && (window.is_on_all_workspaces() || window.get_workspace() === active);
 }
 
-export function hasRealFullscreen(monitorIndex: number): boolean {
-    return visibleWindowsOn(monitorIndex).some(window => window.is_fullscreen());
-}
-
-export function hasMaximizedWindow(monitorIndex: number): boolean {
-    return visibleWindowsOn(monitorIndex).some(
-        window => window.maximized_vertically && window.get_window_type() === Meta.WindowType.NORMAL,
-    );
+export function windowCover(monitorIndex: number): WindowCover {
+    const windows = visibleWindowsOn(monitorIndex);
+    return {
+        fullscreen: windows.some(window => window.is_fullscreen()),
+        maximized: windows.some(window => window.maximized_vertically && window.get_window_type() === Meta.WindowType.NORMAL),
+    };
 }
 
 function visibleWindowsOn(monitorIndex: number): Meta.Window[] {

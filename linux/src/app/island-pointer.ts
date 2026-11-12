@@ -16,9 +16,9 @@ function pressedButton(event: Clutter.Event, root: Clutter.Actor): boolean {
 
 export class IslandPointer {
     readonly #dependencies: IslandPointerDependencies;
-    readonly #openTimer = new Timer();
-    readonly #closeTimer = new Timer();
     readonly #disposables = new Disposables();
+    readonly #openTimer = this.#disposables.own(new Timer());
+    readonly #closeTimer = this.#disposables.own(new Timer());
     #holds = 0;
     #edgeWatch: Disposer | null = null;
 
@@ -70,10 +70,6 @@ export class IslandPointer {
                 this.syncPanel();
             }),
         );
-        this.#disposables.add(() => {
-            this.#openTimer.stop();
-            this.#closeTimer.stop();
-        });
     }
 
     hold(menu: PopupMenu.PopupMenu): Disposer {

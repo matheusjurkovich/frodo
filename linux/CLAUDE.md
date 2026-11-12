@@ -92,7 +92,8 @@ Quem precisa dele recebe pelo construtor.
   `clearListeners()`. Flag `#destroyed` para descartar resposta assíncrona que chega depois.
 - **Descarte:** `Disposables` para tudo que precisa ser desfeito; sinal GObject com `disposables.signal(obj, obj.connect(…))`;
   objeto com `destroy()` com `disposables.own(new X())`.
-  Timer com `Timer` (`once`, `every`), nunca `GLib.timeout_add` solto.
+  Timer com `Timer` (`once`, `every`), nunca `GLib.timeout_add` solto; timer de campo é `disposables.own(new Timer())`, sem `stop()` manual no `destroy()`.
+  Cada provedor de IA expõe `meters(now)` (`MeterSource`, em `shared/meter.types.ts`); quem precisa dos medidores chama o serviço, sem `switch` por provedor.
 - **Dependências:** por construtor, numa interface `<Nome>Dependencies`. Ações para cima por callback (`actions: {close,
 openTab}`). Nada global além de `Main` e `global` do shell.
 - **Empréstimo de widget nativo:** `ActorLoan` tira o ator do Quick Settings ou do calendário e devolve na ordem original ao

@@ -1,3 +1,4 @@
+import {percentLabel} from '../../shared/format.js';
 import {column, label, row, spacer} from '../../shared/ui/layout.js';
 import {SegmentBar} from '../../shared/ui/segment-bar.js';
 import type {MeterView} from './meter-row.types.js';
@@ -25,7 +26,7 @@ export class MeterRow {
         this.#value.visible = measured;
         this.#bar.actor.visible = measured;
         if (measured) {
-            this.#value.text = `${Math.round(percent)}%`;
+            this.#value.text = percentLabel(percent);
             this.#bar.segments = [{fraction: percent / 100, styleClass: fillClass}];
             this.#bar.marker = marker;
         }

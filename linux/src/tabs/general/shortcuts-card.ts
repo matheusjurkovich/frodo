@@ -1,11 +1,10 @@
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
-import type Gvc from 'gi://Gvc';
 import Meta from 'gi://Meta';
 import Shell from 'gi://Shell';
 import St from 'gi://St';
 import {showScreenRecordingUI, showScreenshotUI} from 'resource:///org/gnome/shell/ui/screenshot.js';
-import {getMixerControl} from 'resource:///org/gnome/shell/ui/status/volume.js';
+import type {Mixer} from '../../features/system/mixer-service.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
 import {powerActions} from '../../shared/shell-internals.js';
 import {Disposables} from '../../shared/disposables.js';
@@ -45,13 +44,12 @@ function openNewWindow(desktopIds: readonly string[]): void {
 
 export class ShortcutsCard implements Component {
     readonly #card: CollapsibleCard;
-    readonly #mixer = getMixerControl();
+    readonly #mixer: Mixer;
     readonly #microphone: St.Button;
     readonly #disposables = new Disposables();
-    #source: Gvc.MixerStream | null = null;
-    #sourceId = 0;
 
-    constructor(island: IslandHandle, settings: FrodoSettings) {
+    constructor(island: IslandHandle, settings: FrodoSettings, mixer: Mixer) {
+        this.#mixer = mixer;
         const closeThen = (action: () => void) => () => {
             island.close();
             action();
@@ -73,8 +71,8 @@ export class ShortcutsCard implements Component {
             }),
         );
         this.#microphone = shortcutButton('mic-off', 'Silenciar microfone', () => {
-            const source = this.#source;
-            source?.change_is_muted(!source.is_muted);
+            const source = this.#mixer.input;
+            if (source) this.#mixer.setMuted(source.id, !source.muted);
         });
         const buttons = [
             shortcutButton('screenshot', 'Captura de tela', closeThenCapture(showScreenshotUI)),
@@ -111,41 +109,20 @@ export class ShortcutsCard implements Component {
         this.#disposables.signal(actions, actions.connect('notify::can-lock-screen', syncLock));
         syncLock();
 
-        this.#disposables.signal(
-            this.#mixer,
-            this.#mixer.connect('default-source-changed', () => {
-                this.#watchSource();
+        this.#disposables.add(
+            this.#mixer.on('changed', () => {
+                this.#syncMuted();
             }),
         );
-        this.#disposables.add(() => {
-            this.#unwatchSource();
-        });
-        this.#watchSource();
+        this.#syncMuted();
     }
 
     get actor(): St.BoxLayout {
         return this.#card.actor;
     }
 
-    #watchSource(): void {
-        this.#unwatchSource();
-        const source = this.#mixer.get_default_source() as Gvc.MixerStream | null;
-        this.#source = source;
-        if (source)
-            this.#sourceId = source.connect('notify::is-muted', () => {
-                this.#syncMuted();
-            });
-        this.#syncMuted();
-    }
-
-    #unwatchSource(): void {
-        if (this.#source && this.#sourceId) this.#source.disconnect(this.#sourceId);
-        this.#source = null;
-        this.#sourceId = 0;
-    }
-
     #syncMuted(): void {
-        this.#microphone.checked = this.#source?.is_muted ?? false;
+        this.#microphone.checked = this.#mixer.input?.muted ?? false;
     }
 
     destroy(): void {

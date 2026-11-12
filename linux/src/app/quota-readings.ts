@@ -1,5 +1,3 @@
-import {codexMeters} from '../features/codex/codex-usage.js';
-import {geminiMeters} from '../features/gemini/gemini-usage.js';
 import type {QuotaReading} from '../shared/meter.types.js';
 import {WINDOW_NAMES} from './quota-readings.const.js';
 import type {QuotaSources} from './quota-readings.types.js';
@@ -19,7 +17,7 @@ export function quotaReadings({claude, codex, gemini, enabled, nowMs}: QuotaSour
                 });
         }
     if (enabled('codex'))
-        for (const meter of codexMeters(codex, nowMs))
+        for (const meter of codex.meters(nowMs))
             if (meter.key === 'session' || meter.key === 'weekly')
                 readings.push({
                     id: `codex:${meter.key}`,
@@ -29,7 +27,7 @@ export function quotaReadings({claude, codex, gemini, enabled, nowMs}: QuotaSour
                     percent: meter.percent,
                 });
     if (enabled('gemini'))
-        for (const meter of geminiMeters(gemini))
+        for (const meter of gemini.meters(nowMs))
             if (meter.key === 'daily')
                 readings.push({id: 'gemini:daily', provider: 'gemini', name: 'Gemini', window: 'dia', percent: meter.percent});
     return readings;

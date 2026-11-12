@@ -1,4 +1,4 @@
-import {alignX, anchorCenter, centerClamp, topEdgeSpan} from '../shared/geometry.js';
+import {alignX, anchorCenter, centerClamp, clamp, topEdgeSpan} from '../shared/geometry.js';
 import type {EdgeSpan, Rect} from '../shared/geometry.types.js';
 import {horizontalOf, isBottom, isMiddle} from '../settings/schema-values.js';
 import type {HorizontalPosition} from '../settings/schema-values.types.js';
@@ -76,11 +76,11 @@ export class IslandPlacement {
         if (this.bottom) return this.#openEdge - height;
         if (!this.middle) return this.#openEdge;
         const top = Math.round(this.#openEdge - height / 2);
-        return Math.max(area.y, Math.min(top, area.y + area.height - height));
+        return clamp(top, area.y, area.y + area.height - height);
     }
 
     pivotY(y: number, height: number): number {
-        return Math.min(1, Math.max(0, (this.#openEdge - y) / Math.max(1, height)));
+        return clamp((this.#openEdge - y) / Math.max(1, height), 0, 1);
     }
 
     available(): number {

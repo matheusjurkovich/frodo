@@ -1,7 +1,8 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
-import {codexModels, dayDirEnded, latestLimits, RolloutParser} from './codex-usage.js';
+import {codexMeters, codexModels, dayDirEnded, latestLimits, RolloutParser} from './codex-usage.js';
 import type {CodexLimits, CodexSession} from './codex-usage.types.js';
+import type {Meter, MeterSource} from '../../shared/meter.types.js';
 import {Disposables} from '../../shared/disposables.js';
 import {Emitter} from '../../shared/emitter.js';
 import {ScanGate} from '../../shared/scan-gate.js';
@@ -27,7 +28,7 @@ function byNameDescending(a: Gio.FileInfo, b: Gio.FileInfo): number {
     return b.get_name().localeCompare(a.get_name());
 }
 
-export class CodexUsage extends Emitter<{changed: []}> implements ConsumptionSource {
+export class CodexUsage extends Emitter<{changed: []}> implements ConsumptionSource, MeterSource {
     readonly #settings: FrodoSettings;
     readonly #sessionsDir: string;
     readonly #disposables = new Disposables();
@@ -65,6 +66,10 @@ export class CodexUsage extends Emitter<{changed: []}> implements ConsumptionSou
 
     get limits(): CodexLimits | null {
         return this.#limits;
+    }
+
+    meters(now: number): Meter[] {
+        return codexMeters(this.#limits, now);
     }
 
     get lastRefresh(): number {
