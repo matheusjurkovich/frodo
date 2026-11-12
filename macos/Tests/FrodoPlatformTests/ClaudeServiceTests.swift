@@ -155,6 +155,7 @@ struct ClaudeServiceTests {
         #expect(service.profiles[1].status == .error)
         #expect(service.profiles[1].error == stale)
         let updatedAt = service.profiles[0].updatedAt
+        await service.refresh(force: true)
         await store.expireFirst()
         await service.refresh(force: true)
         #expect(service.profiles[0].status == .ok)
