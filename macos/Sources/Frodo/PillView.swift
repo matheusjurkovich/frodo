@@ -62,7 +62,7 @@ struct PillContent: View {
         case let .claudeWaiting(session)?:
             WaitingContent(services: services, session: session, openTab: openTab)
         case let .meeting(title, startsAt)?:
-            MeetingContent(services: services, title: title, startsAt: startsAt)
+            MeetingContent(services: services, title: title, startsAt: startsAt, openTab: openTab)
         case let .volume(percent)?:
             VolumeContent(percent: percent)
         case let .claudeWorking(session)?:

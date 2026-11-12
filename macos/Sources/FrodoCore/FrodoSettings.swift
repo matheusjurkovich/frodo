@@ -30,11 +30,23 @@ public enum ClosedItem: String, CaseIterable, Sendable {
     case ram
     case claudeSession = "claude-session"
     case claudeWeekly = "claude-weekly"
+    case codexSession = "codex-session"
+    case codexWeekly = "codex-weekly"
+    case geminiDaily = "gemini-daily"
 
     public var isText: Bool {
         switch self {
-        case .battery, .ram, .claudeSession, .claudeWeekly: true
+        case .battery, .ram, .claudeSession, .claudeWeekly, .codexSession, .codexWeekly, .geminiDaily: true
         default: false
+        }
+    }
+
+    public var provider: AiProvider? {
+        switch self {
+        case .claudeSession, .claudeWeekly: .claude
+        case .codexSession, .codexWeekly: .codex
+        case .geminiDaily: .gemini
+        default: nil
         }
     }
 
@@ -47,6 +59,9 @@ public enum ClosedItem: String, CaseIterable, Sendable {
         case .ram: "RAM"
         case .claudeSession: "Claude · sessão"
         case .claudeWeekly: "Claude · semana"
+        case .codexSession: "Codex · 5 h"
+        case .codexWeekly: "Codex · semana"
+        case .geminiDaily: "Gemini · hoje"
         }
     }
 }

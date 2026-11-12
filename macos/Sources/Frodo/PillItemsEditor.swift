@@ -80,7 +80,7 @@ struct PillItemsEditor: View {
 
     @ViewBuilder
     private func addSection(items: [ClosedItem]) -> some View {
-        let missing = missingItems(items)
+        let missing = missingItems(items, providerEnabled: { settings.providerEnabled($0) })
         if !missing.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
                 note("Adicionar")

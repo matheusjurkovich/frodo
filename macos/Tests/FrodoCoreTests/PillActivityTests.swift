@@ -15,15 +15,16 @@ private let volume = PillActivity.volume(percent: 40)
 
 @Suite("atividade da pílula")
 struct PillActivityTests {
-    @Test("notificação abre a aba Notificações e sessão trabalhando abre a aba Claude")
+    @Test("notificação abre a aba Notificações e sessão trabalhando ou esperando abre a aba IA")
     func notificationAndWorkingSessionOpenTheirTab() {
         #expect(notification.clickTab == .notifications)
         #expect(working.clickTab == .claude)
+        #expect(waiting.clickTab == .claude)
     }
 
     @Test("atividades sem aba própria não indicam aba")
     func activitiesWithoutATabIndicateNone() {
-        for activity in [permission, waiting, meeting, media, recording, volume] {
+        for activity in [permission, meeting, media, recording, volume] {
             #expect(activity.clickTab == nil)
         }
     }

@@ -47,6 +47,8 @@ public final class ActivityFeed: Destroyable {
     private let notificationTimer: TimerSlot
     private let volumeTimer: TimerSlot
     private let shownTimer: TimerSlot
+    private let gate = StepGate()
+    private var held: SessionState?
     private var seen: [PillActivity] = []
     private var queue: [InterceptedNotification] = []
     private var notification: InterceptedNotification?
@@ -64,8 +66,17 @@ public final class ActivityFeed: Destroyable {
         disposables.add(sources.media.changed.on { [weak self] _ in self?.refresh() })
         disposables.add(sources.notifications.intercepted.on { [weak self] item in self?.enqueue(item) })
         disposables.add(sources.volume.changed.on { [weak self] percent in self?.showVolume(percent) })
-        seen = candidates().filter { $0.kind == .claudeWorking || $0.kind == .media }
+        seen = transient().filter { $0.kind == .claudeWorking || $0.kind == .media }
         refresh()
+    }
+
+    public func aiActivityChanged() {
+        let shown = current != nil
+        shownTimer.stop()
+        held = nil
+        current = nil
+        refresh()
+        if shown && current == nil { changed.emit() }
     }
 
     public func cancelTransient() {
@@ -74,7 +85,7 @@ public final class ActivityFeed: Destroyable {
         queue = []
         notification = nil
         volume = nil
-        seen = candidates()
+        seen = transient()
         refresh()
     }
 
@@ -108,6 +119,19 @@ public final class ActivityFeed: Destroyable {
         refresh()
     }
 
+    private func transient() -> [PillActivity] {
+        let always = sources.aiActivity() == .always
+        return candidates().filter { !always || $0.kind != .claudeWorking }
+    }
+
+    private func showsWorking(_ session: SessionState, now: Date) -> Bool {
+        switch sources.aiActivity() {
+        case .always: true
+        case .never: false
+        case .change: gate.admits(session.sessionId, step: session.step, now: now)
+        }
+    }
+
     private func candidates() -> [PillActivity] {
         let moment = now()
         var candidates: [PillActivity] = []
@@ -121,12 +145,19 @@ public final class ActivityFeed: Destroyable {
         if let request, let asking {
             candidates.append(.claudePermission(session: asking, request: request))
         }
-        for session in sessions where session.sessionId != asking?.sessionId {
+        let recent = sessions.enumerated().sorted { first, second in
+            first.element.updatedAt == second.element.updatedAt ? first.offset < second.offset : first.element.updatedAt > second.element.updatedAt
+        }
+        for session in recent.map(\.element) where session.sessionId != asking?.sessionId {
             switch displayStatus(session, now: moment) {
             case .waiting:
                 candidates.append(.claudeWaiting(session: session))
             case .working where session.tool != nil:
-                candidates.append(.claudeWorking(session: session))
+                if let held, held.sessionId == session.sessionId {
+                    candidates.append(.claudeWorking(session: held))
+                } else if showsWorking(session, now: moment) {
+                    candidates.append(.claudeWorking(session: session))
+                }
             default:
                 break
             }
@@ -147,16 +178,29 @@ public final class ActivityFeed: Destroyable {
     }
 
     private func refresh() {
+        let ids = Set(sources.sessions.sessions.map(\.sessionId))
+        gate.retain(ids)
+        if let held, !ids.contains(held.sessionId) { self.held = nil }
         let candidates = candidates()
         seen = seen.filter { seen in candidates.contains { sameActivity(seen, $0) } }
         let previous = current
         let next = pickActivity(candidates.filter { candidate in !seen.contains { sameActivity($0, candidate) } })
         current = next
         if sameActivity(previous, next) { return }
-        if let next, next.kind != .notification, next.kind != .volume {
-            shownTimer.once(shownSeconds) { [weak self] in
-                self?.seen.append(next)
-                self?.refresh()
+        let mode = sources.aiActivity()
+        if mode == .change, let previous, previous.kind == .claudeWorking, next?.kind == .claudeWorking { seen.append(previous) }
+        if mode == .change, case let .claudeWorking(session)? = next {
+            gate.shown(session.sessionId, now: now())
+            held = session
+        }
+        if mode == .always, next?.kind == .claudeWorking {
+            shownTimer.stop()
+        } else if let next, next.kind != .notification, next.kind != .volume {
+            shownTimer.once(next.kind == .claudeWorking ? stepShownSeconds : shownSeconds) { [weak self] in
+                guard let self else { return }
+                self.seen.append(next)
+                if case let .claudeWorking(session) = next, self.held == session { self.held = nil }
+                self.refresh()
             }
         } else {
             shownTimer.stop()
