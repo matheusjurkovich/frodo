@@ -1,51 +1,5 @@
 import Foundation
 
-public enum Period: Sendable {
-    case today
-    case week
-    case month
-
-    var days: Int {
-        switch self {
-        case .today: 1
-        case .week: 7
-        case .month: keptDays
-        }
-    }
-}
-
-public struct Bar: Equatable, Sendable {
-    public let label: String
-    public let value: Int
-    public let current: Bool
-    public let future: Bool
-
-    public init(label: String, value: Int, current: Bool, future: Bool) {
-        self.label = label
-        self.value = value
-        self.current = current
-        self.future = future
-    }
-}
-
-public struct Share: Equatable, Sendable {
-    public let name: String
-    public let label: String
-    public let tokens: Int
-    public let fraction: Double
-}
-
-public struct ConsumptionSummary: Equatable, Sendable {
-    public let input: Int
-    public let output: Int
-    public let cacheRead: Int
-    public let sessions: Int
-    public let total: Int
-    public let bars: [Bar]
-    public let models: [Share]
-    public let projects: [Share]
-}
-
 public struct SessionStats: Equatable, Sendable {
     public let tokens: Int
     public let model: String
@@ -56,13 +10,12 @@ public struct SessionStats: Equatable, Sendable {
     public let todos: TodoProgress?
 }
 
-private let keptDays = 30
 private let indexVersion = 4.0
-private let maxProjects = 4
-private let firstHour = 8
-private let lastHour = 18
-private let labelEvery = 7
-private let maxHourLabels = 12
+private let claudeModels = ModelGroups(
+    order: ModelFamily.allCases.map(\.rawValue),
+    family: { modelFamily($0).rawValue },
+    label: { modelDisplayName($0) }
+)
 private let epoch = Date(timeIntervalSince1970: 0)
 
 private struct CellKey: Hashable {
@@ -93,52 +46,6 @@ private struct SessionRecord {
 private struct Seen {
     var at: Date
     var output: Int
-}
-
-private struct Latest {
-    var tokens = 0
-    var hour: Date
-    var model: String
-}
-
-private func hourStart(_ date: Date, calendar: Calendar) -> Date {
-    calendar.dateInterval(of: .hour, for: date)?.start ?? date
-}
-
-private func dayStart(_ date: Date, daysBack: Int = 0, calendar: Calendar) -> Date {
-    let start = calendar.startOfDay(for: date)
-    return calendar.date(byAdding: .day, value: -daysBack, to: start) ?? start
-}
-
-private func share(name: String, label: String, tokens: Int, total: Int) -> Share {
-    Share(name: name, label: label, tokens: tokens, fraction: total > 0 ? Double(tokens) / Double(total) : 0)
-}
-
-private func hourBars(_ slots: [Int: Int], now: Date, calendar: Calendar) -> [Bar] {
-    let nowHour = calendar.component(.hour, from: now)
-    let used = slots.filter { $0.value > 0 }.map(\.key)
-    let first = min(firstHour, used.min() ?? firstHour)
-    let last = max(lastHour, nowHour)
-    let length = last - first + 1
-    let step = length > maxHourLabels ? 2 : 1
-    return (0 ..< length).map { index in
-        let hour = first + index
-        return Bar(label: index % step == 0 ? "\(pad(hour))h" : "", value: slots[hour] ?? 0, current: hour == nowHour, future: hour > nowHour)
-    }
-}
-
-private func dayBars(_ slots: [Int: Int], now: Date, period: Period, calendar: Calendar) -> [Bar] {
-    let days = period.days
-    return (0 ..< days).map { index in
-        let day = dayStart(now, daysBack: days - 1 - index, calendar: calendar)
-        let label: String
-        if period == .week {
-            label = weekdayLabel(calendar.component(.weekday, from: day) - 1)
-        } else {
-            label = index % labelEvery == 0 ? "\(calendar.component(.day, from: day))/\(calendar.component(.month, from: day))" : ""
-        }
-        return Bar(label: label, value: slots[Int(day.timeIntervalSince1970)] ?? 0, current: index == days - 1, future: false)
-    }
 }
 
 public struct ClaudeIndex: Sendable {
@@ -212,61 +119,13 @@ public struct ClaudeIndex: Sendable {
     }
 
     public func summary(_ period: Period, now: Date, calendar: Calendar = .current) -> ConsumptionSummary {
-        let from = dayStart(now, daysBack: period.days - 1, calendar: calendar)
-        let until = dayStart(now, daysBack: -1, calendar: calendar)
-        var slots: [Int: Int] = [:]
-        var daySlots: [Date: Int] = [:]
-        var sessionIds = Set<String>()
-        var models: [ModelFamily: Latest] = [:]
-        var projects: [String: Int] = [:]
-        var input = 0
-        var output = 0
-        var cacheRead = 0
-        for (cell, counts) in cells {
-            if cell.hour < from || cell.hour >= until { continue }
-            let tokens = counts.input + counts.output
-            input += counts.input
-            output += counts.output
-            cacheRead += counts.cacheRead
-            sessionIds.insert(cell.session)
-            projects[cell.project, default: 0] += tokens
-            let family = modelFamily(cell.model)
-            var latest = models[family] ?? Latest(hour: cell.hour, model: cell.model)
-            latest.tokens += tokens
-            if cell.hour >= latest.hour {
-                latest.hour = cell.hour
-                latest.model = cell.model
-            }
-            models[family] = latest
-            let slot: Int
-            if period == .today {
-                slot = calendar.component(.hour, from: cell.hour)
-            } else if let cached = daySlots[cell.hour] {
-                slot = cached
-            } else {
-                slot = Int(dayStart(cell.hour, calendar: calendar).timeIntervalSince1970)
-                daySlots[cell.hour] = slot
-            }
-            slots[slot, default: 0] += tokens
+        let usage = cells.map { key, counts in
+            UsageCell(
+                hour: key.hour, model: key.model, project: key.project, session: key.session,
+                input: counts.input, output: counts.output, cacheRead: counts.cacheRead
+            )
         }
-        let total = input + output
-        return ConsumptionSummary(
-            input: input,
-            output: output,
-            cacheRead: cacheRead,
-            sessions: sessionIds.count,
-            total: total,
-            bars: period == .today ? hourBars(slots, now: now, calendar: calendar) : dayBars(slots, now: now, period: period, calendar: calendar),
-            models: ModelFamily.allCases.compactMap { family in
-                guard let latest = models[family], latest.tokens > 0 else { return nil }
-                return share(name: family.rawValue, label: modelDisplayName(latest.model), tokens: latest.tokens, total: total)
-            },
-            projects: projects
-                .filter { $0.value > 0 }
-                .sorted { $0.value != $1.value ? $0.value > $1.value : $0.key.localizedCompare($1.key) == .orderedAscending }
-                .prefix(maxProjects)
-                .map { share(name: $0.key, label: $0.key, tokens: $0.value, total: total) }
-        )
+        return summarize(usage, period: period, now: now, groups: claudeModels, calendar: calendar)
     }
 
     public func session(_ id: String) -> SessionStats? {
@@ -288,8 +147,7 @@ private func date(_ value: JSONValue?) -> Date? {
 }
 
 private func whole(_ value: JSONValue?) -> Int? {
-    guard case let .number(number)? = value, number.isFinite else { return nil }
-    return Int(number)
+    boundedInteger(value)
 }
 
 extension ClaudeIndex {

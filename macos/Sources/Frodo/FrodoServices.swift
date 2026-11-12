@@ -15,12 +15,15 @@ final class Revisions {
     var claude = 0
     var sessions = 0
     var transcripts = 0
+    var codex = 0
+    var gemini = 0
     var calendar = 0
     var system = 0
     var media = 0
     var notifications = 0
     var apps = 0
     var volume = 0
+    var performance = 0
     var settings = 0
 }
 
@@ -34,28 +37,45 @@ final class FrodoServices {
     let sessions: ClaudeSessions
     let claude: ClaudeService
     let transcripts: ClaudeTranscripts
+    let codex: CodexService
+    let gemini: GeminiService
+    let agentHooks: AgentHookInstaller
     let system: SystemState
-    let volume = VolumeService()
+    let performance: PerformanceService
+    let volume: VolumeService
     let calendar: CalendarService
-    let media = MediaService()
+    let media: MediaService
     let apps = RunningApps()
     let feed: ActivityFeed
     let hotkeys = GlobalHotkeys()
     let runner = ProcessCommandRunner()
+    private let doneAlert: DoneAlert
+    private let quotaAlerts: QuotaAlerts
+    private let memoryAlert: MemoryAlert
     private let disposables = Disposables()
 
-    init(paths: FrodoPaths, defaults: UserDefaults, store: any CredentialStore, transport: @escaping Transport) {
+    init(paths: FrodoPaths, defaults: UserDefaults, store: any CredentialStore, transport: @escaping Transport, audio: AudioDevices = CoreAudioDevices()) {
         self.paths = paths
         settings = FrodoSettings(defaults: defaults)
         sessions = ClaudeSessions(settings: settings, paths: paths, scheduler: scheduler)
         claude = ClaudeService(settings: settings, store: store, transport: transport, paths: paths, scheduler: scheduler)
         transcripts = ClaudeTranscripts(settings: settings, cachePath: paths.indexCacheFile, scheduler: scheduler)
+        codex = CodexService(settings: settings, home: paths.codexHome, scheduler: scheduler)
+        gemini = GeminiService(settings: settings, home: paths.geminiHome, scheduler: scheduler)
+        agentHooks = AgentHookInstaller(paths: paths)
         system = SystemState(scheduler: scheduler)
+        performance = PerformanceService(probe: MachPerformanceProbe(), scheduler: scheduler)
         calendar = CalendarService(settings: settings, scheduler: scheduler)
+        volume = VolumeService(devices: audio)
+        media = MediaService(scheduler: scheduler)
         let sources = FeedSources(
-            recording: NoRecording(), sessions: sessions, meetings: calendar, notifications: notifications, volume: volume, media: media
+            recording: NoRecording(), sessions: sessions, meetings: calendar, notifications: notifications, volume: volume, media: media,
+            aiActivity: { [settings] in settings.pillAiActivity }
         )
         feed = ActivityFeed(sources: sources, scheduler: scheduler)
+        doneAlert = DoneAlert(settings: settings, sessions: sessions, notifications: notifications)
+        quotaAlerts = QuotaAlerts(settings: settings, claude: claude, codex: codex, gemini: gemini, notifications: notifications)
+        memoryAlert = MemoryAlert(system: system, notifications: notifications)
         bridge()
     }
 
@@ -72,18 +92,23 @@ final class FrodoServices {
         disposables.add(claude.changed.on { _ in revisions.claude += 1 })
         disposables.add(sessions.changed.on { _ in revisions.sessions += 1 })
         disposables.add(transcripts.changed.on { _ in revisions.transcripts += 1 })
+        disposables.add(codex.changed.on { _ in revisions.codex += 1 })
+        disposables.add(gemini.changed.on { _ in revisions.gemini += 1 })
         disposables.add(calendar.changed.on { _ in revisions.calendar += 1 })
         disposables.add(system.battery.on { _ in revisions.system += 1 })
         disposables.add(system.memory.on { _ in revisions.system += 1 })
+        disposables.add(performance.changed.on { _ in revisions.performance += 1 })
         disposables.add(media.changed.on { _ in revisions.media += 1 })
+        disposables.add(media.progressChanged.on { _ in revisions.media += 1 })
         disposables.add(notifications.changed.on { _ in revisions.notifications += 1 })
         disposables.add(apps.changed.on { _ in revisions.apps += 1 })
         disposables.add(volume.changed.on { _ in revisions.volume += 1 })
         disposables.add(volume.statusChanged.on { _ in revisions.volume += 1 })
         disposables.add(settings.changed.on { _ in revisions.settings += 1 })
+        disposables.add(settings.onChanged(["pill-ai-activity"]) { [feed] in feed.aiActivityChanged() })
         disposables.add(sessions.hookEvents.on { [weak self] event in
             guard event.notificationType == "idle_prompt", let message = claudeNotification(for: event) else { return }
-            self?.notifications.push(app: "Claude Code", title: message.title, body: message.body)
+            self?.notifications.push(app: "Claude Code", title: message.title, body: message.body, provider: .claude)
         })
     }
 
@@ -92,12 +117,18 @@ final class FrodoServices {
     }
 
     func destroy() {
+        doneAlert.destroy()
+        quotaAlerts.destroy()
+        memoryAlert.destroy()
         hotkeys.destroy()
         feed.destroy()
         sessions.destroy()
         claude.destroy()
         transcripts.destroy()
+        codex.destroy()
+        gemini.destroy()
         system.destroy()
+        performance.destroy()
         volume.destroy()
         calendar.destroy()
         media.destroy()

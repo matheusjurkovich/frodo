@@ -23,3 +23,14 @@ public func formatRam(_ memory: MemoryInfo?, percent: Bool) -> String {
     guard let memory else { return "RAM —" }
     return percent ? "RAM \(usedPercent(memory))%" : "RAM \(formatGb(memory.usedBytes))"
 }
+
+private let highMemoryPercent = 90
+private let memoryRearmPercent = 80
+
+public func memoryAlarm(_ percent: Int, alarmed: Bool) -> Bool {
+    percent >= (alarmed ? memoryRearmPercent : highMemoryPercent)
+}
+
+public func highMemoryMessage(_ memory: MemoryInfo) -> String {
+    "\(usedPercent(memory))% da RAM em uso (\(formatGb(memory.usedBytes)) de \(formatGb(memory.totalBytes)))"
+}

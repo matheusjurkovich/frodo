@@ -2,6 +2,7 @@ import FrodoCore
 import Foundation
 
 private let minRefresh: TimeInterval = 60
+private let staleUsageMessage = "Uso desatualizado. Abra o Claude Code para atualizar."
 
 private func capture<Value: Sendable>(_ work: @Sendable () async throws -> Value) async -> Result<Value, Error> {
     do {
@@ -12,7 +13,7 @@ private func capture<Value: Sendable>(_ work: @Sendable () async throws -> Value
 }
 
 @MainActor
-public final class ClaudeService: Destroyable {
+public final class ClaudeService: Destroyable, MeterSource {
     public let changed = Event<Void>()
 
     private struct Entry {
@@ -63,6 +64,10 @@ public final class ClaudeService: Destroyable {
 
     public var active: ProfileUsage? {
         profiles.first(where: \.active) ?? profiles.first
+    }
+
+    public func meters(now: Date) -> [Meter] {
+        claudeMeters(active?.windows ?? [], now: now)
     }
 
     public func refreshIfStale(maxAge: TimeInterval) {
@@ -149,6 +154,13 @@ public final class ClaudeService: Destroyable {
             return ProfileUsage(
                 profile: current.profile, active: current.active, status: .signedOut, tier: tier, subtitle: current.subtitle,
                 error: "Sem login do Claude Code neste perfil.", updatedAt: current.updatedAt
+            )
+        }
+        if error is ExpiredTokenError {
+            let hasData = !current.windows.isEmpty || current.spend != nil
+            return ProfileUsage(
+                profile: current.profile, active: current.active, status: hasData ? .ok : .error, windows: current.windows, spend: current.spend,
+                tier: tier, subtitle: current.subtitle, error: staleUsageMessage, updatedAt: current.updatedAt
             )
         }
         let apiError = error as? ClaudeApiError

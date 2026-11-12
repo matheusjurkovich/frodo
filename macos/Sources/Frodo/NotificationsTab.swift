@@ -19,7 +19,7 @@ struct NotificationsTab: View {
                 }
                 .animation(Motion.standard, value: store.items.map(\.id))
             }
-            Text("O macOS não deixa um app ler as notificações dos outros. Aqui aparecem os avisos do Claude Code.")
+            Text("O macOS não deixa um app ler as notificações dos outros. Aqui aparecem os avisos do Frodo e dos assistentes.")
                 .font(Theme.Font.label()).foregroundStyle(Theme.textSecondary)
         } trailing: {
             HStack(spacing: 8) {
@@ -44,10 +44,7 @@ private struct NotificationRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
-            ZStack {
-                Circle().fill(Theme.claude.opacity(0.2)).frame(width: 36, height: 36)
-                FrodoIcon(name: "claude", size: 18, color: Theme.claude)
-            }
+            NotificationBadge(provider: item.provider, size: 36, iconSize: 18)
             VStack(alignment: .leading, spacing: 2) {
                 Text("\(item.app) · \(formatAgo(item.date, now: Date()))").font(Theme.Font.label()).foregroundStyle(Theme.textSecondary)
                 Text(item.title).font(Theme.Font.body(.medium)).foregroundStyle(Theme.text)
@@ -58,5 +55,23 @@ private struct NotificationRow: View {
         }
         .padding(10)
         .innerCard()
+    }
+}
+
+struct NotificationBadge: View {
+    let provider: AiProvider?
+    let size: CGFloat
+    let iconSize: CGFloat
+
+    var body: some View {
+        let color = provider.map { Theme.color(for: $0) } ?? Theme.accent
+        ZStack {
+            Circle().fill(color.opacity(0.2)).frame(width: size, height: size)
+            if let provider {
+                ProviderIcon(provider: provider, size: iconSize)
+            } else {
+                FrodoIcon(name: "bell", size: iconSize, color: color)
+            }
+        }
     }
 }

@@ -1,4 +1,12 @@
 import AppKit
+import IOKit.pwr_mgt
+
+public struct PowerAvailability: Sendable {
+    public let canSleep: Bool
+    public let canLogOut: Bool
+    public let canRestart: Bool
+    public let canShutDown: Bool
+}
 
 @MainActor
 public enum SystemActions {
@@ -13,6 +21,17 @@ public enum SystemActions {
         try? process.run()
     }
 
+    public static func powerAvailability() -> PowerAvailability {
+        let loginWindow = UserDefaults(suiteName: "com.apple.loginwindow")
+        let allowed = { (key: String) in loginWindow?.bool(forKey: key) != true }
+        return PowerAvailability(
+            canSleep: IOPMSleepEnabled() != 0,
+            canLogOut: allowed("LogOutDisabledWhileLoggedIn"),
+            canRestart: allowed("RestartDisabledWhileLoggedIn"),
+            canShutDown: allowed("ShutDownDisabledWhileLoggedIn")
+        )
+    }
+
     public static func sleep() { run("/usr/bin/pmset", ["sleepnow"]) }
     public static func lockScreen() { run("/usr/bin/pmset", ["displaysleepnow"]) }
     public static func restart() { tell("tell application \"System Events\" to restart") }
@@ -25,6 +44,10 @@ public enum SystemActions {
 
     public static func openTerminal() {
         NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/Utilities/Terminal.app"))
+    }
+
+    public static func openActivityMonitor() {
+        NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/Utilities/Activity Monitor.app"))
     }
 
     public static func openFinder() {

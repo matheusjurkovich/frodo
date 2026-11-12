@@ -14,6 +14,7 @@ public final class ClaudeSessions: Destroyable, SessionsSource {
     private let runner: CommandRunner
     private let isAlive: (Int) -> Bool
     private let timer: TimerSlot
+    private let disposables = Disposables()
     private var states: [String: SessionState] = [:]
     private var stateFiles: [String: Date] = [:]
     private var pendingByKey: [String: PendingRequest] = [:]
@@ -41,10 +42,11 @@ public final class ClaudeSessions: Destroyable, SessionsSource {
         reload()
         primed = true
         refreshHooksInstalled()
+        disposables.add(settings.onChanged(["disabled-ai"]) { [weak self] in self?.notifyChanged() })
     }
 
     public var sessions: [SessionState] {
-        states.values.filter(alive).sorted { $0.since < $1.since }
+        states.values.filter { alive($0) && settings.providerEnabled($0.provider) }.sorted { $0.since < $1.since }
     }
 
     public var pending: [PendingRequest] {
@@ -171,7 +173,7 @@ public final class ClaudeSessions: Destroyable, SessionsSource {
         guard let previous else { return true }
         return SessionState(
             sessionId: previous.sessionId, cwd: previous.cwd, repo: previous.repo, status: previous.status, tool: previous.tool, step: previous.step,
-            pid: previous.pid, since: previous.since, updatedAt: next.updatedAt
+            pid: previous.pid, since: previous.since, updatedAt: next.updatedAt, provider: previous.provider
         ) != next
     }
 
@@ -222,6 +224,7 @@ public final class ClaudeSessions: Destroyable, SessionsSource {
         timer.stop()
         for source in sources { source.cancel() }
         sources = []
+        disposables.dispose()
         if let text = try? String(contentsOfFile: paths.aliveFile, encoding: .utf8), text.hasPrefix("\(ownPid) ") {
             try? FileManager.default.removeItem(atPath: paths.aliveFile)
         }

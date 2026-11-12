@@ -1,5 +1,12 @@
 import Foundation
 
+private let maxInteger = 1e15
+
+func boundedInteger(_ value: JSONValue?) -> Int? {
+    guard case let .number(number)? = value, number.isFinite, abs(number) < maxInteger else { return nil }
+    return Int(number)
+}
+
 public enum JSONValue: Equatable, Sendable {
     case null
     case bool(Bool)

@@ -79,6 +79,17 @@ struct NotificationsStoreTests {
         #expect(store.count == 2)
     }
 
+    @Test("leva o assistente do aviso para a lista e para a pílula")
+    func carriesProvider() {
+        let store = NotificationsStore()
+        var intercepted: [AiProvider?] = []
+        _ = store.intercepted.on { intercepted.append($0.provider) }
+        store.push(app: "Codex", title: "Pronto", body: "x", provider: .codex)
+        store.push(app: "Frodo", title: "Memória alta", body: "y")
+        #expect(store.items.map(\.provider) == [nil, .codex])
+        #expect(intercepted == [.codex, nil])
+    }
+
     @Test("não perturbe guarda na lista mas não avisa a pílula")
     func doNotDisturbKeepsInListButSkipsPill() {
         let store = NotificationsStore()

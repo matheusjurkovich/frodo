@@ -41,6 +41,8 @@ public struct ClaudeApiError: Error, Equatable {
 
 public struct SignedOutError: Error, Equatable {}
 
+public struct ExpiredTokenError: Error, Equatable {}
+
 public struct Tier: Equatable, Sendable {
     public let subscriptionType: String?
     public let rateLimitTier: String?
@@ -106,8 +108,8 @@ public struct ClaudeClient: Sendable {
 
     private func validToken(_ credentials: Credentials?) throws -> String {
         guard let credentials else { throw SignedOutError() }
-        if credentials.expiresAt > 0, credentials.expiresAt / 1000 <= now().timeIntervalSince1970 {
-            throw ClaudeApiError(status: 401, body: "")
+        if needsRefresh(expiresAt: credentials.expiresAt, now: now()) {
+            throw ExpiredTokenError()
         }
         return credentials.accessToken
     }

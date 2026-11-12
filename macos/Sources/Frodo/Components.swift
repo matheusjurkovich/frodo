@@ -127,7 +127,7 @@ struct IconButton: View {
 }
 
 struct TextButton: View {
-    enum Kind { case primary, secondary, danger }
+    enum Kind { case primary, secondary, danger, destructive }
 
     let title: String
     var kind: Kind = .secondary
@@ -139,16 +139,29 @@ struct TextButton: View {
         Button(action: action) {
             Text(title)
                 .font(Theme.Font.secondary(.medium))
-                .foregroundStyle(kind == .primary ? Color.white : (kind == .danger ? Theme.danger : Theme.text))
+                .foregroundStyle(kind == .primary || kind == .destructive ? Color.white : (kind == .danger ? Theme.danger : Theme.text))
                 .padding(.horizontal, compact ? 10 : 14)
                 .frame(height: compact ? 26 : 32)
-                .hoverBackground(
-                    kind == .primary ? Theme.accent : Theme.control, hover: kind == .primary ? Theme.accent.opacity(0.85) : Theme.controlHover,
-                    radius: compact ? 13 : 16
-                )
+                .hoverBackground(fill, hover: hoverFill, radius: compact ? 13 : 16)
         }
         .buttonStyle(.plain)
         .opacity(isEnabled ? 1 : 0.4)
+    }
+
+    private var fill: Color {
+        switch kind {
+        case .primary: Theme.accent
+        case .destructive: Theme.destructive
+        case .secondary, .danger: Theme.control
+        }
+    }
+
+    private var hoverFill: Color {
+        switch kind {
+        case .primary: Theme.accent.opacity(0.85)
+        case .destructive: Theme.destructiveHover
+        case .secondary, .danger: Theme.controlHover
+        }
     }
 }
 
@@ -222,34 +235,6 @@ struct ProgressBar: View {
         }
         .frame(height: height)
         .animation(Motion.soft, value: fraction)
-    }
-}
-
-struct SegmentedPicker<Value: Hashable>: View {
-    let options: [(Value, String)]
-    @Binding var selection: Value
-    @Environment(\.isEnabled) private var isEnabled
-
-    var body: some View {
-        HStack(spacing: 2) {
-            ForEach(options.indices, id: \.self) { index in
-                let option = options[index]
-                Button {
-                    withAnimation(Motion.standard) { selection = option.0 }
-                } label: {
-                    Text(option.1)
-                        .font(Theme.Font.secondary(.medium))
-                        .foregroundStyle(selection == option.0 ? Theme.text : Theme.textSecondary)
-                        .padding(.horizontal, 12)
-                        .frame(height: 26)
-                        .background(Capsule().fill(selection == option.0 ? Theme.controlHover : .clear))
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(2)
-        .background(Capsule().fill(Theme.control))
-        .opacity(isEnabled ? 1 : 0.4)
     }
 }
 

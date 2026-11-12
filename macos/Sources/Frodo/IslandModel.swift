@@ -10,6 +10,7 @@ final class IslandModel {
     var slideDirection: CGFloat = 1
     var settingsOpen = false
     var powerMenuOpen = false
+    var dragging = false
     var presence: PillPresence = .pill
     var peek: PeekState?
     var position: IslandPosition = .topCenter
@@ -49,11 +50,16 @@ final class IslandModel {
     }
 
     func select(_ next: TabId, visible: [TabId]) {
+        settingsOpen = false
         guard next != tab else { return }
         let from = visible.firstIndex(of: tab) ?? 0
         let to = visible.firstIndex(of: next) ?? 0
         slideDirection = to >= from ? 1 : -1
         tab = next
+    }
+
+    func leaveSettings(visible: [TabId]) {
+        tab = tabToOpen(tab, visible: visible)
         settingsOpen = false
     }
 }

@@ -23,9 +23,9 @@ struct SettingsView: View {
             }
             HStack(alignment: .top, spacing: 12) {
                 SettingsSidebar(selection: $section)
-                VStack(alignment: .leading, spacing: 14) { sectionContent }
-                    .frame(maxWidth: .infinity, alignment: .topLeading)
-                    .id(section)
+                SwapContainer(key: section, index: SettingsSection.allCases.firstIndex(of: section) ?? 0, axis: .vertical) {
+                    VStack(alignment: .leading, spacing: 14) { sectionContent }
+                }
             }
         }
     }

@@ -13,6 +13,10 @@ enum Snapshots {
         Task { @MainActor in
             await services.transcripts.scan()
             await services.claude.refresh(force: true)
+            await services.codex.refresh()
+            await services.codex.scan()
+            await services.gemini.refresh()
+            await services.gemini.scan()
             try? await Task.sleep(for: .milliseconds(600))
             render(services, into: directory)
             exit(0)
@@ -30,7 +34,7 @@ enum Snapshots {
         )
         let pills: [(String, PillActivity?)] = [
             ("pilula-repouso", nil),
-            ("pilula-notificacao", .notification(InterceptedNotification(app: "Claude Code", title: "docs-site", body: "Esperando você"))),
+            ("pilula-notificacao", .notification(InterceptedNotification(app: "Claude Code", title: "docs-site", body: "Esperando você", provider: .claude))),
             ("pilula-permissao", .claudePermission(session: permissionSession, request: request)),
             ("pilula-trabalhando", .claudeWorking(session: session)),
             ("pilula-volume", .volume(percent: 60)),
@@ -54,7 +58,11 @@ enum Snapshots {
             model.peek = PeekState(startedAt: now, seconds: 10)
             writeWindow(IslandRootView(services: services, model: model, onToggle: {}, onClose: {}), size: size, name: name, directory: directory)
         }
-        let tabs: [(String, TabId, SettingsSection?)] = [("ilha-geral", .general, nil), ("ilha-calendario", .calendar, nil), ("ilha-claude", .claude, nil), ("ilha-notificacoes", .notifications, nil)]
+        services.media.simulate(DemoMode.track, position: 84, duration: 337)
+        let tabs: [(String, TabId, SettingsSection?)] = [
+            ("ilha-geral", .general, nil), ("ilha-calendario", .calendar, nil), ("ilha-ia", .claude, nil), ("ilha-notificacoes", .notifications, nil),
+            ("ilha-desempenho", .performance, nil), ("ilha-mixer", .mixer, nil),
+        ]
             + SettingsSection.allCases.map { ("ilha-configuracoes-\($0.rawValue)", TabId.general, $0) }
         for (name, tab, section) in tabs {
             let model = IslandModel()
@@ -64,7 +72,15 @@ enum Snapshots {
             model.settingsSection = section ?? .general
             writeWindow(IslandRootView(services: services, model: model, onToggle: {}, onClose: {}), size: CGSize(width: 1000, height: 860), name: name, directory: directory)
         }
+        let aiViews: [(String, AiView)] = [("todos", AiView.all)] + AiProvider.allCases.map { ($0.rawValue, AiView.provider($0)) }
+        for (name, view) in aiViews {
+            let content = AiTab(services: services, selected: view).padding(10).frame(width: Theme.Size.islandWidth).background(Theme.island)
+            writeWindow(content, size: CGSize(width: 1000, height: 860), name: "ilha-ia-\(name)", directory: directory)
+        }
         let settings = services.settings
+        settings.closedItems = [.clock, .claudeSession, .codexSession, .codexWeekly, .geminiDaily]
+        let ringsModel = IslandModel()
+        write(IslandRootView(services: services, model: ringsModel, onToggle: {}, onClose: {}), model: ringsModel, size: CGSize(width: 760, height: 90), name: "pilula-provedores", directory: directory)
         let pillScenes: [(String, ClosedMode, [ClosedItem], Bool)] = [
             ("minimo", .minimal, [.clock], false),
             ("rotativo", .rotating, [.clock, .battery, .ram, .claudeSession], true),

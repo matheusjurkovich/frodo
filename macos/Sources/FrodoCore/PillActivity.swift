@@ -13,7 +13,7 @@ public enum PillActivity: Equatable, Sendable, ActivityKinded {
     public var clickTab: TabId? {
         switch self {
         case .notification: .notifications
-        case .claudeWorking: .claude
+        case .claudeWorking, .claudeWaiting: .claude
         default: nil
         }
     }

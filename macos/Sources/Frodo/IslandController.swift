@@ -52,7 +52,10 @@ final class IslandController: NSObject {
         )
         super.init()
         configurePanel()
-        let root = IslandRootView(services: services, model: model, onToggle: { [weak self] in self?.togglePill() }, onClose: { [weak self] in self?.close() })
+        let root = IslandRootView(
+            services: services, model: model, onToggle: { [weak self] in self?.togglePill() }, onClose: { [weak self] in self?.close() },
+            onOpenTab: { [weak self] tab in self?.open(tab: tab) }
+        )
         let hosting = ShapeHostingView(rootView: root)
         hosting.shapeSize = { [weak self] in
             guard let self else { return .zero }
@@ -71,6 +74,7 @@ final class IslandController: NSObject {
         model.updateActivity(services.feed.current)
         disposables.add(services.feed.changed.on { [weak self] _ in self?.syncActivity() })
         disposables.add(services.settings.onChanged(["position"]) { [weak self] in self?.applyPosition() })
+        disposables.add(services.settings.onChanged(["hidden-tabs", "tab-order"]) { [weak self] in self?.syncTabs() })
         disposables.add(services.settings.onChanged(["always-show-pill", "peek-clock", "peek-every-minutes", "peek-seconds"]) { [weak self] in self?.syncCover() })
         peekCycle = PeekCycle(
             scheduler: services.scheduler,
@@ -110,6 +114,10 @@ final class IslandController: NSObject {
         host?.updateTrackingAreas()
     }
 
+    private func syncTabs() {
+        model.tab = tabToOpen(model.tab, visible: visibleTabs(hidden: services.settings.hiddenTabs, order: services.settings.tabOrder))
+    }
+
     private func applyPosition() {
         close()
         model.position = services.settings.position
@@ -135,7 +143,7 @@ final class IslandController: NSObject {
     }
 
     func updateHover() {
-        let inside = model.isOpen ? pointerIsOverOpenIsland() : shapeRect(open: false).contains(NSEvent.mouseLocation)
+        let inside = model.isOpen ? model.dragging || pointerIsOverOpenIsland() : shapeRect(open: false).contains(NSEvent.mouseLocation)
         if inside {
             hover.entered(canOpen: !model.isOpen && services.settings.openOnHover && !model.pillHasAction) { [weak self] in
                 guard let self, self.shapeRect(open: false).contains(NSEvent.mouseLocation), !self.model.pillHasAction else { return }
@@ -143,7 +151,7 @@ final class IslandController: NSObject {
             }
         } else {
             hover.left(canClose: model.isOpen && services.settings.openOnHover) { [weak self] in
-                guard let self, !self.pointerIsOverOpenIsland() else { return }
+                guard let self, !self.model.dragging, !self.pointerIsOverOpenIsland() else { return }
                 self.close()
             }
         }
@@ -158,8 +166,8 @@ final class IslandController: NSObject {
     }
 
     func open(tab: TabId? = nil) {
-        if let tab {
-            let visible = visibleTabs(hidden: services.settings.hiddenTabs)
+        if tab != nil || !model.isOpen {
+            let visible = visibleTabs(hidden: services.settings.hiddenTabs, order: services.settings.tabOrder)
             model.select(tabToOpen(tab, visible: visible), visible: visible)
         }
         guard !model.isOpen else { return }
@@ -169,7 +177,7 @@ final class IslandController: NSObject {
         var autoClose: (@MainActor () -> Void)?
         if services.settings.autoClose {
             autoClose = { [weak self] in
-                guard let self, self.model.isOpen, !self.pointerIsOverOpenIsland() else { return }
+                guard let self, self.model.isOpen, !self.model.dragging, !self.pointerIsOverOpenIsland() else { return }
                 self.close()
             }
         }
@@ -181,6 +189,7 @@ final class IslandController: NSObject {
         hover.closed()
         hoverGrace.reset()
         panel.allowsKey = false
+        model.dragging = false
         withAnimation(Motion.soft) {
             model.isOpen = false
             model.powerMenuOpen = false

@@ -3,6 +3,7 @@ import Foundation
 import IOKit.ps
 
 private let memorySeconds: TimeInterval = 5
+private let alarmSeconds: TimeInterval = 30
 
 public enum MemoryDemand: Hashable, Sendable {
     case pill
@@ -13,6 +14,20 @@ private func powerSourceChanged(_ context: UnsafeMutableRawPointer?) {
     guard let context else { return }
     let state = Unmanaged<SystemState>.fromOpaque(context).takeUnretainedValue()
     MainActor.assumeIsolated { state.readBattery() }
+}
+
+func readMemoryInfo() -> MemoryInfo? {
+    var statistics = vm_statistics64()
+    var count = mach_msg_type_number_t(MemoryLayout<vm_statistics64>.size / MemoryLayout<integer_t>.size)
+    let result = withUnsafeMutablePointer(to: &statistics) { pointer in
+        pointer.withMemoryRebound(to: integer_t.self, capacity: Int(count)) { host_statistics64(mach_host_self(), HOST_VM_INFO64, $0, &count) }
+    }
+    guard result == KERN_SUCCESS else { return nil }
+    var hostPageSize: vm_size_t = 0
+    guard host_page_size(mach_host_self(), &hostPageSize) == KERN_SUCCESS else { return nil }
+    let pageSize = UInt64(hostPageSize)
+    let used = (UInt64(statistics.active_count) + UInt64(statistics.wire_count) + UInt64(statistics.compressor_page_count)) * pageSize
+    return MemoryInfo(totalBytes: ProcessInfo.processInfo.physicalMemory, usedBytes: used)
 }
 
 @MainActor
@@ -33,17 +48,20 @@ public final class SystemState: Destroyable {
         let source = IOPSNotificationCreateRunLoopSource(powerSourceChanged, context)?.takeRetainedValue()
         if let source { CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes) }
         powerSource = source
+        pollMemory(every: alarmSeconds)
     }
 
     public func setWantsMemory(_ wants: Bool, by owner: MemoryDemand) {
         let wasWanted = !memoryDemands.isEmpty
         if wants { memoryDemands.insert(owner) } else { memoryDemands.remove(owner) }
-        if memoryDemands.isEmpty {
-            timer.stop()
-        } else if !wasWanted {
-            readMemory()
-            timer.every(memorySeconds) { [weak self] in self?.readMemory() }
-        }
+        let isWanted = !memoryDemands.isEmpty
+        guard isWanted != wasWanted else { return }
+        if isWanted { readMemory() }
+        pollMemory(every: isWanted ? memorySeconds : alarmSeconds)
+    }
+
+    private func pollMemory(every seconds: TimeInterval) {
+        timer.every(seconds) { [weak self] in self?.readMemory() }
     }
 
     fileprivate func readBattery() {
@@ -64,17 +82,7 @@ public final class SystemState: Destroyable {
     }
 
     private func readMemory() {
-        var statistics = vm_statistics64()
-        var count = mach_msg_type_number_t(MemoryLayout<vm_statistics64>.size / MemoryLayout<integer_t>.size)
-        let result = withUnsafeMutablePointer(to: &statistics) { pointer in
-            pointer.withMemoryRebound(to: integer_t.self, capacity: Int(count)) { host_statistics64(mach_host_self(), HOST_VM_INFO64, $0, &count) }
-        }
-        guard result == KERN_SUCCESS else { return }
-        var hostPageSize: vm_size_t = 0
-        guard host_page_size(mach_host_self(), &hostPageSize) == KERN_SUCCESS else { return }
-        let pageSize = UInt64(hostPageSize)
-        let used = (UInt64(statistics.active_count) + UInt64(statistics.wire_count) + UInt64(statistics.compressor_page_count)) * pageSize
-        let info = MemoryInfo(totalBytes: ProcessInfo.processInfo.physicalMemory, usedBytes: used)
+        guard let info = readMemoryInfo() else { return }
         if info != memoryInfo {
             memoryInfo = info
             memory.emit()

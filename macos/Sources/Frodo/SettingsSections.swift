@@ -9,24 +9,14 @@ extension SettingsView {
             SettingsGroup("Comportamento") {
                 ToggleRow(title: "Abrir ao passar o mouse", isOn: bind(\.openOnHover))
                 ToggleRow(title: "Recolher sozinha após 5 s", subtitle: "Quando aberta por clique ou atalho", isOn: bind(\.autoClose))
+                ToggleRow(title: "Mostrar segundos no relógio", subtitle: "Na pílula e no cabeçalho da ilha", isOn: bind(\.showSeconds))
                 ToggleRow(
                     title: "Iniciar com o macOS",
                     isOn: Binding(get: { LoginItem.isEnabled }, set: { _ = LoginItem.setEnabled($0); services.revisions.settings += 1 })
                 )
             }
-            SettingsGroup("Atalhos", hint: "Formato: ctrl+opt+z. Evite ⌘⇧Z (é Refazer em quase todo app).") {
-                shortcutRow("Abrir e fechar a ilha", \.toggleShortcut)
-                shortcutRow("Abrir na aba Claude", \.claudeShortcut)
-            }
-        }
-    }
-
-    private func shortcutRow(_ title: String, _ keyPath: ReferenceWritableKeyPath<FrodoSettings, String>) -> some View {
-        let parsed = parseShortcut(settings[keyPath: keyPath])
-        return SettingRow(title) {
-            HStack(spacing: 10) {
-                Text(parsed?.display ?? "inválido").font(Theme.Font.label(.medium)).foregroundStyle(parsed == nil ? Theme.danger : Theme.textSecondary)
-                TextField("ctrl+opt+z", text: bind(keyPath)).textFieldStyle(.roundedBorder).frame(width: 170).font(Theme.Font.mono(12))
+            SettingsGroup("Atalhos", hint: "Clique em Alterar e pressione a nova combinação. Esc cancela. Evite ⌘⇧Z (é Refazer em quase todo app).") {
+                ShortcutRows(services: services)
             }
         }
     }
@@ -67,6 +57,9 @@ extension SettingsView {
                 ToggleRow(title: "RAM em porcentagem", subtitle: "Mostra RAM 63% em vez dos GB usados", isOn: bind(\.ramPercent))
                 ToggleRow(title: "Mostrar porcentagem da bateria", isOn: bind(\.showBatteryPercentage))
                 ToggleRow(title: "Sempre à mostra", subtitle: "Com janela maximizada a pílula fica no lugar, sem virar lingueta", isOn: bind(\.alwaysShowPill))
+                SettingRow("Atividade da IA", subtitle: "O que a IA está fazendo aparece na pílula") {
+                    SegmentedPicker(options: PillAiActivity.allCases.map { ($0, $0.label) }, selection: bind(\.pillAiActivity))
+                }
             }
             fullscreenGroup
         }
@@ -99,12 +92,15 @@ extension SettingsView {
     }
 
     var tabsSection: some View {
-        let shown = visibleTabs(hidden: settings.hiddenTabs)
-        return SettingsGroup("Abas visíveis") {
-            ForEach(TabId.allCases, id: \.self) { tab in
-                SettingRow(tab.label) {
-                    FrodoSwitch(isOn: tabVisibilityBinding(tab)).disabled(shown == [tab])
-                }
+        let shown = visibleTabs(hidden: settings.hiddenTabs, order: settings.tabOrder)
+        return SettingsGroup(
+            "Abas visíveis",
+            hint: "Arraste pela alça ou use as setas para mudar a ordem das abas na ilha. Pelo teclado, foque a alça e use ↑ ↓."
+        ) {
+            ReorderableList(items: settings.tabOrder, axis: .vertical, onMove: { settings.tabOrder = $0 }) { tab in
+                Text(tab.label).font(Theme.Font.body()).foregroundStyle(Theme.text)
+                Spacer(minLength: 12)
+                FrodoSwitch(isOn: tabVisibilityBinding(tab)).disabled(shown == [tab])
             }
         }
     }
@@ -118,57 +114,6 @@ extension SettingsView {
                 settings.hiddenTabs = hidden
             }
         )
-    }
-
-    var aiSection: some View {
-        Group {
-            SettingsGroup("Uso") {
-                SettingBlock { FrodoStepper("Atualizar a cada \(settings.claudePollMinutes) min", value: bind(\.claudePollMinutes), range: 1 ... 60) }
-                ToggleRow(title: "Mostrar uso restante", subtitle: "Em vez do usado", isOn: bind(\.claudeShowRemaining))
-            }
-            SettingsGroup("Claude Code") {
-                SettingBlock { profilesEditor }
-                SettingBlock {
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack {
-                            StatusDot(color: services.sessions.hooksInstalled() ? Theme.ok : Theme.warn)
-                            Text(services.sessions.hooksInstalled() ? "Hook do Claude Code ativo" : "Hook do Claude Code não encontrado")
-                                .font(Theme.Font.secondary()).foregroundStyle(Theme.text)
-                            Spacer()
-                        }
-                        HooksSetup(services: services)
-                    }
-                }
-            }
-        }
-    }
-
-    private var profilesEditor: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Perfis").font(Theme.Font.label(.medium)).foregroundStyle(Theme.textSecondary)
-            ForEach(settings.claudeProfiles, id: \.id) { item in
-                HStack {
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(item.label).font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text)
-                        Text(item.configDir.replacingOccurrences(of: NSHomeDirectory(), with: "~")).font(Theme.Font.mono(11)).foregroundStyle(Theme.textSecondary)
-                    }
-                    Spacer()
-                    IconButton(icon: "minus", size: 26, iconSize: 10) { settings.claudeProfiles = settings.claudeProfiles.filter { $0.id != item.id } }
-                }
-            }
-            TextButton(title: "Adicionar perfil…", compact: true, action: addProfile)
-        }
-    }
-
-    private func addProfile() {
-        let panel = NSOpenPanel()
-        panel.canChooseDirectories = true
-        panel.canChooseFiles = false
-        panel.showsHiddenFiles = true
-        panel.directoryURL = URL(fileURLWithPath: NSHomeDirectory())
-        panel.prompt = "Escolher"
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        settings.claudeProfiles = settings.claudeProfiles + [profile(for: url.path)]
     }
 
     var agendaSection: some View {

@@ -1,39 +1,71 @@
+import CoreGraphics
 import Foundation
 import Testing
 
 @testable import FrodoCore
 
-@Suite("reordered")
+@Suite("moveTo")
 struct ReorderTests {
-    @Test("move um item para a frente")
-    func movesAnItemForward() {
-        #expect(reordered([1, 2, 3, 4], moving: 2, to: 2) == ints(1, 3, 2, 4))
+    @Test("leva o item para a posição pedida")
+    func takesTheItemToTheRequestedPosition() {
+        #expect(moveTo(["a", "b", "c", "d"], "a", 2) == ["b", "c", "a", "d"])
+        #expect(moveTo(["a", "b", "c", "d"], "d", 0) == ["d", "a", "b", "c"])
     }
 
-    @Test("move um item para trás")
-    func movesAnItemBackward() {
-        #expect(reordered([1, 2, 3, 4], moving: 4, to: 0) == ints(4, 1, 2, 3))
+    @Test("prende a posição nas pontas")
+    func clampsThePositionToTheEnds() {
+        #expect(moveTo(["a", "b", "c"], "b", -1) == ["b", "a", "c"])
+        #expect(moveTo(["a", "b", "c"], "b", 9) == ["a", "c", "b"])
     }
 
-    @Test("limita o destino ao começo e ao fim")
-    func clampsTheDestinationToTheEnds() {
-        #expect(reordered([1, 2, 3], moving: 2, to: -5) == ints(2, 1, 3))
-        #expect(reordered([1, 2, 3], moving: 2, to: 99) == ints(1, 3, 2))
+    @Test("item que não está na lista não muda nada")
+    func anUnknownItemChangesNothing() {
+        #expect(moveTo(["a", "b"], "z", 0) == ["a", "b"])
+    }
+}
+
+@Suite("destino ao arrastar")
+struct InsertionIndexTests {
+    private let column = [CGRect(x: 0, y: 0, width: 100, height: 40), CGRect(x: 0, y: 40, width: 100, height: 40), CGRect(x: 0, y: 80, width: 100, height: 40)]
+    private let wrapped = [CGRect(x: 0, y: 0, width: 80, height: 32), CGRect(x: 88, y: 0, width: 80, height: 32), CGRect(x: 0, y: 40, width: 80, height: 32)]
+
+    @Test("na vertical entra depois do item cujo centro o cursor passou")
+    func verticalGoesAfterTheItemWhoseCentreWasPassed() {
+        #expect(insertionIndex(column, at: CGPoint(x: 50, y: 50), horizontal: false) == 1)
+        #expect(insertionIndex(column, at: CGPoint(x: 50, y: 70), horizontal: false) == 2)
+        #expect(insertionIndex(column, at: CGPoint(x: 50, y: -30), horizontal: false) == 0)
+        #expect(insertionIndex(column, at: CGPoint(x: 50, y: 300), horizontal: false) == 3)
     }
 
-    @Test("item que não está na lista deixa a lista como está")
-    func anUnknownItemLeavesTheListUntouched() {
-        #expect(reordered([1, 2, 3], moving: 9, to: 0) == ints(1, 2, 3))
+    @Test("na horizontal só conta os itens da linha do cursor")
+    func horizontalOnlyCountsTheCursorLine() {
+        #expect(insertionIndex(wrapped, at: CGPoint(x: 150, y: 10), horizontal: true) == 2)
+        #expect(insertionIndex(wrapped, at: CGPoint(x: 150, y: 50), horizontal: true) == 3)
+        #expect(insertionIndex(wrapped, at: CGPoint(x: 10, y: 50), horizontal: true) == 2)
     }
 
-    private func ints(_ values: Int...) -> [Int] { values }
+    @Test("fora de qualquer linha não há destino")
+    func outsideEveryLineThereIsNoDestination() {
+        #expect(insertionIndex(wrapped, at: CGPoint(x: 10, y: 36), horizontal: true) == nil)
+        #expect(insertionIndex([], at: .zero, horizontal: false) == nil)
+    }
 }
 
 @Suite("itens da pílula")
 struct PillItemsTests {
+    private let everything = RotationState(hasBattery: true, providerEnabled: { _ in true })
+
     @Test("lista os itens fora da pílula na ordem do catálogo")
     func listsTheMissingItemsInCatalogOrder() {
-        #expect(missingItems([.ram, .clock, .date, .notifications, .battery]) == [.claudeSession, .claudeWeekly])
+        #expect(missingItems([.ram, .clock, .date, .notifications, .battery]) == [.claudeSession, .claudeWeekly, .codexSession, .codexWeekly, .geminiDaily])
+    }
+
+    @Test("esconde itens de IA desligada")
+    func hidesItemsOfDisabledAi() {
+        let missing = missingItems([.clock], providerEnabled: { $0 == .codex })
+        #expect(!missing.contains(.claudeSession))
+        #expect(!missing.contains(.geminiDaily))
+        #expect(missing.contains(.codexWeekly))
     }
 
     @Test("nada falta quando todos estão na pílula")
@@ -91,26 +123,50 @@ struct PillItemsTests {
         #expect(visibleItems(mode: .rotating, items: [.clock, .date]) == [.clock, .date])
     }
 
+    @Test("modo compacto esconde o item de IA desligada, menos o Claude")
+    func compactModeHidesDisabledProviderItemsExceptClaude() {
+        let items: [ClosedItem] = [.clock, .codexSession, .geminiDaily, .claudeSession]
+        #expect(visibleItems(mode: .compact, items: items, providerEnabled: { $0 == .gemini }) == [.clock, .geminiDaily, .claudeSession])
+    }
+
+    @Test("ignora o que não é texto")
+    func rotatingItemsIgnoreNonText() {
+        #expect(rotatingItems([.clock, .ram], RotationState(hasBattery: true, providerEnabled: { _ in true })) == [.ram])
+    }
+
+    @Test("tira a bateria quando não há bateria")
+    func rotatingItemsDropBatteryWithoutBattery() {
+        let items: [ClosedItem] = [.clock, .battery, .ram, .codexSession, .geminiDaily, .claudeWeekly]
+        #expect(!rotatingItems(items, RotationState(hasBattery: false, providerEnabled: { _ in true })).contains(.battery))
+    }
+
+    @Test("tira provedor desativado, menos o Claude")
+    func rotatingItemsDropDisabledProviderExceptClaude() {
+        let items: [ClosedItem] = [.clock, .battery, .ram, .codexSession, .geminiDaily, .claudeWeekly]
+        let state = RotationState(hasBattery: true, providerEnabled: { $0 == .gemini })
+        #expect(rotatingItems(items, state) == [.battery, .ram, .geminiDaily, .claudeWeekly])
+    }
+
     @Test("o item rotativo troca a cada intervalo, só entre os de texto")
     func rotatingItemChangesEveryInterval() {
         let items: [ClosedItem] = [.clock, .battery, .ram, .claudeSession]
-        #expect(rotatingItem(items, now: Date(timeIntervalSince1970: 0), everySeconds: 5) == .battery)
-        #expect(rotatingItem(items, now: Date(timeIntervalSince1970: 4), everySeconds: 5) == .battery)
-        #expect(rotatingItem(items, now: Date(timeIntervalSince1970: 5), everySeconds: 5) == .ram)
-        #expect(rotatingItem(items, now: Date(timeIntervalSince1970: 15), everySeconds: 5) == .battery)
+        #expect(rotatingItem(items, now: Date(timeIntervalSince1970: 0), everySeconds: 5, state: everything) == .battery)
+        #expect(rotatingItem(items, now: Date(timeIntervalSince1970: 4), everySeconds: 5, state: everything) == .battery)
+        #expect(rotatingItem(items, now: Date(timeIntervalSince1970: 5), everySeconds: 5, state: everything) == .ram)
+        #expect(rotatingItem(items, now: Date(timeIntervalSince1970: 15), everySeconds: 5, state: everything) == .battery)
     }
 
     @Test("sem item de texto não há item rotativo")
     func noTextItemMeansNoRotatingItem() {
-        #expect(rotatingItem([.clock, .date], now: Date(), everySeconds: 5) == nil)
-        #expect(rotatingItem([], now: Date(), everySeconds: 5) == nil)
+        #expect(rotatingItem([.clock, .date], now: Date(), everySeconds: 5, state: everything) == nil)
+        #expect(rotatingItem([], now: Date(), everySeconds: 5, state: everything) == nil)
     }
 
     @Test("intervalo zero vale como um segundo")
     func zeroIntervalCountsAsOneSecond() {
         let items: [ClosedItem] = [.battery, .ram]
-        #expect(rotatingItem(items, now: Date(timeIntervalSince1970: 1), everySeconds: 0) == .ram)
-        #expect(rotatingItem(items, now: Date(timeIntervalSince1970: -1), everySeconds: 1) == .ram)
+        #expect(rotatingItem(items, now: Date(timeIntervalSince1970: 1), everySeconds: 0, state: everything) == .ram)
+        #expect(rotatingItem(items, now: Date(timeIntervalSince1970: -1), everySeconds: 1, state: everything) == .ram)
     }
 
     @Test("rótulos iguais aos do Linux")
@@ -119,6 +175,9 @@ struct PillItemsTests {
         #expect(ClosedItem.ram.label == "RAM")
         #expect(ClosedItem.claudeSession.label == "Claude · sessão")
         #expect(ClosedItem.claudeWeekly.label == "Claude · semana")
+        #expect(ClosedItem.codexSession.label == "Codex · 5 h")
+        #expect(ClosedItem.codexWeekly.label == "Codex · semana")
+        #expect(ClosedItem.geminiDaily.label == "Gemini · hoje")
         #expect(ClosedMode.minimal.label == "Mínimo")
         #expect(ClosedMode.compact.label == "Compacto")
         #expect(ClosedMode.rotating.label == "Rotativo")

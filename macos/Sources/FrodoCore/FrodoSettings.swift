@@ -30,11 +30,23 @@ public enum ClosedItem: String, CaseIterable, Sendable {
     case ram
     case claudeSession = "claude-session"
     case claudeWeekly = "claude-weekly"
+    case codexSession = "codex-session"
+    case codexWeekly = "codex-weekly"
+    case geminiDaily = "gemini-daily"
 
     public var isText: Bool {
         switch self {
-        case .battery, .ram, .claudeSession, .claudeWeekly: true
+        case .battery, .ram, .claudeSession, .claudeWeekly, .codexSession, .codexWeekly, .geminiDaily: true
         default: false
+        }
+    }
+
+    public var provider: AiProvider? {
+        switch self {
+        case .claudeSession, .claudeWeekly: .claude
+        case .codexSession, .codexWeekly: .codex
+        case .geminiDaily: .gemini
+        default: nil
         }
     }
 
@@ -47,6 +59,9 @@ public enum ClosedItem: String, CaseIterable, Sendable {
         case .ram: "RAM"
         case .claudeSession: "Claude · sessão"
         case .claudeWeekly: "Claude · semana"
+        case .codexSession: "Codex · 5 h"
+        case .codexWeekly: "Codex · semana"
+        case .geminiDaily: "Gemini · hoje"
         }
     }
 }
@@ -214,6 +229,49 @@ public final class FrodoSettings {
     public var hiddenTabs: [TabId] {
         get { enumList("hidden-tabs", default: []) }
         set { set(newValue.map(\.rawValue), for: "hidden-tabs") }
+    }
+
+    public var disabledAi: [AiProvider] {
+        get { enumList("disabled-ai", default: []) }
+        set { set(newValue.map(\.rawValue), for: "disabled-ai") }
+    }
+
+    public func providerEnabled(_ provider: AiProvider) -> Bool {
+        !disabledAi.contains(provider)
+    }
+
+    public var geminiDailyLimit: Int {
+        get {
+            guard defaults.object(forKey: "gemini-daily-limit") != nil else { return 1000 }
+            let value = defaults.integer(forKey: "gemini-daily-limit")
+            return [1000, 1500, 2000].contains(value) ? value : 1000
+        }
+        set { set(newValue, for: "gemini-daily-limit") }
+    }
+
+    public var notifyDone: Bool {
+        get { defaults.object(forKey: "notify-done") == nil ? true : defaults.bool(forKey: "notify-done") }
+        set { set(newValue, for: "notify-done") }
+    }
+
+    public var notifyQuota: Bool {
+        get { defaults.object(forKey: "notify-quota") == nil ? true : defaults.bool(forKey: "notify-quota") }
+        set { set(newValue, for: "notify-quota") }
+    }
+
+    public var pillAiActivity: PillAiActivity {
+        get { enumValue("pill-ai-activity", default: .change) }
+        set { set(newValue.rawValue, for: "pill-ai-activity") }
+    }
+
+    public var tabOrder: [TabId] {
+        get { orderedTabs(defaults.stringArray(forKey: "tab-order") ?? []) }
+        set { set(newValue.map(\.rawValue), for: "tab-order") }
+    }
+
+    public var showSeconds: Bool {
+        get { defaults.bool(forKey: "show-seconds") }
+        set { set(newValue, for: "show-seconds") }
     }
 
     public var collapsedCards: [CardId] {

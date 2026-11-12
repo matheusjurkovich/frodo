@@ -9,7 +9,7 @@ struct HeaderView: View {
     @Namespace private var markerSpace
 
     private var visible: [TabId] {
-        visibleTabs(hidden: services.settings.hiddenTabs)
+        visibleTabs(hidden: services.settings.hiddenTabs, order: services.settings.tabOrder)
     }
 
     var body: some View {
@@ -17,7 +17,7 @@ struct HeaderView: View {
         HStack(spacing: 12) {
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 HStack(spacing: 8) {
-                    Text(context.date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits))).font(Theme.Font.title()).foregroundStyle(Theme.text).monospacedDigit()
+                    Text(formatClock(context.date, seconds: services.settings.showSeconds)).font(Theme.Font.title()).foregroundStyle(Theme.text).monospacedDigit()
                     Text(formatDate(context.date)).font(Theme.Font.secondary()).foregroundStyle(Theme.textSecondary)
                 }
             }
@@ -33,7 +33,7 @@ struct HeaderView: View {
                 IconButton(icon: "gear", help: "Configurações") {
                     withAnimation(Motion.standard) {
                         model.slideDirection = 1
-                        model.settingsOpen.toggle()
+                        if model.settingsOpen { model.leaveSettings(visible: visible) } else { model.settingsOpen = true }
                     }
                 }
                 IconButton(icon: "power", tint: Theme.danger, help: "Energia") {
@@ -75,6 +75,8 @@ struct HeaderView: View {
         case .calendar: "calendar"
         case .claude: "claude"
         case .notifications: "bell"
+        case .performance: "performance"
+        case .mixer: "volume"
         }
     }
 }
@@ -83,13 +85,16 @@ struct PowerMenu: View {
     var dismiss: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            item("Suspender", icon: "suspend") { SystemActions.sleep() }
-            item("Encerrar sessão", icon: "logout") { SystemActions.logOut() }
-            item("Reiniciar", icon: "restart") { SystemActions.restart() }
-            item("Desligar", icon: "power", tint: Theme.danger) { SystemActions.shutDown() }
-            Text("Programas abertos serão fechados ao reiniciar ou desligar.")
-                .font(Theme.Font.label()).foregroundStyle(Theme.textSecondary).padding(.horizontal, 10).padding(.top, 4)
+        let power = SystemActions.powerAvailability()
+        return VStack(alignment: .leading, spacing: 4) {
+            if power.canSleep { item("Suspender", icon: "suspend") { SystemActions.sleep() } }
+            if power.canLogOut { item("Encerrar sessão", icon: "logout") { SystemActions.logOut() } }
+            if power.canRestart { item("Reiniciar", icon: "restart") { SystemActions.restart() } }
+            if power.canShutDown { item("Desligar", icon: "power", tint: Theme.danger) { SystemActions.shutDown() } }
+            if power.canLogOut || power.canRestart || power.canShutDown {
+                Text("Programas abertos serão fechados ao encerrar a sessão, reiniciar ou desligar.")
+                    .font(Theme.Font.label()).foregroundStyle(Theme.textSecondary).padding(.horizontal, 10).padding(.top, 4)
+            }
         }
         .padding(8)
         .frame(width: 232)
@@ -117,11 +122,25 @@ struct PowerMenu: View {
     }
 }
 
-struct CollapsibleCard<Content: View>: View {
+struct CollapsibleCard<Content: View, Summary: View>: View {
     let services: FrodoServices
     let id: CardId
     let title: String
-    @ViewBuilder var content: Content
+    let count: Int?
+    let content: Content
+    let summary: Summary
+
+    init(
+        services: FrodoServices, id: CardId, title: String, count: Int? = nil, @ViewBuilder content: () -> Content,
+        @ViewBuilder summary: () -> Summary
+    ) {
+        self.services = services
+        self.id = id
+        self.title = title
+        self.count = count
+        self.content = content()
+        self.summary = summary()
+    }
 
     private var collapsed: Bool {
         services.settings.collapsedCards.contains(id)
@@ -137,9 +156,11 @@ struct CollapsibleCard<Content: View>: View {
                     services.settings.collapsedCards = cards
                 }
             } label: {
-                HStack {
+                HStack(spacing: 10) {
                     Text(title).font(Theme.Font.title()).foregroundStyle(Theme.text)
+                    if collapsed { summary.transition(.opacity) }
                     Spacer()
+                    if let count { Text("\(count)").font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.textSecondary).monospacedDigit() }
                     FrodoIcon(name: "collapse", size: 14, color: Theme.textSecondary).rotationEffect(.degrees(collapsed ? 180 : 0))
                 }
                 .contentShape(Rectangle())
@@ -153,5 +174,11 @@ struct CollapsibleCard<Content: View>: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous).fill(Theme.card))
         .clipped()
+    }
+}
+
+extension CollapsibleCard where Summary == EmptyView {
+    init(services: FrodoServices, id: CardId, title: String, @ViewBuilder content: () -> Content) {
+        self.init(services: services, id: id, title: title, content: content, summary: { EmptyView() })
     }
 }

@@ -28,6 +28,8 @@ enum Theme {
         byStyle(Color(hex: 0x0A0A0B), frosted: Color(hex: 0x0A0A0B, opacity: 0.72), clear: Color(hex: 0x0A0A0B, opacity: 0.42))
     }
 
+    static let shadow = Color.black
+
     @MainActor
     static var shadowStrength: Double {
         switch Surface.shared.style {
@@ -49,6 +51,8 @@ enum Theme {
     static let accent = Color(nsColor: .controlAccentColor)
     static let accentText = Color(nsColor: .controlAccentColor).opacity(0.9)
     static let claude = Color(hex: 0xD97757)
+    static let codex = Color(hex: 0x3DBE9C)
+    static let gemini = Color(hex: 0x8AB4F8)
     static let text = Color(hex: 0xF4F4F5)
     static let textSecondary = Color(hex: 0xA1A1AA)
     static let ok = Color(hex: 0x86EFAC)
@@ -58,7 +62,23 @@ enum Theme {
     static let opus = Color(hex: 0xD97757)
     static let sonnet = Color(hex: 0xF4C7B5)
     static let haiku = Color(hex: 0xA8553A)
+    static let codexGpt = Color(hex: 0x3DBE9C)
+    static let codexCodex = Color(hex: 0xA7E8D6)
+    static let codexMini = Color(hex: 0x1F8A6E)
+    static let geminiPro = Color(hex: 0x8AB4F8)
+    static let geminiFlash = Color(hex: 0x4A7FD8)
+    static let otherModel = Color(hex: 0x71717A)
+    static let taskFill = Color(hex: 0xE4E4E7)
     static let amberBorder = Color(hex: 0xFBBF24, opacity: 0.55)
+    static let destructive = Color(hex: 0xB42318)
+    static let destructiveHover = Color(hex: 0xC8321F)
+
+    enum Performance {
+        static let high = Color(hex: 0xF59E0B)
+        static let muted = Color(hex: 0x71717A)
+        static let confirmBackground = Color(hex: 0x2A1414)
+        static let confirmText = Color(hex: 0xFDE2E2)
+    }
 
     enum Size {
         static let islandWidth: CGFloat = 900
@@ -68,6 +88,8 @@ enum Theme {
         static let pillActionHeight: CGFloat = 48
         static let topMargin: CGFloat = 6
         static let maxIslandHeight: CGFloat = 760
+        static let ringBase: CGFloat = 16
+        static let ringLine: CGFloat = 3
     }
 
     enum Radius {
@@ -94,6 +116,24 @@ enum Theme {
         }
     }
 
+    static func color(for provider: AiProvider) -> Color {
+        switch provider {
+        case .claude: claude
+        case .codex: codex
+        case .gemini: gemini
+        }
+    }
+
+    static func color(for provider: AiProvider, level: FrodoLevel) -> Color {
+        level == .ok ? color(for: provider) : color(for: level)
+    }
+
+    @MainActor
+    static func color(forBar bar: Bar, provider: AiProvider) -> Color {
+        if bar.future { return track }
+        return bar.current ? color(for: provider) : color(for: provider).opacity(0.5)
+    }
+
     static func color(for status: SessionStatus) -> Color {
         switch status {
         case .working: claude
@@ -108,7 +148,12 @@ enum Theme {
         case "Opus": opus
         case "Sonnet": sonnet
         case "Haiku": haiku
-        default: textSecondary
+        case "codex-gpt": codexGpt
+        case "codex-codex": codexCodex
+        case "codex-mini": codexMini
+        case "gemini-pro": geminiPro
+        case "gemini-flash": geminiFlash
+        default: otherModel
         }
     }
 

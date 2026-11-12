@@ -37,6 +37,7 @@ struct IslandRootView: View {
     @Bindable var model: IslandModel
     var onToggle: () -> Void
     var onClose: () -> Void
+    var onOpenTab: (TabId) -> Void = { _ in }
 
     @State private var contentHeight: CGFloat = 400
     @Environment(\.glassEnabled) private var glassEnabled
@@ -51,7 +52,7 @@ struct IslandRootView: View {
                 .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).stroke(borderColor, lineWidth: model.activity.map(isUrgent) == true ? 1.5 : 1))
                 .frame(width: size.width, height: size.height)
                 .background { if glassEnabled, Surface.shared.style != .solid, !model.isHidden { GlassBackground(radius: radius) } }
-                .shadow(color: .black.opacity((model.isOpen ? 0.5 : 0.35) * Theme.shadowStrength), radius: model.isOpen ? 30 : 10, y: model.isOpen ? 16 : 4)
+                .shadow(color: Theme.shadow.opacity((model.isOpen ? 0.5 : 0.35) * Theme.shadowStrength), radius: model.isOpen ? 30 : 10, y: model.isOpen ? 16 : 4)
                 .opacity(model.isHidden ? 0 : 1)
                 .animation(model.isHidden ? Motion.conceal : Motion.fadeIn, value: model.isHidden)
                 .overlay(alignment: .top) { pillLayer }
@@ -81,7 +82,7 @@ struct IslandRootView: View {
 
     private var pillLayer: some View {
         ZStack {
-            PillContent(services: services, activity: model.activity, peek: model.peek, vertical: model.position.isSideEdge)
+            PillContent(services: services, activity: model.activity, peek: model.peek, vertical: model.position.isSideEdge, openTab: onOpenTab)
                 .id(model.subjectToken)
                 .reportSize { size in if size != .zero { model.pillSize = CGSize(width: size.width, height: max(Theme.Size.pillHeight, size.height)) } }
                 .transition(.asymmetric(
@@ -105,15 +106,15 @@ struct IslandRootView: View {
                 ZStack(alignment: .top) {
                     Group {
                         if model.settingsOpen {
-                            VStack(spacing: 10) { SettingsView(services: services, section: Bindable(model).settingsSection) { withAnimation(Motion.standard) { model.settingsOpen = false } } }
+                            VStack(spacing: 10) { SettingsView(services: services, section: Bindable(model).settingsSection) { withAnimation(Motion.standard) { model.leaveSettings(visible: visibleTabs(hidden: services.settings.hiddenTabs, order: services.settings.tabOrder)) } }.environment(model) }
                         } else {
                             VStack(spacing: 10) { tabContent }
                         }
                     }
                     .id(model.settingsOpen ? "settings" : model.tab.rawValue)
                     .transition(.asymmetric(
-                        insertion: .offset(x: model.slideDirection * Motion.slideDistance).combined(with: .opacity),
-                        removal: .offset(x: -model.slideDirection * Motion.slideDistance).combined(with: .opacity)
+                        insertion: .offset(x: model.slideDirection * Motion.swapOffset).combined(with: .opacity),
+                        removal: .offset(x: -model.slideDirection * Motion.swapOffset).combined(with: .opacity)
                     ))
                 }
                 .frame(maxWidth: .infinity, alignment: .top)
@@ -146,8 +147,10 @@ struct IslandRootView: View {
         switch model.tab {
         case .general: GeneralTab(services: services)
         case .calendar: CalendarTab(services: services)
-        case .claude: ClaudeTab(services: services)
+        case .claude: AiTab(services: services)
         case .notifications: NotificationsTab(services: services)
+        case .performance: PerformanceTab(services: services)
+        case .mixer: MixerTab(services: services)
         }
     }
 }

@@ -11,6 +11,10 @@ public func carbonKeyCode(_ key: String) -> UInt32? {
     keyCodes[key.lowercased()]
 }
 
+public func shortcutKey(forKeyCode code: UInt16) -> String? {
+    keyCodes.first { $0.value == UInt32(code) }?.key
+}
+
 public func carbonModifiers(_ modifiers: [ShortcutModifier]) -> UInt32 {
     modifiers.reduce(0) { result, modifier in
         switch modifier {
