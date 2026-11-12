@@ -124,6 +124,7 @@ public final class GeminiService: MeterSource, ConsumptionSource, Destroyable {
     public private(set) var lastRefresh: Date?
 
     private let settings: FrodoSettings
+    private let now: @MainActor () -> Date
     private let reader: GeminiReader
     private let pollTimer: TimerSlot
     private let scanTimer: TimerSlot
@@ -138,8 +139,9 @@ public final class GeminiService: MeterSource, ConsumptionSource, Destroyable {
     private var scanTask: Task<Void, Never>?
     private var destroyed = false
 
-    public init(settings: FrodoSettings, home: String, scheduler: Scheduler) {
+    public init(settings: FrodoSettings, home: String, scheduler: Scheduler, now: @escaping @MainActor () -> Date = { Date() }) {
         self.settings = settings
+        self.now = now
         available = directoryExists("\(home)/tmp")
         reader = GeminiReader(root: home)
         pollTimer = TimerSlot(scheduler: scheduler)
@@ -158,7 +160,7 @@ public final class GeminiService: MeterSource, ConsumptionSource, Destroyable {
     }
 
     public var emptyMessage: String? {
-        guard meters(now: Date()).isEmpty else { return nil }
+        guard meters(now: now()).isEmpty else { return nil }
         return available ? "Lendo o histórico do Gemini CLI…" : "Gemini CLI não encontrado em ~/.gemini"
     }
 
@@ -173,13 +175,13 @@ public final class GeminiService: MeterSource, ConsumptionSource, Destroyable {
 
     public func summary(_ period: Period) -> ConsumptionSummary {
         if let cached = summaries[period] { return cached }
-        let made = summarize(cells, period: period, now: Date(), groups: geminiModels)
+        let made = summarize(cells, period: period, now: now(), groups: geminiModels)
         summaries[period] = made
         return made
     }
 
     public func refreshIfStale(maxAge: TimeInterval) {
-        guard lastRefresh.map({ Date().timeIntervalSince($0) >= maxAge }) ?? true else { return }
+        guard lastRefresh.map({ now().timeIntervalSince($0) >= maxAge }) ?? true else { return }
         Task { await refresh() }
     }
 
@@ -188,8 +190,8 @@ public final class GeminiService: MeterSource, ConsumptionSource, Destroyable {
             await refreshing.value
             return
         }
-        lastRefresh = Date()
-        let task = Task { await load(since: pacificDayStart(Date()), prune: false) }
+        lastRefresh = now()
+        let task = Task { await load(since: pacificDayStart(now()), prune: false) }
         refreshing = task
         await task.value
         refreshing = nil
@@ -214,10 +216,10 @@ public final class GeminiService: MeterSource, ConsumptionSource, Destroyable {
             await scanTask.value
             return
         }
-        lastRefresh = Date()
+        lastRefresh = now()
         scanning = true
         changed.emit()
-        let task = Task { await load(since: consumptionStart(Date()), prune: true) }
+        let task = Task { await load(since: consumptionStart(now()), prune: true) }
         scanTask = task
         await task.value
         scanTask = nil
@@ -226,7 +228,7 @@ public final class GeminiService: MeterSource, ConsumptionSource, Destroyable {
     }
 
     private func load(since: Date, prune: Bool) async {
-        let result = await reader.load(since: since, prune: prune, now: Date())
+        let result = await reader.load(since: since, prune: prune, now: now())
         if destroyed { return }
         available = result.available
         cells = result.cells
