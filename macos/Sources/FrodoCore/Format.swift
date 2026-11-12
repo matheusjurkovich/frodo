@@ -7,6 +7,11 @@ func pad(_ number: Int) -> String {
     number < 10 ? "0\(number)" : "\(number)"
 }
 
+public func formatClock(_ date: Date, seconds: Bool, calendar: Calendar = .current) -> String {
+    let time = clockTime(date, calendar: calendar)
+    return seconds ? "\(time):\(pad(calendar.component(.second, from: date)))" : time
+}
+
 public func weekdayLabel(_ day: Int) -> String {
     guard weekdays.indices.contains(day) else { return "" }
     return weekdays[day].prefix(1).uppercased() + weekdays[day].dropFirst()

@@ -50,10 +50,10 @@ final class DemoMode {
         DemoMode.writeTranscripts(configDir: root + "/.claude")
         DemoMode.writeCodex(home: paths.codexHome)
         DemoMode.writeGemini(home: paths.geminiHome)
-        services = FrodoServices(paths: paths, defaults: defaults, store: DemoStore(), transport: demoTransport())
+        services = FrodoServices(paths: paths, defaults: defaults, store: DemoStore(), transport: demoTransport(), audio: DemoAudioDevices())
         services.settings.claudeProfiles = [ClaudeProfile(id: "demo", label: "Claude", configDir: root + "/.claude")]
         services.settings.claudeProfilesInitialized = true
-        services.settings.closedItems = [.clock, .date, .notifications, .claudeSession, .battery]
+        services.settings.closedItems = [.clock, .date, .notifications, .claudeSession, .codexSession, .geminiDaily, .battery]
         let now = Date()
         let calendar = Calendar.current
         let day = calendar.startOfDay(for: now)
@@ -69,6 +69,8 @@ final class DemoMode {
         writeSession(id: "blog", cwd: "/Users/demo/blog", event: "AfterAgent", provider: .gemini)
         services.sessions.reload()
     }
+
+    static let track = MediaTrack(title: "Blue in Green", artist: "Miles Davis", album: "Kind of Blue", app: "Spotify", playing: true, canPrevious: true, canNext: true)
 
     private func writeSession(id: String, cwd: String, event: String, extra: String = "", provider: AiProvider = .claude) {
         let text = #"{"pid":\#(pid),"provider":"\#(provider.rawValue)","event":{"session_id":"\#(id)","cwd":"\#(cwd)","hook_event_name":"\#(event)"\#(extra)}}"#
@@ -97,7 +99,7 @@ final class DemoMode {
                 services.sessions.reload()
             }),
             (26, "volume", { [self] in services.volume.changed.emit(60) }),
-            (30, "música", { [self] in services.media.simulate(MediaTrack(title: "Blue in Green", artist: "Miles Davis", album: "Kind of Blue", app: "Spotify", playing: true, canPrevious: true, canNext: true)) }),
+            (30, "música", { [self] in services.media.simulate(DemoMode.track, position: 84, duration: 337) }),
             (38, "reunião em breve", { [self] in
                 services.calendar.installDemo(events: services.calendar.events(on: Date()), meeting: Meeting(title: "Daily do time", startsAt: Date().addingTimeInterval(5 * 60)), url: URL(string: "https://meet.google.com/abc-defg-hij"))
             }),

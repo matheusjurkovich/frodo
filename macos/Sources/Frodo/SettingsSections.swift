@@ -9,6 +9,7 @@ extension SettingsView {
             SettingsGroup("Comportamento") {
                 ToggleRow(title: "Abrir ao passar o mouse", isOn: bind(\.openOnHover))
                 ToggleRow(title: "Recolher sozinha após 5 s", subtitle: "Quando aberta por clique ou atalho", isOn: bind(\.autoClose))
+                ToggleRow(title: "Mostrar segundos no relógio", subtitle: "Na pílula e no cabeçalho da ilha", isOn: bind(\.showSeconds))
                 ToggleRow(
                     title: "Iniciar com o macOS",
                     isOn: Binding(get: { LoginItem.isEnabled }, set: { _ = LoginItem.setEnabled($0); services.revisions.settings += 1 })

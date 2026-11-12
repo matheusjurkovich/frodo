@@ -2,6 +2,8 @@ import FrodoCore
 import FrodoPlatform
 import SwiftUI
 
+private let summaryLimit = 5
+
 struct GeneralTab: View {
     let services: FrodoServices
 
@@ -89,16 +91,26 @@ private struct SoundCard: View {
 
     var body: some View {
         let _ = services.revisions.volume
+        let volume = services.volume
         CardView(title: "Som") {
-            HStack(spacing: 10) {
-                FrodoIcon(name: "wave", size: 16, color: Theme.textSecondary)
-                FrodoSlider(
-                    value: Binding(get: { Double(services.volume.percent) }, set: { services.volume.setPercent(Int($0)) })
-                )
-                Text("\(services.volume.percent)%").font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text).monospacedDigit().frame(width: 40, alignment: .trailing)
+            group("Volume", device: volume.outputName, icon: "wave", value: Binding(get: { Double(volume.percent) }, set: { volume.setPercent(Int($0)) }))
+            if let input = volume.input, volume.inputLevel != nil {
+                group("Microfone", device: input.name, icon: "mic", value: Binding(get: { (volume.inputLevel ?? 0) * 100 }, set: { volume.setInputLevel($0 / 100) }))
             }
-            if !services.volume.outputName.isEmpty {
-                Text(services.volume.outputName).font(Theme.Font.label()).foregroundStyle(Theme.textSecondary)
+        }
+    }
+
+    private func group(_ title: String, device: String, icon: String, value: Binding<Double>) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
+                Text(title).font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text)
+                Text(device).font(Theme.Font.label()).foregroundStyle(Theme.textSecondary).lineLimit(1).truncationMode(.tail)
+                Spacer(minLength: 0)
+                Text("\(Int(value.wrappedValue.rounded()))%").font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text).monospacedDigit()
+            }
+            HStack(spacing: 10) {
+                FrodoIcon(name: icon, size: 16, color: Theme.textSecondary)
+                FrodoSlider(value: value)
             }
         }
     }
@@ -109,37 +121,65 @@ private struct MediaCard: View {
 
     var body: some View {
         let _ = services.revisions.media
+        let media = services.media
         CardView(title: "Tocando agora") {
-            if let track = services.media.current {
+            if let track = media.current {
                 HStack(spacing: 12) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Theme.control)
-                        FrodoIcon(name: "music", size: 24, color: Theme.accentText)
-                    }
-                    .frame(width: 60, height: 60)
+                    cover(media.artworkURL)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(track.title).font(Theme.Font.body(.medium)).foregroundStyle(Theme.text).lineLimit(1)
-                        Text(track.artist).font(Theme.Font.secondary()).foregroundStyle(Theme.textSecondary).lineLimit(1)
+                        if !track.artist.isEmpty { Text(track.artist).font(Theme.Font.secondary()).foregroundStyle(Theme.textSecondary).lineLimit(1) }
+                        if !track.album.isEmpty { Text(track.album).font(Theme.Font.label()).foregroundStyle(Theme.textSecondary).lineLimit(1) }
                         Text(track.app).font(Theme.Font.label()).foregroundStyle(Theme.textSecondary)
                     }
                     Spacer(minLength: 0)
                 }
+                progress(position: media.position, duration: media.duration)
                 HStack(spacing: 14) {
                     Spacer()
-                    IconButton(icon: "previous", size: 36, iconSize: 14) { services.media.previous() }
-                    Button { services.media.playPause() } label: {
+                    IconButton(icon: "previous", size: 36, iconSize: 14) { media.previous() }
+                    Button { media.playPause() } label: {
                         FrodoIcon(name: track.playing ? "pause" : "play", size: 18, color: .black).frame(width: 44, height: 44).background(Circle().fill(Theme.text))
                     }
                     .buttonStyle(.plain)
-                    IconButton(icon: "next", size: 36, iconSize: 14) { services.media.next() }
+                    IconButton(icon: "next", size: 36, iconSize: 14) { media.next() }
                     Spacer()
                 }
             } else {
                 Text("Nada tocando. Funciona com Música e Spotify.").font(Theme.Font.secondary()).foregroundStyle(Theme.textSecondary)
             }
-            if services.media.automationDenied {
+            if media.automationDenied {
                 Text("Sem permissão de Automação. Libere o Frodo em Ajustes do Sistema > Privacidade e Segurança > Automação.")
                     .font(Theme.Font.label()).foregroundStyle(Theme.warn)
+            }
+        }
+        .onAppear { media.setFollowingProgress(true) }
+        .onDisappear { media.setFollowingProgress(false) }
+    }
+
+    private func cover(_ url: URL?) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Theme.control)
+            FrodoIcon(name: "music", size: 24, color: Theme.accentText)
+            if let url {
+                AsyncImage(url: url) { image in image.resizable().scaledToFill() } placeholder: { Color.clear }
+            }
+        }
+        .frame(width: 60, height: 60)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    @ViewBuilder
+    private func progress(position: Double?, duration: Double?) -> some View {
+        if let fraction = mediaProgress(position: position, duration: duration), let position, let duration {
+            VStack(spacing: 4) {
+                ProgressBar(fraction: fraction, tint: Theme.accent, height: 4)
+                HStack {
+                    Text(formatTimer(min(position, duration)))
+                    Spacer()
+                    Text(formatTimer(duration))
+                }
+                .font(Theme.Font.label()).foregroundStyle(Theme.textSecondary).monospacedDigit()
             }
         }
     }
@@ -179,15 +219,22 @@ private struct AppsCard: View {
 
     var body: some View {
         let _ = services.revisions.apps
-        CollapsibleCard(services: services, id: .apps, title: "Programas abertos") {
+        let apps = services.apps.apps
+        CollapsibleCard(services: services, id: .apps, title: "Programas abertos", count: apps.count) {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 6), spacing: 8) {
-                ForEach(services.apps.apps) { app in
+                ForEach(apps) { app in
                     TileButton {
                         launchExternal { services.apps.activate(app) }
                     } label: {
                         if let icon = app.icon { Image(nsImage: icon).resizable().frame(width: 30, height: 30) }
                         Text(app.name).font(Theme.Font.label()).foregroundStyle(Theme.textSecondary).lineLimit(1)
                     }
+                }
+            }
+        } summary: {
+            HStack(spacing: 6) {
+                ForEach(apps.prefix(summaryLimit)) { app in
+                    if let icon = app.icon { Image(nsImage: icon).resizable().frame(width: 20, height: 20) }
                 }
             }
         }

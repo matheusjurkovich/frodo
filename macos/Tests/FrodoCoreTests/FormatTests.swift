@@ -5,6 +5,10 @@ import Testing
 
 private let now = utc(2026, 10, 27, 12, 0)
 
+private func clockDate(_ hour: Int, _ minute: Int, _ second: Int) -> Date {
+    Calendar.current.date(from: DateComponents(year: 2026, month: 10, day: 27, hour: hour, minute: minute, second: second)) ?? now
+}
+
 
 @Suite("format")
 struct FormatTests {
@@ -18,6 +22,16 @@ struct FormatTests {
     func truncatesLongText() {
         #expect(ellipsize("abc", max: 40) == "abc")
         #expect(ellipsize(String(repeating: "a", count: 45), max: 40) == String(repeating: "a", count: 39) + "…")
+    }
+
+    @Test("hora e minuto com zero à esquerda")
+    func clockWithLeadingZeros() {
+        #expect(formatClock(clockDate(7, 5, 9), seconds: false) == "07:05")
+    }
+
+    @Test("segundos só quando pedidos")
+    func secondsOnlyWhenAsked() {
+        #expect(formatClock(clockDate(17, 45, 3), seconds: true) == "17:45:03")
     }
 
     @Test("tokens em pt-BR compacto")

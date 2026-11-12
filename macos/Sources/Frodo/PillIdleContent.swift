@@ -26,11 +26,11 @@ struct IdleContent: View {
     private func segment(_ item: ClosedItem, now: Date) -> some View {
         switch item {
         case .clock:
-            Text(now.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits))).font(Theme.Font.body(.medium)).foregroundStyle(Theme.text).monospacedDigit()
+            Text(formatClock(now, seconds: services.settings.showSeconds)).font(Theme.Font.body(.medium)).foregroundStyle(Theme.text).monospacedDigit()
         case .date:
             Text(formatDate(now)).font(Theme.Font.secondary()).foregroundStyle(Theme.textSecondary)
         case .notifications:
-            NotificationBadge(count: services.notifications.count)
+            NotificationCount(count: services.notifications.count)
         case .battery, .ram, .claudeSession, .claudeWeekly, .codexSession, .codexWeekly, .geminiDaily:
             if services.settings.closedMode == .rotating {
                 rotatingSlot(now: now)
@@ -92,7 +92,7 @@ struct IdleContent: View {
     }
 }
 
-struct NotificationBadge: View {
+struct NotificationCount: View {
     let count: Int
 
     var body: some View {

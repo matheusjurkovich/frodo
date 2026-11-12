@@ -42,9 +42,9 @@ final class FrodoServices {
     let agentHooks: AgentHookInstaller
     let system: SystemState
     let performance: PerformanceService
-    let volume = VolumeService()
+    let volume: VolumeService
     let calendar: CalendarService
-    let media = MediaService()
+    let media: MediaService
     let apps = RunningApps()
     let feed: ActivityFeed
     let hotkeys = GlobalHotkeys()
@@ -54,7 +54,7 @@ final class FrodoServices {
     private let memoryAlert: MemoryAlert
     private let disposables = Disposables()
 
-    init(paths: FrodoPaths, defaults: UserDefaults, store: any CredentialStore, transport: @escaping Transport) {
+    init(paths: FrodoPaths, defaults: UserDefaults, store: any CredentialStore, transport: @escaping Transport, audio: AudioDevices = CoreAudioDevices()) {
         self.paths = paths
         settings = FrodoSettings(defaults: defaults)
         sessions = ClaudeSessions(settings: settings, paths: paths, scheduler: scheduler)
@@ -66,6 +66,8 @@ final class FrodoServices {
         system = SystemState(scheduler: scheduler)
         performance = PerformanceService(probe: MachPerformanceProbe(), scheduler: scheduler)
         calendar = CalendarService(settings: settings, scheduler: scheduler)
+        volume = VolumeService(devices: audio)
+        media = MediaService(scheduler: scheduler)
         let sources = FeedSources(
             recording: NoRecording(), sessions: sessions, meetings: calendar, notifications: notifications, volume: volume, media: media,
             aiActivity: { [settings] in settings.pillAiActivity }
@@ -97,6 +99,7 @@ final class FrodoServices {
         disposables.add(system.memory.on { _ in revisions.system += 1 })
         disposables.add(performance.changed.on { _ in revisions.performance += 1 })
         disposables.add(media.changed.on { _ in revisions.media += 1 })
+        disposables.add(media.progressChanged.on { _ in revisions.media += 1 })
         disposables.add(notifications.changed.on { _ in revisions.notifications += 1 })
         disposables.add(apps.changed.on { _ in revisions.apps += 1 })
         disposables.add(volume.changed.on { _ in revisions.volume += 1 })
