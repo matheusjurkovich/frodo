@@ -31,6 +31,7 @@ public func visibleTabs(hidden: [TabId], order: [TabId] = TabId.allCases) -> [Ta
     return shown.isEmpty ? [order.first ?? TabId.general] : shown
 }
 
-public func tabToOpen(_ requested: TabId, visible: [TabId]) -> TabId {
-    visible.contains(requested) ? requested : (visible.first ?? .general)
+public func tabToOpen(_ requested: TabId?, visible: [TabId]) -> TabId {
+    if let requested, visible.contains(requested) { return requested }
+    return visible.first ?? .general
 }

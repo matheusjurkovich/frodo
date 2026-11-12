@@ -33,7 +33,7 @@ struct HeaderView: View {
                 IconButton(icon: "gear", help: "Configurações") {
                     withAnimation(Motion.standard) {
                         model.slideDirection = 1
-                        model.settingsOpen.toggle()
+                        if model.settingsOpen { model.leaveSettings(visible: visible) } else { model.settingsOpen = true }
                     }
                 }
                 IconButton(icon: "power", tint: Theme.danger, help: "Energia") {

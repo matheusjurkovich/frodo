@@ -74,6 +74,7 @@ final class IslandController: NSObject {
         model.updateActivity(services.feed.current)
         disposables.add(services.feed.changed.on { [weak self] _ in self?.syncActivity() })
         disposables.add(services.settings.onChanged(["position"]) { [weak self] in self?.applyPosition() })
+        disposables.add(services.settings.onChanged(["hidden-tabs", "tab-order"]) { [weak self] in self?.syncTabs() })
         disposables.add(services.settings.onChanged(["always-show-pill", "peek-clock", "peek-every-minutes", "peek-seconds"]) { [weak self] in self?.syncCover() })
         peekCycle = PeekCycle(
             scheduler: services.scheduler,
@@ -111,6 +112,10 @@ final class IslandController: NSObject {
         )
         panel.setFrame(frame, display: true)
         host?.updateTrackingAreas()
+    }
+
+    private func syncTabs() {
+        model.tab = tabToOpen(model.tab, visible: visibleTabs(hidden: services.settings.hiddenTabs, order: services.settings.tabOrder))
     }
 
     private func applyPosition() {
@@ -161,7 +166,7 @@ final class IslandController: NSObject {
     }
 
     func open(tab: TabId? = nil) {
-        if let tab {
+        if tab != nil || !model.isOpen {
             let visible = visibleTabs(hidden: services.settings.hiddenTabs, order: services.settings.tabOrder)
             model.select(tabToOpen(tab, visible: visible), visible: visible)
         }

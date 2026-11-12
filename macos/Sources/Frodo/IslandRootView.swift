@@ -106,7 +106,7 @@ struct IslandRootView: View {
                 ZStack(alignment: .top) {
                     Group {
                         if model.settingsOpen {
-                            VStack(spacing: 10) { SettingsView(services: services, section: Bindable(model).settingsSection) { withAnimation(Motion.standard) { model.settingsOpen = false } }.environment(model) }
+                            VStack(spacing: 10) { SettingsView(services: services, section: Bindable(model).settingsSection) { withAnimation(Motion.standard) { model.leaveSettings(visible: visibleTabs(hidden: services.settings.hiddenTabs, order: services.settings.tabOrder)) } }.environment(model) }
                         } else {
                             VStack(spacing: 10) { tabContent }
                         }
