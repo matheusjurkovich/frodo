@@ -1,32 +1,54 @@
+import CoreGraphics
 import Foundation
 import Testing
 
 @testable import FrodoCore
 
-@Suite("reordered")
+@Suite("moveTo")
 struct ReorderTests {
-    @Test("move um item para a frente")
-    func movesAnItemForward() {
-        #expect(reordered([1, 2, 3, 4], moving: 2, to: 2) == ints(1, 3, 2, 4))
+    @Test("leva o item para a posição pedida")
+    func takesTheItemToTheRequestedPosition() {
+        #expect(moveTo(["a", "b", "c", "d"], "a", 2) == ["b", "c", "a", "d"])
+        #expect(moveTo(["a", "b", "c", "d"], "d", 0) == ["d", "a", "b", "c"])
     }
 
-    @Test("move um item para trás")
-    func movesAnItemBackward() {
-        #expect(reordered([1, 2, 3, 4], moving: 4, to: 0) == ints(4, 1, 2, 3))
+    @Test("prende a posição nas pontas")
+    func clampsThePositionToTheEnds() {
+        #expect(moveTo(["a", "b", "c"], "b", -1) == ["b", "a", "c"])
+        #expect(moveTo(["a", "b", "c"], "b", 9) == ["a", "c", "b"])
     }
 
-    @Test("limita o destino ao começo e ao fim")
-    func clampsTheDestinationToTheEnds() {
-        #expect(reordered([1, 2, 3], moving: 2, to: -5) == ints(2, 1, 3))
-        #expect(reordered([1, 2, 3], moving: 2, to: 99) == ints(1, 3, 2))
+    @Test("item que não está na lista não muda nada")
+    func anUnknownItemChangesNothing() {
+        #expect(moveTo(["a", "b"], "z", 0) == ["a", "b"])
+    }
+}
+
+@Suite("destino ao arrastar")
+struct InsertionIndexTests {
+    private let column = [CGRect(x: 0, y: 0, width: 100, height: 40), CGRect(x: 0, y: 40, width: 100, height: 40), CGRect(x: 0, y: 80, width: 100, height: 40)]
+    private let wrapped = [CGRect(x: 0, y: 0, width: 80, height: 32), CGRect(x: 88, y: 0, width: 80, height: 32), CGRect(x: 0, y: 40, width: 80, height: 32)]
+
+    @Test("na vertical entra depois do item cujo centro o cursor passou")
+    func verticalGoesAfterTheItemWhoseCentreWasPassed() {
+        #expect(insertionIndex(column, at: CGPoint(x: 50, y: 50), horizontal: false) == 1)
+        #expect(insertionIndex(column, at: CGPoint(x: 50, y: 70), horizontal: false) == 2)
+        #expect(insertionIndex(column, at: CGPoint(x: 50, y: -30), horizontal: false) == 0)
+        #expect(insertionIndex(column, at: CGPoint(x: 50, y: 300), horizontal: false) == 3)
     }
 
-    @Test("item que não está na lista deixa a lista como está")
-    func anUnknownItemLeavesTheListUntouched() {
-        #expect(reordered([1, 2, 3], moving: 9, to: 0) == ints(1, 2, 3))
+    @Test("na horizontal só conta os itens da linha do cursor")
+    func horizontalOnlyCountsTheCursorLine() {
+        #expect(insertionIndex(wrapped, at: CGPoint(x: 150, y: 10), horizontal: true) == 2)
+        #expect(insertionIndex(wrapped, at: CGPoint(x: 150, y: 50), horizontal: true) == 3)
+        #expect(insertionIndex(wrapped, at: CGPoint(x: 10, y: 50), horizontal: true) == 2)
     }
 
-    private func ints(_ values: Int...) -> [Int] { values }
+    @Test("fora de qualquer linha não há destino")
+    func outsideEveryLineThereIsNoDestination() {
+        #expect(insertionIndex(wrapped, at: CGPoint(x: 10, y: 36), horizontal: true) == nil)
+        #expect(insertionIndex([], at: .zero, horizontal: false) == nil)
+    }
 }
 
 @Suite("itens da pílula")

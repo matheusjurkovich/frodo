@@ -1,17 +1,32 @@
+import CoreGraphics
 import Foundation
 
-public func reordered<Element: Equatable>(_ items: [Element], moving item: Element, to index: Int) -> [Element] {
+public func moveTo<Element: Equatable>(_ items: [Element], _ item: Element, _ index: Int) -> [Element] {
     guard items.contains(item) else { return items }
     var next = items.filter { $0 != item }
     next.insert(item, at: min(next.count, max(0, index)))
     return next
 }
 
-public func movingItem(_ items: [ClosedItem], _ item: ClosedItem, by offset: Int) -> [ClosedItem] {
+public func movingItem<Element: Equatable>(_ items: [Element], _ item: Element, by offset: Int) -> [Element] {
     guard let index = items.firstIndex(of: item) else { return items }
     let target = index + offset
     guard items.indices.contains(target) else { return items }
-    return reordered(items, moving: item, to: target)
+    return moveTo(items, item, target)
+}
+
+public func insertionIndex(_ frames: [CGRect], at point: CGPoint, horizontal: Bool) -> Int? {
+    var best: (index: Int, distance: CGFloat)?
+    for (index, frame) in frames.enumerated() {
+        if horizontal, point.y < frame.minY || point.y > frame.maxY { continue }
+        let start = horizontal ? frame.minX : frame.minY
+        let end = horizontal ? frame.maxX : frame.maxY
+        let position = horizontal ? point.x : point.y
+        let distance = max(0, start - position, position - end)
+        if let best, distance >= best.distance { continue }
+        best = (position > (start + end) / 2 ? index + 1 : index, distance)
+    }
+    return best?.index
 }
 
 public func removingItem(_ items: [ClosedItem], _ item: ClosedItem) -> [ClosedItem] {

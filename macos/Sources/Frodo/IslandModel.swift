@@ -10,6 +10,7 @@ final class IslandModel {
     var slideDirection: CGFloat = 1
     var settingsOpen = false
     var powerMenuOpen = false
+    var dragging = false
     var presence: PillPresence = .pill
     var peek: PeekState?
     var position: IslandPosition = .topCenter

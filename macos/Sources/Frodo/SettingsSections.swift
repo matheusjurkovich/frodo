@@ -103,11 +103,14 @@ extension SettingsView {
 
     var tabsSection: some View {
         let shown = visibleTabs(hidden: settings.hiddenTabs, order: settings.tabOrder)
-        return SettingsGroup("Abas visíveis") {
-            ForEach(TabId.allCases, id: \.self) { tab in
-                SettingRow(tab.label) {
-                    FrodoSwitch(isOn: tabVisibilityBinding(tab)).disabled(shown == [tab])
-                }
+        return SettingsGroup(
+            "Abas visíveis",
+            hint: "Arraste para mudar a ordem das abas na ilha. Pelo teclado, foque a alça e use ↑ ↓."
+        ) {
+            ReorderableList(items: settings.tabOrder, axis: .vertical, onMove: { settings.tabOrder = $0 }) { tab in
+                Text(tab.label).font(Theme.Font.body()).foregroundStyle(Theme.text)
+                Spacer(minLength: 12)
+                FrodoSwitch(isOn: tabVisibilityBinding(tab)).disabled(shown == [tab])
             }
         }
     }

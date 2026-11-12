@@ -138,7 +138,7 @@ final class IslandController: NSObject {
     }
 
     func updateHover() {
-        let inside = model.isOpen ? pointerIsOverOpenIsland() : shapeRect(open: false).contains(NSEvent.mouseLocation)
+        let inside = model.isOpen ? model.dragging || pointerIsOverOpenIsland() : shapeRect(open: false).contains(NSEvent.mouseLocation)
         if inside {
             hover.entered(canOpen: !model.isOpen && services.settings.openOnHover && !model.pillHasAction) { [weak self] in
                 guard let self, self.shapeRect(open: false).contains(NSEvent.mouseLocation), !self.model.pillHasAction else { return }
@@ -146,7 +146,7 @@ final class IslandController: NSObject {
             }
         } else {
             hover.left(canClose: model.isOpen && services.settings.openOnHover) { [weak self] in
-                guard let self, !self.pointerIsOverOpenIsland() else { return }
+                guard let self, !self.model.dragging, !self.pointerIsOverOpenIsland() else { return }
                 self.close()
             }
         }
@@ -172,7 +172,7 @@ final class IslandController: NSObject {
         var autoClose: (@MainActor () -> Void)?
         if services.settings.autoClose {
             autoClose = { [weak self] in
-                guard let self, self.model.isOpen, !self.pointerIsOverOpenIsland() else { return }
+                guard let self, self.model.isOpen, !self.model.dragging, !self.pointerIsOverOpenIsland() else { return }
                 self.close()
             }
         }
@@ -184,6 +184,7 @@ final class IslandController: NSObject {
         hover.closed()
         hoverGrace.reset()
         panel.allowsKey = false
+        model.dragging = false
         withAnimation(Motion.soft) {
             model.isOpen = false
             model.powerMenuOpen = false
