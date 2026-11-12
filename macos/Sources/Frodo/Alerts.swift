@@ -8,23 +8,19 @@ final class DoneAlert: Destroyable {
     private let sessions: ClaudeSessions
     private let notifications: NotificationsStore
     private let disposables = Disposables()
-    private var previous: [SessionState]
+    private var state: DoneAlertState
 
     init(settings: FrodoSettings, sessions: ClaudeSessions, notifications: NotificationsStore) {
         self.settings = settings
         self.sessions = sessions
         self.notifications = notifications
-        previous = sessions.sessions
+        state = DoneAlertState(sessions.sessions)
         disposables.add(sessions.changed.on { [weak self] _ in self?.check() })
     }
 
     private func check() {
-        let next = sessions.sessions
-        let finished = finishedSessions(previous, next)
-        previous = next
-        guard settings.notifyDone else { return }
-        for state in finished {
-            notifications.push(app: state.provider.name, title: "Pronto", body: doneMessage(state), provider: state.provider)
+        for notice in state.next(sessions.sessions, notify: settings.notifyDone) {
+            notifications.push(app: notice.provider.name, title: notice.title, body: notice.body, provider: notice.provider)
         }
     }
 
@@ -41,7 +37,7 @@ final class QuotaAlerts: Destroyable {
     private let gemini: GeminiService
     private let notifications: NotificationsStore
     private let disposables = Disposables()
-    private var states: [String: FrodoLevel] = [:]
+    private var state = QuotaAlertState()
 
     init(settings: FrodoSettings, claude: ClaudeService, codex: CodexService, gemini: GeminiService, notifications: NotificationsStore) {
         self.settings = settings
@@ -63,10 +59,7 @@ final class QuotaAlerts: Destroyable {
             gemini: gemini.meters(now: now),
             enabled: { [settings] in settings.providerEnabled($0) }
         )
-        let result = quotaNotices(states, readings)
-        states = result.states
-        guard settings.notifyQuota else { return }
-        for notice in result.notices {
+        for notice in state.check(readings, notify: settings.notifyQuota) {
             notifications.push(app: notice.provider.name, title: notice.title, body: notice.body, provider: notice.provider)
         }
     }
@@ -81,7 +74,7 @@ final class MemoryAlert: Destroyable {
     private let system: SystemState
     private let notifications: NotificationsStore
     private let disposables = Disposables()
-    private var alarmed = false
+    private var state = MemoryAlarmState()
 
     init(system: SystemState, notifications: NotificationsStore) {
         self.system = system
@@ -90,10 +83,8 @@ final class MemoryAlert: Destroyable {
     }
 
     private func check() {
-        guard let memory = system.memoryInfo else { return }
-        let next = memoryAlarm(usedPercent(memory), alarmed: alarmed)
-        if next && !alarmed { notifications.push(app: "Frodo", title: "Memória alta", body: highMemoryMessage(memory)) }
-        alarmed = next
+        guard let message = state.next(system.memoryInfo) else { return }
+        notifications.push(app: "Frodo", title: "Memória alta", body: message)
     }
 
     func destroy() {
