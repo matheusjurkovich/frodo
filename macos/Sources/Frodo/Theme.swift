@@ -68,6 +68,15 @@ enum Theme {
     static let otherModel = Color(hex: 0x71717A)
     static let taskFill = Color(hex: 0xE4E4E7)
     static let amberBorder = Color(hex: 0xFBBF24, opacity: 0.55)
+    static let destructive = Color(hex: 0xB42318)
+    static let destructiveHover = Color(hex: 0xC8321F)
+
+    enum Performance {
+        static let high = Color(hex: 0xF59E0B)
+        static let muted = Color(hex: 0x71717A)
+        static let confirmBackground = Color(hex: 0x2A1414)
+        static let confirmText = Color(hex: 0xFDE2E2)
+    }
 
     enum Size {
         static let islandWidth: CGFloat = 900

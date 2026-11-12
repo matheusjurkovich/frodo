@@ -23,6 +23,7 @@ final class Revisions {
     var notifications = 0
     var apps = 0
     var volume = 0
+    var performance = 0
     var settings = 0
 }
 
@@ -40,6 +41,7 @@ final class FrodoServices {
     let gemini: GeminiService
     let agentHooks: AgentHookInstaller
     let system: SystemState
+    let performance: PerformanceService
     let volume = VolumeService()
     let calendar: CalendarService
     let media = MediaService()
@@ -62,6 +64,7 @@ final class FrodoServices {
         gemini = GeminiService(settings: settings, home: paths.geminiHome, scheduler: scheduler)
         agentHooks = AgentHookInstaller(paths: paths)
         system = SystemState(scheduler: scheduler)
+        performance = PerformanceService(probe: MachPerformanceProbe(), scheduler: scheduler)
         calendar = CalendarService(settings: settings, scheduler: scheduler)
         let sources = FeedSources(
             recording: NoRecording(), sessions: sessions, meetings: calendar, notifications: notifications, volume: volume, media: media,
@@ -92,6 +95,7 @@ final class FrodoServices {
         disposables.add(calendar.changed.on { _ in revisions.calendar += 1 })
         disposables.add(system.battery.on { _ in revisions.system += 1 })
         disposables.add(system.memory.on { _ in revisions.system += 1 })
+        disposables.add(performance.changed.on { _ in revisions.performance += 1 })
         disposables.add(media.changed.on { _ in revisions.media += 1 })
         disposables.add(notifications.changed.on { _ in revisions.notifications += 1 })
         disposables.add(apps.changed.on { _ in revisions.apps += 1 })
@@ -121,6 +125,7 @@ final class FrodoServices {
         codex.destroy()
         gemini.destroy()
         system.destroy()
+        performance.destroy()
         volume.destroy()
         calendar.destroy()
         media.destroy()
