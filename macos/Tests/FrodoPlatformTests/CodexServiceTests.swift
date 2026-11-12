@@ -21,6 +21,13 @@ private final class IntervalScheduler: Scheduler {
     }
 }
 
+@MainActor
+private func waitUntil(_ condition: () -> Bool) async {
+    for _ in 0 ..< 300 where !condition() {
+        try? await Task.sleep(for: .milliseconds(10))
+    }
+}
+
 private struct Turn {
     let minutesAgo: Double
     let input: Int
@@ -69,6 +76,10 @@ private struct Harness {
         try FileManager.default.createDirectory(atPath: (path as NSString).deletingLastPathComponent, withIntermediateDirectories: true)
         try text.write(toFile: path, atomically: false, encoding: .utf8)
         if let modified { try FileManager.default.setAttributes([.modificationDate: modified], ofItemAtPath: path) }
+    }
+
+    func chmod(_ relative: String, _ mode: Int) throws {
+        try FileManager.default.setAttributes([.posixPermissions: mode], ofItemAtPath: "\(root)/\(relative)")
     }
 
     func remove(_ relative: String) throws {
@@ -224,5 +235,63 @@ struct CodexServiceTests {
         harness.service.setWanted(false)
         harness.settings.disabledAi = [.codex]
         #expect(harness.scheduler.intervals.isEmpty)
+    }
+
+    @Test("com o provedor ligado atualiza sozinho ao nascer e ao ser religado")
+    func enabledProviderRefreshesOnBirthAndReenable() async throws {
+        let off = Harness()
+        defer { off.cleanup() }
+        try off.write("sessions/2026/10/27/rollout-a.jsonl", rollout("a", [Turn(minutesAgo: 1, input: 10, output: 1, limits: 30)]))
+        try await Task.sleep(for: .milliseconds(50))
+        #expect(off.service.lastRefresh == nil)
+        off.settings.disabledAi = []
+        await waitUntil { off.service.limits != nil }
+        #expect(off.service.limits?.primary?.usedPercent == 30)
+        let on = Harness(enabled: true, home: off.root)
+        defer { on.cleanup() }
+        await waitUntil { on.service.limits != nil }
+        #expect(on.service.limits?.primary?.usedPercent == 30)
+        #expect(on.service.available)
+    }
+
+    @Test("refresh em andamento é reaproveitado")
+    func inFlightRefreshIsShared() async {
+        let harness = Harness()
+        defer { harness.cleanup() }
+        let service = harness.service
+        var changes = 0
+        _ = service.changed.on { changes += 1 }
+        let first = Task { await service.refresh() }
+        let second = Task { await service.refresh() }
+        await first.value
+        await second.value
+        #expect(changes == 1)
+    }
+
+    @Test("scan com pasta ilegível não esquece o que já leu")
+    func scanKeepsWhatItReadWhenFolderIsUnreadable() async throws {
+        let harness = Harness()
+        defer { harness.cleanup() }
+        let day = todayDir()
+        try harness.write("\(day)/rollout-a.jsonl", rollout("a", [Turn(minutesAgo: 5, input: 100, output: 10)]))
+        await harness.service.scan()
+        #expect(harness.service.summary(.week).total == 110)
+        try harness.chmod(day, 0)
+        defer { try? harness.chmod(day, 0o700) }
+        await harness.service.scan()
+        #expect(harness.service.summary(.week).total == 110)
+    }
+
+    @Test("limites vêm do dia mais novo sem abrir os dias antigos")
+    func limitsComeFromNewestDayWithoutOpeningOldDays() async throws {
+        let harness = Harness()
+        defer { harness.cleanup() }
+        let now = Date()
+        try harness.write("sessions/2025/01/01/rollout-a.jsonl", rollout("a", [Turn(minutesAgo: 5, input: 10, output: 1, limits: 5)]), modified: now)
+        try harness.write("sessions/2026/10/27/rollout-b.jsonl", rollout("b", [Turn(minutesAgo: 5, input: 10, output: 1, limits: 44)]), modified: now)
+        try harness.chmod("sessions/2025/01/01", 0)
+        defer { try? harness.chmod("sessions/2025/01/01", 0o700) }
+        await harness.service.refresh()
+        #expect(harness.service.limits?.primary?.usedPercent == 44)
     }
 }

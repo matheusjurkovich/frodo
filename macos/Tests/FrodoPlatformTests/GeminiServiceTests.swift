@@ -14,6 +14,26 @@ private final class CountingScheduler: Scheduler {
     }
 }
 
+@MainActor
+private final class Clock {
+    var shift: TimeInterval = 0
+
+    func now() -> Date {
+        Date().addingTimeInterval(shift)
+    }
+}
+
+@MainActor
+private func waitUntil(_ condition: () -> Bool) async {
+    for _ in 0 ..< 300 where !condition() {
+        try? await Task.sleep(for: .milliseconds(10))
+    }
+}
+
+private func line(_ id: String, ago: TimeInterval) -> String {
+    messages([Ask(id: id, ago: ago)])
+}
+
 private struct Ask {
     let id: String
     let ago: TimeInterval
@@ -36,6 +56,7 @@ private struct Harness {
     let root = NSTemporaryDirectory() + "frodo-gemini-\(UUID().uuidString)"
     let settings: FrodoSettings
     let scheduler = CountingScheduler()
+    let clock = Clock()
     let service: GeminiService
 
     init() {
@@ -44,7 +65,7 @@ private struct Harness {
         defaults.removePersistentDomain(forName: suite)
         settings = FrodoSettings(defaults: defaults)
         settings.disabledAi = [.gemini]
-        service = GeminiService(settings: settings, home: root, scheduler: scheduler)
+        service = GeminiService(settings: settings, home: root, scheduler: scheduler, now: { [clock] in clock.now() })
     }
 
     func write(_ relative: String, _ text: String, modified: Date? = nil) throws {
@@ -52,6 +73,10 @@ private struct Harness {
         try FileManager.default.createDirectory(atPath: (path as NSString).deletingLastPathComponent, withIntermediateDirectories: true)
         try text.write(toFile: path, atomically: false, encoding: .utf8)
         if let modified { try FileManager.default.setAttributes([.modificationDate: modified], ofItemAtPath: path) }
+    }
+
+    func chmod(_ relative: String, _ mode: Int) throws {
+        try FileManager.default.setAttributes([.posixPermissions: mode], ofItemAtPath: "\(root)/\(relative)")
     }
 
     func cleanup() {
@@ -169,5 +194,86 @@ struct GeminiServiceTests {
         #expect(harness.scheduler.armed == 1)
         harness.settings.disabledAi = [.gemini, .codex]
         #expect(harness.scheduler.armed == 0)
+    }
+
+    @Test("com o provedor ligado atualiza sozinho")
+    func enabledProviderRefreshesByItself() async throws {
+        let harness = Harness()
+        defer { harness.cleanup() }
+        try harness.write("tmp/frodo/chats/s1.json", session("s1", [Ask(id: "g1", ago: 10)]))
+        let service = GeminiService(settings: harness.settings, home: harness.root, scheduler: harness.scheduler)
+        defer { service.destroy() }
+        try await Task.sleep(for: .milliseconds(50))
+        #expect(service.lastRefresh == nil)
+        harness.settings.disabledAi = []
+        await waitUntil { service.quota(now: Date())?.requests == 1 }
+        #expect(service.quota(now: Date())?.requests == 1)
+    }
+
+    @Test("scan relê o arquivo que mudou")
+    func scanRereadsChangedFile() async throws {
+        let harness = Harness()
+        defer { harness.cleanup() }
+        try harness.write("tmp/p/chats/a.json", session("a", [Ask(id: "g1", ago: 60)]), modified: Date() - 60)
+        await harness.service.scan()
+        try harness.write("tmp/p/chats/a.json", session("a", [Ask(id: "g1", ago: 60), Ask(id: "g2", ago: 10)]))
+        await harness.service.scan()
+        #expect(harness.service.summary(.week).total == 220)
+    }
+
+    @Test("scan lê só o que o JSONL ganhou e espera a linha incompleta terminar")
+    func scanReadsOnlyAppendedCompleteJsonlLines() async throws {
+        let harness = Harness()
+        defer { harness.cleanup() }
+        let head = #"{"sessionId":"a"}"# + "\n" + line("g1", ago: 60) + "\n"
+        let second = line("g2", ago: 10)
+        try harness.write("tmp/p/chats/a.jsonl", head, modified: Date() - 60)
+        await harness.service.scan()
+        #expect(harness.service.summary(.week).total == 110)
+        try harness.write("tmp/p/chats/a.jsonl", head + second.prefix(20))
+        await harness.service.scan()
+        #expect(harness.service.summary(.week).total == 110)
+        try harness.write("tmp/p/chats/a.jsonl", head + second + "\n")
+        await harness.service.scan()
+        #expect(harness.service.summary(.week).total == 220)
+    }
+
+    @Test("scan com pasta ilegível não esquece o que já leu")
+    func scanKeepsWhatItReadWhenFolderIsUnreadable() async throws {
+        let harness = Harness()
+        defer { harness.cleanup() }
+        try harness.write("tmp/p/chats/a.json", session("a", [Ask(id: "g1", ago: 60)]))
+        await harness.service.scan()
+        try harness.chmod("tmp/p/chats", 0)
+        defer { try? harness.chmod("tmp/p/chats", 0o700) }
+        await harness.service.scan()
+        #expect(harness.service.summary(.week).total == 110)
+    }
+
+    @Test("refresh descarta o que saiu da janela de 30 dias")
+    func refreshDropsWhatLeftTheWindow() async throws {
+        let harness = Harness()
+        defer { harness.cleanup() }
+        try harness.write("tmp/p/chats/a.json", session("a", [Ask(id: "g1", ago: 60)]), modified: Date() - 20 * 24 * 3600)
+        await harness.service.scan()
+        #expect(harness.service.summary(.week).total == 110)
+        harness.clock.shift = 11 * 24 * 3600
+        await harness.service.refresh()
+        harness.clock.shift = 0
+        #expect(harness.service.summary(.week).total == 0)
+    }
+
+    @Test("refresh e scan ao mesmo tempo terminam com o mesmo resultado")
+    func refreshAndScanTogetherAgree() async throws {
+        let harness = Harness()
+        defer { harness.cleanup() }
+        try harness.write("tmp/p/chats/a.json", session("a", [Ask(id: "g1", ago: 60)]))
+        let service = harness.service
+        let refreshing = Task { await service.refresh() }
+        let scanning = Task { await service.scan() }
+        await refreshing.value
+        await scanning.value
+        #expect(service.summary(.week).total == 110)
+        #expect(service.quota(now: Date())?.requests == 1)
     }
 }
