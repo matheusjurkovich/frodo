@@ -9,18 +9,21 @@ func makeSession(
     step: String = "",
     status: SessionStatus = .working,
     tool: String? = "Read",
-    updatedAt: Date = referenceDate
+    updatedAt: Date = referenceDate,
+    repo: String = "loja-api",
+    provider: AiProvider = .claude
 ) -> SessionState {
     SessionState(
         sessionId: sessionId,
         cwd: "/home/u/loja-api",
-        repo: "loja-api",
+        repo: repo,
         status: status,
         tool: tool,
         step: step,
         pid: 42,
         since: updatedAt,
-        updatedAt: updatedAt
+        updatedAt: updatedAt,
+        provider: provider
     )
 }
 
