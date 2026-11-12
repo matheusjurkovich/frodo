@@ -38,3 +38,9 @@ jobs:
         run: sh scripts/bundle.sh
       - name: Sobe o app empacotado
         run: dist/Frodo.app/Contents/MacOS/Frodo --smoke
+      - name: Compacta o app
+        run: ditto -c -k --keepParent dist/Frodo.app dist/Frodo.zip
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Frodo-app
+          path: macos/dist/Frodo.zip
