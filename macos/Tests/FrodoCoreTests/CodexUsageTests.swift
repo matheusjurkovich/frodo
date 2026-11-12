@@ -86,7 +86,7 @@ func codexSession() {
     ))
 }
 
-@Test("lê os limites mais recentes")
+@Test("lê os limites mais recentes em milissegundos")
 func codexLimitsLatest() {
     #expect(readRollout(rollout).limits == expectedLimits)
     #expect(latestLimits(String(rollout.dropFirst(40))) == expectedLimits)
@@ -183,4 +183,23 @@ func codexDayDirEnded() {
     #expect(!dayDirEnded(["2026", "10", "28"], since: since))
     #expect(!dayDirEnded(["x"], since: since))
     #expect(!dayDirEnded(["2026", "x"], since: since))
+}
+
+@Test("número gigante num token_count conta como zero e não quebra")
+func codexHugeCount() {
+    let line = json([
+        "timestamp": at(1), "type": "event_msg",
+        "payload": [
+            "type": "token_count",
+            "info": [
+                "total_token_usage": ["total_tokens": 1e30],
+                "last_token_usage": ["input_tokens": 1e30, "cached_input_tokens": 0, "output_tokens": 7, "total_tokens": 1e30],
+                "model_context_window": 1e30,
+            ],
+        ],
+    ])
+    let result = readRollout([meta, line].joined(separator: "\n"))
+    #expect(result.cells.map(\.input) == [0])
+    #expect(result.cells.map(\.output) == [7])
+    #expect(result.session?.contextWindow == 0)
 }
