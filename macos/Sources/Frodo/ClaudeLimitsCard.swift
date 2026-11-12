@@ -35,6 +35,7 @@ struct LimitsCard: View {
                     Text(usage.error ?? "Erro desconhecido").font(Theme.Font.secondary()).foregroundStyle(Theme.warn)
                     if usage.windows.isEmpty == false { windows(usage) }
                 case .ok:
+                    if let message = usage.error { Text(message).font(Theme.Font.secondary()).foregroundStyle(Theme.warn) }
                     windows(usage)
                 }
             } else {

@@ -2,6 +2,7 @@ import FrodoCore
 import Foundation
 
 private let minRefresh: TimeInterval = 60
+private let staleUsageMessage = "Uso desatualizado. Abra o Claude Code para atualizar."
 
 private func capture<Value: Sendable>(_ work: @Sendable () async throws -> Value) async -> Result<Value, Error> {
     do {
@@ -153,6 +154,13 @@ public final class ClaudeService: Destroyable, MeterSource {
             return ProfileUsage(
                 profile: current.profile, active: current.active, status: .signedOut, tier: tier, subtitle: current.subtitle,
                 error: "Sem login do Claude Code neste perfil.", updatedAt: current.updatedAt
+            )
+        }
+        if error is ExpiredTokenError {
+            let hasData = !current.windows.isEmpty || current.spend != nil
+            return ProfileUsage(
+                profile: current.profile, active: current.active, status: hasData ? .ok : .error, windows: current.windows, spend: current.spend,
+                tier: tier, subtitle: current.subtitle, error: staleUsageMessage, updatedAt: current.updatedAt
             )
         }
         let apiError = error as? ClaudeApiError
