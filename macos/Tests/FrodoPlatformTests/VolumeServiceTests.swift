@@ -8,19 +8,41 @@ import Testing
 private final class FakeAudioDevices: AudioDevices {
     var output: AudioObjectID? = 1
     var input: AudioObjectID? = 10
-    var names: [AudioObjectID: String] = [1: "Alto-falantes do MacBook", 2: "AirPods"]
+    var names: [AudioObjectID: String] = [1: "Alto-falantes do MacBook", 2: "AirPods", 10: "Microfone do MacBook", 11: "AirPods"]
     var volumes: [AudioObjectID: Float32] = [1: 0.5, 2: 0.2]
     var muteSupported = true
     var muted = false
     var inputLevel: Float32?
+    var outputMuted: Bool? = false
+    var outputs = [AudioDevice(id: 1, name: "Alto-falantes do MacBook", isInput: false), AudioDevice(id: 2, name: "AirPods", isInput: false)]
+    var inputs = [AudioDevice(id: 10, name: "Microfone do MacBook", isInput: true), AudioDevice(id: 11, name: "AirPods", isInput: true)]
+    var audioProcesses: [AudioProcess]? = []
     private var outputWatchers: [Int: @MainActor () -> Void] = [:]
+    private var inputWatchers: [Int: @MainActor () -> Void] = [:]
+    private var deviceWatchers: [Int: @MainActor () -> Void] = [:]
+    private var processWatchers: [Int: @MainActor () -> Void] = [:]
     private var volumeWatchers: [Int: (device: AudioObjectID, handler: @MainActor () -> Void)] = [:]
     private var nextId = 0
 
     var volumeWatcherCount: Int { volumeWatchers.count }
+    var mixerWatcherCount: Int { inputWatchers.count + deviceWatchers.count + processWatchers.count }
 
     func defaultOutput() -> AudioObjectID? { output }
     func defaultInput() -> AudioObjectID? { input }
+    func devices(input: Bool) -> [AudioDevice] { input ? inputs : outputs }
+
+    func setDefault(_ id: AudioObjectID, input isInput: Bool) {
+        if isInput {
+            input = id
+            for handler in inputWatchers.values { handler() }
+        } else {
+            switchOutput(to: id)
+        }
+    }
+
+    func outputMute(of device: AudioObjectID) -> Bool? { outputMuted }
+    func setOutputMute(_ muted: Bool, of device: AudioObjectID) { outputMuted = muted }
+    func processes() -> [AudioProcess]? { audioProcesses }
     func name(of device: AudioObjectID) -> String { names[device] ?? "" }
     func outputVolume(of device: AudioObjectID) -> Float32? { volumes[device] }
 
@@ -38,6 +60,29 @@ private final class FakeAudioDevices: AudioDevices {
         let id = take()
         outputWatchers[id] = handler
         return { [weak self] in self?.outputWatchers[id] = nil }
+    }
+
+    func onDefaultInputChange(_ handler: @escaping @MainActor () -> Void) -> Unsubscribe {
+        let id = take()
+        inputWatchers[id] = handler
+        return { [weak self] in self?.inputWatchers[id] = nil }
+    }
+
+    func onDevicesChange(_ handler: @escaping @MainActor () -> Void) -> Unsubscribe {
+        let id = take()
+        deviceWatchers[id] = handler
+        return { [weak self] in self?.deviceWatchers[id] = nil }
+    }
+
+    func onProcessesChange(_ handler: @escaping @MainActor () -> Void) -> Unsubscribe {
+        let id = take()
+        processWatchers[id] = handler
+        return { [weak self] in self?.processWatchers[id] = nil }
+    }
+
+    func changeProcesses(_ list: [AudioProcess]) {
+        audioProcesses = list
+        for handler in processWatchers.values { handler() }
     }
 
     func onOutputVolumeChange(of device: AudioObjectID, _ handler: @escaping @MainActor () -> Void) -> Unsubscribe {
@@ -148,5 +193,133 @@ struct VolumeServiceTests {
         defer { service.destroy() }
         #expect(!service.canMuteInput)
         #expect(!service.setInputMuted(true))
+    }
+
+    @Test("trocar o dispositivo de saída define o padrão e atualiza a saída")
+    func usingOutputSetsDefault() {
+        let devices = FakeAudioDevices()
+        let service = VolumeService(devices: devices)
+        defer { service.destroy() }
+        service.useOutput(2)
+        #expect(devices.output == 2)
+        #expect(service.output == AudioDevice(id: 2, name: "AirPods", isInput: false))
+        #expect(service.percent == 20)
+    }
+
+    @Test("trocar o dispositivo de entrada define o padrão e emite statusChanged")
+    func usingInputSetsDefault() {
+        let devices = FakeAudioDevices()
+        let service = VolumeService(devices: devices)
+        defer { service.destroy() }
+        var statuses = 0
+        _ = service.statusChanged.on { statuses += 1 }
+        service.useInput(11)
+        #expect(devices.input == 11)
+        #expect(service.input == AudioDevice(id: 11, name: "AirPods", isInput: true))
+        #expect(statuses == 1)
+    }
+
+    @Test("com a aba visível lista as saídas e as entradas")
+    func listsDevicesWhenVisible() {
+        let devices = FakeAudioDevices()
+        let service = VolumeService(devices: devices)
+        defer { service.destroy() }
+        #expect(service.outputs.isEmpty)
+        service.setMixerVisible(true)
+        #expect(service.outputs.map(\.name) == ["Alto-falantes do MacBook", "AirPods"])
+        #expect(service.inputs.map(\.name) == ["Microfone do MacBook", "AirPods"])
+    }
+
+    @Test("separa os apps tocando dos que usam o microfone")
+    func splitsPlayingAndRecordingApps() {
+        let devices = FakeAudioDevices()
+        devices.audioProcesses = [
+            AudioProcess(pid: 1, bundleId: "com.spotify.client", output: true, input: false),
+            AudioProcess(pid: 2, bundleId: "us.zoom.xos", output: true, input: true),
+            AudioProcess(pid: 3, bundleId: "com.apple.Safari", output: false, input: false),
+        ]
+        let service = VolumeService(devices: devices)
+        defer { service.destroy() }
+        service.setMixerVisible(true)
+        #expect(service.playingApps?.map(\.pid) == [1, 2])
+        #expect(service.recordingApps?.map(\.pid) == [2])
+    }
+
+    @Test("sem lista de processos, antes do macOS 14.2, os apps ficam indisponíveis")
+    func processesUnavailableBeforeSonoma142() {
+        let devices = FakeAudioDevices()
+        devices.audioProcesses = nil
+        let service = VolumeService(devices: devices)
+        defer { service.destroy() }
+        service.setMixerVisible(true)
+        #expect(service.playingApps == nil)
+        #expect(service.recordingApps == nil)
+        #expect(service.outputs.count == 2)
+    }
+
+    @Test("ouve dispositivos e processos só com a aba visível")
+    func listensOnlyWhileVisible() {
+        let devices = FakeAudioDevices()
+        let service = VolumeService(devices: devices)
+        defer { service.destroy() }
+        #expect(devices.mixerWatcherCount == 0)
+        service.setMixerVisible(true)
+        service.setMixerVisible(true)
+        #expect(devices.mixerWatcherCount == 3)
+        var statuses = 0
+        _ = service.statusChanged.on { statuses += 1 }
+        devices.changeProcesses([AudioProcess(pid: 7, bundleId: nil, output: true, input: false)])
+        #expect(service.playingApps?.map(\.pid) == [7])
+        #expect(statuses == 1)
+        service.setMixerVisible(false)
+        #expect(devices.mixerWatcherCount == 0)
+        devices.changeProcesses([])
+        #expect(service.playingApps?.map(\.pid) == [7])
+        #expect(statuses == 1)
+    }
+
+    @Test("destroy para de ouvir o mixer")
+    func destroyStopsMixerListeners() {
+        let devices = FakeAudioDevices()
+        let service = VolumeService(devices: devices)
+        service.setMixerVisible(true)
+        service.destroy()
+        #expect(devices.mixerWatcherCount == 0)
+    }
+
+    @Test("alterna o mudo da saída")
+    func togglesOutputMute() {
+        let devices = FakeAudioDevices()
+        let service = VolumeService(devices: devices)
+        defer { service.destroy() }
+        service.toggleOutputMute()
+        #expect(devices.outputMuted == true)
+        #expect(service.isOutputMuted)
+        service.toggleOutputMute()
+        #expect(!service.isOutputMuted)
+    }
+
+    @Test("alterna o mudo do microfone")
+    func togglesInputMute() {
+        let devices = FakeAudioDevices()
+        let service = VolumeService(devices: devices)
+        defer { service.destroy() }
+        service.toggleInputMute()
+        #expect(service.isInputMuted)
+        service.toggleInputMute()
+        #expect(!service.isInputMuted)
+    }
+
+    @Test("o nível do microfone grava no volume de entrada, limitado a 0...1")
+    func setsInputLevel() {
+        let devices = FakeAudioDevices()
+        devices.inputLevel = 0.5
+        let service = VolumeService(devices: devices)
+        defer { service.destroy() }
+        service.setInputLevel(0.8)
+        #expect(devices.inputLevel == 0.8)
+        #expect(service.inputLevel == Double(Float32(0.8)))
+        service.setInputLevel(2)
+        #expect(devices.inputLevel == 1)
     }
 }

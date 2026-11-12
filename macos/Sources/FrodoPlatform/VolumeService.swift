@@ -1,130 +1,6 @@
-import AudioToolbox
 import CoreAudio
 import FrodoCore
 import Foundation
-
-@MainActor
-public protocol AudioDevices {
-    func defaultOutput() -> AudioObjectID?
-    func defaultInput() -> AudioObjectID?
-    func name(of device: AudioObjectID) -> String
-    func outputVolume(of device: AudioObjectID) -> Float32?
-    func setOutputVolume(_ scalar: Float32, of device: AudioObjectID)
-    func inputMute(of device: AudioObjectID) -> Bool?
-    func setInputMute(_ muted: Bool, of device: AudioObjectID)
-    func inputVolume(of device: AudioObjectID) -> Float32?
-    func setInputVolume(_ scalar: Float32, of device: AudioObjectID)
-    func onDefaultOutputChange(_ handler: @escaping @MainActor () -> Void) -> Unsubscribe
-    func onOutputVolumeChange(of device: AudioObjectID, _ handler: @escaping @MainActor () -> Void) -> Unsubscribe
-}
-
-private func address(_ selector: AudioObjectPropertySelector, scope: AudioObjectPropertyScope, element: AudioObjectPropertyElement = kAudioObjectPropertyElementMain) -> AudioObjectPropertyAddress {
-    AudioObjectPropertyAddress(mSelector: selector, mScope: scope, mElement: element)
-}
-
-private let systemObject = AudioObjectID(kAudioObjectSystemObject)
-private let outputVolumeAddress = address(kAudioHardwareServiceDeviceProperty_VirtualMainVolume, scope: kAudioDevicePropertyScopeOutput)
-private let inputMuteAddress = address(kAudioDevicePropertyMute, scope: kAudioDevicePropertyScopeInput)
-
-@MainActor
-public struct CoreAudioDevices: AudioDevices {
-    public init() {}
-
-    public func defaultOutput() -> AudioObjectID? {
-        defaultDevice(kAudioHardwarePropertyDefaultOutputDevice)
-    }
-
-    public func defaultInput() -> AudioObjectID? {
-        defaultDevice(kAudioHardwarePropertyDefaultInputDevice)
-    }
-
-    public func name(of device: AudioObjectID) -> String {
-        var target = address(kAudioObjectPropertyName, scope: kAudioObjectPropertyScopeGlobal)
-        var name: Unmanaged<CFString>?
-        var size = UInt32(MemoryLayout<Unmanaged<CFString>?>.size)
-        guard AudioObjectGetPropertyData(device, &target, 0, nil, &size, &name) == noErr, let name else { return "" }
-        return name.takeRetainedValue() as String
-    }
-
-    public func outputVolume(of device: AudioObjectID) -> Float32? {
-        read(device, outputVolumeAddress, Float32(0))
-    }
-
-    public func setOutputVolume(_ scalar: Float32, of device: AudioObjectID) {
-        write(device, outputVolumeAddress, scalar)
-    }
-
-    public func inputMute(of device: AudioObjectID) -> Bool? {
-        guard settable(device, inputMuteAddress) else { return nil }
-        return (read(device, inputMuteAddress, UInt32(0)) ?? 0) != 0
-    }
-
-    public func setInputMute(_ muted: Bool, of device: AudioObjectID) {
-        write(device, inputMuteAddress, UInt32(muted ? 1 : 0))
-    }
-
-    public func inputVolume(of device: AudioObjectID) -> Float32? {
-        guard let target = inputVolumeAddress(device) else { return nil }
-        return read(device, target, Float32(0)) ?? 1
-    }
-
-    public func setInputVolume(_ scalar: Float32, of device: AudioObjectID) {
-        guard let target = inputVolumeAddress(device) else { return }
-        write(device, target, scalar)
-    }
-
-    public func onDefaultOutputChange(_ handler: @escaping @MainActor () -> Void) -> Unsubscribe {
-        listen(systemObject, address(kAudioHardwarePropertyDefaultOutputDevice, scope: kAudioObjectPropertyScopeGlobal), handler)
-    }
-
-    public func onOutputVolumeChange(of device: AudioObjectID, _ handler: @escaping @MainActor () -> Void) -> Unsubscribe {
-        listen(device, outputVolumeAddress, handler)
-    }
-
-    private func defaultDevice(_ selector: AudioObjectPropertySelector) -> AudioObjectID? {
-        guard let device = read(systemObject, address(selector, scope: kAudioObjectPropertyScopeGlobal), AudioObjectID(kAudioObjectUnknown)), device != kAudioObjectUnknown
-        else { return nil }
-        return device
-    }
-
-    private func inputVolumeAddress(_ device: AudioObjectID) -> AudioObjectPropertyAddress? {
-        [kAudioObjectPropertyElementMain, 1]
-            .map { address(kAudioDevicePropertyVolumeScalar, scope: kAudioDevicePropertyScopeInput, element: $0) }
-            .first { settable(device, $0) }
-    }
-
-    private func settable(_ device: AudioObjectID, _ target: AudioObjectPropertyAddress) -> Bool {
-        var target = target
-        var result: DarwinBoolean = false
-        guard AudioObjectHasProperty(device, &target), AudioObjectIsPropertySettable(device, &target, &result) == noErr else { return false }
-        return result.boolValue
-    }
-
-    private func read<Value>(_ device: AudioObjectID, _ target: AudioObjectPropertyAddress, _ initial: Value) -> Value? {
-        var target = target
-        var value = initial
-        var size = UInt32(MemoryLayout<Value>.size)
-        return AudioObjectGetPropertyData(device, &target, 0, nil, &size, &value) == noErr ? value : nil
-    }
-
-    private func write<Value>(_ device: AudioObjectID, _ target: AudioObjectPropertyAddress, _ value: Value) {
-        var target = target
-        var value = value
-        AudioObjectSetPropertyData(device, &target, 0, nil, UInt32(MemoryLayout<Value>.size), &value)
-    }
-
-    private func listen(_ object: AudioObjectID, _ target: AudioObjectPropertyAddress, _ handler: @escaping @MainActor () -> Void) -> Unsubscribe {
-        let block: AudioObjectPropertyListenerBlock = { @Sendable _, _ in
-            MainActor.assumeIsolated { handler() }
-        }
-        var adding = target
-        guard AudioObjectAddPropertyListenerBlock(object, &adding, .main, block) == noErr else { return {} }
-        return {
-            var removing = target
-            AudioObjectRemovePropertyListenerBlock(object, &removing, .main, block)
-        }
-    }
-}
 
 private func volumePercent(_ scalar: Float32) -> Int {
     Int((scalar * 100).rounded())
@@ -136,6 +12,10 @@ public final class VolumeService: VolumeSource, Destroyable {
     public let statusChanged = Event<Void>()
     public private(set) var percent = 0
     public private(set) var outputName = ""
+    public private(set) var outputs: [AudioDevice] = []
+    public private(set) var inputs: [AudioDevice] = []
+    public private(set) var playingApps: [AudioProcess]? = []
+    public private(set) var recordingApps: [AudioProcess]? = []
 
     private let devices: AudioDevices
     private var outputDevice: AudioObjectID?
@@ -143,6 +23,8 @@ public final class VolumeService: VolumeSource, Destroyable {
     private var stopDevice: Unsubscribe?
     private var savedInputVolume: Float32?
     private var primed = false
+    private var mixerVisible = false
+    private var stopMixer: [Unsubscribe] = []
 
     public init(devices: AudioDevices = CoreAudioDevices()) {
         self.devices = devices
@@ -154,6 +36,74 @@ public final class VolumeService: VolumeSource, Destroyable {
     public func setPercent(_ value: Int) {
         guard let outputDevice else { return }
         devices.setOutputVolume(Float32(min(100, max(0, value))) / 100, of: outputDevice)
+    }
+
+    public var output: AudioDevice? {
+        outputDevice.map { AudioDevice(id: $0, name: outputName, isInput: false) }
+    }
+
+    public var input: AudioDevice? {
+        devices.defaultInput().map { AudioDevice(id: $0, name: devices.name(of: $0), isInput: true) }
+    }
+
+    public var isOutputMuted: Bool {
+        outputDevice.flatMap { devices.outputMute(of: $0) } ?? false
+    }
+
+    public var inputLevel: Double? {
+        devices.defaultInput().flatMap { devices.inputVolume(of: $0) }.map { Double($0) }
+    }
+
+    public func useOutput(_ id: AudioObjectID) {
+        devices.setDefault(id, input: false)
+    }
+
+    public func useInput(_ id: AudioObjectID) {
+        devices.setDefault(id, input: true)
+        if !mixerVisible { statusChanged.emit() }
+    }
+
+    public func setOutputMuted(_ muted: Bool) {
+        guard let outputDevice, devices.outputMute(of: outputDevice) != nil else { return }
+        devices.setOutputMute(muted, of: outputDevice)
+        statusChanged.emit()
+    }
+
+    public func toggleOutputMute() {
+        setOutputMuted(!isOutputMuted)
+    }
+
+    public func setInputLevel(_ level: Double) {
+        guard let device = devices.defaultInput() else { return }
+        devices.setInputVolume(Float32(min(1, max(0, level))), of: device)
+        statusChanged.emit()
+    }
+
+    @discardableResult
+    public func toggleInputMute() -> Bool {
+        setInputMuted(!isInputMuted)
+    }
+
+    public func setMixerVisible(_ visible: Bool) {
+        guard visible != mixerVisible else { return }
+        mixerVisible = visible
+        for stop in stopMixer { stop() }
+        stopMixer = []
+        guard visible else { return }
+        reloadDevices()
+        reloadProcesses()
+        stopMixer = [
+            devices.onDevicesChange { [weak self] in
+                self?.reloadDevices()
+                self?.statusChanged.emit()
+            },
+            devices.onDefaultInputChange { [weak self] in self?.statusChanged.emit() },
+            devices.onProcessesChange { [weak self] in
+                self?.reloadProcesses()
+                self?.statusChanged.emit()
+            },
+        ]
+        statusChanged.emit()
     }
 
     public var canMuteInput: Bool {
@@ -183,6 +133,17 @@ public final class VolumeService: VolumeSource, Destroyable {
         return isInputMuted == muted
     }
 
+    private func reloadDevices() {
+        outputs = devices.devices(input: false)
+        inputs = devices.devices(input: true)
+    }
+
+    private func reloadProcesses() {
+        let list = devices.processes()
+        playingApps = list?.filter(\.output)
+        recordingApps = list?.filter(\.input)
+    }
+
     private func attachOutputDevice() {
         stopVolume?()
         stopVolume = nil
@@ -201,6 +162,7 @@ public final class VolumeService: VolumeSource, Destroyable {
     }
 
     public func destroy() {
+        setMixerVisible(false)
         stopVolume?()
         stopVolume = nil
         stopDevice?()

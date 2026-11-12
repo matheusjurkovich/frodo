@@ -150,7 +150,7 @@ struct IslandRootView: View {
         case .claude: AiTab(services: services)
         case .notifications: NotificationsTab(services: services)
         case .performance: PerformanceTab(services: services)
-        case .mixer: EmptyView()
+        case .mixer: MixerTab(services: services)
         }
     }
 }
