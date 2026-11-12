@@ -1,4 +1,5 @@
 import AppKit
+import FrodoCore
 import SwiftUI
 
 @MainActor
@@ -39,5 +40,14 @@ struct FrodoIcon: View {
         }
         .foregroundStyle(color)
         .frame(width: size, height: size)
+    }
+}
+
+struct ProviderIcon: View {
+    let provider: AiProvider
+    var size: CGFloat = 16
+
+    var body: some View {
+        FrodoIcon(name: provider.rawValue, size: size, color: Theme.color(for: provider))
     }
 }

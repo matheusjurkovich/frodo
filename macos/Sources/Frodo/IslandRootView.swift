@@ -112,8 +112,8 @@ struct IslandRootView: View {
                     }
                     .id(model.settingsOpen ? "settings" : model.tab.rawValue)
                     .transition(.asymmetric(
-                        insertion: .offset(x: model.slideDirection * Motion.slideDistance).combined(with: .opacity),
-                        removal: .offset(x: -model.slideDirection * Motion.slideDistance).combined(with: .opacity)
+                        insertion: .offset(x: model.slideDirection * Motion.swapOffset).combined(with: .opacity),
+                        removal: .offset(x: -model.slideDirection * Motion.swapOffset).combined(with: .opacity)
                     ))
                 }
                 .frame(maxWidth: .infinity, alignment: .top)
