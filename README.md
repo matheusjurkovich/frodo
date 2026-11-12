@@ -42,6 +42,8 @@ macOS 14+: baixe o `Frodo-<versão>.dmg` e arraste para Aplicativos ([detalhes](
 | Linux (GNOME Shell 50, Wayland) | [`linux/`](linux) | TypeScript, roda dentro do próprio gnome-shell | [Releases](https://github.com/matheusjurkovich/frodo/releases) com tag `linux-v*` |
 | macOS 14+                       | [`macos/`](macos) | Swift (SwiftUI + AppKit)                       | [Releases](https://github.com/matheusjurkovich/frodo/releases) com tag `macos-v*` |
 
+O macOS tem as mesmas abas (Geral, Calendário, IA com Claude Code, Codex e Gemini CLI, Notificações, Desempenho e Mixer), menos Áreas de trabalho, e com os limites do sistema: só as notificações do Claude Code, Mixer sem volume por app e Desempenho sem os processos de outros usuários. A lista completa está em [O que o macOS não deixa fazer](macos/README.md#o-que-o-macos-não-deixa-fazer).
+
 O guia de cada plataforma (requisitos, instalação, comandos, arquitetura) fica na própria pasta: [`linux/README.md`](linux/README.md) e [`macos/README.md`](macos/README.md).
 
 ## Releases
