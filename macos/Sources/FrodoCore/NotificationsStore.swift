@@ -6,6 +6,7 @@ public struct NotificationItem: Identifiable, Equatable, Sendable {
     public let title: String
     public let body: String
     public let date: Date
+    public let provider: AiProvider?
 }
 
 public let maxNotifications = 100
@@ -25,9 +26,9 @@ public final class NotificationsStore: NotificationsSource, Destroyable {
         items.count
     }
 
-    public func push(app: String, title: String, body: String, at date: Date = Date()) {
-        let notification = InterceptedNotification(app: app, title: title, body: body)
-        items.insert(NotificationItem(id: notification.id, app: app, title: title, body: body, date: date), at: 0)
+    public func push(app: String, title: String, body: String, provider: AiProvider? = nil, at date: Date = Date()) {
+        let notification = InterceptedNotification(app: app, title: title, body: body, provider: provider)
+        items.insert(NotificationItem(id: notification.id, app: app, title: title, body: body, date: date, provider: provider), at: 0)
         if items.count > maxNotifications { items.removeLast(items.count - maxNotifications) }
         changed.emit()
         if !doNotDisturb { intercepted.emit(notification) }

@@ -47,6 +47,9 @@ final class FrodoServices {
     let feed: ActivityFeed
     let hotkeys = GlobalHotkeys()
     let runner = ProcessCommandRunner()
+    private let doneAlert: DoneAlert
+    private let quotaAlerts: QuotaAlerts
+    private let memoryAlert: MemoryAlert
     private let disposables = Disposables()
 
     init(paths: FrodoPaths, defaults: UserDefaults, store: any CredentialStore, transport: @escaping Transport) {
@@ -65,6 +68,9 @@ final class FrodoServices {
             aiActivity: { [settings] in settings.pillAiActivity }
         )
         feed = ActivityFeed(sources: sources, scheduler: scheduler)
+        doneAlert = DoneAlert(settings: settings, sessions: sessions, notifications: notifications)
+        quotaAlerts = QuotaAlerts(settings: settings, claude: claude, codex: codex, gemini: gemini, notifications: notifications)
+        memoryAlert = MemoryAlert(system: system, notifications: notifications)
         bridge()
     }
 
@@ -95,7 +101,7 @@ final class FrodoServices {
         disposables.add(settings.onChanged(["pill-ai-activity"]) { [feed] in feed.aiActivityChanged() })
         disposables.add(sessions.hookEvents.on { [weak self] event in
             guard event.notificationType == "idle_prompt", let message = claudeNotification(for: event) else { return }
-            self?.notifications.push(app: "Claude Code", title: message.title, body: message.body)
+            self?.notifications.push(app: "Claude Code", title: message.title, body: message.body, provider: .claude)
         })
     }
 
@@ -104,6 +110,9 @@ final class FrodoServices {
     }
 
     func destroy() {
+        doneAlert.destroy()
+        quotaAlerts.destroy()
+        memoryAlert.destroy()
         hotkeys.destroy()
         feed.destroy()
         sessions.destroy()

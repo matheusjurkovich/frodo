@@ -30,7 +30,7 @@ enum Snapshots {
         )
         let pills: [(String, PillActivity?)] = [
             ("pilula-repouso", nil),
-            ("pilula-notificacao", .notification(InterceptedNotification(app: "Claude Code", title: "docs-site", body: "Esperando você"))),
+            ("pilula-notificacao", .notification(InterceptedNotification(app: "Claude Code", title: "docs-site", body: "Esperando você", provider: .claude))),
             ("pilula-permissao", .claudePermission(session: permissionSession, request: request)),
             ("pilula-trabalhando", .claudeWorking(session: session)),
             ("pilula-volume", .volume(percent: 60)),

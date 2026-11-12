@@ -3,6 +3,7 @@ import Foundation
 import IOKit.ps
 
 private let memorySeconds: TimeInterval = 5
+private let alarmSeconds: TimeInterval = 30
 
 public enum MemoryDemand: Hashable, Sendable {
     case pill
@@ -33,17 +34,20 @@ public final class SystemState: Destroyable {
         let source = IOPSNotificationCreateRunLoopSource(powerSourceChanged, context)?.takeRetainedValue()
         if let source { CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes) }
         powerSource = source
+        pollMemory(every: alarmSeconds)
     }
 
     public func setWantsMemory(_ wants: Bool, by owner: MemoryDemand) {
         let wasWanted = !memoryDemands.isEmpty
         if wants { memoryDemands.insert(owner) } else { memoryDemands.remove(owner) }
-        if memoryDemands.isEmpty {
-            timer.stop()
-        } else if !wasWanted {
-            readMemory()
-            timer.every(memorySeconds) { [weak self] in self?.readMemory() }
-        }
+        let isWanted = !memoryDemands.isEmpty
+        guard isWanted != wasWanted else { return }
+        if isWanted { readMemory() }
+        pollMemory(every: isWanted ? memorySeconds : alarmSeconds)
+    }
+
+    private func pollMemory(every seconds: TimeInterval) {
+        timer.every(seconds) { [weak self] in self?.readMemory() }
     }
 
     fileprivate func readBattery() {
