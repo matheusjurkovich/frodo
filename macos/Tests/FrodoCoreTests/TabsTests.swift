@@ -33,6 +33,12 @@ struct TabsTests {
         #expect(tabToOpen(.claude, visible: [.calendar, .notifications]) == .calendar)
     }
 
+    @Test("sem aba pedida abre a primeira visível da ordem")
+    func opensFirstVisibleWithoutRequest() {
+        #expect(tabToOpen(nil, visible: [.mixer, .general]) == .mixer)
+        #expect(tabToOpen(nil, visible: []) == .general)
+    }
+
     @Test("ordem com id desconhecido e repetido vira ordem válida")
     func orderSanitized() {
         #expect(orderedTabs(["mixer", "xyz", "mixer", "general"]) == [.mixer, .general, .calendar, .claude, .notifications, .performance])
