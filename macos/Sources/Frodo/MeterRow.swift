@@ -5,13 +5,14 @@ struct MeterRow: View {
     let meter: Meter
     let remaining: Bool
     let provider: AiProvider
+    var short = false
 
     var body: some View {
         let level = meterLevel(meter.percent)
         let shown = shownMeterPercent(meter.percent, remaining: remaining)
         VStack(alignment: .leading, spacing: 5) {
             HStack(spacing: 8) {
-                Text(meter.label).font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text)
+                Text(short ? meter.short : meter.label).font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text)
                 Spacer(minLength: 8)
                 Text("\(Int(shown.rounded()))%").font(Theme.Font.secondary(.semibold))
                     .foregroundStyle(level == .ok ? Theme.text : Theme.color(for: level)).monospacedDigit()

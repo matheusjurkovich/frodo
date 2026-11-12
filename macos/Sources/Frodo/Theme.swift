@@ -60,6 +60,13 @@ enum Theme {
     static let opus = Color(hex: 0xD97757)
     static let sonnet = Color(hex: 0xF4C7B5)
     static let haiku = Color(hex: 0xA8553A)
+    static let codexGpt = Color(hex: 0x3DBE9C)
+    static let codexCodex = Color(hex: 0xA7E8D6)
+    static let codexMini = Color(hex: 0x1F8A6E)
+    static let geminiPro = Color(hex: 0x8AB4F8)
+    static let geminiFlash = Color(hex: 0x4A7FD8)
+    static let otherModel = Color(hex: 0x71717A)
+    static let taskFill = Color(hex: 0xE4E4E7)
     static let amberBorder = Color(hex: 0xFBBF24, opacity: 0.55)
 
     enum Size {
@@ -110,6 +117,12 @@ enum Theme {
         level == .ok ? color(for: provider) : color(for: level)
     }
 
+    @MainActor
+    static func color(forBar bar: Bar, provider: AiProvider) -> Color {
+        if bar.future { return track }
+        return bar.current ? color(for: provider) : color(for: provider).opacity(0.5)
+    }
+
     static func color(for status: SessionStatus) -> Color {
         switch status {
         case .working: claude
@@ -124,7 +137,12 @@ enum Theme {
         case "Opus": opus
         case "Sonnet": sonnet
         case "Haiku": haiku
-        default: textSecondary
+        case "codex-gpt": codexGpt
+        case "codex-codex": codexCodex
+        case "codex-mini": codexMini
+        case "gemini-pro": geminiPro
+        case "gemini-flash": geminiFlash
+        default: otherModel
         }
     }
 

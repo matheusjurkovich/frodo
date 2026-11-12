@@ -120,57 +120,6 @@ extension SettingsView {
         )
     }
 
-    var aiSection: some View {
-        Group {
-            SettingsGroup("Uso") {
-                SettingBlock { FrodoStepper("Atualizar a cada \(settings.claudePollMinutes) min", value: bind(\.claudePollMinutes), range: 1 ... 60) }
-                ToggleRow(title: "Mostrar uso restante", subtitle: "Em vez do usado", isOn: bind(\.claudeShowRemaining))
-            }
-            SettingsGroup("Claude Code") {
-                SettingBlock { profilesEditor }
-                SettingBlock {
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack {
-                            StatusDot(color: services.sessions.hooksInstalled() ? Theme.ok : Theme.warn)
-                            Text(services.sessions.hooksInstalled() ? "Hook do Claude Code ativo" : "Hook do Claude Code não encontrado")
-                                .font(Theme.Font.secondary()).foregroundStyle(Theme.text)
-                            Spacer()
-                        }
-                        HooksSetup(services: services)
-                    }
-                }
-            }
-        }
-    }
-
-    private var profilesEditor: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Perfis").font(Theme.Font.label(.medium)).foregroundStyle(Theme.textSecondary)
-            ForEach(settings.claudeProfiles, id: \.id) { item in
-                HStack {
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(item.label).font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text)
-                        Text(item.configDir.replacingOccurrences(of: NSHomeDirectory(), with: "~")).font(Theme.Font.mono(11)).foregroundStyle(Theme.textSecondary)
-                    }
-                    Spacer()
-                    IconButton(icon: "minus", size: 26, iconSize: 10) { settings.claudeProfiles = settings.claudeProfiles.filter { $0.id != item.id } }
-                }
-            }
-            TextButton(title: "Adicionar perfil…", compact: true, action: addProfile)
-        }
-    }
-
-    private func addProfile() {
-        let panel = NSOpenPanel()
-        panel.canChooseDirectories = true
-        panel.canChooseFiles = false
-        panel.showsHiddenFiles = true
-        panel.directoryURL = URL(fileURLWithPath: NSHomeDirectory())
-        panel.prompt = "Escolher"
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        settings.claudeProfiles = settings.claudeProfiles + [profile(for: url.path)]
-    }
-
     var agendaSection: some View {
         let _ = services.revisions.calendar
         let granted = services.calendar.access == .granted
