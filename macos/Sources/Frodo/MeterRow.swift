@@ -4,7 +4,7 @@ import SwiftUI
 struct MeterRow: View {
     let meter: Meter
     let remaining: Bool
-    var provider: AiProvider = .claude
+    let provider: AiProvider
 
     var body: some View {
         let level = meterLevel(meter.percent)
