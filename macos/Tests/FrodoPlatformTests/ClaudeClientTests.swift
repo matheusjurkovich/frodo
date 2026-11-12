@@ -105,8 +105,8 @@ struct ClaudeClientTests {
         await #expect(throws: SignedOutError()) { try await client.fetchUsage() }
     }
 
-    @Test("token expirado vira 401 sem chamar a API")
-    func expiredTokenBecomesUnauthorizedWithoutCallingApi() async {
+    @Test("token vencido não chama a API")
+    func expiredTokenDoesNotCallApi() async {
         let log = RequestLog()
         let client = ClaudeClient(
             configDir: "/x", store: FakeStore(text: credentials(expiresInSeconds: -10)),
@@ -116,7 +116,22 @@ struct ClaudeClientTests {
             },
             now: { now }
         )
-        await #expect(throws: ClaudeApiError(status: 401, body: "")) { try await client.fetchUsage() }
+        await #expect(throws: ExpiredTokenError()) { try await client.fetchUsage() }
+        #expect(await log.requests.isEmpty)
+    }
+
+    @Test("token a 5 minutos de vencer não chama a API")
+    func tokenWithinFiveMinutesOfExpiryDoesNotCallApi() async {
+        let log = RequestLog()
+        let client = ClaudeClient(
+            configDir: "/x", store: FakeStore(text: credentials(expiresInSeconds: 300)),
+            transport: { request in
+                await log.append(request)
+                return HTTPResponse(status: 200, body: "{}")
+            },
+            now: { now }
+        )
+        await #expect(throws: ExpiredTokenError()) { try await client.fetchUsage() }
         #expect(await log.requests.isEmpty)
     }
 

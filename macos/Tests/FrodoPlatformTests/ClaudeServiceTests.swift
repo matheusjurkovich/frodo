@@ -35,8 +35,29 @@ private struct CountingStore: CredentialStore {
     func exists(configDir: String) async -> Bool { true }
 }
 
-private func credentials(_ token: String) -> String {
-    let expiresAt = Int((Date().timeIntervalSince1970 + 3600) * 1000)
+private actor SwitchState {
+    var firstExpired = false
+
+    func expire() { firstExpired = true }
+}
+
+private struct SwitchStore: CredentialStore {
+    let fresh: String
+    let expired: String
+    let state = SwitchState()
+
+    func read(configDir: String) async -> String? {
+        if configDir == "/home/u/.other" { return expired }
+        return await state.firstExpired ? expired : fresh
+    }
+
+    func exists(configDir: String) async -> Bool { true }
+
+    func expireFirst() async { await state.expire() }
+}
+
+private func credentials(_ token: String, expiresInSeconds: Double = 3600) -> String {
+    let expiresAt = Int((Date().timeIntervalSince1970 + expiresInSeconds) * 1000)
     return #"{"claudeAiOauth":{"accessToken":"\#(token)","expiresAt":\#(expiresAt),"subscriptionType":"max","rateLimitTier":"default_claude_max_5x"}}"#
 }
 
@@ -112,6 +133,34 @@ struct ClaudeServiceTests {
         await waitUntil { service.active?.status == .error }
         #expect(service.active?.error == "Sessão expirada. Entre de novo no Claude Code.")
         #expect(service.lastFailed)
+    }
+
+    @Test("token vencido mostra o uso antigo como desatualizado ou erro sem dados")
+    func expiredTokenShowsStaleUsageOrErrorWithoutData() async {
+        let settings = makeSettings()
+        settings.claudeProfiles = [
+            ClaudeProfile(id: "a", label: "A", configDir: "/home/u/.claude"), ClaudeProfile(id: "b", label: "B", configDir: "/home/u/.other"),
+        ]
+        settings.claudeProfilesInitialized = true
+        let paths = FrodoPaths(home: "/home/u", runtimeDir: "/tmp/x", cacheDir: "/tmp/y", supportDir: "/tmp/z")
+        let store = SwitchStore(fresh: credentials("a"), expired: credentials("x", expiresInSeconds: -10))
+        let service = ClaudeService(
+            settings: settings, store: store,
+            transport: { request in HTTPResponse(status: 200, body: request.url == usageURL ? usageBody : profileBody) },
+            paths: paths, scheduler: StubScheduler()
+        )
+        defer { service.destroy() }
+        await waitUntil { service.profiles.first?.status == .ok && service.profiles.last?.status == .error }
+        let stale = "Uso desatualizado. Abra o Claude Code para atualizar."
+        #expect(service.profiles[1].status == .error)
+        #expect(service.profiles[1].error == stale)
+        let updatedAt = service.profiles[0].updatedAt
+        await store.expireFirst()
+        await service.refresh(force: true)
+        #expect(service.profiles[0].status == .ok)
+        #expect(service.profiles[0].error == stale)
+        #expect(service.profiles[0].windows.count == 1)
+        #expect(service.profiles[0].updatedAt == updatedAt)
     }
 
     @Test("lê as credenciais uma vez por perfil a cada atualização e junta atualizações simultâneas")
