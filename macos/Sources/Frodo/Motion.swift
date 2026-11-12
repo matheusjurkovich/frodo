@@ -3,6 +3,7 @@ import FrodoCore
 import SwiftUI
 
 enum Motion {
+    @MainActor
     static var reduced: Bool {
         NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
     }
@@ -11,17 +12,17 @@ enum Motion {
         .spring(response: Double.pi * spec.damping * (spec.milliseconds / 1000) / 2, dampingFraction: spec.damping)
     }
 
-    static var standard: Animation { reduced ? .linear(duration: 0) : spring(.standard) }
-    static var island: Animation { reduced ? .linear(duration: 0) : spring(.gentle) }
-    static var soft: Animation { reduced ? .linear(duration: 0) : spring(.soft) }
-    static var hover: Animation { reduced ? .linear(duration: 0) : .easeOut(duration: 0.15) }
-    static var fadeOut: Animation { reduced ? .linear(duration: 0) : .easeOut(duration: 0.11) }
-    static var fadeIn: Animation { reduced ? .linear(duration: 0) : .easeOut(duration: 0.22).delay(0.07) }
-    static var pillReturn: Animation {
+    @MainActor static var standard: Animation { reduced ? .linear(duration: 0) : spring(.standard) }
+    @MainActor static var island: Animation { reduced ? .linear(duration: 0) : spring(.gentle) }
+    @MainActor static var soft: Animation { reduced ? .linear(duration: 0) : spring(.soft) }
+    @MainActor static var hover: Animation { reduced ? .linear(duration: 0) : .easeOut(duration: 0.15) }
+    @MainActor static var fadeOut: Animation { reduced ? .linear(duration: 0) : .easeOut(duration: 0.11) }
+    @MainActor static var fadeIn: Animation { reduced ? .linear(duration: 0) : .easeOut(duration: 0.22).delay(0.07) }
+    @MainActor static var pillReturn: Animation {
         reduced ? .linear(duration: 0) : .easeOut(duration: 0.22).delay(max(0, SpringSpec.soft.milliseconds / 1000 - 0.22))
     }
 
-    static var conceal: Animation { reduced ? .linear(duration: 0) : .easeIn(duration: SpringSpec.soft.milliseconds / 1000) }
+    @MainActor static var conceal: Animation { reduced ? .linear(duration: 0) : .easeIn(duration: SpringSpec.soft.milliseconds / 1000) }
 
     static func peekCountdown(seconds: Int) -> Animation {
         .linear(duration: Double(seconds))

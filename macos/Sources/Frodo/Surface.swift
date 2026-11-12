@@ -2,6 +2,7 @@ import FrodoCore
 import Observation
 import SwiftUI
 
+@MainActor
 @Observable
 final class Surface {
     static let shared = Surface()

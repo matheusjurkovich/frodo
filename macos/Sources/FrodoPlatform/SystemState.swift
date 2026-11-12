@@ -9,6 +9,12 @@ public enum MemoryDemand: Hashable, Sendable {
     case card
 }
 
+private func powerSourceChanged(_ context: UnsafeMutableRawPointer?) {
+    guard let context else { return }
+    let state = Unmanaged<SystemState>.fromOpaque(context).takeUnretainedValue()
+    MainActor.assumeIsolated { state.readBattery() }
+}
+
 @MainActor
 public final class SystemState: Destroyable {
     public let battery = Event<Void>()
@@ -24,14 +30,7 @@ public final class SystemState: Destroyable {
         timer = TimerSlot(scheduler: scheduler)
         readBattery()
         let context = Unmanaged.passUnretained(self).toOpaque()
-        let source = IOPSNotificationCreateRunLoopSource(
-            { context in
-                guard let context else { return }
-                let state = Unmanaged<SystemState>.fromOpaque(context).takeUnretainedValue()
-                MainActor.assumeIsolated { state.readBattery() }
-            },
-            context
-        )?.takeRetainedValue()
+        let source = IOPSNotificationCreateRunLoopSource(powerSourceChanged, context)?.takeRetainedValue()
         if let source { CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes) }
         powerSource = source
     }
@@ -47,7 +46,7 @@ public final class SystemState: Destroyable {
         }
     }
 
-    private func readBattery() {
+    fileprivate func readBattery() {
         guard let info = IOPSCopyPowerSourcesInfo()?.takeRetainedValue(), let list = IOPSCopyPowerSourcesList(info)?.takeRetainedValue() as? [CFTypeRef] else { return }
         var found: BatteryInfo?
         for source in list {
@@ -71,7 +70,9 @@ public final class SystemState: Destroyable {
             pointer.withMemoryRebound(to: integer_t.self, capacity: Int(count)) { host_statistics64(mach_host_self(), HOST_VM_INFO64, $0, &count) }
         }
         guard result == KERN_SUCCESS else { return }
-        let pageSize = UInt64(vm_kernel_page_size)
+        var hostPageSize: vm_size_t = 0
+        guard host_page_size(mach_host_self(), &hostPageSize) == KERN_SUCCESS else { return }
+        let pageSize = UInt64(hostPageSize)
         let used = (UInt64(statistics.active_count) + UInt64(statistics.wire_count) + UInt64(statistics.compressor_page_count)) * pageSize
         let info = MemoryInfo(totalBytes: ProcessInfo.processInfo.physicalMemory, usedBytes: used)
         if info != memoryInfo {

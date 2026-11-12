@@ -22,6 +22,16 @@ public func carbonModifiers(_ modifiers: [ShortcutModifier]) -> UInt32 {
     }
 }
 
+private func hotKeyPressed(_ call: EventHandlerCallRef?, _ event: EventRef?, _ context: UnsafeMutableRawPointer?) -> OSStatus {
+    guard let event, let context else { return noErr }
+    var hotKey = EventHotKeyID()
+    GetEventParameter(event, EventParamName(kEventParamDirectObject), EventParamType(typeEventHotKeyID), nil, MemoryLayout<EventHotKeyID>.size, nil, &hotKey)
+    let owner = Unmanaged<GlobalHotkeys>.fromOpaque(context).takeUnretainedValue()
+    let id = hotKey.id
+    MainActor.assumeIsolated { owner.fire(id) }
+    return noErr
+}
+
 @MainActor
 public final class GlobalHotkeys: Destroyable {
     private var handlers: [UInt32: () -> Void] = [:]
@@ -32,18 +42,11 @@ public final class GlobalHotkeys: Destroyable {
     public init() {
         var eventType = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
         let context = Unmanaged.passUnretained(self).toOpaque()
-        InstallEventHandler(
-            GetApplicationEventTarget(),
-            { _, event, context in
-                guard let event, let context else { return noErr }
-                var hotKey = EventHotKeyID()
-                GetEventParameter(event, EventParamName(kEventParamDirectObject), EventParamType(typeEventHotKeyID), nil, MemoryLayout<EventHotKeyID>.size, nil, &hotKey)
-                let owner = Unmanaged<GlobalHotkeys>.fromOpaque(context).takeUnretainedValue()
-                MainActor.assumeIsolated { owner.handlers[hotKey.id]?() }
-                return noErr
-            },
-            1, &eventType, context, &eventHandler
-        )
+        InstallEventHandler(GetApplicationEventTarget(), hotKeyPressed, 1, &eventType, context, &eventHandler)
+    }
+
+    fileprivate func fire(_ id: UInt32) {
+        handlers[id]?()
     }
 
     @discardableResult

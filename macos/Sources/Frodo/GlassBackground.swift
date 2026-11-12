@@ -4,7 +4,7 @@ import SwiftUI
 struct GlassBackground: View, Animatable {
     var radius: CGFloat
 
-    var animatableData: CGFloat {
+    nonisolated var animatableData: CGFloat {
         get { radius }
         set { radius = newValue }
     }

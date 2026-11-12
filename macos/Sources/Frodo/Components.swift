@@ -16,12 +16,14 @@ struct HoverBackground: ViewModifier {
 }
 
 extension View {
+    @MainActor
     func hoverBackground(_ base: Color = Theme.control, hover: Color = Theme.controlHover, radius: CGFloat = Theme.Radius.item) -> some View {
         modifier(HoverBackground(base: base, hover: hover, radius: radius))
     }
 }
 
 extension View {
+    @MainActor
     func innerCard(radius: CGFloat = Theme.Radius.item) -> some View {
         background(RoundedRectangle(cornerRadius: radius, style: .continuous).fill(Theme.cardInner))
     }

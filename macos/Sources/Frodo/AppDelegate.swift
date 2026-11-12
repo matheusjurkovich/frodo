@@ -88,13 +88,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func runSmoke() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
-            guard let self, let app = self.app else { exit(1) }
-            let panels = app.controllers.count
-            let sessions = app.services.sessions.sessions.count
-            print("frodo smoke: \(panels) ilha(s), \(sessions) sessão(ões), hook \(app.services.sessions.hooksInstalled() ? "ativo" : "não encontrado")")
-            fflush(stdout)
-            app.shutdown()
-            exit(panels > 0 || NSScreen.screens.isEmpty ? 0 : 1)
+            MainActor.assumeIsolated {
+                guard let self, let app = self.app else { exit(1) }
+                let panels = app.controllers.count
+                let sessions = app.services.sessions.sessions.count
+                print("frodo smoke: \(panels) ilha(s), \(sessions) sessão(ões), hook \(app.services.sessions.hooksInstalled() ? "ativo" : "não encontrado")")
+                fflush(stdout)
+                app.shutdown()
+                exit(panels > 0 || NSScreen.screens.isEmpty ? 0 : 1)
+            }
         }
     }
 
@@ -105,14 +107,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             await app.services.transcripts.flush()
             self.replyToTermination()
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + Motion.quitFlushTimeout) { [weak self] in self?.replyToTermination() }
+        DispatchQueue.main.asyncAfter(deadline: .now() + Motion.quitFlushTimeout) { [weak self] in
+            MainActor.assumeIsolated { self?.replyToTermination() }
+        }
         return .terminateLater
     }
 
     private func replyToTermination() {
         guard terminating else { return }
         terminating = false
-        NSApp.reply(toApplicationShouldTerminate: true)
+        NSApplication.shared.reply(toApplicationShouldTerminate: true)
     }
 
     func applicationWillTerminate(_ notification: Notification) {

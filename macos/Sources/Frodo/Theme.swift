@@ -14,6 +14,7 @@ extension Color {
 }
 
 enum Theme {
+    @MainActor
     private static func byStyle(_ solid: Color, frosted: Color? = nil, clear: Color) -> Color {
         switch Surface.shared.style {
         case .solid: solid
@@ -22,10 +23,12 @@ enum Theme {
         }
     }
 
+    @MainActor
     static var island: Color {
         byStyle(Color(hex: 0x0A0A0B), frosted: Color(hex: 0x0A0A0B, opacity: 0.72), clear: Color(hex: 0x0A0A0B, opacity: 0.42))
     }
 
+    @MainActor
     static var shadowStrength: Double {
         switch Surface.shared.style {
         case .solid: 1
@@ -37,11 +40,11 @@ enum Theme {
     static let glassMaterial: NSVisualEffectView.Material = .underWindowBackground
 
     static let islandBorder = Color.white.opacity(0.08)
-    static var card: Color { byStyle(Color(hex: 0x17171A), clear: Color(hex: 0x17171A, opacity: 0.25)) }
-    static var cardInner: Color { byStyle(Color(hex: 0x1F1F23), clear: Color(hex: 0x17171A, opacity: 0.25)) }
-    static var control: Color { byStyle(Color(hex: 0x232327), clear: Color(hex: 0x1F1F23, opacity: 0.45)) }
-    static var controlHover: Color { byStyle(Color(hex: 0x26262B), clear: Color.white.opacity(0.08)) }
-    static var track: Color { byStyle(Color(hex: 0x2A2A2F), clear: Color.white.opacity(0.14)) }
+    @MainActor static var card: Color { byStyle(Color(hex: 0x17171A), clear: Color(hex: 0x17171A, opacity: 0.25)) }
+    @MainActor static var cardInner: Color { byStyle(Color(hex: 0x1F1F23), clear: Color(hex: 0x17171A, opacity: 0.25)) }
+    @MainActor static var control: Color { byStyle(Color(hex: 0x232327), clear: Color(hex: 0x1F1F23, opacity: 0.45)) }
+    @MainActor static var controlHover: Color { byStyle(Color(hex: 0x26262B), clear: Color.white.opacity(0.08)) }
+    @MainActor static var track: Color { byStyle(Color(hex: 0x2A2A2F), clear: Color.white.opacity(0.14)) }
     static let divider = Color.white.opacity(0.06)
     static let accent = Color(nsColor: .controlAccentColor)
     static let accentText = Color(nsColor: .controlAccentColor).opacity(0.9)
