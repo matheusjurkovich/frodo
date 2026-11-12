@@ -14,21 +14,15 @@ extension SettingsView {
                     isOn: Binding(get: { LoginItem.isEnabled }, set: { _ = LoginItem.setEnabled($0); services.revisions.settings += 1 })
                 )
             }
-            SettingsGroup("Atalhos", hint: "Formato: ctrl+opt+z. Evite ⌘⇧Z (é Refazer em quase todo app).") {
-                shortcutRow("Abrir e fechar a ilha", \.toggleShortcut)
-                shortcutRow("Abrir na aba IA", \.claudeShortcut)
+            SettingsGroup("Atalhos", hint: "Clique em Alterar e pressione a nova combinação. Esc cancela. Evite ⌘⇧Z (é Refazer em quase todo app).") {
+                shortcutRow("Abrir e fechar a ilha", \.toggleShortcut, other: \.claudeShortcut)
+                shortcutRow("Abrir na aba IA", \.claudeShortcut, other: \.toggleShortcut)
             }
         }
     }
 
-    private func shortcutRow(_ title: String, _ keyPath: ReferenceWritableKeyPath<FrodoSettings, String>) -> some View {
-        let parsed = parseShortcut(settings[keyPath: keyPath])
-        return SettingRow(title) {
-            HStack(spacing: 10) {
-                Text(parsed?.display ?? "inválido").font(Theme.Font.label(.medium)).foregroundStyle(parsed == nil ? Theme.danger : Theme.textSecondary)
-                TextField("ctrl+opt+z", text: bind(keyPath)).textFieldStyle(.roundedBorder).frame(width: 170).font(Theme.Font.mono(12))
-            }
-        }
+    private func shortcutRow(_ title: String, _ keyPath: ReferenceWritableKeyPath<FrodoSettings, String>, other: ReferenceWritableKeyPath<FrodoSettings, String>) -> some View {
+        SettingRow(title) { ShortcutField(services: services, current: keyPath, other: other) }
     }
 
     var displaySection: some View {
