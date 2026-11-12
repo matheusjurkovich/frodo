@@ -11,17 +11,17 @@ struct ShortcutCaptureTests {
         #expect(capturedShortcut(key: "1", control: false, option: false, shift: true, command: true) == "shift+cmd+1")
     }
 
-    @Test("recusa tecla sem modificador ou só com Shift")
+    @Test("recusa tecla sem modificador ou sem nome")
     func semModificador() {
         #expect(capturedShortcut(key: "z", control: false, option: false, shift: false, command: false) == nil)
-        #expect(capturedShortcut(key: "a", control: false, option: false, shift: true, command: false) == nil)
-    }
-
-    @Test("recusa tecla que o parser não aceita")
-    func teclaInvalida() {
-        #expect(capturedShortcut(key: "", control: true, option: false, shift: false, command: false) == nil)
+        #expect(capturedShortcut(key: "", control: false, option: false, shift: false, command: true) == nil)
         #expect(capturedShortcut(key: "!", control: true, option: false, shift: false, command: false) == nil)
         #expect(capturedShortcut(key: "ab", control: true, option: false, shift: false, command: false) == nil)
+    }
+
+    @Test("só Shift não basta")
+    func soShift() {
+        #expect(capturedShortcut(key: "a", control: false, option: false, shift: true, command: false) == nil)
     }
 
     @Test("o resultado é aceito pelo parser")
