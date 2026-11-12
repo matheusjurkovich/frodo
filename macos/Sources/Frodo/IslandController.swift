@@ -52,7 +52,10 @@ final class IslandController: NSObject {
         )
         super.init()
         configurePanel()
-        let root = IslandRootView(services: services, model: model, onToggle: { [weak self] in self?.togglePill() }, onClose: { [weak self] in self?.close() })
+        let root = IslandRootView(
+            services: services, model: model, onToggle: { [weak self] in self?.togglePill() }, onClose: { [weak self] in self?.close() },
+            onOpenTab: { [weak self] tab in self?.open(tab: tab) }
+        )
         let hosting = ShapeHostingView(rootView: root)
         hosting.shapeSize = { [weak self] in
             guard let self else { return .zero }

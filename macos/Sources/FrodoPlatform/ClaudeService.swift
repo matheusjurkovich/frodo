@@ -12,7 +12,7 @@ private func capture<Value: Sendable>(_ work: @Sendable () async throws -> Value
 }
 
 @MainActor
-public final class ClaudeService: Destroyable {
+public final class ClaudeService: Destroyable, MeterSource {
     public let changed = Event<Void>()
 
     private struct Entry {
@@ -63,6 +63,10 @@ public final class ClaudeService: Destroyable {
 
     public var active: ProfileUsage? {
         profiles.first(where: \.active) ?? profiles.first
+    }
+
+    public func meters(now: Date) -> [Meter] {
+        claudeMeters(active?.windows ?? [], now: now)
     }
 
     public func refreshIfStale(maxAge: TimeInterval) {

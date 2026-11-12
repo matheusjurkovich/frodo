@@ -34,6 +34,7 @@ struct PillContent: View {
     let activity: PillActivity?
     var peek: PeekState?
     var vertical = false
+    var openTab: (TabId) -> Void = { _ in }
 
     var body: some View {
         Group {
@@ -60,7 +61,7 @@ struct PillContent: View {
         case let .claudePermission(session, request)?:
             PermissionContent(services: services, session: session, request: request)
         case let .claudeWaiting(session)?:
-            WaitingContent(services: services, session: session)
+            WaitingContent(services: services, session: session, openTab: openTab)
         case let .meeting(title, startsAt)?:
             MeetingContent(services: services, title: title, startsAt: startsAt)
         case let .volume(percent)?:
@@ -217,9 +218,9 @@ struct PermissionContent: View {
 
     var body: some View {
         PillStack(spacing: 10) {
-            FrodoIcon(name: "claude", size: 18, color: Theme.warn)
+            FrodoIcon(name: session.provider.rawValue, size: 18, color: Theme.warn)
             VStack(alignment: vertical ? .center : .leading, spacing: 1) {
-                Text("\(session.repo) precisa de permissão").font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text).lineLimit(1)
+                Text("\(ellipsize(session.repo, max: 24)) precisa de permissão").font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text).lineLimit(1)
                 Text(session.step.isEmpty ? request.tool : session.step).font(Theme.Font.mono(12)).foregroundStyle(Theme.textSecondary).lineLimit(1)
             }
             .frame(maxWidth: 280, alignment: vertical ? .center : .leading)
@@ -233,12 +234,18 @@ struct PermissionContent: View {
 struct WaitingContent: View {
     let services: FrodoServices
     let session: SessionState
+    let openTab: (TabId) -> Void
 
     var body: some View {
         PillStack(spacing: 10) {
-            FrodoIcon(name: "claude", size: 18, color: Theme.warn)
-            Text("\(session.repo) aguardando você").font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text).lineLimit(1)
-            TextButton(title: "Abrir", compact: true) { _ = services.sessions.focus(session.sessionId) }
+            FrodoIcon(name: session.provider.rawValue, size: 18, color: Theme.warn)
+            Text("\(ellipsize(session.repo, max: 24)) precisa de permissão").font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text).lineLimit(1)
+            if !session.step.isEmpty {
+                Text(ellipsize(session.step, max: 40)).font(Theme.Font.mono(12)).foregroundStyle(Theme.textSecondary).lineLimit(1)
+            }
+            TextButton(title: "Abrir", kind: .primary, compact: true) {
+                if !services.sessions.focus(session.sessionId) { openTab(.claude) }
+            }
         }
     }
 }
@@ -284,7 +291,7 @@ struct WorkingContent: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
             PillStack(spacing: 10) {
-                FrodoIcon(name: "claude", size: 16, color: Theme.claude)
+                ProviderIcon(provider: session.provider, size: 16)
                 Text(session.repo).font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text)
                 Text(ellipsize(session.step, max: 36)).font(Theme.Font.mono(12)).foregroundStyle(Theme.textSecondary).lineLimit(1)
                 Text(formatTimer(secondsSince(session.since, now: context.date))).font(Theme.Font.label()).foregroundStyle(Theme.textSecondary).monospacedDigit()

@@ -10,7 +10,13 @@ struct LimitsCard: View {
         let _ = services.revisions.claude + services.revisions.settings
         let profiles = services.claude.profiles
         let usage = profiles.first { $0.profile.id == selectedProfileId } ?? services.claude.active
-        CardView(title: "Limites de uso") {
+        CardView {
+            HStack(spacing: 8) {
+                ProviderHeading(provider: .claude, title: "Limites de uso")
+                Spacer(minLength: 8)
+                if let tier = usage?.tier { Chip(text: tier, tint: Theme.claude) }
+                IconButton(icon: "refresh", size: 28, iconSize: 12, help: "Atualizar") { Task { await services.claude.refresh(force: true) } }
+            }
             if profiles.count > 1 {
                 HStack(spacing: 6) {
                     ForEach(profiles, id: \.profile.id) { item in
@@ -34,12 +40,8 @@ struct LimitsCard: View {
             } else {
                 Text("Nenhum perfil do Claude Code encontrado.").font(Theme.Font.secondary()).foregroundStyle(Theme.textSecondary)
             }
-        } trailing: {
-            HStack(spacing: 6) {
-                if let tier = usage?.tier { Chip(text: tier, tint: Theme.claude) }
-                IconButton(icon: "refresh", size: 28, iconSize: 12, help: "Atualizar") { Task { await services.claude.refresh(force: true) } }
-            }
         }
+        .onAppear { services.claude.refreshIfStale(maxAge: 60) }
     }
 
     @ViewBuilder

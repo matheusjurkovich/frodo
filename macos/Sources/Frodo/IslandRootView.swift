@@ -37,6 +37,7 @@ struct IslandRootView: View {
     @Bindable var model: IslandModel
     var onToggle: () -> Void
     var onClose: () -> Void
+    var onOpenTab: (TabId) -> Void = { _ in }
 
     @State private var contentHeight: CGFloat = 400
     @Environment(\.glassEnabled) private var glassEnabled
@@ -81,7 +82,7 @@ struct IslandRootView: View {
 
     private var pillLayer: some View {
         ZStack {
-            PillContent(services: services, activity: model.activity, peek: model.peek, vertical: model.position.isSideEdge)
+            PillContent(services: services, activity: model.activity, peek: model.peek, vertical: model.position.isSideEdge, openTab: onOpenTab)
                 .id(model.subjectToken)
                 .reportSize { size in if size != .zero { model.pillSize = CGSize(width: size.width, height: max(Theme.Size.pillHeight, size.height)) } }
                 .transition(.asymmetric(
@@ -146,7 +147,7 @@ struct IslandRootView: View {
         switch model.tab {
         case .general: GeneralTab(services: services)
         case .calendar: CalendarTab(services: services)
-        case .claude: ClaudeTab(services: services)
+        case .claude: AiTab(services: services)
         case .notifications: NotificationsTab(services: services)
         case .performance, .mixer: EmptyView()
         }

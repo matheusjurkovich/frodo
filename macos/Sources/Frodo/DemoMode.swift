@@ -48,6 +48,8 @@ final class DemoMode {
         let defaults = UserDefaults(suiteName: suite) ?? .standard
         defaults.removePersistentDomain(forName: suite)
         DemoMode.writeTranscripts(configDir: root + "/.claude")
+        DemoMode.writeCodex(home: paths.codexHome)
+        DemoMode.writeGemini(home: paths.geminiHome)
         services = FrodoServices(paths: paths, defaults: defaults, store: DemoStore(), transport: demoTransport())
         services.settings.claudeProfiles = [ClaudeProfile(id: "demo", label: "Claude", configDir: root + "/.claude")]
         services.settings.claudeProfilesInitialized = true
@@ -63,11 +65,13 @@ final class DemoMode {
         services.calendar.installDemo(events: events, meeting: nil, url: events[0].meetingURL)
         writeSession(id: "loja", cwd: "/Users/demo/loja-api", event: "UserPromptSubmit")
         writeSession(id: "docs", cwd: "/Users/demo/docs-site", event: "Stop")
+        writeSession(id: "pagamentos", cwd: "/Users/demo/pagamentos", event: "UserPromptSubmit", provider: .codex)
+        writeSession(id: "blog", cwd: "/Users/demo/blog", event: "AfterAgent", provider: .gemini)
         services.sessions.reload()
     }
 
-    private func writeSession(id: String, cwd: String, event: String, extra: String = "") {
-        let text = #"{"pid":\#(pid),"event":{"session_id":"\#(id)","cwd":"\#(cwd)","hook_event_name":"\#(event)"\#(extra)}}"#
+    private func writeSession(id: String, cwd: String, event: String, extra: String = "", provider: AiProvider = .claude) {
+        let text = #"{"pid":\#(pid),"provider":"\#(provider.rawValue)","event":{"session_id":"\#(id)","cwd":"\#(cwd)","hook_event_name":"\#(event)"\#(extra)}}"#
         let target = "\(paths.sessionsDir)/\(id).json"
         try? text.write(toFile: target + ".tmp", atomically: false, encoding: .utf8)
         _ = try? FileManager.default.replaceItemAt(URL(fileURLWithPath: target), withItemAt: URL(fileURLWithPath: target + ".tmp"))
@@ -82,6 +86,14 @@ final class DemoMode {
                 writeSession(id: "loja", cwd: "/Users/demo/loja-api", event: "PermissionRequest", extra: #","tool_name":"Bash","tool_input":{"command":"rm -rf node_modules && npm ci"}"#)
                 let since = Int(Date().timeIntervalSince1970 * 1000)
                 try? #"{"pid":\#(pid),"tool":"Bash","since":\#(since)}"#.write(toFile: "\(paths.pendingDir)/loja.r1.json", atomically: true, encoding: .utf8)
+                services.sessions.reload()
+            }),
+            (20, "Gemini rodando ferramenta", { [self] in
+                writeSession(id: "blog", cwd: "/Users/demo/blog", event: "BeforeTool", extra: #","tool_name":"run_shell_command","tool_input":{"command":"npm run build"}"#, provider: .gemini)
+                services.sessions.reload()
+            }),
+            (22, "Gemini esperando permissão (Abrir cai na aba IA)", { [self] in
+                writeSession(id: "blog", cwd: "/Users/demo/blog", event: "Notification", extra: #","notification_type":"ToolPermission""#, provider: .gemini)
                 services.sessions.reload()
             }),
             (26, "volume", { [self] in services.volume.changed.emit(60) }),
@@ -112,6 +124,43 @@ final class DemoMode {
                 services.sessions.reload()
             }
         }
+    }
+
+    private static func writeCodex(home: String) {
+        let now = Date()
+        let parts = Calendar.current.dateComponents([.year, .month, .day], from: now)
+        let directory = "\(home)/sessions/\(parts.year ?? 2026)/\(String(format: "%02d", parts.month ?? 1))/\(String(format: "%02d", parts.day ?? 1))"
+        try? FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
+        let epoch = Int(now.timeIntervalSince1970)
+        let start = now.addingTimeInterval(-3 * 3600)
+        var lines = [
+            #"{"timestamp":"\#(iso(start))","type":"session_meta","payload":{"id":"demo-codex","cwd":"/Users/demo/pagamentos"}}"#,
+            #"{"timestamp":"\#(iso(start))","type":"turn_context","payload":{"model":"gpt-5-codex"}}"#,
+        ]
+        var total = 0
+        for step in 0 ..< 6 {
+            let input = 20000 + step * 5000
+            total += input + 3000
+            let usage = #"{"input_tokens":\#(input),"cached_input_tokens":8000,"output_tokens":3000,"total_tokens":\#(input + 3000)}"#
+            let limits = #"{"primary":{"used_percent":\#(30 + step * 8),"window_minutes":300,"resets_at":\#(epoch + 5400)},"secondary":{"used_percent":\#(20 + step * 3),"window_minutes":10080,"resets_at":\#(epoch + 4 * 86400)},"plan_type":"plus"}"#
+            lines.append(
+                #"{"timestamp":"\#(iso(start.addingTimeInterval(Double(step) * 1800)))","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"total_tokens":\#(total)},"last_token_usage":\#(usage),"model_context_window":272000},"rate_limits":\#(limits)}}"#
+            )
+        }
+        try? (lines.joined(separator: "\n") + "\n").write(toFile: "\(directory)/rollout-demo.jsonl", atomically: true, encoding: .utf8)
+    }
+
+    private static func writeGemini(home: String) {
+        let directory = "\(home)/tmp/blog/chats"
+        try? FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
+        let now = Date()
+        let messages = (0 ..< 140).map { index in
+            let model = index % 3 == 0 ? "gemini-2.5-flash" : "gemini-2.5-pro"
+            let at = iso(now.addingTimeInterval(-Double(index) * 90 - 20))
+            return #"{"id":"g\#(index)","timestamp":"\#(at)","type":"gemini","model":"\#(model)","tokens":{"input":\#(4000 + index * 37),"output":600,"cached":1200,"thoughts":200,"tool":0}}"#
+        }
+        let session = #"{"sessionId":"demo-gemini","messages":[\#(messages.joined(separator: ","))]}"#
+        try? session.write(toFile: "\(directory)/session-demo.json", atomically: true, encoding: .utf8)
     }
 
     private static func writeTranscripts(configDir: String) {
