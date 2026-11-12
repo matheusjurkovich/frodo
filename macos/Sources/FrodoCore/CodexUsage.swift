@@ -50,10 +50,11 @@ public struct CodexRollout: Equatable, Sendable {
 
 private let codexFamilies = ["codex-gpt", "codex-codex", "codex-mini", "codex-other"]
 private let dayDirSlack: TimeInterval = 24 * 3600
+private let maxCount = 1e15
 private let limitsMark = #""rate_limits""#
 
 private func count(_ value: JSONValue?) -> Int {
-    guard case let .number(number)? = value, number.isFinite else { return 0 }
+    guard case let .number(number)? = value, number.isFinite, abs(number) < maxCount else { return 0 }
     return Int(number)
 }
 
