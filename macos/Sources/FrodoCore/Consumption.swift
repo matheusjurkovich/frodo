@@ -108,6 +108,10 @@ func dayStart(_ date: Date, daysBack: Int = 0, calendar: Calendar) -> Date {
     return calendar.date(byAdding: .day, value: -daysBack, to: start) ?? start
 }
 
+public func consumptionStart(_ now: Date, calendar: Calendar = .current) -> Date {
+    dayStart(now, daysBack: keptDays - 1, calendar: calendar)
+}
+
 func cellKey(_ cell: UsageCell) -> String {
     [String(cell.hour.timeIntervalSince1970), cell.model, cell.project, cell.session].joined(separator: "\u{0}")
 }

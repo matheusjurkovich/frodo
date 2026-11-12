@@ -32,4 +32,6 @@ public struct FrodoPaths: Sendable {
     public var aliveFile: String { "\(runtimeDir)/alive" }
     public var indexCacheFile: String { "\(cacheDir)/claude-index.json" }
     public var defaultClaudeConfigDir: String { "\(home)/.claude" }
+    public var codexHome: String { "\(home)/.codex" }
+    public var geminiHome: String { "\(home)/.gemini" }
 }

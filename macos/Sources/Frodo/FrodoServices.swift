@@ -15,6 +15,8 @@ final class Revisions {
     var claude = 0
     var sessions = 0
     var transcripts = 0
+    var codex = 0
+    var gemini = 0
     var calendar = 0
     var system = 0
     var media = 0
@@ -34,6 +36,9 @@ final class FrodoServices {
     let sessions: ClaudeSessions
     let claude: ClaudeService
     let transcripts: ClaudeTranscripts
+    let codex: CodexService
+    let gemini: GeminiService
+    let agentHooks: AgentHookInstaller
     let system: SystemState
     let volume = VolumeService()
     let calendar: CalendarService
@@ -50,6 +55,9 @@ final class FrodoServices {
         sessions = ClaudeSessions(settings: settings, paths: paths, scheduler: scheduler)
         claude = ClaudeService(settings: settings, store: store, transport: transport, paths: paths, scheduler: scheduler)
         transcripts = ClaudeTranscripts(settings: settings, cachePath: paths.indexCacheFile, scheduler: scheduler)
+        codex = CodexService(settings: settings, home: paths.codexHome, scheduler: scheduler)
+        gemini = GeminiService(settings: settings, home: paths.geminiHome, scheduler: scheduler)
+        agentHooks = AgentHookInstaller(paths: paths)
         system = SystemState(scheduler: scheduler)
         calendar = CalendarService(settings: settings, scheduler: scheduler)
         let sources = FeedSources(
@@ -72,6 +80,8 @@ final class FrodoServices {
         disposables.add(claude.changed.on { _ in revisions.claude += 1 })
         disposables.add(sessions.changed.on { _ in revisions.sessions += 1 })
         disposables.add(transcripts.changed.on { _ in revisions.transcripts += 1 })
+        disposables.add(codex.changed.on { _ in revisions.codex += 1 })
+        disposables.add(gemini.changed.on { _ in revisions.gemini += 1 })
         disposables.add(calendar.changed.on { _ in revisions.calendar += 1 })
         disposables.add(system.battery.on { _ in revisions.system += 1 })
         disposables.add(system.memory.on { _ in revisions.system += 1 })
@@ -97,6 +107,8 @@ final class FrodoServices {
         sessions.destroy()
         claude.destroy()
         transcripts.destroy()
+        codex.destroy()
+        gemini.destroy()
         system.destroy()
         volume.destroy()
         calendar.destroy()
