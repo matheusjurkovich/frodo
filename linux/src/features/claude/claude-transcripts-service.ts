@@ -5,6 +5,7 @@ import {ClaudeIndex} from './claude-index.js';
 import type {ConsumptionSummary, Period} from '../../shared/consumption.types.js';
 import {completeLines, parseAssistantLine} from './claude-transcript.js';
 import {Emitter} from '../../shared/emitter.js';
+import {Disposables} from '../../shared/disposables.js';
 import {Timer} from '../../shared/timer.js';
 import {isObject} from '../../shared/json.js';
 import {listDirectory, modifiedMs, readTextFile} from '../../shared/files.js';
@@ -76,7 +77,8 @@ async function children(dir: string, cancellable: Gio.Cancellable): Promise<Gio.
 export class ClaudeTranscripts extends Emitter<{changed: []}> {
     readonly #settings: FrodoSettings;
     readonly #cachePath: string;
-    readonly #timer = new Timer();
+    readonly #disposables = new Disposables();
+    readonly #timer = this.#disposables.own(new Timer());
     readonly #cancellable = new Gio.Cancellable();
     #index = new ClaudeIndex();
     #offsets: Map<string, number> | null = null;
@@ -238,7 +240,7 @@ export class ClaudeTranscripts extends Emitter<{changed: []}> {
 
     destroy(): void {
         this.#destroyed = true;
-        this.#timer.stop();
+        this.#disposables.dispose();
         this.#cancellable.cancel();
         if (this.#dirty) void this.#save();
         this.clearListeners();

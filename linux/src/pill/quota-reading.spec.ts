@@ -1,3 +1,5 @@
+import {codexMeters} from '../features/codex/codex-usage.js';
+import {geminiMeters} from '../features/gemini/gemini-usage.js';
 import type {UsageWindow} from '../features/claude/claude-usage.types.js';
 import {quotaReading} from './quota-reading.js';
 import type {QuotaSources} from './quota-reading.types.js';
@@ -15,8 +17,8 @@ const window = (role: UsageWindow['role'], utilization: number): UsageWindow => 
 
 const sources = (overrides: Partial<QuotaSources> = {}): QuotaSources => ({
     claudeWindows: [window('session', 30), window('weekly', 90)],
-    codexLimits: null,
-    geminiQuota: {requests: 25, limit: 100, perMinute: 0, resetsAt: 0},
+    codex: {meters: now => codexMeters(null, now)},
+    gemini: {meters: () => geminiMeters({requests: 25, limit: 100, perMinute: 0, resetsAt: 0})},
     providerEnabled: () => true,
     showRemaining: false,
     ...overrides,

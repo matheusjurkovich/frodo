@@ -8,6 +8,7 @@ import {
     formatSpan,
     formatTimer,
     formatTokens,
+    percentLabel,
     formatUntil,
     pad,
     secondsSince,
@@ -102,5 +103,11 @@ describe('formatadores básicos', () => {
     it('fixedDecimal mantém a casa e usa vírgula', () => {
         expect(fixedDecimal(2)).toBe('2,0');
         expect(fixedDecimal(2.46)).toBe('2,5');
+    });
+
+    it('percentLabel arredonda para inteiro com o sinal', () => {
+        expect(percentLabel(74.6)).toBe('75%');
+        expect(percentLabel(0)).toBe('0%');
+        expect(percentLabel(0.4)).toBe('0%');
     });
 });

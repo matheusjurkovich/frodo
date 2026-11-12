@@ -2,8 +2,9 @@ import Gio from 'gi://Gio';
 import Soup from 'gi://Soup?version=3.0';
 import {isActiveProfile} from './claude-profiles.js';
 import type {ClaudeProfile} from '../../settings/claude-profile.types.js';
-import {accountSummary, claudeErrorMessage, normalizeSpend, normalizeWindows, tierLabel} from './claude-usage.js';
+import {accountSummary, claudeErrorMessage, claudeMeters, normalizeSpend, normalizeWindows, tierLabel} from './claude-usage.js';
 import {STALE_USAGE_MESSAGE} from './claude-usage.const.js';
+import type {Meter, MeterSource} from '../../shared/meter.types.js';
 import {Disposables} from '../../shared/disposables.js';
 import {Emitter} from '../../shared/emitter.js';
 import {Timer} from '../../shared/timer.js';
@@ -22,12 +23,12 @@ function errorStatus(error: unknown): {status: number | null; apiMessage: string
     return error instanceof ClaudeApiError ? {status: error.status, apiMessage: error.apiMessage} : {status: null, apiMessage: null};
 }
 
-export class ClaudeService extends Emitter<{changed: []}> {
+export class ClaudeService extends Emitter<{changed: []}> implements MeterSource {
     readonly #settings: FrodoSettings;
     readonly #session = new Soup.Session({timeout: TIMEOUT_SECONDS});
     readonly #cancellable = new Gio.Cancellable();
-    readonly #timer = new Timer();
     readonly #disposables = new Disposables();
+    readonly #timer = this.#disposables.own(new Timer());
     readonly #transport: Transport;
     #entries: Entry[] = [];
     #running: {entries: Entry[]; promise: Promise<void>} | null = null;
@@ -61,6 +62,10 @@ export class ClaudeService extends Emitter<{changed: []}> {
 
     get active(): ProfileUsage | null {
         return this.profiles.find(usage => usage.active) ?? this.profiles[0] ?? null;
+    }
+
+    meters(now: number): Meter[] {
+        return claudeMeters(this.active?.windows ?? [], now);
     }
 
     get lastRefresh(): number {
@@ -156,7 +161,6 @@ export class ClaudeService extends Emitter<{changed: []}> {
 
     destroy(): void {
         this.#destroyed = true;
-        this.#timer.stop();
         this.#disposables.dispose();
         this.#cancellable.cancel();
         this.#session.abort();

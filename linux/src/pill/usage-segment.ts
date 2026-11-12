@@ -1,3 +1,4 @@
+import {percentLabel} from '../shared/format.js';
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 import type {AiProvider} from '../shared/ai-provider.types.js';
@@ -27,7 +28,7 @@ export class UsageSegment implements Component {
         }
         this.#ring.level = reading.level;
         this.#ring.percent = reading.percent;
-        this.#value.text = `${Math.round(reading.percent)}%${reading.suffix}`;
+        this.#value.text = `${percentLabel(reading.percent)}${reading.suffix}`;
     }
 
     destroy(): void {

@@ -21,6 +21,8 @@ export function formatDate(date: Date): string {
 
 const decimal = (value: number): string => String(Math.round(value * 10) / 10).replace('.', ',');
 
+export const percentLabel = (percent: number): string => `${Math.round(percent)}%`;
+
 export const fixedDecimal = (value: number): string => value.toFixed(1).replace('.', ',');
 
 export function formatTokens(n: number): string {

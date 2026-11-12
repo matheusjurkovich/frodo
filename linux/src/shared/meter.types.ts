@@ -8,6 +8,10 @@ export interface Meter {
     readonly note: string;
 }
 
+export interface MeterSource {
+    meters(now: number): Meter[];
+}
+
 export interface QuotaReading {
     readonly id: string;
     readonly provider: AiProvider;

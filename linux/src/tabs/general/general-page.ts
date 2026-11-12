@@ -24,13 +24,13 @@ export class GeneralPage implements Component {
     readonly #shortcuts: ShortcutsCard;
     readonly #apps: AppsCard;
 
-    constructor({island, settings, media, scrollToTop}: GeneralDependencies) {
+    constructor({island, settings, media, mixer, scrollToTop}: GeneralDependencies) {
         const content = column('frodo-section');
         const overlayHost = new St.Widget({x_expand: true, y_expand: true});
         this.#controls = new NativeControls(island, this.actor, overlayHost, content, scrollToTop);
-        this.#sound = new SoundCard(this.#controls);
+        this.#sound = new SoundCard(this.#controls, mixer);
         this.#media = new MediaCard(media);
-        this.#shortcuts = new ShortcutsCard(island, settings);
+        this.#shortcuts = new ShortcutsCard(island, settings, mixer);
         this.#apps = new AppsCard(island, settings);
 
         this.#shortcuts.actor.y_align = Clutter.ActorAlign.START;

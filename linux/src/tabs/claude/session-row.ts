@@ -3,7 +3,7 @@ import St from 'gi://St';
 import type {SessionStats} from '../../features/claude/claude-index.types.js';
 import {contextUsage, sessionMeta} from '../../features/claude/claude-sessions.js';
 import type {DiffStat, PendingRequest, SessionState, SessionStatus} from '../../features/claude/claude-sessions.types.js';
-import {formatTokens} from '../../shared/format.js';
+import {formatTokens, percentLabel} from '../../shared/format.js';
 import type {Disposer} from '../../shared/disposables.types.js';
 import {contentButton, textButton} from '../../shared/ui/buttons.js';
 import {column, grid, label, packGrid, row} from '../../shared/ui/layout.js';
@@ -200,7 +200,7 @@ export class SessionRow implements Component {
         this.#warning.visible = usage?.warn ?? false;
         if (usage)
             this.#context.show(
-                `${Math.round(usage.fraction * 100)}%`,
+                percentLabel(usage.fraction * 100),
                 usage.fraction,
                 usage.warn ? `${FILL_CONTEXT} ${levelClass('warn')}` : FILL_CONTEXT,
                 usage.text,

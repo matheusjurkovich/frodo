@@ -1,3 +1,5 @@
+import {percentLabel} from '../../shared/format.js';
+import {clamp} from '../../shared/geometry.js';
 import {GENERIC_DETAILS} from './mixer.const.js';
 import type {AudioStream} from './mixer.types.js';
 
@@ -7,11 +9,11 @@ export function streamDetail(description: string | null): string | null {
 }
 
 export function levelOf(volume: number, max: number): number {
-    return max > 0 ? Math.min(1, Math.max(0, volume / max)) : 0;
+    return max > 0 ? clamp(volume / max, 0, 1) : 0;
 }
 
 export function volumeLabel(stream: Pick<AudioStream, 'level' | 'muted'>): string {
-    return stream.muted ? 'Mudo' : `${Math.round(stream.level * 100)}%`;
+    return stream.muted ? 'Mudo' : percentLabel(stream.level * 100);
 }
 
 export function playingSummary(apps: readonly Pick<AudioStream, 'muted'>[]): string {
@@ -21,7 +23,7 @@ export function playingSummary(apps: readonly Pick<AudioStream, 'muted'>[]): str
 }
 
 export function levelChange(level: number, max: number, muted: boolean): {volume: number; mute: boolean | null} {
-    const volume = Math.round(Math.min(1, Math.max(0, level)) * max);
+    const volume = Math.round(clamp(level, 0, 1) * max);
     if (volume < 1 && !muted) return {volume, mute: true};
     if (volume >= 1 && muted) return {volume, mute: false};
     return {volume, mute: null};

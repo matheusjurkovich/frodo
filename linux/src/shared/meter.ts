@@ -1,3 +1,4 @@
+import {clamp} from './geometry.js';
 import type {Level} from './level.types.js';
 import {CRIT_PERCENT, WARN_PERCENT, DAY_MS, WEEKDAYS, LEVEL_RANK, LEVEL_PERCENT} from './meter.const.js';
 import type {QuotaReading, QuotaNotice} from './meter.types.js';
@@ -24,7 +25,7 @@ export function resetNote(resetsAt: number, nowMs: number): string {
 }
 
 export function shownMeterPercent(percent: number, remaining: boolean): number {
-    const clamped = Math.min(100, Math.max(0, percent));
+    const clamped = clamp(percent, 0, 100);
     return remaining ? 100 - clamped : clamped;
 }
 

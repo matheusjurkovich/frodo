@@ -3,7 +3,7 @@ import type Gio from 'gi://Gio';
 import {BatteryMonitor} from './battery-service.js';
 import {SystemState} from './system-state-service.js';
 import type {SystemStateEvents} from './system-state-service.types.js';
-import {MEMORY_SECONDS} from './system-state-service.const.js';
+import {ALERT_SECONDS, MEMORY_SECONDS} from './system-state-service.const.js';
 import {Timer} from '../../shared/timer.js';
 import {PrivateBus, settle} from '../../../tests/fixtures.js';
 import {loadInterfaceXML} from '../../../tests/shell/fileUtils.js';
@@ -52,15 +52,16 @@ describe('SystemState', () => {
         expect(state.memory?.totalKb).toBeGreaterThan(0);
     });
 
-    it('liga o timer da memória uma vez só e religa depois de desligar', () => {
+    it('lê devagar para o alerta e só acelera enquanto a memória é pedida', () => {
         const every = spyOn(Timer.prototype, 'every').and.callThrough();
         state = new SystemState(new BatteryMonitor(client));
+        expect(every).toHaveBeenCalledOnceWith(ALERT_SECONDS, jasmine.any(Function));
         state.setMemoryWanted(true);
         state.setMemoryWanted(true);
-        expect(every).toHaveBeenCalledOnceWith(MEMORY_SECONDS, jasmine.any(Function));
+        expect(every.calls.allArgs().map(([seconds]) => seconds)).toEqual([ALERT_SECONDS, MEMORY_SECONDS]);
         state.setMemoryWanted(false);
-        state.setMemoryWanted(true);
-        expect(every).toHaveBeenCalledTimes(2);
+        state.setMemoryWanted(false);
+        expect(every.calls.allArgs().map(([seconds]) => seconds)).toEqual([ALERT_SECONDS, MEMORY_SECONDS, ALERT_SECONDS]);
     });
 
     it('descarta a leitura em voo quando a memória deixa de ser pedida', async () => {

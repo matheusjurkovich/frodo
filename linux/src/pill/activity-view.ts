@@ -1,6 +1,7 @@
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 import type {TabId} from '../settings/schema-values.types.js';
+import {Disposables} from '../shared/disposables.js';
 import {Timer} from '../shared/timer.js';
 import type {Component} from '../shared/ui/lifecycle.types.js';
 import type {PillActivity} from './activity-feed.types.js';
@@ -12,7 +13,8 @@ export class ActivityView implements Component {
     readonly actor = new St.Widget({layout_manager: new Clutter.BinLayout(), x_expand: true});
 
     readonly #services: ActivityServices;
-    readonly #ticker = new Timer();
+    readonly #disposables = new Disposables();
+    readonly #ticker = this.#disposables.own(new Timer());
     #content: St.BoxLayout | null = null;
     #row: ActivityRow | null = null;
     #kind: PillActivity['kind'] | null = null;
@@ -21,7 +23,7 @@ export class ActivityView implements Component {
     constructor(services: ActivityServices) {
         this.#services = services;
         this.actor.connect('destroy', () => {
-            this.#ticker.stop();
+            this.#disposables.dispose();
         });
     }
 
@@ -87,7 +89,6 @@ export class ActivityView implements Component {
     }
 
     destroy(): void {
-        this.#ticker.stop();
         this.actor.destroy();
     }
 }

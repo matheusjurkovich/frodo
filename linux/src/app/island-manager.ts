@@ -13,7 +13,7 @@ import {PREWARM_DELAY_MS} from './island-manager.const.js';
 export class IslandManager {
     readonly #dependencies: FrodoServices;
     readonly #disposables = new Disposables();
-    readonly #prewarm = new Timer();
+    readonly #prewarm = this.#disposables.own(new Timer());
     #entries: Entry[] = [];
 
     constructor(dependencies: FrodoServices) {
@@ -91,7 +91,6 @@ export class IslandManager {
     }
 
     destroy(): void {
-        this.#prewarm.stop();
         this.#disposables.dispose();
         this.#clear();
         this.#dependencies.state.setMemoryWanted(false);

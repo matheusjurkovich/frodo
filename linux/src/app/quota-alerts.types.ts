@@ -7,7 +7,7 @@ import type {ProviderNotifier} from '../shared/ui/provider-notifier.js';
 export interface QuotaAlertsDependencies {
     readonly settings: FrodoSettings;
     readonly claude: Pick<ClaudeService, 'active' | 'on'>;
-    readonly codex: Pick<CodexUsage, 'limits' | 'on'>;
-    readonly gemini: Pick<GeminiUsage, 'quota' | 'on'>;
+    readonly codex: Pick<CodexUsage, 'meters' | 'on'>;
+    readonly gemini: Pick<GeminiUsage, 'meters' | 'on'>;
     readonly notifier: Pick<ProviderNotifier, 'notify'>;
 }

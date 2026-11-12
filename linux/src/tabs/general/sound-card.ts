@@ -1,10 +1,10 @@
+import {percentLabel} from '../../shared/format.js';
 import GObject from 'gi://GObject';
 import Pango from 'gi://Pango';
-import type Gvc from 'gi://Gvc';
 import type St from 'gi://St';
 import {QuickSlider} from 'resource:///org/gnome/shell/ui/quickSettings.js';
-import {getMixerControl} from 'resource:///org/gnome/shell/ui/status/volume.js';
 
+import type {Mixer} from '../../features/system/mixer-service.js';
 import {Disposables} from '../../shared/disposables.js';
 import {card} from '../../shared/ui/card.js';
 import {column, label, row} from '../../shared/ui/layout.js';
@@ -34,7 +34,7 @@ function deviceLabel(): St.Label {
 
 export class SoundCard implements Component {
     readonly actor = card('frodo-sound');
-    readonly #mixer = getMixerControl();
+    readonly #mixer: Mixer;
     readonly #volume = label('', 'frodo-sound-value frodo-mono');
     readonly #microphone = label('', 'frodo-sound-value frodo-mono');
     readonly #brightness = label('', 'frodo-sound-value frodo-mono');
@@ -43,18 +43,17 @@ export class SoundCard implements Component {
     readonly #disposables = new Disposables();
     readonly #values = new Disposables();
 
-    constructor(controls: NativeControls) {
+    constructor(controls: NativeControls, mixer: Mixer) {
+        this.#mixer = mixer;
         this.actor.add_child(group(controls.output, 'Volume', this.#sink, this.#volume));
         this.actor.add_child(group(controls.input, 'Microfone', this.#source, this.#microphone));
         this.actor.add_child(group(controls.brightness, 'Brilho', label('', 'frodo-sound-device'), this.#brightness));
 
-        for (const signal of ['default-sink-changed', 'default-source-changed'])
-            this.#disposables.signal(
-                this.#mixer,
-                this.#mixer.connect(signal, () => {
-                    this.#syncDevices();
-                }),
-            );
+        this.#disposables.add(
+            this.#mixer.on('changed', () => {
+                this.#syncDevices();
+            }),
+        );
         this.#syncDevices();
         this.#disposables.add(
             whileMapped(
@@ -72,8 +71,8 @@ export class SoundCard implements Component {
     }
 
     #syncDevices(): void {
-        this.#sink.text = (this.#mixer.get_default_sink() as Gvc.MixerStream | null)?.get_description() ?? '';
-        this.#source.text = (this.#mixer.get_default_source() as Gvc.MixerStream | null)?.get_description() ?? '';
+        this.#sink.text = this.#mixer.output?.name ?? '';
+        this.#source.text = this.#mixer.input?.name ?? '';
     }
 
     #follow(bin: St.Bin, value: St.Label): void {
@@ -94,7 +93,7 @@ export class SoundCard implements Component {
             }
             const target = item.slider;
             const sync = (): void => {
-                value.text = `${Math.round(target.value * 100)}%`;
+                value.text = percentLabel(target.value * 100);
             };
             const id = target.connect('notify::value', sync);
             const destroyId = target.connect('destroy', () => {

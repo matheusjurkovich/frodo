@@ -46,7 +46,7 @@ export function createServices(gsettings: Gio.Settings, disposables: Disposables
     const mixer = disposables.own(new Mixer());
     const meetings = disposables.own(new UpcomingMeeting(settings));
     const performance = disposables.own(new PerformanceMonitor());
-    disposables.own(new MemoryAlert());
+    disposables.own(new MemoryAlert(state));
     const notifier = disposables.own(new ProviderNotifier());
     disposables.own(new DoneAlert(settings, sessions, notifier));
     disposables.own(new QuotaAlerts({settings, claude, codex, gemini, notifier}));

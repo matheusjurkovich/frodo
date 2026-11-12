@@ -3,6 +3,7 @@ import {nextMeeting} from './meetings.js';
 import type {Meeting} from './meetings.types.js';
 import {calendarEventSource} from '../../shared/shell-internals.js';
 import {Emitter} from '../../shared/emitter.js';
+import {Disposables} from '../../shared/disposables.js';
 import {Timer} from '../../shared/timer.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
 import {CHECK_SECONDS} from './meetings-service.const.js';
@@ -10,7 +11,8 @@ import {CHECK_SECONDS} from './meetings-service.const.js';
 export class UpcomingMeeting extends Emitter<{changed: []}> {
     readonly #source = calendarEventSource();
     readonly #sourceId: number | null;
-    readonly #timer = new Timer();
+    readonly #disposables = new Disposables();
+    readonly #timer = this.#disposables.own(new Timer());
     readonly #settings: FrodoSettings;
     readonly #disposeSettings: () => void;
     readonly #links: Pick<MeetLinkClient, 'find' | 'destroy'>;
@@ -70,7 +72,7 @@ export class UpcomingMeeting extends Emitter<{changed: []}> {
         this.#destroyed = true;
         this.#links.destroy();
         this.#disposeSettings();
-        this.#timer.stop();
+        this.#disposables.dispose();
         if (this.#source && this.#sourceId !== null) this.#source.disconnect(this.#sourceId);
         this.clearListeners();
     }

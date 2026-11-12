@@ -25,7 +25,7 @@ export function createTabPages({
     mixer,
 }: TabPagesDependencies): ReadonlyMap<TabId, Component> {
     return new Map<TabId, Component>([
-        ['general', new GeneralPage({island, settings, media, scrollToTop: actions.scrollToTop})],
+        ['general', new GeneralPage({island, settings, media, mixer, scrollToTop: actions.scrollToTop})],
         ['calendar', new CalendarPage(island)],
         ['workspaces', new WorkspacesPage(workspaces, island)],
         [

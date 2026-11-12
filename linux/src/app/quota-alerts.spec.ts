@@ -3,6 +3,9 @@ import type {ProfileUsage} from '../features/claude/claude-service.types.js';
 import type {UsageWindow, WindowRole} from '../features/claude/claude-usage.types.js';
 import type {CodexLimits} from '../features/codex/codex-usage.types.js';
 import type {GeminiQuota} from '../features/gemini/gemini-usage.types.js';
+import {codexMeters} from '../features/codex/codex-usage.js';
+import {geminiMeters} from '../features/gemini/gemini-usage.js';
+import type {Meter} from '../shared/meter.types.js';
 import {Changes, createSettings} from '../../tests/fixtures.js';
 
 function usageWindow(role: WindowRole, utilization: number): UsageWindow {
@@ -31,6 +34,10 @@ class FakeClaude extends Changes {
 class FakeCodex extends Changes {
     limits: CodexLimits | null = null;
 
+    meters(now: number): Meter[] {
+        return codexMeters(this.limits, now);
+    }
+
     set(primary: number, resetsAt = Date.now() + 3600e3): void {
         this.limits = {plan: null, primary: {usedPercent: primary, windowMinutes: 300, resetsAt}, secondary: null, at: Date.now()};
         this.fire();
@@ -39,6 +46,10 @@ class FakeCodex extends Changes {
 
 class FakeGemini extends Changes {
     quota: GeminiQuota | null = null;
+
+    meters(): Meter[] {
+        return geminiMeters(this.quota);
+    }
 
     set(requests: number): void {
         this.quota = {requests, limit: 100, perMinute: 0, resetsAt: Date.now() + 3600e3};
