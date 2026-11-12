@@ -15,14 +15,9 @@ extension SettingsView {
                 )
             }
             SettingsGroup("Atalhos", hint: "Clique em Alterar e pressione a nova combinação. Esc cancela. Evite ⌘⇧Z (é Refazer em quase todo app).") {
-                shortcutRow("Abrir e fechar a ilha", \.toggleShortcut, other: \.claudeShortcut)
-                shortcutRow("Abrir na aba IA", \.claudeShortcut, other: \.toggleShortcut)
+                ShortcutRows(services: services)
             }
         }
-    }
-
-    private func shortcutRow(_ title: String, _ keyPath: ReferenceWritableKeyPath<FrodoSettings, String>, other: ReferenceWritableKeyPath<FrodoSettings, String>) -> some View {
-        SettingRow(title) { ShortcutField(services: services, current: keyPath, other: other) }
     }
 
     var displaySection: some View {
