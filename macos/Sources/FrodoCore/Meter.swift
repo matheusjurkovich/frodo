@@ -43,7 +43,7 @@ public struct QuotaReading: Equatable, Sendable {
     }
 }
 
-public struct QuotaNotice: Equatable, Sendable {
+public struct AlertNotice: Equatable, Sendable {
     public let provider: AiProvider
     public let title: String
     public let body: String
@@ -90,9 +90,9 @@ public func shownMeterPercent(_ percent: Double, remaining: Bool) -> Double {
     return remaining ? 100 - clamped : clamped
 }
 
-public func quotaNotices(_ previous: [String: Level], _ readings: [QuotaReading]) -> (states: [String: Level], notices: [QuotaNotice]) {
+public func quotaNotices(_ previous: [String: Level], _ readings: [QuotaReading]) -> (states: [String: Level], notices: [AlertNotice]) {
     var states: [String: Level] = [:]
-    var notices: [QuotaNotice] = []
+    var notices: [AlertNotice] = []
     for reading in readings {
         let next = meterLevel(reading.percent)
         guard let before = previous[reading.id] else {
@@ -101,10 +101,10 @@ public func quotaNotices(_ previous: [String: Level], _ readings: [QuotaReading]
         }
         if next > before {
             let limit = levelPercent(next)
-            notices.append(QuotaNotice(provider: reading.provider, title: "Cota em \(limit)%", body: "\(reading.name): \(limit)% da cota de \(reading.window)"))
+            notices.append(AlertNotice(provider: reading.provider, title: "Cota em \(limit)%", body: "\(reading.name): \(limit)% da cota de \(reading.window)"))
             states[reading.id] = next
         } else if next == .ok && before != .ok {
-            notices.append(QuotaNotice(provider: reading.provider, title: "Cota renovada", body: "\(reading.name): cota de \(reading.window) renovada"))
+            notices.append(AlertNotice(provider: reading.provider, title: "Cota renovada", body: "\(reading.name): cota de \(reading.window) renovada"))
             states[reading.id] = .ok
         } else {
             states[reading.id] = before

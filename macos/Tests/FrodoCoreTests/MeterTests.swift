@@ -47,7 +47,7 @@ struct QuotaNoticesTests {
     @Test("cruzar 80% avisa uma vez")
     func crossing() {
         let first = quotaNotices(["claude:/c:session": .ok], [claude(82)])
-        #expect(first.notices == [QuotaNotice(provider: .claude, title: "Cota em 80%", body: "Claude: 80% da cota de 5 h")])
+        #expect(first.notices == [AlertNotice(provider: .claude, title: "Cota em 80%", body: "Claude: 80% da cota de 5 h")])
         #expect(quotaNotices(first.states, [claude(85)]).notices.isEmpty)
     }
 
@@ -55,7 +55,7 @@ struct QuotaNoticesTests {
     func jump() {
         #expect(
             quotaNotices(["claude:/c:session": .ok], [claude(97)]).notices
-                == [QuotaNotice(provider: .claude, title: "Cota em 95%", body: "Claude: 95% da cota de 5 h")]
+                == [AlertNotice(provider: .claude, title: "Cota em 95%", body: "Claude: 95% da cota de 5 h")]
         )
     }
 
@@ -70,7 +70,7 @@ struct QuotaNoticesTests {
     func renewed() {
         let codex = QuotaReading(id: "codex:weekly", provider: .codex, name: "Codex", window: "semana", percent: 12)
         let result = quotaNotices(["codex:weekly": .warn], [codex])
-        #expect(result.notices == [QuotaNotice(provider: .codex, title: "Cota renovada", body: "Codex: cota de semana renovada")])
+        #expect(result.notices == [AlertNotice(provider: .codex, title: "Cota renovada", body: "Codex: cota de semana renovada")])
         #expect(result.states["codex:weekly"] == .ok)
     }
 
@@ -79,7 +79,7 @@ struct QuotaNoticesTests {
         let expired = QuotaReading(id: "codex:session", provider: .codex, name: "Codex", window: "5 h", percent: 0)
         #expect(
             quotaNotices(["codex:session": .crit], [expired]).notices
-                == [QuotaNotice(provider: .codex, title: "Cota renovada", body: "Codex: cota de 5 h renovada")]
+                == [AlertNotice(provider: .codex, title: "Cota renovada", body: "Codex: cota de 5 h renovada")]
         )
     }
 
