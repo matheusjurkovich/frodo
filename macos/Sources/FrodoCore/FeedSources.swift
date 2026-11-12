@@ -52,6 +52,7 @@ public struct FeedSources {
     public let notifications: any NotificationsSource
     public let volume: any VolumeSource
     public let media: any MediaSource
+    public let aiActivity: @MainActor () -> PillAiActivity
 
     public init(
         recording: any RecordingSource,
@@ -59,7 +60,8 @@ public struct FeedSources {
         meetings: any MeetingsSource,
         notifications: any NotificationsSource,
         volume: any VolumeSource,
-        media: any MediaSource
+        media: any MediaSource,
+        aiActivity: @escaping @MainActor () -> PillAiActivity
     ) {
         self.recording = recording
         self.sessions = sessions
@@ -67,5 +69,6 @@ public struct FeedSources {
         self.notifications = notifications
         self.volume = volume
         self.media = media
+        self.aiActivity = aiActivity
     }
 }

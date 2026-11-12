@@ -66,6 +66,7 @@ struct MeetingContent: View {
     let services: FrodoServices
     let title: String
     let startsAt: Date
+    let openTab: (TabId) -> Void
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 15)) { context in
@@ -77,7 +78,7 @@ struct MeetingContent: View {
                 }
                 .frame(maxWidth: 240, alignment: vertical ? .center : .leading)
                 TextButton(title: services.calendar.nextMeetingURL == nil ? "Abrir" : "Entrar", kind: .primary, compact: true) {
-                    if let url = services.calendar.nextMeetingURL { SystemActions.open(url) } else { SystemActions.open(URL(fileURLWithPath: "/System/Applications/Calendar.app")) }
+                    if let url = services.calendar.nextMeetingURL { SystemActions.open(url) } else { openTab(.calendar) }
                 }
             }
         }

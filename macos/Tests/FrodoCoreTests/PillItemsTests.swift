@@ -31,9 +31,19 @@ struct ReorderTests {
 
 @Suite("itens da pílula")
 struct PillItemsTests {
+    private let everything = RotationState(hasBattery: true, providerEnabled: { _ in true })
+
     @Test("lista os itens fora da pílula na ordem do catálogo")
     func listsTheMissingItemsInCatalogOrder() {
-        #expect(missingItems([.ram, .clock, .date, .notifications, .battery]) == [.claudeSession, .claudeWeekly])
+        #expect(missingItems([.ram, .clock, .date, .notifications, .battery]) == [.claudeSession, .claudeWeekly, .codexSession, .codexWeekly, .geminiDaily])
+    }
+
+    @Test("esconde itens de IA desligada")
+    func hidesItemsOfDisabledAi() {
+        let missing = missingItems([.clock], providerEnabled: { $0 == .codex })
+        #expect(!missing.contains(.claudeSession))
+        #expect(!missing.contains(.geminiDaily))
+        #expect(missing.contains(.codexWeekly))
     }
 
     @Test("nada falta quando todos estão na pílula")
@@ -91,26 +101,50 @@ struct PillItemsTests {
         #expect(visibleItems(mode: .rotating, items: [.clock, .date]) == [.clock, .date])
     }
 
+    @Test("modo compacto esconde o item de IA desligada, menos o Claude")
+    func compactModeHidesDisabledProviderItemsExceptClaude() {
+        let items: [ClosedItem] = [.clock, .codexSession, .geminiDaily, .claudeSession]
+        #expect(visibleItems(mode: .compact, items: items, providerEnabled: { $0 == .gemini }) == [.clock, .geminiDaily, .claudeSession])
+    }
+
+    @Test("ignora o que não é texto")
+    func rotatingItemsIgnoreNonText() {
+        #expect(rotatingItems([.clock, .ram], RotationState(hasBattery: true, providerEnabled: { _ in true })) == [.ram])
+    }
+
+    @Test("tira a bateria quando não há bateria")
+    func rotatingItemsDropBatteryWithoutBattery() {
+        let items: [ClosedItem] = [.clock, .battery, .ram, .codexSession, .geminiDaily, .claudeWeekly]
+        #expect(!rotatingItems(items, RotationState(hasBattery: false, providerEnabled: { _ in true })).contains(.battery))
+    }
+
+    @Test("tira provedor desativado, menos o Claude")
+    func rotatingItemsDropDisabledProviderExceptClaude() {
+        let items: [ClosedItem] = [.clock, .battery, .ram, .codexSession, .geminiDaily, .claudeWeekly]
+        let state = RotationState(hasBattery: true, providerEnabled: { $0 == .gemini })
+        #expect(rotatingItems(items, state) == [.battery, .ram, .geminiDaily, .claudeWeekly])
+    }
+
     @Test("o item rotativo troca a cada intervalo, só entre os de texto")
     func rotatingItemChangesEveryInterval() {
         let items: [ClosedItem] = [.clock, .battery, .ram, .claudeSession]
-        #expect(rotatingItem(items, now: Date(timeIntervalSince1970: 0), everySeconds: 5) == .battery)
-        #expect(rotatingItem(items, now: Date(timeIntervalSince1970: 4), everySeconds: 5) == .battery)
-        #expect(rotatingItem(items, now: Date(timeIntervalSince1970: 5), everySeconds: 5) == .ram)
-        #expect(rotatingItem(items, now: Date(timeIntervalSince1970: 15), everySeconds: 5) == .battery)
+        #expect(rotatingItem(items, now: Date(timeIntervalSince1970: 0), everySeconds: 5, state: everything) == .battery)
+        #expect(rotatingItem(items, now: Date(timeIntervalSince1970: 4), everySeconds: 5, state: everything) == .battery)
+        #expect(rotatingItem(items, now: Date(timeIntervalSince1970: 5), everySeconds: 5, state: everything) == .ram)
+        #expect(rotatingItem(items, now: Date(timeIntervalSince1970: 15), everySeconds: 5, state: everything) == .battery)
     }
 
     @Test("sem item de texto não há item rotativo")
     func noTextItemMeansNoRotatingItem() {
-        #expect(rotatingItem([.clock, .date], now: Date(), everySeconds: 5) == nil)
-        #expect(rotatingItem([], now: Date(), everySeconds: 5) == nil)
+        #expect(rotatingItem([.clock, .date], now: Date(), everySeconds: 5, state: everything) == nil)
+        #expect(rotatingItem([], now: Date(), everySeconds: 5, state: everything) == nil)
     }
 
     @Test("intervalo zero vale como um segundo")
     func zeroIntervalCountsAsOneSecond() {
         let items: [ClosedItem] = [.battery, .ram]
-        #expect(rotatingItem(items, now: Date(timeIntervalSince1970: 1), everySeconds: 0) == .ram)
-        #expect(rotatingItem(items, now: Date(timeIntervalSince1970: -1), everySeconds: 1) == .ram)
+        #expect(rotatingItem(items, now: Date(timeIntervalSince1970: 1), everySeconds: 0, state: everything) == .ram)
+        #expect(rotatingItem(items, now: Date(timeIntervalSince1970: -1), everySeconds: 1, state: everything) == .ram)
     }
 
     @Test("rótulos iguais aos do Linux")
@@ -119,6 +153,9 @@ struct PillItemsTests {
         #expect(ClosedItem.ram.label == "RAM")
         #expect(ClosedItem.claudeSession.label == "Claude · sessão")
         #expect(ClosedItem.claudeWeekly.label == "Claude · semana")
+        #expect(ClosedItem.codexSession.label == "Codex · 5 h")
+        #expect(ClosedItem.codexWeekly.label == "Codex · semana")
+        #expect(ClosedItem.geminiDaily.label == "Gemini · hoje")
         #expect(ClosedMode.minimal.label == "Mínimo")
         #expect(ClosedMode.compact.label == "Compacto")
         #expect(ClosedMode.rotating.label == "Rotativo")

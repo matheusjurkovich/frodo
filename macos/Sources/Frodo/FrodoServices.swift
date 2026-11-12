@@ -61,7 +61,8 @@ final class FrodoServices {
         system = SystemState(scheduler: scheduler)
         calendar = CalendarService(settings: settings, scheduler: scheduler)
         let sources = FeedSources(
-            recording: NoRecording(), sessions: sessions, meetings: calendar, notifications: notifications, volume: volume, media: media
+            recording: NoRecording(), sessions: sessions, meetings: calendar, notifications: notifications, volume: volume, media: media,
+            aiActivity: { [settings] in settings.pillAiActivity }
         )
         feed = ActivityFeed(sources: sources, scheduler: scheduler)
         bridge()
@@ -91,6 +92,7 @@ final class FrodoServices {
         disposables.add(volume.changed.on { _ in revisions.volume += 1 })
         disposables.add(volume.statusChanged.on { _ in revisions.volume += 1 })
         disposables.add(settings.changed.on { _ in revisions.settings += 1 })
+        disposables.add(settings.onChanged(["pill-ai-activity"]) { [feed] in feed.aiActivityChanged() })
         disposables.add(sessions.hookEvents.on { [weak self] event in
             guard event.notificationType == "idle_prompt", let message = claudeNotification(for: event) else { return }
             self?.notifications.push(app: "Claude Code", title: message.title, body: message.body)

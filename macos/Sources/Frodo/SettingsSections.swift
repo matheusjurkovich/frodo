@@ -67,6 +67,9 @@ extension SettingsView {
                 ToggleRow(title: "RAM em porcentagem", subtitle: "Mostra RAM 63% em vez dos GB usados", isOn: bind(\.ramPercent))
                 ToggleRow(title: "Mostrar porcentagem da bateria", isOn: bind(\.showBatteryPercentage))
                 ToggleRow(title: "Sempre à mostra", subtitle: "Com janela maximizada a pílula fica no lugar, sem virar lingueta", isOn: bind(\.alwaysShowPill))
+                SettingRow("Atividade da IA", subtitle: "O que a IA está fazendo aparece na pílula") {
+                    SegmentedPicker(options: PillAiActivity.allCases.map { ($0, $0.label) }, selection: bind(\.pillAiActivity))
+                }
             }
             fullscreenGroup
         }
