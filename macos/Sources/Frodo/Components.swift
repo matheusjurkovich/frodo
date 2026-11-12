@@ -225,34 +225,6 @@ struct ProgressBar: View {
     }
 }
 
-struct SegmentedPicker<Value: Hashable>: View {
-    let options: [(Value, String)]
-    @Binding var selection: Value
-    @Environment(\.isEnabled) private var isEnabled
-
-    var body: some View {
-        HStack(spacing: 2) {
-            ForEach(options.indices, id: \.self) { index in
-                let option = options[index]
-                Button {
-                    withAnimation(Motion.standard) { selection = option.0 }
-                } label: {
-                    Text(option.1)
-                        .font(Theme.Font.secondary(.medium))
-                        .foregroundStyle(selection == option.0 ? Theme.text : Theme.textSecondary)
-                        .padding(.horizontal, 12)
-                        .frame(height: 26)
-                        .background(Capsule().fill(selection == option.0 ? Theme.controlHover : .clear))
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(2)
-        .background(Capsule().fill(Theme.control))
-        .opacity(isEnabled ? 1 : 0.4)
-    }
-}
-
 struct StatusDot: View {
     let color: Color
     var size: CGFloat = 8

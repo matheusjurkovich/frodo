@@ -17,6 +17,7 @@ enum Motion {
     @MainActor static var soft: Animation { reduced ? .linear(duration: 0) : spring(.soft) }
     @MainActor static var hover: Animation { reduced ? .linear(duration: 0) : .easeOut(duration: 0.15) }
     @MainActor static var fadeOut: Animation { reduced ? .linear(duration: 0) : .easeOut(duration: 0.11) }
+    @MainActor static var swapFade: Animation { reduced ? .linear(duration: 0) : .easeOut(duration: 0.22) }
     @MainActor static var fadeIn: Animation { reduced ? .linear(duration: 0) : .easeOut(duration: 0.22).delay(0.07) }
     @MainActor static var pillReturn: Animation {
         reduced ? .linear(duration: 0) : .easeOut(duration: 0.22).delay(max(0, SpringSpec.soft.milliseconds / 1000 - 0.22))
@@ -28,7 +29,7 @@ enum Motion {
         .linear(duration: Double(seconds))
     }
 
-    static let slideDistance: CGFloat = 56
+    static let swapOffset: CGFloat = 56
     static let openBlur: CGFloat = 16
     static let openScale: CGFloat = 0.9
     static let pillEnterScale: CGFloat = 0.92

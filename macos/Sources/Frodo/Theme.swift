@@ -49,6 +49,8 @@ enum Theme {
     static let accent = Color(nsColor: .controlAccentColor)
     static let accentText = Color(nsColor: .controlAccentColor).opacity(0.9)
     static let claude = Color(hex: 0xD97757)
+    static let codex = Color(hex: 0x3DBE9C)
+    static let gemini = Color(hex: 0x8AB4F8)
     static let text = Color(hex: 0xF4F4F5)
     static let textSecondary = Color(hex: 0xA1A1AA)
     static let ok = Color(hex: 0x86EFAC)
@@ -68,6 +70,8 @@ enum Theme {
         static let pillActionHeight: CGFloat = 48
         static let topMargin: CGFloat = 6
         static let maxIslandHeight: CGFloat = 760
+        static let ringBase: CGFloat = 16
+        static let ringLine: CGFloat = 3
     }
 
     enum Radius {
@@ -92,6 +96,18 @@ enum Theme {
         case .warn: warn
         case .crit: dangerStrong
         }
+    }
+
+    static func color(for provider: AiProvider) -> Color {
+        switch provider {
+        case .claude: claude
+        case .codex: codex
+        case .gemini: gemini
+        }
+    }
+
+    static func color(for provider: AiProvider, level: FrodoLevel) -> Color {
+        level == .ok ? color(for: provider) : color(for: level)
     }
 
     static func color(for status: SessionStatus) -> Color {
