@@ -62,6 +62,39 @@ struct BatteryAndMemoryTests {
     func formatsGigabytes() {
         #expect(formatGb(6_657_199_308) == "6.2G")
     }
+
+    @Test("alarma a partir de 90% e só rearma abaixo de 80%")
+    func memoryAlarmThresholds() {
+        #expect(!memoryAlarm(89, alarmed: false))
+        #expect(memoryAlarm(90, alarmed: false))
+        #expect(memoryAlarm(85, alarmed: true))
+        #expect(!memoryAlarm(79, alarmed: true))
+    }
+
+    @Test("avisa uma vez só quando a RAM passa do limite")
+    func memoryAlertOnce() {
+        #expect(memoryAlerts(85, 92, 95).map(highMemoryMessage) == ["92% da RAM em uso (14.7G de 16.0G)"])
+    }
+
+    @Test("rearma só depois de cair abaixo do limite de rearme")
+    func memoryAlertRearms() {
+        #expect(memoryAlerts(92, 85, 92).count == 1)
+        #expect(memoryAlerts(92, 85, 92, 70, 91).count == 2)
+    }
+}
+
+private let totalMemory: UInt64 = 16 * 1_073_741_824
+
+private func memoryAlerts(_ percents: UInt64...) -> [MemoryInfo] {
+    var alarmed = false
+    var alerts: [MemoryInfo] = []
+    for percent in percents {
+        let memory = MemoryInfo(totalBytes: totalMemory, usedBytes: totalMemory * percent / 100)
+        let next = memoryAlarm(usedPercent(memory), alarmed: alarmed)
+        if next && !alarmed { alerts.append(memory) }
+        alarmed = next
+    }
+    return alerts
 }
 
 @MainActor

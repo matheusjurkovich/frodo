@@ -8,10 +8,7 @@ struct NotificationContent: View {
 
     var body: some View {
         PillStack(spacing: 10) {
-            ZStack {
-                Circle().fill(Theme.claude.opacity(0.2)).frame(width: 30, height: 30)
-                FrodoIcon(name: "claude", size: 16, color: Theme.claude)
-            }
+            NotificationBadge(provider: item.provider, size: 30, iconSize: 16)
             VStack(alignment: vertical ? .center : .leading, spacing: 1) {
                 Text("\(item.app) · \(item.title)").font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text).lineLimit(1)
                 Text(item.body).font(Theme.Font.label()).foregroundStyle(Theme.textSecondary).lineLimit(1)

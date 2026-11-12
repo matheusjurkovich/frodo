@@ -320,6 +320,34 @@ struct FinishedSessionsTests {
         #expect(finished.isEmpty)
     }
 
+    @Test("avisa quando uma sessão que trabalhava termina, com o provedor e o repositório")
+    func notifiesFinishedSessionWithProviderAndRepo() {
+        let finished = finishedSessions([makeSession("a", repo: "a")], [makeSession("a", status: .done, repo: "a")])
+        #expect(finished.map(doneMessage) == ["Claude terminou em a"])
+    }
+
+    @Test("não avisa de novo enquanto a sessão segue pronta")
+    func doesNotRepeatWhileDone() {
+        #expect(finishedSessions([makeSession("a", status: .done)], [makeSession("a", status: .done)]).isEmpty)
+    }
+
+    @Test("não avisa sessão que já aparece pronta ou que só passa a esperar")
+    func ignoresAlreadyDoneOrWaiting() {
+        let first = [makeSession("a", status: .waiting), makeSession("b", status: .done, provider: .codex)]
+        let second = [makeSession("a", status: .done), makeSession("b", status: .done, provider: .codex)]
+        #expect(finishedSessions([makeSession("a")], first).isEmpty)
+        #expect(finishedSessions(first, second).isEmpty)
+    }
+
+    @Test("avisa cada sessão que termina no mesmo lote")
+    func notifiesEachFinishedInBatch() {
+        let finished = finishedSessions(
+            [makeSession("a", repo: "a"), makeSession("b", repo: "b", provider: .gemini)],
+            [makeSession("a", status: .done, repo: "a"), makeSession("b", status: .done, repo: "b", provider: .gemini)]
+        )
+        #expect(finished.map(doneMessage) == ["Claude terminou em a", "Gemini terminou em b"])
+    }
+
     @Test("doneMessage usa o nome do provedor e o repo")
     func doneMessageUsesProviderNameAndRepo() {
         #expect(doneMessage(makeSession("a", status: .done)) == "Claude terminou em loja-api")

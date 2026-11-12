@@ -80,7 +80,7 @@ final class DemoMode {
 
     func start() {
         let steps: [(Double, String, @MainActor () -> Void)] = [
-            (1.5, "notificação do Claude", { [self] in services.notifications.push(app: "Claude Code", title: "docs-site", body: "Esperando você") }),
+            (1.5, "notificação do Claude", { [self] in services.notifications.push(app: "Claude Code", title: "docs-site", body: "Esperando você", provider: .claude) }),
             (7, "Claude trabalhando", { [self] in writeSession(id: "loja", cwd: "/Users/demo/loja-api", event: "PreToolUse", extra: #","tool_name":"Edit","tool_input":{"file_path":"/Users/demo/loja-api/src/cart.ts"}"#) }),
             (14, "pedido de permissão (clique em Aprovar ou Negar)", { [self] in
                 writeSession(id: "loja", cwd: "/Users/demo/loja-api", event: "PermissionRequest", extra: #","tool_name":"Bash","tool_input":{"command":"rm -rf node_modules && npm ci"}"#)

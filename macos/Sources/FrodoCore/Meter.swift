@@ -27,7 +27,7 @@ public protocol MeterSource: AnyObject {
     var changed: Event<Void> { get }
 }
 
-public struct QuotaReading: Sendable {
+public struct QuotaReading: Equatable, Sendable {
     public let id: String
     public let provider: AiProvider
     public let name: String
