@@ -241,3 +241,107 @@ struct PendingFilesTests {
         #expect(decisionJson(.deny) == "{\"behavior\":\"deny\"}\n")
     }
 }
+
+private func geminiEvent(_ name: String, _ extra: [String: JSONValue] = [:], provider: JSONValue? = .string("gemini")) -> HookEvent? {
+    var fields: [String: JSONValue] = ["session_id": .string("g1"), "cwd": .string("/p/app"), "hook_event_name": .string(name)]
+    fields.merge(extra) { _, new in new }
+    var root: [String: JSONValue] = ["pid": .number(7), "event": .object(fields)]
+    root["provider"] = provider
+    let text = (try? JSONEncoder().encode(JSONValue.object(root))).map { String(decoding: $0, as: UTF8.self) } ?? ""
+    return parseHookEvent(text)
+}
+
+@Suite("provedor e eventos do Gemini")
+struct ProviderSessionsTests {
+    @Test("lê o provedor e traduz os eventos do Gemini")
+    func readsProviderAndTranslatesGeminiEvents() {
+        #expect(geminiEvent("Stop", provider: nil)?.provider == .claude)
+        #expect(geminiEvent("Stop", provider: .string("outro"))?.provider == .claude)
+        #expect(geminiEvent("PermissionRequest", provider: .string("codex"))?.provider == .codex)
+        let prompt = geminiEvent("BeforeAgent")
+        let tool = geminiEvent("BeforeTool", ["tool_name": .string("run_shell_command"), "tool_input": .object(["command": .string("ls")])])
+        let asking = geminiEvent("Notification", ["notification_type": .string("ToolPermission")])
+        let finished = geminiEvent("AfterAgent")
+        guard let prompt, let tool, let asking, let finished else {
+            Issue.record("evento inválido")
+            return
+        }
+        let thinking = nextState(previous: nil, event: prompt, at: at)
+        let working = nextState(previous: thinking, event: tool, at: at.addingTimeInterval(1))
+        #expect(thinking?.step == "Pensando")
+        #expect(working?.provider == .gemini)
+        #expect(working?.status == .working)
+        #expect(working?.step == "run_shell_command ls")
+        #expect(nextState(previous: working, event: asking, at: at.addingTimeInterval(2))?.status == .waiting)
+        #expect(nextState(previous: working, event: finished, at: at.addingTimeInterval(3))?.status == .done)
+    }
+
+    @Test("o passo do Gemini usa o caminho absoluto")
+    func geminiStepUsesAbsolutePath() {
+        #expect(stepFor(tool: "read_file", input: ["absolute_path": .string("/r/src/Main.ts")]) == "read_file Main.ts")
+    }
+
+    @Test("gemini termina pelo AfterAgent e conta como concluída")
+    func geminiFinishesOnAfterAgent() {
+        guard let start = geminiEvent("BeforeAgent"), let end = geminiEvent("AfterAgent", ["cwd": .string("/home/u/site")]),
+            let before = nextState(previous: nil, event: start, at: at), let after = nextState(previous: before, event: end, at: at.addingTimeInterval(1))
+        else {
+            Issue.record("sem estado")
+            return
+        }
+        #expect(after.status == .done)
+        #expect(finishedSessions([before], [after]).map(\.sessionId) == ["g1"])
+        #expect(doneMessage(after) == "Gemini terminou em site")
+    }
+}
+
+@Suite("sessões que terminaram")
+struct FinishedSessionsTests {
+    @Test("finishedSessions avisa quem passou de trabalhando para concluída")
+    func notifiesWhoWentFromWorkingToDone() {
+        let finished = finishedSessions(
+            [makeSession("a", status: .working), makeSession("b", status: .working)],
+            [makeSession("a", status: .done), makeSession("b", status: .working)]
+        )
+        #expect(finished.map(\.sessionId) == ["a"])
+    }
+
+    @Test("finishedSessions ignora quem já estava concluída ao carregar")
+    func ignoresAlreadyDoneOnLoad() {
+        #expect(finishedSessions([], [makeSession("a", status: .done)]).isEmpty)
+    }
+
+    @Test("finishedSessions ignora quem foi para esperando ou parada")
+    func ignoresWaitingOrIdle() {
+        let finished = finishedSessions(
+            [makeSession("a", status: .working), makeSession("b", status: .working)],
+            [makeSession("a", status: .waiting), makeSession("b", status: .idle)]
+        )
+        #expect(finished.isEmpty)
+    }
+
+    @Test("doneMessage usa o nome do provedor e o repo")
+    func doneMessageUsesProviderNameAndRepo() {
+        #expect(doneMessage(makeSession("a", status: .done)) == "Claude terminou em loja-api")
+        #expect(doneMessage(makeSession("a", status: .done, provider: .codex)) == "Codex terminou em loja-api")
+    }
+}
+
+@Suite("ordem por urgência")
+struct UrgencyOrderTests {
+    @Test("ordena esperando, trabalhando, concluída e parada, depois repo e id")
+    func ordersByStatusThenRepoThenId() {
+        let now = referenceDate
+        let stale = makeSession("e", status: .done, updatedAt: now.addingTimeInterval(-3600))
+        let sessions = [
+            stale,
+            makeSession("d", status: .done, updatedAt: now),
+            makeSession("c2", status: .working, repo: "beta"),
+            makeSession("c1", status: .working, repo: "beta"),
+            makeSession("b", status: .working, repo: "alfa"),
+            makeSession("a", status: .waiting, repo: "zeta"),
+        ]
+        let sorted = sessions.sorted { byUrgency($0, $1, now: now) }
+        #expect(sorted.map(\.sessionId) == ["a", "b", "c1", "c2", "d", "e"])
+    }
+}

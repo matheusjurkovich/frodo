@@ -171,7 +171,7 @@ public final class ClaudeSessions: Destroyable, SessionsSource {
         guard let previous else { return true }
         return SessionState(
             sessionId: previous.sessionId, cwd: previous.cwd, repo: previous.repo, status: previous.status, tool: previous.tool, step: previous.step,
-            pid: previous.pid, since: previous.since, updatedAt: next.updatedAt
+            pid: previous.pid, since: previous.since, updatedAt: next.updatedAt, provider: previous.provider
         ) != next
     }
 
