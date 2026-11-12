@@ -12,9 +12,10 @@ private struct SizeKey: PreferenceKey {
 }
 
 private extension View {
-    func reportSize(_ onChange: @escaping (CGSize) -> Void) -> some View {
+    @MainActor
+    func reportSize(_ onChange: @escaping @MainActor (CGSize) -> Void) -> some View {
         background(GeometryReader { proxy in Color.clear.preference(key: SizeKey.self, value: proxy.size) })
-            .onPreferenceChange(SizeKey.self, perform: onChange)
+            .onPreferenceChange(SizeKey.self) { size in MainActor.assumeIsolated { onChange(size) } }
     }
 }
 

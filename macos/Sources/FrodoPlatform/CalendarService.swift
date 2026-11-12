@@ -6,6 +6,18 @@ import Foundation
 private let refreshSeconds: TimeInterval = 30
 private let storeChangeDebounce: TimeInterval = 0.3
 
+private struct EventStore: @unchecked Sendable {
+    let store = EKEventStore()
+
+    func requestAccess() async -> Bool {
+        (try? await store.requestFullAccessToEvents()) ?? false
+    }
+
+    func events(from start: Date, to end: Date) -> [EKEvent] {
+        store.events(matching: store.predicateForEvents(withStart: start, end: end, calendars: nil))
+    }
+}
+
 public enum CalendarAccess: Sendable {
     case unknown
     case granted
@@ -19,7 +31,7 @@ public final class CalendarService: MeetingsSource, Destroyable {
     public private(set) var nextMeetingURL: URL?
     public private(set) var access: CalendarAccess = .unknown
 
-    private let store = EKEventStore()
+    private let eventStore = EventStore()
     private let settings: FrodoSettings
     private let timer: TimerSlot
     private let storeChange: TimerSlot
@@ -27,6 +39,7 @@ public final class CalendarService: MeetingsSource, Destroyable {
     private var monthDays: [Date: Set<Int>] = [:]
     private var loading: Set<String> = []
     private var generation = 0
+    private var nextRequest = 0
     private var observer: NSObjectProtocol?
     private var settingsSubscription: Unsubscribe?
     private var demoEvents: [CalendarEvent]?
@@ -37,7 +50,7 @@ public final class CalendarService: MeetingsSource, Destroyable {
         storeChange = TimerSlot(scheduler: scheduler)
         access = Self.currentAccess()
         settingsSubscription = settings.onChanged(["meeting-notice-minutes"]) { [weak self] in self?.refresh() }
-        observer = NotificationCenter.default.addObserver(forName: .EKEventStoreChanged, object: store, queue: .main) { [weak self] _ in
+        observer = NotificationCenter.default.addObserver(forName: .EKEventStoreChanged, object: eventStore.store, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.scheduleStoreChange() }
         }
         timer.every(refreshSeconds) { [weak self] in self?.refresh() }
@@ -53,8 +66,8 @@ public final class CalendarService: MeetingsSource, Destroyable {
     }
 
     public func requestAccess() async {
-        NSApp.activate(ignoringOtherApps: true)
-        let granted = (try? await store.requestFullAccessToEvents()) ?? false
+        NSApplication.shared.activate(ignoringOtherApps: true)
+        let granted = await eventStore.requestAccess()
         access = granted ? .granted : .denied
         invalidate()
         refresh()
@@ -87,26 +100,35 @@ public final class CalendarService: MeetingsSource, Destroyable {
 
     public func refresh() {
         if demoEvents != nil { return }
-        let current = nextMeetingFromStore()
-        if current != next {
-            next = current
-            changed.emit()
+        nextRequest += 1
+        let request = nextRequest
+        let leadSeconds = TimeInterval(settings.meetingNoticeMinutes * 60)
+        guard Self.currentAccess() == .granted, leadSeconds > 0 else {
+            apply(next: nil, url: nil)
+            return
+        }
+        let eventStore = eventStore
+        Task {
+            let found = await Self.fetchNext(eventStore, lead: leadSeconds)
+            guard request == nextRequest, demoEvents == nil else { return }
+            apply(next: found.meeting, url: found.url)
         }
     }
 
-    private func nextMeetingFromStore() -> Meeting? {
-        let leadSeconds = TimeInterval(settings.meetingNoticeMinutes * 60)
-        guard Self.currentAccess() == .granted, leadSeconds > 0 else {
-            nextMeetingURL = nil
-            return nil
-        }
+    private func apply(next meeting: Meeting?, url: URL?) {
+        nextMeetingURL = url
+        guard meeting != next else { return }
+        next = meeting
+        changed.emit()
+    }
+
+    nonisolated private static func fetchNext(_ eventStore: EventStore, lead: TimeInterval) async -> (meeting: Meeting?, url: URL?) {
         let now = Date()
-        let predicate = store.predicateForEvents(withStart: now, end: now.addingTimeInterval(leadSeconds + 60), calendars: nil)
-        let stored = store.events(matching: predicate)
+        let stored = eventStore.events(from: now, to: now.addingTimeInterval(lead + 60))
         let events = stored.map { MeetingEvent(summary: $0.title ?? "Sem título", date: $0.startDate, end: $0.endDate) }
-        let meeting = nextMeeting(events, now: now, lead: leadSeconds)
-        nextMeetingURL = stored.first { $0.startDate == meeting?.startsAt }.flatMap { Self.map($0).meetingURL }
-        return meeting
+        let meeting = nextMeeting(events, now: now, lead: lead)
+        let url = stored.first { $0.startDate == meeting?.startsAt }.flatMap { Self.map($0).meetingURL }
+        return (meeting, url)
     }
 
     public func events(on day: Date) -> [CalendarEvent] {
@@ -136,9 +158,9 @@ public final class CalendarService: MeetingsSource, Destroyable {
         guard !loading.contains(key) else { return }
         loading.insert(key)
         let expected = generation
-        let store = store
+        let eventStore = eventStore
         Task {
-            let events = await Self.fetch(store: store, start: start, end: end)
+            let events = await Self.fetch(eventStore, start: start, end: end)
             guard expected == generation else { return }
             loading.remove(key)
             apply(events)
@@ -146,8 +168,8 @@ public final class CalendarService: MeetingsSource, Destroyable {
         }
     }
 
-    nonisolated private static func fetch(store: EKEventStore, start: Date, end: Date) async -> [CalendarEvent] {
-        store.events(matching: store.predicateForEvents(withStart: start, end: end, calendars: nil)).map(Self.map)
+    nonisolated private static func fetch(_ eventStore: EventStore, start: Date, end: Date) async -> [CalendarEvent] {
+        eventStore.events(from: start, to: end).map(Self.map)
     }
 
     nonisolated private static func map(_ event: EKEvent) -> CalendarEvent {

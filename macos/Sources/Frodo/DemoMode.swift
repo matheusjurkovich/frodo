@@ -75,7 +75,7 @@ final class DemoMode {
     }
 
     func start() {
-        let steps: [(Double, String, () -> Void)] = [
+        let steps: [(Double, String, @MainActor () -> Void)] = [
             (1.5, "notificação do Claude", { [self] in services.notifications.push(app: "Claude Code", title: "docs-site", body: "Esperando você") }),
             (7, "Claude trabalhando", { [self] in writeSession(id: "loja", cwd: "/Users/demo/loja-api", event: "PreToolUse", extra: #","tool_name":"Edit","tool_input":{"file_path":"/Users/demo/loja-api/src/cart.ts"}"#) }),
             (14, "pedido de permissão (clique em Aprovar ou Negar)", { [self] in
@@ -93,9 +93,11 @@ final class DemoMode {
         print("frodo demo: roteiro de teste, passe o mouse na pílula para abrir a ilha")
         for (delay, title, action) in steps {
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                print("frodo demo [\(Int(delay)) s]: \(title)")
-                fflush(stdout)
-                action()
+                MainActor.assumeIsolated {
+                    print("frodo demo [\(Int(delay)) s]: \(title)")
+                    fflush(stdout)
+                    action()
+                }
             }
         }
         Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [self] _ in
