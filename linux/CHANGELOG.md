@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.1](https://github.com/matheusjurkovich/frodo/compare/linux-v1.4.0...linux-v1.4.1) (2026-11-12)
+
+
+### Correções
+
+* ilha aberta não some ao mudar barra superior ou monitores ([f5b79f3](https://github.com/matheusjurkovich/frodo/commit/f5b79f38f62de7bb4f4b04dcab3bb62c293fad66))
+* sem St-CRITICAL na sparkline e sem acesso a ator destruído no desligar do shell ([a84e0e4](https://github.com/matheusjurkovich/frodo/commit/a84e0e4d63547969597a3e8b297dffcc62b29cbf))
+
 ## [1.4.0](https://github.com/matheusjurkovich/frodo/compare/linux-v1.3.0...linux-v1.4.0) (2026-11-05)
 
 
