@@ -154,8 +154,8 @@ struct ClaudeServiceTests {
         let stale = "Uso desatualizado. Abra o Claude Code para atualizar."
         #expect(service.profiles[1].status == .error)
         #expect(service.profiles[1].error == stale)
-        let updatedAt = service.profiles[0].updatedAt
         await service.refresh(force: true)
+        let updatedAt = service.profiles[0].updatedAt
         await store.expireFirst()
         await service.refresh(force: true)
         #expect(service.profiles[0].status == .ok)
