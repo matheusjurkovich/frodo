@@ -127,7 +127,7 @@ struct IconButton: View {
 }
 
 struct TextButton: View {
-    enum Kind { case primary, secondary, danger }
+    enum Kind { case primary, secondary, danger, destructive }
 
     let title: String
     var kind: Kind = .secondary
@@ -139,16 +139,29 @@ struct TextButton: View {
         Button(action: action) {
             Text(title)
                 .font(Theme.Font.secondary(.medium))
-                .foregroundStyle(kind == .primary ? Color.white : (kind == .danger ? Theme.danger : Theme.text))
+                .foregroundStyle(kind == .primary || kind == .destructive ? Color.white : (kind == .danger ? Theme.danger : Theme.text))
                 .padding(.horizontal, compact ? 10 : 14)
                 .frame(height: compact ? 26 : 32)
-                .hoverBackground(
-                    kind == .primary ? Theme.accent : Theme.control, hover: kind == .primary ? Theme.accent.opacity(0.85) : Theme.controlHover,
-                    radius: compact ? 13 : 16
-                )
+                .hoverBackground(fill, hover: hoverFill, radius: compact ? 13 : 16)
         }
         .buttonStyle(.plain)
         .opacity(isEnabled ? 1 : 0.4)
+    }
+
+    private var fill: Color {
+        switch kind {
+        case .primary: Theme.accent
+        case .destructive: Theme.destructive
+        case .secondary, .danger: Theme.control
+        }
+    }
+
+    private var hoverFill: Color {
+        switch kind {
+        case .primary: Theme.accent.opacity(0.85)
+        case .destructive: Theme.destructiveHover
+        case .secondary, .danger: Theme.controlHover
+        }
     }
 }
 

@@ -75,7 +75,7 @@ struct HeaderView: View {
         case .calendar: "calendar"
         case .claude: "claude"
         case .notifications: "bell"
-        case .performance: "general"
+        case .performance: "performance"
         case .mixer: "general"
         }
     }
