@@ -4,7 +4,6 @@ private let pacific = TimeZone(identifier: "America/Los_Angeles") ?? .gmt
 private let perMinuteLimit = 60
 private let minuteLength: TimeInterval = 60
 private let hashLength = 64
-private let maxCount = 1e15
 private let geminiFamilies = ["gemini-pro", "gemini-flash", "gemini-other"]
 private let droppedWords: Set<String> = ["preview", "exp", "latest"]
 private let geminiPlans = [1000: "Login Google", 1500: "Standard", 2000: "Enterprise"]
@@ -52,8 +51,7 @@ public struct GeminiQuota: Equatable, Sendable {
 }
 
 private func count(_ value: JSONValue?) -> Int {
-    guard case let .number(number)? = value, number.isFinite, abs(number) < maxCount else { return 0 }
-    return Int(number)
+    boundedInteger(value) ?? 0
 }
 
 private func capitalized(_ word: String) -> String {

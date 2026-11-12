@@ -46,6 +46,13 @@ struct ClaudeTranscriptTests {
         #expect(entry?.sidechain == false)
     }
 
+    @Test("token fora do alcance conta zero sem quebrar")
+    func outOfRangeTokensCountZero() {
+        let line = #"{"type":"assistant","sessionId":"s","timestamp":"2026-10-24T12:00:00Z","message":{"id":"m","model":"claude-opus-5-5","usage":{"input_tokens":1e300,"output_tokens":-1e300}}}"#
+        #expect(parseAssistantLine(line)?.usage.input == 0)
+        #expect(parseAssistantLine(line)?.usage.output == 0)
+    }
+
     @Test("descarta modelo sintético")
     func discardsSyntheticModel() {
         let line = #"{"type":"assistant","sessionId":"s","timestamp":"2026-10-24T12:00:00Z","message":{"id":"m","model":"<synthetic>","usage":{}}}"#

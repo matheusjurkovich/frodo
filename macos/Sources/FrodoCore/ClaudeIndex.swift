@@ -147,8 +147,7 @@ private func date(_ value: JSONValue?) -> Date? {
 }
 
 private func whole(_ value: JSONValue?) -> Int? {
-    guard case let .number(number)? = value, number.isFinite else { return nil }
-    return Int(number)
+    boundedInteger(value)
 }
 
 extension ClaudeIndex {

@@ -129,14 +129,16 @@ struct ProviderUsageSegment: View {
     let now: Date
 
     var body: some View {
-        if let meter = services.meters(provider, now: now).first(where: { $0.key == key }) {
-            let remaining = services.settings.claudeShowRemaining
-            let level = meterLevel(meter.percent)
-            HStack(spacing: 4) {
-                ProviderIcon(provider: provider, size: 13)
+        HStack(spacing: 4) {
+            ProviderIcon(provider: provider, size: 13)
+            if let meter = services.meters(provider, now: now).first(where: { $0.key == key }) {
+                let remaining = services.settings.claudeShowRemaining
+                let level = meterLevel(meter.percent)
                 ProviderRing(provider: provider, used: meter.percent, remaining: remaining, size: 12)
                 Text("\(Int(shownMeterPercent(meter.percent, remaining: remaining).rounded()))%\(suffix)")
                     .font(Theme.Font.secondary(.medium)).foregroundStyle(level == .ok ? Theme.text : Theme.color(for: level)).monospacedDigit()
+            } else {
+                Text("—").font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.textSecondary)
             }
         }
     }

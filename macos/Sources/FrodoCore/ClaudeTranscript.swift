@@ -71,8 +71,7 @@ private let smallWindow = 200_000
 private let largeWindow = 1_000_000
 
 private func count(_ value: JSONValue?) -> Int {
-    guard case let .number(number)? = value, number.isFinite else { return 0 }
-    return Int(number)
+    boundedInteger(value) ?? 0
 }
 
 private func todos(of content: JSONValue?) -> TodoProgress? {

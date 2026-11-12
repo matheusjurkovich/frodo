@@ -148,10 +148,21 @@ struct PerformanceServiceTests {
         defer { service.destroy() }
         service.setWanted(true)
         #expect(service.processes.map(\.isProtected) == [true, true])
-        #expect(!service.terminate(pid: 1))
-        #expect(!service.terminate(pid: 77))
-        #expect(!service.terminate(pid: 0))
-        #expect(!service.terminate(pid: -1))
-        #expect(!service.terminate(pid: 999_999))
+        #expect(!service.terminate(pid: 1, name: "launchd"))
+        #expect(!service.terminate(pid: 77, name: "Safari"))
+        #expect(!service.terminate(pid: 0, name: "launchd"))
+        #expect(!service.terminate(pid: -1, name: "launchd"))
+        #expect(!service.terminate(pid: 999_999, name: "launchd"))
+    }
+
+    @Test("não encerra quando o pid já é de outro processo")
+    func refusesToTerminateReusedPid() {
+        let probe = FakeProbe()
+        probe.samples = [[process(999_998, "Notas", nanos: 0)]]
+        let service = PerformanceService(probe: probe, scheduler: StepScheduler(), ownUid: 501)
+        defer { service.destroy() }
+        service.setWanted(true)
+        #expect(service.processes.map(\.isProtected) == [false])
+        #expect(!service.terminate(pid: 999_998, name: "Safari"))
     }
 }

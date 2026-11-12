@@ -77,8 +77,8 @@ public final class PerformanceService: Destroyable {
         topBy(processes, count: topCount) { sort == .cpu ? $0.cpu : Double($0.ramBytes) }
     }
 
-    public func terminate(pid: Int32) -> Bool {
-        guard pid > 0, let process = processes.first(where: { $0.pid == pid }), !process.isProtected else { return false }
+    public func terminate(pid: Int32, name: String) -> Bool {
+        guard pid > 0, let process = processes.first(where: { $0.pid == pid }), process.name == name, !process.isProtected else { return false }
         return kill(pid, SIGTERM) == 0
     }
 

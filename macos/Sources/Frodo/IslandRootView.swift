@@ -52,7 +52,7 @@ struct IslandRootView: View {
                 .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).stroke(borderColor, lineWidth: model.activity.map(isUrgent) == true ? 1.5 : 1))
                 .frame(width: size.width, height: size.height)
                 .background { if glassEnabled, Surface.shared.style != .solid, !model.isHidden { GlassBackground(radius: radius) } }
-                .shadow(color: .black.opacity((model.isOpen ? 0.5 : 0.35) * Theme.shadowStrength), radius: model.isOpen ? 30 : 10, y: model.isOpen ? 16 : 4)
+                .shadow(color: Theme.shadow.opacity((model.isOpen ? 0.5 : 0.35) * Theme.shadowStrength), radius: model.isOpen ? 30 : 10, y: model.isOpen ? 16 : 4)
                 .opacity(model.isHidden ? 0 : 1)
                 .animation(model.isHidden ? Motion.conceal : Motion.fadeIn, value: model.isHidden)
                 .overlay(alignment: .top) { pillLayer }
