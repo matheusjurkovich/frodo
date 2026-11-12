@@ -16,7 +16,7 @@ extension SettingsView {
             }
             SettingsGroup("Atalhos", hint: "Formato: ctrl+opt+z. Evite ⌘⇧Z (é Refazer em quase todo app).") {
                 shortcutRow("Abrir e fechar a ilha", \.toggleShortcut)
-                shortcutRow("Abrir na aba Claude", \.claudeShortcut)
+                shortcutRow("Abrir na aba IA", \.claudeShortcut)
             }
         }
     }
@@ -99,7 +99,7 @@ extension SettingsView {
     }
 
     var tabsSection: some View {
-        let shown = visibleTabs(hidden: settings.hiddenTabs)
+        let shown = visibleTabs(hidden: settings.hiddenTabs, order: settings.tabOrder)
         return SettingsGroup("Abas visíveis") {
             ForEach(TabId.allCases, id: \.self) { tab in
                 SettingRow(tab.label) {

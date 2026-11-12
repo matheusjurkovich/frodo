@@ -159,7 +159,7 @@ final class IslandController: NSObject {
 
     func open(tab: TabId? = nil) {
         if let tab {
-            let visible = visibleTabs(hidden: services.settings.hiddenTabs)
+            let visible = visibleTabs(hidden: services.settings.hiddenTabs, order: services.settings.tabOrder)
             model.select(tabToOpen(tab, visible: visible), visible: visible)
         }
         guard !model.isOpen else { return }
