@@ -1,4 +1,12 @@
 import AppKit
+import IOKit.pwr_mgt
+
+public struct PowerAvailability: Sendable {
+    public let canSleep: Bool
+    public let canLogOut: Bool
+    public let canRestart: Bool
+    public let canShutDown: Bool
+}
 
 @MainActor
 public enum SystemActions {
@@ -11,6 +19,17 @@ public enum SystemActions {
         process.executableURL = URL(fileURLWithPath: executable)
         process.arguments = arguments
         try? process.run()
+    }
+
+    public static func powerAvailability() -> PowerAvailability {
+        let loginWindow = UserDefaults(suiteName: "com.apple.loginwindow")
+        let allowed = { (key: String) in loginWindow?.bool(forKey: key) != true }
+        return PowerAvailability(
+            canSleep: IOPMSleepEnabled() != 0,
+            canLogOut: allowed("LogOutDisabledWhileLoggedIn"),
+            canRestart: allowed("RestartDisabledWhileLoggedIn"),
+            canShutDown: allowed("ShutDownDisabledWhileLoggedIn")
+        )
     }
 
     public static func sleep() { run("/usr/bin/pmset", ["sleepnow"]) }

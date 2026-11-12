@@ -13,3 +13,13 @@ public func runAppleScript(_ source: String) async -> Int? {
         }
     }
 }
+
+public func evaluateAppleScript<Value: Sendable>(_ source: String, _ read: @escaping @Sendable (NSAppleEventDescriptor) -> Value?) async -> Value? {
+    await withCheckedContinuation { (continuation: CheckedContinuation<Value?, Never>) in
+        scriptQueue.async {
+            var error: NSDictionary?
+            let result = NSAppleScript(source: source)?.executeAndReturnError(&error)
+            continuation.resume(returning: error == nil ? result.flatMap(read) : nil)
+        }
+    }
+}

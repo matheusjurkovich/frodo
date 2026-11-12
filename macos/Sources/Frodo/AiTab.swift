@@ -4,7 +4,12 @@ import SwiftUI
 
 struct AiTab: View {
     let services: FrodoServices
-    @State private var selected: AiView = .all
+    @State private var selected: AiView
+
+    init(services: FrodoServices, selected: AiView = .all) {
+        self.services = services
+        _selected = State(initialValue: selected)
+    }
 
     var body: some View {
         let _ = services.revisions.settings

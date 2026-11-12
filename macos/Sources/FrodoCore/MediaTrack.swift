@@ -31,3 +31,8 @@ public struct MediaTrack: Equatable, Sendable {
         self.canNext = canNext
     }
 }
+
+public func mediaProgress(position: Double?, duration: Double?) -> Double? {
+    guard let position, let duration, duration > 0 else { return nil }
+    return min(1, max(0, position / duration))
+}
