@@ -6,7 +6,6 @@ public let profileURL = "https://api.anthropic.com/api/oauth/profile"
 
 private let betaHeader = "oauth-2025-04-20"
 private let apiVersion = "2023-06-01"
-private let tokenExpiryMargin: TimeInterval = 300
 
 public struct HTTPRequest: Sendable {
     public let url: String
@@ -109,7 +108,7 @@ public struct ClaudeClient: Sendable {
 
     private func validToken(_ credentials: Credentials?) throws -> String {
         guard let credentials else { throw SignedOutError() }
-        if credentials.expiresAt > 0, credentials.expiresAt / 1000 - now().timeIntervalSince1970 <= tokenExpiryMargin {
+        if needsRefresh(expiresAt: credentials.expiresAt, now: now()) {
             throw ExpiredTokenError()
         }
         return credentials.accessToken
