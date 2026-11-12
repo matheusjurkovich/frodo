@@ -28,6 +28,8 @@ enum Theme {
         byStyle(Color(hex: 0x0A0A0B), frosted: Color(hex: 0x0A0A0B, opacity: 0.72), clear: Color(hex: 0x0A0A0B, opacity: 0.42))
     }
 
+    static let shadow = Color.black
+
     @MainActor
     static var shadowStrength: Double {
         switch Surface.shared.style {

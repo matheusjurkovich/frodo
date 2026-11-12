@@ -37,7 +37,7 @@ private func registryProperties(of className: String, key: String) -> [NSDiction
     var found: [NSDictionary] = []
     var entry = IOIteratorNext(iterator)
     while entry != 0 {
-        if let value = IORegistryEntryCreateCFProperty(entry, key as CFString, kCFAllocatorDefault, 0)?.takeRetainedValue() as? NSDictionary {
+        if let value = IORegistryEntryCreateCFProperty(entry, key as CFString, nil, 0)?.takeRetainedValue() as? NSDictionary {
             found.append(value)
         }
         IOObjectRelease(entry)

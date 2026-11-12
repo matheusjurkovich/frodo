@@ -83,7 +83,7 @@ struct ReorderableList<Item: Hashable, Row: View>: View {
             cell(drag.item, index: drag.target, interactive: false)
                 .frame(width: drag.size.width, height: drag.size.height)
                 .background(RoundedRectangle(cornerRadius: Theme.Radius.item, style: .continuous).fill(Theme.controlHover))
-                .shadow(color: .black.opacity(0.3 * Theme.shadowStrength), radius: 8, y: 3)
+                .shadow(color: Theme.shadow.opacity(0.3 * Theme.shadowStrength), radius: 8, y: 3)
                 .offset(x: drag.location.x - drag.grab.width, y: drag.location.y - drag.grab.height)
                 .allowsHitTesting(false)
         }

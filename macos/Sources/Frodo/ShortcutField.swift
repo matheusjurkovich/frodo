@@ -7,7 +7,7 @@ struct ShortcutRows: View {
     private enum Slot: CaseIterable {
         case toggle, claude
 
-        var keyPath: ReferenceWritableKeyPath<FrodoSettings, String> {
+        @MainActor var keyPath: ReferenceWritableKeyPath<FrodoSettings, String> {
             switch self {
             case .toggle: \.toggleShortcut
             case .claude: \.claudeShortcut

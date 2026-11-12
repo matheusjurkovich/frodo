@@ -187,6 +187,18 @@ struct ClaudeIndexTests {
         #expect(ClaudeIndex(json: .object(["version": .number(99)])).summary(.today, now: now).total == 0)
     }
 
+    @Test("número fora do alcance no cache vira lixo sem quebrar")
+    func outOfRangeNumberIsGarbage() {
+        guard case var .object(root) = build().toJSON(), case var .array(cells)? = root["cells"], case var .object(cell)? = cells.first else {
+            Issue.record("sem célula")
+            return
+        }
+        cell["input"] = .number(1e300)
+        cells[0] = .object(cell)
+        root["cells"] = .array(cells)
+        #expect(ClaudeIndex(json: .object(root)).summary(.week, now: now).total == 0)
+    }
+
     @Test("serializa uma cópia que não muda com o índice")
     func serializesCopyThatDoesNotChangeWithTheIndex() {
         var index = build()

@@ -100,7 +100,7 @@ struct ProcessTable: View {
 
     private func terminate(_ process: ProcessUsage, name: String) {
         asking = nil
-        footer = services.performance.terminate(pid: process.pid) ? .killed("\(name) (pid \(process.pid)) foi encerrado.") : .failed("Não deu para encerrar \(name).")
+        footer = services.performance.terminate(pid: process.pid, name: process.name) ? .killed("\(name) (pid \(process.pid)) foi encerrado.") : .failed("Não deu para encerrar \(name).")
     }
 }
 
