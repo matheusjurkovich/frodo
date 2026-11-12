@@ -17,6 +17,7 @@ private func sessionJSON(id: String, event: String, extra: String = "", pid: Int
 private struct Harness {
     let root = NSTemporaryDirectory() + "frodo-run-\(UUID().uuidString)"
     let paths: FrodoPaths
+    let settings: FrodoSettings
     let service: ClaudeSessions
 
     init(alivePids: Set<Int> = [4242]) {
@@ -25,7 +26,8 @@ private struct Harness {
         let suite = "frodo-sessions-\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite) ?? .standard
         defaults.removePersistentDomain(forName: suite)
-        service = ClaudeSessions(settings: FrodoSettings(defaults: defaults), paths: paths, scheduler: StubScheduler(), isAlive: { alivePids.contains($0) })
+        settings = FrodoSettings(defaults: defaults)
+        service = ClaudeSessions(settings: settings, paths: paths, scheduler: StubScheduler(), isAlive: { alivePids.contains($0) })
     }
 
     func writeSession(_ id: String, _ text: String) throws {
@@ -72,6 +74,23 @@ struct ClaudeSessionsServiceTests {
         #expect(harness.service.sessions.map(\.sessionId) == ["abc"])
         #expect(harness.service.sessions.first?.step == "Bash ls")
         #expect(harness.service.sessions.first?.status == .working)
+    }
+
+    @Test("esconde a sessão de assistente desligado e avisa ao religar")
+    func hidesSessionsOfDisabledProvider() throws {
+        let harness = Harness()
+        defer { harness.cleanup() }
+        try harness.writeSession("cx", #"{"pid":4242,"provider":"codex","event":{"session_id":"cx","cwd":"/r/loja","hook_event_name":"UserPromptSubmit"}}"#)
+        try harness.writeSession("cl", sessionJSON(id: "cl", event: "UserPromptSubmit"))
+        harness.service.reload()
+        #expect(Set(harness.service.sessions.map(\.sessionId)) == ["cx", "cl"])
+        var changes = 0
+        _ = harness.service.changed.on { changes += 1 }
+        harness.settings.disabledAi = [.codex]
+        #expect(harness.service.sessions.map(\.sessionId) == ["cl"])
+        #expect(changes == 1)
+        harness.settings.disabledAi = []
+        #expect(harness.service.sessions.count == 2)
     }
 
     @Test("percebe uma sessão nova pela pasta observada")
