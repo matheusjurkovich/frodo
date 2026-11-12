@@ -9,7 +9,7 @@ struct HeaderView: View {
     @Namespace private var markerSpace
 
     private var visible: [TabId] {
-        visibleTabs(hidden: services.settings.hiddenTabs)
+        visibleTabs(hidden: services.settings.hiddenTabs, order: services.settings.tabOrder)
     }
 
     var body: some View {
@@ -75,6 +75,8 @@ struct HeaderView: View {
         case .calendar: "calendar"
         case .claude: "claude"
         case .notifications: "bell"
+        case .performance: "general"
+        case .mixer: "general"
         }
     }
 }

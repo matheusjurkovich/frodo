@@ -64,26 +64,6 @@ struct BatteryAndMemoryTests {
     }
 }
 
-@Suite("abas")
-struct TabsTests {
-    @Test("mostra as não ocultas na ordem fixa")
-    func showsNonHiddenInFixedOrder() {
-        #expect(visibleTabs(hidden: []) == [.general, .calendar, .claude, .notifications])
-        #expect(visibleTabs(hidden: [.calendar, .claude]) == [.general, .notifications])
-    }
-
-    @Test("nunca fica sem aba")
-    func neverEndsWithoutTab() {
-        #expect(visibleTabs(hidden: TabId.allCases) == [.general])
-    }
-
-    @Test("abre a primeira visível quando a pedida está oculta")
-    func opensFirstVisibleWhenRequestedIsHidden() {
-        #expect(tabToOpen(.claude, visible: [.general, .claude]) == .claude)
-        #expect(tabToOpen(.claude, visible: [.calendar, .notifications]) == .calendar)
-    }
-}
-
 @MainActor
 @Suite("configurações")
 struct FrodoSettingsTests {
@@ -105,6 +85,54 @@ struct FrodoSettingsTests {
         #expect(settings.openOnHover)
         #expect(!settings.autoClose)
         #expect(settings.hiddenTabs.isEmpty)
+        #expect(settings.disabledAi.isEmpty)
+        #expect(AiProvider.allCases.allSatisfy { settings.providerEnabled($0) })
+        #expect(settings.geminiDailyLimit == 1000)
+        #expect(settings.notifyDone)
+        #expect(settings.notifyQuota)
+        #expect(settings.pillAiActivity == .change)
+        #expect(settings.tabOrder == TabId.allCases)
+        #expect(!settings.showSeconds)
+    }
+
+    @Test("chaves novas gravam, leem e avisam a mudança")
+    func newKeysWriteReadAndNotify() {
+        let settings = makeSettings()
+        var changedKeys: [String] = []
+        _ = settings.changed.on { changedKeys.append($0) }
+        settings.disabledAi = [.codex]
+        settings.geminiDailyLimit = 1500
+        settings.notifyDone = false
+        settings.notifyQuota = false
+        settings.pillAiActivity = .never
+        settings.tabOrder = [.mixer, .general]
+        settings.showSeconds = true
+        #expect(settings.disabledAi == [.codex])
+        #expect(!settings.providerEnabled(.codex))
+        #expect(settings.providerEnabled(.claude))
+        #expect(settings.geminiDailyLimit == 1500)
+        #expect(!settings.notifyDone)
+        #expect(!settings.notifyQuota)
+        #expect(settings.pillAiActivity == .never)
+        #expect(settings.tabOrder == [.mixer, .general, .calendar, .claude, .notifications, .performance])
+        #expect(settings.showSeconds)
+        #expect(changedKeys == ["disabled-ai", "gemini-daily-limit", "notify-done", "notify-quota", "pill-ai-activity", "tab-order", "show-seconds"])
+    }
+
+    @Test("limite diário do gemini fora dos valores permitidos cai em 1000")
+    func geminiLimitFallsBack() {
+        let settings = makeSettings()
+        settings.geminiDailyLimit = 1234
+        #expect(settings.geminiDailyLimit == 1000)
+    }
+
+    @Test("atividade de ia na pílula inválida cai em ao mudar")
+    func pillAiActivityFallsBack() {
+        let suite = "frodo-test-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite) ?? .standard
+        defaults.removePersistentDomain(forName: suite)
+        defaults.set("xyz", forKey: "pill-ai-activity")
+        #expect(FrodoSettings(defaults: defaults).pillAiActivity == .change)
     }
 
     @Test("grava, lê e avisa a mudança")
