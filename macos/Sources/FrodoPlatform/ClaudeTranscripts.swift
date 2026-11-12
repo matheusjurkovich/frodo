@@ -4,7 +4,7 @@ import Foundation
 private let scanSeconds: TimeInterval = 30
 
 @MainActor
-public final class ClaudeTranscripts: Destroyable {
+public final class ClaudeTranscripts: Destroyable, ConsumptionSource {
     public let changed = Event<Void>()
     public private(set) var index = ClaudeIndex() {
         didSet { summaries = [:] }
