@@ -6,6 +6,8 @@ import {DoneAlert} from '../features/claude/done-alert-service.js';
 import {ClaudeTranscripts} from '../features/claude/claude-transcripts-service.js';
 import {CodexUsage} from '../features/codex/codex-service.js';
 import {GeminiUsage} from '../features/gemini/gemini-service.js';
+import {GitHubClient} from '../features/github/github-client.js';
+import {GitHubService} from '../features/github/github-service.js';
 import {MediaService} from '../features/media/media-service.js';
 import {UpcomingMeeting} from '../features/meetings/meetings-service.js';
 import {NotificationBridge} from '../features/notifications/notification-bridge-service.js';
@@ -46,6 +48,7 @@ export function createServices(gsettings: Gio.Settings, disposables: Disposables
     const mixer = disposables.own(new Mixer());
     const meetings = disposables.own(new UpcomingMeeting(settings));
     const performance = disposables.own(new PerformanceMonitor());
+    const github = disposables.own(new GitHubService({settings, backend: new GitHubClient()}));
     disposables.own(new MemoryAlert(state));
     const notifier = disposables.own(new ProviderNotifier());
     disposables.own(new DoneAlert(settings, sessions, notifier));
@@ -67,6 +70,7 @@ export function createServices(gsettings: Gio.Settings, disposables: Disposables
         mixer,
         meetings,
         performance,
+        github,
         feed,
     };
 }

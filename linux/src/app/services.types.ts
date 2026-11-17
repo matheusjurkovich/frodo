@@ -3,6 +3,7 @@ import type {ClaudeSessions} from '../features/claude/claude-sessions-service.js
 import type {ClaudeTranscripts} from '../features/claude/claude-transcripts-service.js';
 import type {CodexUsage} from '../features/codex/codex-service.js';
 import type {GeminiUsage} from '../features/gemini/gemini-service.js';
+import type {GitHubService} from '../features/github/github-service.js';
 import type {MediaService} from '../features/media/media-service.js';
 import type {UpcomingMeeting} from '../features/meetings/meetings-service.js';
 import type {NotificationBridge} from '../features/notifications/notification-bridge-service.js';
@@ -31,5 +32,6 @@ export interface FrodoServices {
     readonly mixer: Mixer;
     readonly meetings: UpcomingMeeting;
     readonly performance: PerformanceMonitor;
+    readonly github: GitHubService;
     readonly feed: ActivityFeed;
 }
