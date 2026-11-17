@@ -1,6 +1,7 @@
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import St from 'gi://St';
+import type {GitHubService} from '../../features/github/github-service.js';
 import type {ClaudeSessions} from '../../features/claude/claude-sessions-service.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
 import {Disposables} from '../../shared/disposables.js';
@@ -11,6 +12,7 @@ import {column, label, row} from '../../shared/ui/layout.js';
 import type {Component} from '../../shared/ui/lifecycle.types.js';
 import {swap} from '../../shared/ui/motion.js';
 import {AgendaSection} from './agenda-section.js';
+import {GitHubSection} from './github-section.js';
 import {AiSection} from './ai-section.js';
 import {GeneralSection} from './general-section.js';
 import {PillSection} from './pill-section.js';
@@ -31,7 +33,13 @@ export class SettingsPage implements Component {
     readonly #builders: Record<SectionId, () => SettingsSection>;
     #section: SectionId = 'general';
 
-    constructor(settings: FrodoSettings, sessions: ClaudeSessions, preview: Clutter.Actor, actions: SettingsActions) {
+    constructor(
+        settings: FrodoSettings,
+        sessions: ClaudeSessions,
+        github: GitHubService,
+        preview: Clutter.Actor,
+        actions: SettingsActions,
+    ) {
         const grabKeyboard = (focus: Clutter.Actor): void => {
             actions.grabKeyboard(focus);
         };
@@ -42,6 +50,7 @@ export class SettingsPage implements Component {
             pill: () => new PillSection({settings, interfaceSettings, preview, overlay: actions.overlay}),
             tabs: () => new TabsSection({settings, overlay: actions.overlay}),
             ai: () => new AiSection({settings, sessions, grabKeyboard}),
+            github: () => new GitHubSection({settings, github, grabKeyboard}),
             agenda: () => new AgendaSection({settings, close: actions.close}),
         };
 
@@ -60,7 +69,7 @@ export class SettingsPage implements Component {
                 'frodo-settings-nav-item',
                 item,
                 () => {
-                    this.#show(id);
+                    this.show(id);
                 },
                 {accessible_name: text},
             );
@@ -71,10 +80,10 @@ export class SettingsPage implements Component {
         body.add_child(content);
         this.actor.add_child(body);
 
-        this.#show(this.#section);
+        this.show(this.#section);
     }
 
-    #show(id: SectionId): void {
+    show(id: SectionId): void {
         const order = (section: SectionId): number => SECTIONS.findIndex(entry => entry.id === section);
         const direction = order(id) > order(this.#section) ? 1 : -1;
         const changed = id !== this.#section;

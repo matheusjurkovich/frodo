@@ -128,9 +128,12 @@ for name in Calendário Áreas IA Notificações Desempenho GitHub; do
 done
 ev "probe.press('feat: aba do GitHub na ilha, Conflito')" > /dev/null
 sleep 1
-shot github-conflito frodo-panel 24
+shot github-conflito frodo-panel 0
 tab 'Configurações da ilha'
 shot configuracoes frodo-panel 24
+tab 'Configurações da ilha'
+tab 'Configurações do GitHub'
+shot configuracoes-github frodo-panel 0
 
 kill "$AGENT" "$PLAYER" 2> /dev/null
 pkill -f "$ROOT/dist/hooks/claude-session.sh" 2> /dev/null
