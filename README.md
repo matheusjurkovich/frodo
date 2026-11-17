@@ -33,7 +33,7 @@ curl -fsSL https://raw.githubusercontent.com/matheusjurkovich/frodo/master/linux
 
 O comando baixa a release `linux-v*` mais nova da [página de releases](https://github.com/matheusjurkovich/frodo/releases), instala e liga a extensão; rodar de novo atualiza. Saia e entre na sessão e, para ver as sessões do Claude Code, registre o hook ([passo a passo](linux/README.md#sessões-do-claude-code)).
 
-macOS 14+: baixe o `Frodo-<versão>.dmg` e arraste para Aplicativos ([detalhes](macos/README.md#instalação)).
+macOS 14+: baixe o [`Frodo-1.4.0.dmg`](https://github.com/matheusjurkovich/frodo/releases/download/macos-v1.4.0/Frodo-1.4.0.dmg) e arraste para Aplicativos. Na primeira vez, abra com clique direito, Abrir, porque o app ainda não é notarizado ([detalhes](macos/README.md#instalação)).
 
 ## Plataformas
 
