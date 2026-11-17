@@ -40,7 +40,7 @@ export class PanelContent {
     #nextTab: TabId | null = null;
 
     constructor(dependencies: PanelDependencies) {
-        const {island, claude, sessions, codex, gemini, settings, state, bridge, recording} = dependencies;
+        const {island, claude, sessions, codex, gemini, settings, state, bridge, recording, github} = dependencies;
         this.#settings = settings;
 
         this.#tabBar = new TabBar();
@@ -115,6 +115,12 @@ export class PanelContent {
             }),
         );
         this.#tabBar.setBadge('notifications', bridge.count);
+        const githubBadge = (): void => {
+            this.#tabBar.setBadge('github', settings.githubBadge ? github.alertCount : 0);
+        };
+        this.#disposables.add(github.on('changed', githubBadge));
+        this.#disposables.add(settings.onChanged('github-badge', githubBadge));
+        githubBadge();
         this.#syncTabs();
     }
 

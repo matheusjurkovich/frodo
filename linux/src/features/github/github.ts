@@ -1,4 +1,5 @@
 import {count, isRecord, optionalString, text} from '../../shared/json.js';
+import {formatAgo} from '../../shared/format.js';
 import type {GitHubScope} from '../../settings/schema-values.types.js';
 import {CHANGES_BODY_MAX, DECISIONS, FAILED_CONCLUSIONS, GITHUB_QUERY, MERGEABLE, PR_KINDS, ROLLUPS, SEARCH_BASE} from './github.const.js';
 import type {CheckState, ClassifiedPr, GitHubPage, PrAction, PrCheck, PrDetail, PrKind, PullRequest, SearchKind} from './github.types.js';
@@ -249,4 +250,28 @@ export function parseCompare(body: string, prs: readonly ClassifiedPr[]): Map<st
         if (typeof behind === 'number') result.set(pr.key, behind);
     });
     return result;
+}
+
+function ago(thenMs: number, nowMs: number): string {
+    const text = formatAgo(thenMs, nowMs);
+    return text === 'agora' ? text : `há ${text}`;
+}
+
+export function prMeta(pr: PullRequest, muted: boolean, nowMs: number): string {
+    const parts = [`+${String(pr.additions)} −${String(pr.deletions)}`, plural(pr.files, 'arquivo', 'arquivos')];
+    if (pr.comments > 0) parts.push(plural(pr.comments, 'comentário', 'comentários'));
+    parts.push(ago(pr.updatedAt, nowMs));
+    if (muted) parts.push('alertas silenciados');
+    return parts.join(' · ');
+}
+
+export function updatedText(updatedAt: number | null, offline: boolean, nowMs: number): string {
+    if (updatedAt === null) return offline ? 'Sem conexão' : '';
+    const when = ago(updatedAt, nowMs);
+    return offline ? `Sem conexão · atualizado ${when}` : `Atualizado ${when}`;
+}
+
+export function initials(login: string): string {
+    const clean = login.replace(/^@/, '');
+    return clean === '' ? '?' : clean.slice(0, 2).toUpperCase();
 }

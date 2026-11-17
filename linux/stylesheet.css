@@ -2725,6 +2725,271 @@
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
 }
 
+.frodo-tab-github .frodo-chip-counter {
+    background-color: #b42318;
+    color: #ffffff;
+}
+
+.frodo-github-side {
+    width: 300px;
+}
+
+.frodo-github-main,
+.frodo-github-card {
+    spacing: 12px;
+}
+
+.frodo-github-head {
+    spacing: 8px;
+}
+
+.frodo-github-list {
+    spacing: 8px;
+}
+
+.frodo-github-error {
+    font-size: 12px;
+    color: #fca5a5;
+}
+
+.frodo-github-state {
+    spacing: 12px;
+    padding: 24px 0;
+}
+
+.frodo-github-state-text {
+    font-size: 14px;
+    color: #d4d4d8;
+}
+
+.frodo-github-pr {
+    border-radius: 14px;
+    background-color: #1f1f23;
+}
+
+.frodo-github-pr:checked {
+    background-color: #232327;
+}
+
+.frodo-github-pr-toggle {
+    padding: 12px 14px;
+    border-radius: 14px;
+}
+
+.frodo-github-pr-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+.frodo-github-pr-head {
+    spacing: 12px;
+}
+
+.frodo-github-pr-icon {
+    icon-size: 18px;
+    margin-top: 2px;
+}
+
+.frodo-github-pr-text {
+    spacing: 3px;
+}
+
+.frodo-github-pr-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: #f4f4f5;
+}
+
+.frodo-github-pr-ref,
+.frodo-github-pr-meta {
+    font-size: 12px;
+}
+
+.frodo-github-pr-tags {
+    spacing: 8px;
+}
+
+.frodo-github-kind-label {
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+}
+
+.frodo-github-detail {
+    padding: 0 14px 14px;
+    spacing: 10px;
+}
+
+.frodo-github-box {
+    padding: 12px 14px;
+    border-radius: 12px;
+    border-width: 1px;
+    spacing: 6px;
+}
+
+.frodo-github-box-title {
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.frodo-github-box-body {
+    font-size: 13px;
+    color: #d4d4d8;
+}
+
+.frodo-github-command {
+    spacing: 8px;
+    padding: 6px 6px 6px 10px;
+    border-radius: 10px;
+    background-color: #0a0a0b;
+}
+
+.frodo-github-command-text {
+    font-size: 12px;
+    color: #e4e4e7;
+}
+
+.frodo-github-check {
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    background-color: #18181b;
+}
+
+.frodo-github-check-ok {
+    color: #86efac;
+}
+
+.frodo-github-check-fail {
+    color: #f87171;
+}
+
+.frodo-github-check-pending {
+    color: #fbbf24;
+}
+
+.frodo-github-actions {
+    spacing: 8px;
+}
+
+.frodo-github-tile {
+    padding: 10px 12px;
+    border-radius: 12px;
+    background-color: #1f1f23;
+}
+
+.frodo-github-tile:checked {
+    background-color: #2f2f35;
+}
+
+.frodo-github-tile-content {
+    spacing: 2px;
+}
+
+.frodo-github-tile-count {
+    font-size: 22px;
+    font-weight: 500;
+}
+
+.frodo-github-tile-label {
+    font-size: 12px;
+    color: #d4d4d8;
+}
+
+.frodo-github-tile-zero .frodo-github-tile-count {
+    color: #71717a;
+}
+
+.frodo-github-reviews {
+    spacing: 10px;
+}
+
+.frodo-github-review,
+.frodo-github-account {
+    spacing: 10px;
+}
+
+.frodo-github-review-title,
+.frodo-github-login {
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.frodo-github-avatar {
+    width: 32px;
+    height: 16px;
+    padding: 8px 0;
+    border-radius: 16px;
+    background-color: #2f2f35;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: center;
+    color: #e4e4e7;
+}
+
+.frodo-github-kind-conflict .frodo-github-pr-icon,
+.frodo-github-kind-conflict .frodo-github-kind-label,
+.frodo-github-kind-conflict .frodo-github-tile-count,
+.frodo-github-kind-conflict .frodo-github-box-title {
+    color: #f87171;
+}
+
+.frodo-github-kind-conflict .frodo-github-kind-label,
+.frodo-github-kind-conflict .frodo-github-box {
+    background-color: #2a1414;
+    border-color: #5c1d1d;
+}
+
+.frodo-github-kind-changes .frodo-github-pr-icon,
+.frodo-github-kind-changes .frodo-github-kind-label,
+.frodo-github-kind-changes .frodo-github-tile-count,
+.frodo-github-kind-changes .frodo-github-box-title {
+    color: #fbbf24;
+}
+
+.frodo-github-kind-changes .frodo-github-kind-label,
+.frodo-github-kind-changes .frodo-github-box {
+    background-color: #2a220a;
+    border-color: #5c4410;
+}
+
+.frodo-github-kind-ci .frodo-github-pr-icon,
+.frodo-github-kind-ci .frodo-github-kind-label,
+.frodo-github-kind-ci .frodo-github-tile-count,
+.frodo-github-kind-ci .frodo-github-box-title {
+    color: #fca5a5;
+}
+
+.frodo-github-kind-ci .frodo-github-kind-label,
+.frodo-github-kind-ci .frodo-github-box {
+    background-color: #2a1414;
+    border-color: #5c1d1d;
+}
+
+.frodo-github-kind-review .frodo-github-pr-icon,
+.frodo-github-kind-review .frodo-github-kind-label,
+.frodo-github-kind-review .frodo-github-tile-count,
+.frodo-github-kind-review .frodo-github-box-title {
+    color: #8ab4f8;
+}
+
+.frodo-github-kind-review .frodo-github-kind-label,
+.frodo-github-kind-review .frodo-github-box {
+    background-color: #1a2740;
+    border-color: #2c4370;
+}
+
+.frodo-github-kind-ready .frodo-github-pr-icon,
+.frodo-github-kind-ready .frodo-github-kind-label,
+.frodo-github-kind-ready .frodo-github-box-title {
+    color: #86efac;
+}
+
+.frodo-github-kind-ready .frodo-github-kind-label,
+.frodo-github-kind-ready .frodo-github-box {
+    background-color: #0f2a1c;
+    border-color: #1f5c3a;
+}
+
 .frodo-mixer-side {
     width: 340px;
 }
