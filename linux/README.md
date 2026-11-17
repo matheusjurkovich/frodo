@@ -1,12 +1,13 @@
 # Frodo para Linux
 
-Versão GNOME Shell do [Frodo](../README.md). Dynamic island leve para GNOME Shell 50. A pílula mostra hora, bateria, RAM e uso do Claude Code, Codex e Gemini CLI e muda conforme o que acontece no sistema; ao abrir, vira uma ilha com seis abas.
+Versão GNOME Shell do [Frodo](../README.md). Dynamic island leve para GNOME Shell 50. A pílula mostra hora, bateria, RAM e uso do Claude Code, Codex e Gemini CLI e muda conforme o que acontece no sistema; ao abrir, vira uma ilha com oito abas, uma delas com os pull requests do GitHub que precisam de você.
 
 Roda dentro do próprio gnome-shell (sem processo extra). Escrita em TypeScript e compilada para JavaScript.
 
 <p align="center"><img src="docs/demo.gif" alt="Pílula recebendo uma notificação e mostrando o Claude trabalhando; depois a ilha abre e passa pelas abas" width="720"></p>
 
 - [Abas](#abas)
+- [GitHub](#github)
 - [Estados da pílula](#estados-da-pílula)
 - [Posição](#posição), [Fundo](#fundo) e [Animações](#animações)
 - [Instalação](#instalação)
@@ -24,6 +25,9 @@ Roda dentro do próprio gnome-shell (sem processo extra). Escrita em TypeScript 
 | Notificações      | Lista de notificações, não perturbe e limpar tudo                                                                                                                                                                                                                                                          |
 | Desempenho        | CPU, memória, GPU e disco, com histórico de 60 s; os 5 processos que mais gastam, ordenáveis por CPU, RAM ou GPU, com botão para encerrar (pede confirmação; processos de outro usuário ou essenciais à sessão têm cadeado). Só lê `/proc` com a aba aberta                                                |
 | Mixer             | Volume e silenciar de cada app com som aberto (mais Sons do sistema), a saída e o microfone com troca de dispositivo e os apps usando o microfone, cada um com Silenciar/Ativar                                                                                                                            |
+| GitHub            | Seus pull requests abertos que precisam de algo (conflito, alterações pedidas, CI falhando, pronto para merge) e as revisões pedidas a você, com filtros, detalhe de cada PR, checks e o contador de alertas no cabeçalho. Veja [GitHub](#github)                                                          |
+
+No cabeçalho, só a aba selecionada mostra o nome; as outras ficam só com o ícone (e o contador, quando há).
 
 <table>
   <tr>
@@ -38,30 +42,45 @@ Roda dentro do próprio gnome-shell (sem processo extra). Escrita em TypeScript 
     <td><img src="docs/desempenho.png" alt="Aba Desempenho: CPU, memória, GPU, disco e processos"><br><sub>Desempenho</sub></td>
     <td><img src="docs/areas.png" alt="Aba Áreas de trabalho com duas áreas e o card Nova área"><br><sub>Áreas de trabalho</sub></td>
   </tr>
+  <tr>
+    <td><img src="docs/github.png" alt="Aba GitHub: filtros, PRs com conflito, alterações pedidas, CI falhando, revisões e pronto para merge"><br><sub>GitHub</sub></td>
+    <td><img src="docs/github-conflito.png" alt="Aba GitHub com um PR em conflito aberto: comando de rebase, checks e botões"><br><sub>GitHub · PR em conflito</sub></td>
+  </tr>
 </table>
 
-A engrenagem do cabeçalho abre as configurações, todas dentro da ilha, numa barra lateral com seis seções: Geral (comportamento e atalhos), Tela e posição (grade 3×3, monitores, fundo e barra superior), Pílula, Abas, IA (intervalo de atualização, restante ou usado, e um grupo por assistente com o switch Acompanhar, perfis do Claude, hooks do Codex e do Gemini e limite diário do Gemini) e Agenda (Google Agenda e aviso antes da reunião); não há janela de preferências separada. O botão ao lado dela abre o menu de energia (suspender, encerrar sessão, reiniciar e desligar). Durante uma gravação de tela, o cabeçalho mostra Parar gravação. Em Configurações › Abas dá para ocultar cada aba e mudar a ordem delas arrastando pela alça (ou com ↑ ↓ na alça focada); a ilha abre na primeira aba visível. Se todas forem ocultadas, a primeira continua visível.
+A engrenagem do cabeçalho abre as configurações, todas dentro da ilha, numa barra lateral com sete seções: Geral (comportamento e atalhos), Tela e posição (grade 3×3, monitores, fundo e barra superior), Pílula, Abas, IA (intervalo de atualização, restante ou usado, e um grupo por assistente com o switch Acompanhar, perfis do Claude, hooks do Codex e do Gemini e limite diário do Gemini), GitHub (conta, repositórios, alertas e onde avisar) e Agenda (Google Agenda e aviso antes da reunião); não há janela de preferências separada. O botão ao lado dela abre o menu de energia (suspender, encerrar sessão, reiniciar e desligar). Durante uma gravação de tela, o cabeçalho mostra Parar gravação. Em Configurações › Abas dá para ocultar cada aba e mudar a ordem delas arrastando pela alça (ou com ↑ ↓ na alça focada); a ilha abre na primeira aba visível. Se todas forem ocultadas, a primeira continua visível.
 
 <p align="center"><img src="docs/configuracoes.png" alt="Configurações dentro da ilha: barra lateral com seções e a seção Geral aberta" width="640"></p>
+
+## GitHub
+
+A aba GitHub lê os seus pull requests abertos e as revisões pedidas diretamente a você pela API GraphQL do GitHub, com o token que o GitHub CLI já guardou no chaveiro do GNOME (`gh auth login`); sem chaveiro, ele lê o `~/.config/gh/hosts.yml`. Em Configurações › GitHub dá para trocar para um token pessoal (só leitura de PRs e checks), salvo no chaveiro e nunca no GSettings. A busca roda a cada 2, 5, 10 ou 15 min (padrão 5), de 20 em 20 PRs, sem lançar processo; "Todos os meus" busca em qualquer repositório e "Só estes" limita a uma lista `dono/repositório`.
+
+Cada PR ganha um tipo, nesta ordem: Conflito (o merge não sai sozinho; mostra quantos commits a base recebeu e o comando de rebase para copiar), Alterações pedidas (com o texto da revisão), CI falhou (com os checks), Revisão pedida a você e Pronto para merge. PR seu que só espera revisão ou checks rodando fica de fora. O botão principal abre o PR no navegador (no CI, a aba de checks; na revisão, os arquivos). Pedido de revisão feito só ao seu time não aparece.
+
+Um alerta sai quando um PR entra num tipo ligado em "Alertar quando" (conflito, alterações pedidas, CI e revisão): na pílula, por 5 segundos, com o botão Ver, que abre a aba no PR; na aba Notificações, sem banner, até você abrir ou dispensar; e no contador vermelho do cabeçalho. Cada um desses três tem o seu switch em "Onde avisar". O primeiro ciclo ao entrar na sessão, ao trocar de conta ou de repositórios só registra o que já existe, sem avisar. Dá para silenciar um PR pelo detalhe dele.
+
+<p align="center"><img src="docs/configuracoes-github.png" alt="Configurações › GitHub: conta, como conecta, repositórios, alertas e onde avisar" width="640"></p>
 
 ## Estados da pílula
 
 <p align="center"><img src="docs/pilula-repouso.png" alt="Pílula em repouso com hora, data, notificações, rede e bateria"></p>
 
-Fechada, a pílula mostra hora, data, notificações, rede e bateria. Em Configurações › Pílula dá para escolher o modo (Mínimo, só o relógio; Compacto, tudo junto; Rotativo, com bateria, RAM e as cotas de IA revezando num espaço a cada poucos segundos), a ordem dos itens (arrastando o chip pela alça, ou com ← → na alça focada) e quais entram, com uma prévia da pílula de verdade no topo. Os ícones do sistema podem entrar separados (Bluetooth, Som, Microfone, Não perturbe e Bateria, os mesmos da barra superior, que só aparecem quando o GNOME os mostra; "Mostrar porcentagem da bateria" em Configurações › Pílula liga a porcentagem nativa do GNOME; "RAM em porcentagem" troca `RAM 9.8G` por `RAM 61%`) e o resto fica em "Outros ícones do sistema", sem repetir rede e bateria. Codex · 5 h, Codex · semana e Gemini · hoje entram com um anel na cor do assistente; itens de um assistente desligado em Configurações › IA somem. Há também "Ícones de extensões": os indicadores que outras extensões põem na barra superior (AppIndicator, monitores de recurso e afins) aparecem na pílula, só para ver; clicar continua abrindo a ilha. Quando algo acontece, ela troca para uma atividade por no máximo 5 segundos e volta ao repouso; a mesma atividade só reaparece quando muda (gravação nova, outra faixa, música retomada). A IA trabalhando (Claude Code, Codex e Gemini CLI, com o repo e o arquivo ou comando do passo) segue "Atividade da IA" em Configurações › Pílula: Ao mudar (padrão) mostra cada passo novo por 3 segundos e ignora as trocas da mesma sessão nos 10 segundos seguintes, para não piscar; Sempre deixa a sessão com o evento mais recente na pílula enquanto trabalha; Nunca não mostra. Pedido de permissão e sessão esperando aparecem em qualquer modo. Abrir a ilha dá como vistas as atividades em andamento. Com mais de uma ao mesmo tempo, vale esta ordem de prioridade, e a que foi interrompida volta depois com o tempo inteiro (5 segundos; 3 para a IA trabalhando):
+Fechada, a pílula mostra hora, data, notificações, rede e bateria. Em Configurações › Pílula dá para escolher o modo (Mínimo, só o relógio; Compacto, tudo junto; Rotativo, com bateria, RAM e as cotas de IA revezando num espaço a cada poucos segundos), a ordem dos itens (arrastando o chip pela alça, ou com ← → na alça focada) e quais entram, com uma prévia da pílula de verdade no topo. Os ícones do sistema podem entrar separados (Bluetooth, Som, Microfone, Não perturbe e Bateria, os mesmos da barra superior, que só aparecem quando o GNOME os mostra; "Mostrar porcentagem da bateria" em Configurações › Pílula liga a porcentagem nativa do GNOME; "RAM em porcentagem" troca `RAM 9.8G` por `RAM 61%`) e o resto fica em "Outros ícones do sistema", sem repetir rede e bateria. Codex · 5 h, Codex · semana e Gemini · hoje entram com um anel na cor do assistente; itens de um assistente desligado em Configurações › IA somem. O item GitHub mostra o ícone de PR com o número de alertas (some quando não há). Há também "Ícones de extensões": os indicadores que outras extensões põem na barra superior (AppIndicator, monitores de recurso e afins) aparecem na pílula, só para ver; clicar continua abrindo a ilha. Quando algo acontece, ela troca para uma atividade por no máximo 5 segundos e volta ao repouso; a mesma atividade só reaparece quando muda (gravação nova, outra faixa, música retomada). A IA trabalhando (Claude Code, Codex e Gemini CLI, com o repo e o arquivo ou comando do passo) segue "Atividade da IA" em Configurações › Pílula: Ao mudar (padrão) mostra cada passo novo por 3 segundos e ignora as trocas da mesma sessão nos 10 segundos seguintes, para não piscar; Sempre deixa a sessão com o evento mais recente na pílula enquanto trabalha; Nunca não mostra. Pedido de permissão e sessão esperando aparecem em qualquer modo. Abrir a ilha dá como vistas as atividades em andamento. Com mais de uma ao mesmo tempo, vale esta ordem de prioridade, e a que foi interrompida volta depois com o tempo inteiro (5 segundos; 3 para a IA trabalhando):
 
 1. Notificação recebida (qualquer uma que não seja crítica), por 5 segundos cada. Vira um card com o avatar arredondado, o app, o título e o corpo. Notificações que chegam com a tela bloqueada aparecem na pílula ao desbloquear. Quando a RAM passa de 90% em uso, o Frodo manda a notificação "Memória alta" (de novo só depois de cair abaixo de 80%). Quando uma sessão do Claude Code, Codex ou Gemini CLI termina a resposta, sai "Pronto" com o ícone e o nome do assistente e o repo (desliga em Configurações › IA › Uso, "Avisar quando terminar"). Quando uma cota (Claude 5 h e semana, Codex 5 h e semana, Gemini dia) cruza 80% ou 95%, sai "Cota em 80%" ou "Cota em 95%", uma vez por janela e com o ícone do assistente, e "Cota renovada" quando ela volta para baixo de 80% ("Avisar cota em 80% e 95%", no mesmo lugar).
 2. Gravação de tela, com o tempo e o botão Parar (o cabeçalho da ilha também tem Parar gravação).
 3. Pedido de permissão do Claude Code ou do Codex, com a ferramenta e os botões Negar e Aprovar (o mais antigo, se houver vários).
 4. Sessão esperando permissão sem pedido aberto pela ilha (sempre o caso do Gemini CLI), com o botão Abrir.
 5. Reunião em breve, com a contagem regressiva e o botão Entrar quando o evento tem link do Google Meet (lido do Evolution Data Server); sem link, o botão Abrir leva ao Calendário.
-6. Volume alterado, por 1,5 segundo.
-7. Sessão de IA trabalhando, com o repo, o passo (arquivo ou comando) e o tempo, conforme "Atividade da IA" (Ao mudar, Sempre ou Nunca).
-8. Música tocando, com capa redonda, título e botão de pausa.
+6. Alerta do GitHub ("frodo#42 está com conflito"), por 5 segundos, com o botão Ver; vários no mesmo ciclo mostram o mais importante e "+N".
+7. Volume alterado, por 1,5 segundo.
+8. Sessão de IA trabalhando, com o repo, o passo (arquivo ou comando) e o tempo, conforme "Atividade da IA" (Ao mudar, Sempre ou Nunca).
+9. Música tocando, com capa redonda, título e botão de pausa.
 
-| Notificação                                                              | Pedido de permissão                                                    | Sessão trabalhando                                                          |
-| ------------------------------------------------------------------------ | ---------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| <img src="docs/pilula-notificacao.png" alt="Pílula com uma notificação"> | <img src="docs/pilula-permissao.png" alt="Pílula com Negar e Aprovar"> | <img src="docs/pilula-claude.png" alt="Pílula com o passo atual do Claude"> |
+| Notificação                                                              | Pedido de permissão                                                    | Sessão trabalhando                                                          | Alerta do GitHub                                                      |
+| ------------------------------------------------------------------------ | ---------------------------------------------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| <img src="docs/pilula-notificacao.png" alt="Pílula com uma notificação"> | <img src="docs/pilula-permissao.png" alt="Pílula com Negar e Aprovar"> | <img src="docs/pilula-claude.png" alt="Pílula com o passo atual do Claude"> | <img src="docs/pilula-github.png" alt="Pílula com um PR em conflito"> |
 
 Clicar ou passar o mouse na pílula durante uma notificação abre a ilha na aba Notificações; durante uma sessão de IA trabalhando, na aba IA. Sem atividade, ela abre na Geral.
 
@@ -269,7 +288,7 @@ Em Configurações › IA, "Instalar hook" acrescenta o mesmo `hooks/claude-sess
 
 ## Imagens
 
-As imagens deste README e do da raiz saem de `npm run screenshots` (`tools/screenshots/run.sh`). Ele sobe um gnome-shell headless isolado, como o smoke, com dados de exemplo: sessões do Claude Code pelo hook de verdade, cotas do Codex num rollout falso, eventos num calendário local, notificações por `notify-send` e um player MPRIS (`tools/screenshots/mpris.js`). Uma extensão auxiliar (`tools/screenshots/probe/`) libera o `Eval` do shell e move um ponteiro virtual só para passar o mouse na pílula; abas e botões são acionados com `emit('clicked')`, sem clique de verdade, para não mexer no Wi-Fi ou Bluetooth reais. O nome da rede no tile de Wi-Fi vira "Casa".
+As imagens deste README e do da raiz saem de `npm run screenshots` (`tools/screenshots/run.sh`). Ele sobe um gnome-shell headless isolado, como o smoke, com dados de exemplo: sessões do Claude Code pelo hook de verdade, cotas do Codex num rollout falso, eventos num calendário local, notificações por `notify-send`, um player MPRIS (`tools/screenshots/mpris.js`) e um GitHub falso (`tools/screenshots/github.py`, apontado por `FRODO_GITHUB_GRAPHQL_URL`, com um token de mentira no `hosts.yml` do ambiente isolado). Uma extensão auxiliar (`tools/screenshots/probe/`) libera o `Eval` do shell e move um ponteiro virtual só para passar o mouse na pílula; abas e botões são acionados com `emit('clicked')`, sem clique de verdade, para não mexer no Wi-Fi ou Bluetooth reais. O nome da rede no tile de Wi-Fi vira "Casa".
 
 O GIF é gravado pelo `org.gnome.Shell.Screencast`, convertido em quadros pelo GStreamer e montado pelo `tools/screenshots/gif.py` (Pillow). Precisa de `gst-launch-1.0` com o decodificador do MP4 e de `python3-pil`. Rode de novo quando a UI mudar e confira as imagens antes do commit.
 
@@ -286,8 +305,9 @@ src/
                           island-pointer.ts (hover e borda), island-placement.ts (posição), island-presence.ts
                           (pílula coberta e espiada) e island-surface.ts (vidro)
   pill/                   pílula: visão ociosa, visão de atividade, feed e prioridade das atividades
-  tabs/<aba>/             uma pasta por aba: general, calendar, workspaces, claude (aba IA), notifications, performance, mixer, settings
-  features/<domínio>/     regra pura e serviço de cada fonte de dados: claude, codex, gemini, media, meetings,
+  tabs/<aba>/             uma pasta por aba: general, calendar, workspaces, claude (aba IA), notifications, performance, mixer,
+                          github, settings
+  features/<domínio>/     regra pura e serviço de cada fonte de dados: claude, codex, gemini, github, media, meetings,
                           notifications, system, workspaces
   settings/               GSettings tipado, valores do schema, perfis do Claude, atalho e abas
   shared/                 Emitter, Disposables, Timer, formatação, geometria, curva de mola, leitura de arquivo, nível,
