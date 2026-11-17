@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.5.0](https://github.com/matheusjurkovich/frodo/compare/linux-v1.4.1...linux-v1.5.0) (2026-11-17)
+
+
+### Novidades
+
+* aba github com pull requests e alertas ([f72a2f9](https://github.com/matheusjurkovich/frodo/commit/f72a2f937699d047b7ff599f39f3d6a19ef69202))
+* abas mostram só o ícone, com o nome na selecionada ([e93e47d](https://github.com/matheusjurkovich/frodo/commit/e93e47db17d88b62d7115efe0beca3ecaed1b415))
+* alertas do github na pílula e nas notificações ([e8254b3](https://github.com/matheusjurkovich/frodo/commit/e8254b3dc632e1ea5cd31e86b0c8af75f58044e5))
+* chaves de configuração do github ([cf7e9ab](https://github.com/matheusjurkovich/frodo/commit/cf7e9ab9e68a2e0ddf9399ef80c194e694dc9216))
+* configurações do github ([136efe8](https://github.com/matheusjurkovich/frodo/commit/136efe8dd7c11d5410bad5e65039c5831755221f))
+* diff de alertas dos pull requests ([a20b4de](https://github.com/matheusjurkovich/frodo/commit/a20b4de4936466ee90e93ab61dfeeea055d45bc3))
+* regra pura dos pull requests do github ([cb42fb6](https://github.com/matheusjurkovich/frodo/commit/cb42fb6ac05ab511160c91e82c763e852352ce7d))
+* serviço do github com token do gh e poll pela api graphql ([177bfa2](https://github.com/matheusjurkovich/frodo/commit/177bfa206d5f63429eee7f1fb67ea39a65f213a1))
+
+
+### Correções
+
+* correções da revisão da integração com o github ([da11c0f](https://github.com/matheusjurkovich/frodo/commit/da11c0ffc0cad216d6448394912137c76672f728))
+* estados de carregando, erro e sem conexão na aba github ([fe59aa0](https://github.com/matheusjurkovich/frodo/commit/fe59aa045442d364ce71503b8bc37543e596a4f3))
+
 ## [1.4.1](https://github.com/matheusjurkovich/frodo/compare/linux-v1.4.0...linux-v1.4.1) (2026-11-12)
 
 
