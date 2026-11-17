@@ -11,4 +11,5 @@ export interface TabSpec {
 export interface TabItem {
     readonly button: St.Button;
     readonly badge: St.Label;
+    readonly label: St.Label;
 }

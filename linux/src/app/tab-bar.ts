@@ -24,7 +24,8 @@ export class TabBar extends Emitter<{selected: [TabId]}> {
             badge.visible = false;
             const content = new St.BoxLayout({style_class: 'frodo-tab-content', y_align: Clutter.ActorAlign.CENTER});
             content.add_child(new St.Icon({gicon: frodoIcon(icon), style_class: 'frodo-tab-icon', y_align: Clutter.ActorAlign.CENTER}));
-            content.add_child(new St.Label({text: label, y_align: Clutter.ActorAlign.CENTER}));
+            const text = new St.Label({text: label, y_align: Clutter.ActorAlign.CENTER, visible: false});
+            content.add_child(text);
             content.add_child(badge);
             const button = contentButton(
                 'frodo-tab',
@@ -34,8 +35,11 @@ export class TabBar extends Emitter<{selected: [TabId]}> {
                 },
                 {y_align: Clutter.ActorAlign.CENTER, accessible_name: label},
             );
+            button.connect('notify::allocation', () => {
+                if (button === this.#selected) this.#indicator.place(this.#indicator.actor.get_transition('x') !== null);
+            });
             this.#row.add_child(button);
-            this.#items.set(id, {button, badge});
+            this.#items.set(id, {button, badge, label: text});
         }
     }
 
@@ -48,7 +52,10 @@ export class TabBar extends Emitter<{selected: [TabId]}> {
     }
 
     select(id: TabId | null, animate = false): void {
-        for (const [tab, {button}] of this.#items) button.checked = tab === id;
+        for (const [tab, {button, label}] of this.#items) {
+            button.checked = tab === id;
+            label.visible = tab === id;
+        }
         this.#selected = id === null ? null : (this.#items.get(id)?.button ?? null);
         this.#indicator.place(animate);
     }

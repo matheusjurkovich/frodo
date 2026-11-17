@@ -356,6 +356,7 @@
 .frodo-tab {
     height: 36px;
     min-height: 36px;
+    min-width: 36px;
     padding: 0 10px;
     border-radius: 999px;
     font-size: 13px;
