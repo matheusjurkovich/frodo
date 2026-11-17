@@ -50,6 +50,18 @@ export function createTabPages({
         ['notifications', new NotificationsPage(bridge, island)],
         ['performance', new PerformancePage(performance, island)],
         ['mixer', new MixerPage(mixer, island)],
-        ['github', new GitHubPage({github, settings, island, actions: {openSettings: actions.openSettings}})],
+        [
+            'github',
+            new GitHubPage({
+                github,
+                settings,
+                island,
+                actions: {
+                    openSettings: () => {
+                        actions.openSettings('github');
+                    },
+                },
+            }),
+        ],
     ]);
 }

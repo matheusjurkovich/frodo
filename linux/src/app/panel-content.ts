@@ -24,7 +24,7 @@ export class PanelContent {
     readonly #tabBar: TabBar;
     readonly #header: Header;
     readonly #pages: ReadonlyMap<TabId, Component>;
-    readonly #settingsPage: Component;
+    readonly #settingsPage: SettingsPage;
     readonly #preview: IdleView;
     readonly #stack = new St.Viewport({style_class: 'frodo-pages', layout_manager: new Clutter.BinLayout(), x_expand: true});
     readonly #scroll = new St.ScrollView({
@@ -62,7 +62,7 @@ export class PanelContent {
             recording,
         );
         this.#preview = new IdleView({settings, state, claude, codex, gemini, bridge});
-        this.#settingsPage = new SettingsPage(settings, sessions, this.#preview.actor, {
+        this.#settingsPage = new SettingsPage(settings, sessions, github, this.#preview.actor, {
             back: () => {
                 this.#leaveSettings();
             },
@@ -87,8 +87,8 @@ export class PanelContent {
                 scrollToTop: () => {
                     this.#scrollToTop();
                 },
-                openSettings: () => {
-                    this.show({kind: 'settings'}, true);
+                openSettings: section => {
+                    this.show({kind: 'settings', section}, true);
                 },
             },
         });
@@ -129,6 +129,7 @@ export class PanelContent {
         const to = this.#actorOf(view);
         const direction = this.#order(view) > this.#order(this.#view) ? 1 : -1;
         this.#view = view;
+        if (view.kind === 'settings' && view.section) this.#settingsPage.show(view.section);
         const tab = view.kind === 'tab' ? view.tab : null;
         if (tab) this.#lastTab = tab;
         if (animate && from !== to && this.actor.mapped) this.#slide(from, to, direction);

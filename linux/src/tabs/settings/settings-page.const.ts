@@ -7,5 +7,6 @@ export const SECTIONS: readonly {id: SectionId; label: string; icon: FrodoIconNa
     {id: 'pill', label: 'Pílula', icon: 'general'},
     {id: 'tabs', label: 'Abas', icon: 'workspaces'},
     {id: 'ai', label: 'IA', icon: 'claude'},
+    {id: 'github', label: 'GitHub', icon: 'github'},
     {id: 'agenda', label: 'Agenda', icon: 'calendar'},
 ];

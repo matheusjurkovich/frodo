@@ -32,6 +32,7 @@ export class GitHubPage implements Component {
     readonly #empty = emptyState('Nenhum pull request neste filtro.');
     readonly #state = column('frodo-github-state');
     readonly #stateText = wrappedLabel('', 'frodo-github-state-text');
+    readonly #stateButton: St.Button;
     readonly #tiles = new Map<GitHubFilter, {button: St.Button; count: St.Label}>();
     readonly #reviews = column('frodo-github-reviews');
     readonly #noReviews = dimLabel('Ninguém pediu sua revisão agora.');
@@ -78,15 +79,14 @@ export class GitHubPage implements Component {
             }),
         );
         this.#state.add_child(this.#stateText);
-        this.#state.add_child(
-            textButton(
-                'Abrir configurações do GitHub',
-                () => {
-                    actions.openSettings();
-                },
-                'primary',
-            ),
+        this.#stateButton = textButton(
+            'Abrir configurações do GitHub',
+            () => {
+                actions.openSettings();
+            },
+            'primary',
         );
+        this.#state.add_child(this.#stateButton);
         for (const child of [head, this.#filters.actor, this.#error, this.#state, this.#list, this.#empty]) main.add_child(child);
 
         const side = column('frodo-section frodo-github-side');
@@ -205,6 +205,7 @@ export class GitHubPage implements Component {
         this.#syncUpdated();
         this.#state.visible = !hasData;
         this.#stateText.text = hasData ? '' : STATUS_TEXTS[status];
+        this.#stateButton.visible = status !== 'loading';
         this.#error.visible = status === 'error';
         this.#error.text = github.errorMessage ?? '';
         this.#filters.actor.visible = hasData;
