@@ -22,6 +22,7 @@ import {ActivityFeed} from '../pill/activity-feed.js';
 import {FrodoSettings} from '../settings/frodo-settings.js';
 import type {Disposables} from '../shared/disposables.js';
 import {ProviderNotifier} from '../shared/ui/provider-notifier.js';
+import {GitHubNotifier} from './github-notifier.js';
 import {QuotaAlerts} from './quota-alerts.js';
 import type {FrodoServices} from './services.types.js';
 
@@ -53,7 +54,8 @@ export function createServices(gsettings: Gio.Settings, disposables: Disposables
     const notifier = disposables.own(new ProviderNotifier());
     disposables.own(new DoneAlert(settings, sessions, notifier));
     disposables.own(new QuotaAlerts({settings, claude, codex, gemini, notifier}));
-    const feed = disposables.own(new ActivityFeed({recording, sessions, meetings, bridge, volume, media, settings}));
+    disposables.own(new GitHubNotifier({settings, github}));
+    const feed = disposables.own(new ActivityFeed({recording, sessions, meetings, bridge, volume, media, github, settings}));
     return {
         settings,
         state,

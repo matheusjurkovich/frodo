@@ -23,6 +23,7 @@ export class GitHubService extends Emitter<GitHubServiceEvents> {
     #updatedAt: number | null = null;
     #errorMessage: string | null = null;
     #focused: string | null = null;
+    #token: string | null = null;
     #run = 0;
     #destroyed = false;
 
@@ -33,6 +34,7 @@ export class GitHubService extends Emitter<GitHubServiceEvents> {
         this.#disposables.add(
             settings.onChanged(['github-enabled', 'github-auth', 'github-scope', 'github-repos'], () => {
                 this.#previous = null;
+                this.#token = null;
                 this.refresh();
             }),
         );
@@ -92,6 +94,7 @@ export class GitHubService extends Emitter<GitHubServiceEvents> {
         await this.#backend.storeToken(token);
         if (this.#destroyed) return;
         this.#previous = null;
+        this.#token = null;
         this.refresh();
     }
 
@@ -135,8 +138,9 @@ export class GitHubService extends Emitter<GitHubServiceEvents> {
             this.#idle('no-repos');
             return;
         }
-        const token = await this.#backend.token(settings.githubAuth).catch(() => null);
+        const token = this.#token ?? (await this.#backend.token(settings.githubAuth).catch(() => null));
         if (!current()) return;
+        this.#token = token;
         if (token === null || token === '') {
             this.#idle('signed-out');
             return;
@@ -151,6 +155,7 @@ export class GitHubService extends Emitter<GitHubServiceEvents> {
         } catch (error) {
             if (!current()) return;
             if (error instanceof UnauthorizedError) {
+                this.#token = null;
                 this.#idle('bad-token');
                 return;
             }

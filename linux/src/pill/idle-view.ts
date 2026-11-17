@@ -27,7 +27,7 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
     constructor(deps: IdleViewDependencies) {
         super();
         this.#deps = deps;
-        const {settings, state, claude, codex, gemini, bridge} = deps;
+        const {settings, state, claude, codex, gemini, bridge, github} = deps;
         this.#context = {
             ...deps,
             built: this.#built,
@@ -57,6 +57,8 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
         this.#disposables.add(codex.on('changed', refresh));
         this.#disposables.add(gemini.on('changed', refresh));
         this.#disposables.add(bridge.on('changed', refresh));
+        this.#disposables.add(github.on('changed', refresh));
+        this.#disposables.add(settings.onChanged(['github-alerts', 'github-muted'], refresh));
         for (const event of ['memory', 'battery'] as const) this.#disposables.add(state.on(event, refresh));
         this.#build();
     }

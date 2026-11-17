@@ -18,6 +18,7 @@ export const CLOSED_ITEMS = [
     'codex-weekly',
     'gemini-daily',
     'extensions',
+    'github',
 ] as const;
 
 export const PILL_POSITIONS = [

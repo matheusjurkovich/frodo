@@ -1,5 +1,6 @@
 import json
 import sys
+import time
 from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
@@ -47,13 +48,21 @@ REVIEW = [
 
 
 class Handler(BaseHTTPRequestHandler):
+    mine_calls = 0
+
     def do_POST(self):
         body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
         query = body.get('variables', {}).get('q', '')
         if 'variables' not in body:
             data = {'c0': {'ref': {'compare': {'behindBy': 3}}}}
         else:
-            nodes = REVIEW if 'review-requested' in query else MINE
+            if 'review-requested' in query:
+                nodes = REVIEW
+            else:
+                Handler.mine_calls += 1
+                if Handler.mine_calls == 2:
+                    time.sleep(2)
+                nodes = MINE if Handler.mine_calls > 1 else MINE[1:]
             data = {'viewer': {'login': 'demo'}, 'search': {'pageInfo': {'hasNextPage': False, 'endCursor': None}, 'nodes': nodes}}
         payload = json.dumps({'data': data}).encode()
         self.send_response(200)

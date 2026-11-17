@@ -121,6 +121,17 @@ sleep 6
 
 ev "probe.hover('frodo-pill')" > /dev/null
 sleep 1.5
+tab GitHub
+ev "probe.press('Atualizar agora')" > /dev/null
+ev 'probe.away()' > /dev/null
+ev "probe.press('Recolher ilha')" > /dev/null
+sleep 3
+shot pilula-github frodo-pill 14
+sleep 6
+
+ev "probe.hover('frodo-pill')" > /dev/null
+sleep 1.5
+tab Geral
 shot geral frodo-panel 24
 for name in Calendário Áreas IA Notificações Desempenho GitHub; do
     tab "$name"

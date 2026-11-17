@@ -39,12 +39,12 @@ export class Pill extends Emitter<{rebuilt: []}> {
     #vertical = false;
     #peeking = false;
 
-    constructor({settings, state, claude, codex, gemini, bridge, feed, recording, sessions, media, actions}: PillDependencies) {
+    constructor({settings, state, claude, codex, gemini, bridge, feed, recording, sessions, media, github, actions}: PillDependencies) {
         super();
         this.#feed = feed;
         this.#settings = settings;
-        this.#idle = new IdleView({settings, state, claude, codex, gemini, bridge});
-        this.#activity = new ActivityView({recording, sessions, media, actions});
+        this.#idle = new IdleView({settings, state, claude, codex, gemini, bridge, github});
+        this.#activity = new ActivityView({recording, sessions, media, github, actions});
         this.actor.add_child(this.#idle.actor);
         this.actor.add_child(this.#activity.actor);
         this.actor.add_child(this.#peek.actor);

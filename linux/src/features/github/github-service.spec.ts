@@ -47,7 +47,10 @@ class FakeBackend implements GitHubBackend {
     cleared = 0;
     destroyed = false;
 
+    lookups = 0;
+
     token(): Promise<string | null> {
+        this.lookups++;
         return Promise.resolve(this.tokenValue);
     }
 
@@ -270,6 +273,21 @@ describe('GitHubService', () => {
         await waitFor(github, () => github.status === 'disabled');
         github.connect();
         expect(settings.githubEnabled).toBeTrue();
+    });
+
+    it('reaproveita o token entre ciclos e busca de novo quando a conta muda ou o GitHub recusa', async () => {
+        const github = start();
+        await waitFor(github, () => github.status === 'ok');
+        await cycle(github);
+        expect(backend.lookups).toBe(1);
+        backend.mine = {status: 401, body: ''};
+        await cycle(github);
+        expect(github.status).toBe('bad-token');
+        backend.mine = page([]);
+        await cycle(github);
+        expect(backend.lookups).toBe(2);
+        settings.githubAuth = 'token';
+        await waitFor(github, () => backend.lookups === 3);
     });
 
     it('destrói o cliente junto', () => {

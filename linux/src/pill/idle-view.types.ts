@@ -1,6 +1,7 @@
 import type Clutter from 'gi://Clutter';
 import type {ClaudeService} from '../features/claude/claude-service.js';
 import type {CodexUsage} from '../features/codex/codex-service.js';
+import type {GitHubService} from '../features/github/github-service.js';
 import type {GeminiUsage} from '../features/gemini/gemini-service.js';
 import type {NotificationBridge} from '../features/notifications/notification-bridge-service.js';
 import type {FrodoSettings} from '../settings/frodo-settings.js';
@@ -14,6 +15,7 @@ export interface IdleViewDependencies {
     readonly codex: CodexUsage;
     readonly gemini: GeminiUsage;
     readonly bridge: NotificationBridge;
+    readonly github: Pick<GitHubService, 'alertCount' | 'status' | 'on'>;
 }
 
 export interface Segment {

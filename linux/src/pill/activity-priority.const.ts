@@ -4,6 +4,7 @@ export const ACTIVITY_KINDS = [
     'claude-permission',
     'claude-waiting',
     'meeting',
+    'github',
     'volume',
     'claude-working',
     'media',

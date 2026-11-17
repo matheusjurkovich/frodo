@@ -6,4 +6,5 @@ export const STATE_CLASSES: Partial<Record<ActivityKind, string>> = {
     'claude-waiting': 'frodo-pill-waiting',
     meeting: 'frodo-pill-meeting',
     notification: 'frodo-pill-notification',
+    github: 'frodo-pill-github',
 };

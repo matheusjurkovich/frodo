@@ -14,6 +14,7 @@ describe('pill-items', () => {
             'codex-weekly',
             'gemini-daily',
             'extensions',
+            'github',
         ]);
     });
 

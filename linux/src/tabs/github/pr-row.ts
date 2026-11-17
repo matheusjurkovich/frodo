@@ -8,7 +8,7 @@ import {frodoIcon} from '../../shared/ui/icons.js';
 import {column, label, row, wrappedLabel} from '../../shared/ui/layout.js';
 import type {Component} from '../../shared/ui/lifecycle.types.js';
 import {Wrap} from '../../shared/ui/wrap.js';
-import {CHECK_LABELS, KIND_ICONS} from './pr-row.const.js';
+import {CHECK_LABELS} from './pr-row.const.js';
 import type {PrRowOptions} from './pr-row.types.js';
 
 export class PrRow implements Component {
@@ -21,7 +21,7 @@ export class PrRow implements Component {
 
         const head = row('frodo-github-pr-head');
         head.add_child(
-            new St.Icon({gicon: frodoIcon(KIND_ICONS[pr.kind]), style_class: 'frodo-github-pr-icon', y_align: Clutter.ActorAlign.START}),
+            new St.Icon({gicon: frodoIcon(`pr-${pr.kind}`), style_class: 'frodo-github-pr-icon', y_align: Clutter.ActorAlign.START}),
         );
         const text = column('frodo-github-pr-text');
         text.x_expand = true;

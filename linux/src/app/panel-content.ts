@@ -61,7 +61,7 @@ export class PanelContent {
             },
             recording,
         );
-        this.#preview = new IdleView({settings, state, claude, codex, gemini, bridge});
+        this.#preview = new IdleView({settings, state, claude, codex, gemini, bridge, github});
         this.#settingsPage = new SettingsPage(settings, sessions, github, this.#preview.actor, {
             back: () => {
                 this.#leaveSettings();
