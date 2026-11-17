@@ -230,6 +230,14 @@ describe('github', () => {
         expect(prDetail(classified({kind: 'conflict', behindBy: null})).body).toBe('');
     });
 
+    it('conflito sem base conhecida não monta comando quebrado', () => {
+        expect(prDetail(classified({kind: 'conflict', base: '', behindBy: null}))).toEqual({
+            title: 'Conflito com a base',
+            body: '',
+            command: null,
+        });
+    });
+
     it('descreve as alterações pedidas com o texto da review', () => {
         const changes = (body: string): ClassifiedPr => classified({kind: 'changes', changesBy: {author: 'bia', body}});
         expect(prDetail(changes('Falta um teste.'))).toEqual({title: '@bia pediu alterações', body: '“Falta um teste.”', command: null});

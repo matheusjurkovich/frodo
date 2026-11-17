@@ -161,6 +161,7 @@ function quoted(body: string): string {
 export function prDetail(pr: ClassifiedPr): PrDetail {
     switch (pr.kind) {
         case 'conflict':
+            if (pr.base === '') return {title: 'Conflito com a base', body: '', command: null};
             return {
                 title: `Conflito com ${pr.base}`,
                 body:
