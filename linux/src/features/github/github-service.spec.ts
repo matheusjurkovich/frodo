@@ -45,6 +45,8 @@ class FakeBackend implements GitHubBackend {
     posts: string[] = [];
     stored: string[] = [];
     cleared = 0;
+    failStore = false;
+    failClear = false;
     destroyed = false;
 
     lookups = 0;
@@ -55,12 +57,14 @@ class FakeBackend implements GitHubBackend {
     }
 
     storeToken(token: string): Promise<void> {
+        if (this.failStore) return Promise.reject(new Error('chaveiro fechado'));
         this.stored.push(token);
         this.tokenValue = token;
         return Promise.resolve();
     }
 
     clearToken(): Promise<void> {
+        if (this.failClear) return Promise.reject(new Error('chaveiro fechado'));
         this.cleared++;
         this.tokenValue = null;
         return Promise.resolve();
@@ -288,6 +292,51 @@ describe('GitHubService', () => {
         expect(backend.lookups).toBe(2);
         settings.githubAuth = 'token';
         await waitFor(github, () => backend.lookups === 3);
+    });
+
+    it('mantém o silêncio de PR que só saiu da lista mas segue aberto', async () => {
+        backend.mine = page([CONFLICT]);
+        const github = start();
+        await waitFor(github, () => github.status === 'ok');
+        github.toggleMuted('dono/frodo#1');
+        backend.mine = page([{number: 1, rollup: 'PENDING'}]);
+        await cycle(github);
+        expect(github.pulls).toEqual([]);
+        expect(settings.githubMuted).toEqual(['dono/frodo#1']);
+    });
+
+    it('sem token, o timer não volta a pedir o chaveiro; atualizar à mão pede', async () => {
+        const every = spyOn(Timer.prototype, 'every').and.callThrough();
+        backend.tokenValue = null;
+        const github = start();
+        await waitFor(github, () => github.status === 'signed-out');
+        const tick = every.calls.mostRecent().args[1];
+        tick();
+        tick();
+        await new Promise<void>(resolve => {
+            new Timer().once(30, resolve);
+        });
+        expect(backend.lookups).toBe(1);
+        github.refresh();
+        await new Promise<void>(resolve => {
+            new Timer().once(30, resolve);
+        });
+        expect(backend.lookups).toBe(2);
+    });
+
+    it('desconectar desliga mesmo se o chaveiro falhar', async () => {
+        settings.githubAuth = 'token';
+        backend.failClear = true;
+        const github = start();
+        await waitFor(github, () => github.status === 'ok');
+        await github.disconnect();
+        expect(settings.githubEnabled).toBeFalse();
+    });
+
+    it('salvar token que o chaveiro recusa avisa quem chamou', async () => {
+        backend.failStore = true;
+        const github = start();
+        await expectAsync(github.saveToken('github_pat_x')).toBeRejected();
     });
 
     it('destrói o cliente junto', () => {

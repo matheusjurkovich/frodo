@@ -1,5 +1,5 @@
 import type {GitHubAlertKind} from '../../settings/schema-values.types.js';
-import type {ClassifiedPr, PrKind} from './github.types.js';
+import type {ClassifiedPr, PrKind, PullRequest} from './github.types.js';
 
 function alerting(pr: ClassifiedPr, enabled: readonly GitHubAlertKind[], muted: readonly string[]): boolean {
     return pr.kind !== 'ready' && enabled.includes(pr.kind) && !muted.includes(pr.key);
@@ -26,7 +26,7 @@ export function alertCount(prs: readonly ClassifiedPr[], enabled: readonly GitHu
     return visibleAlerts(prs, enabled, muted).length;
 }
 
-export function pruneMuted(muted: readonly string[], prs: readonly ClassifiedPr[]): string[] {
+export function pruneMuted(muted: readonly string[], prs: readonly PullRequest[]): string[] {
     const keys = new Set(prs.map(pr => pr.key));
     return muted.filter(key => keys.has(key));
 }

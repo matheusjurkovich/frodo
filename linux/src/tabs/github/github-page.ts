@@ -2,7 +2,7 @@ import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import Pango from 'gi://Pango';
 import St from 'gi://St';
-import {initials, shortRef, updatedText} from '../../features/github/github.js';
+import {initials, reviewMeta, updatedText} from '../../features/github/github.js';
 import type {GitHubService} from '../../features/github/github-service.js';
 import type {ClassifiedPr} from '../../features/github/github.types.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
@@ -272,7 +272,7 @@ export class GitHubPage implements Component {
             text.x_expand = true;
             const title = label(pr.title, 'frodo-github-review-title');
             title.clutter_text.ellipsize = Pango.EllipsizeMode.END;
-            const meta = label(`${shortRef(pr)} · @${pr.author}`, 'frodo-dim');
+            const meta = label(reviewMeta(pr, Date.now()), 'frodo-dim');
             meta.clutter_text.ellipsize = Pango.EllipsizeMode.END;
             text.add_child(title);
             text.add_child(meta);
