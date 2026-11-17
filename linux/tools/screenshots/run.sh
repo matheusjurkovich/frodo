@@ -41,6 +41,11 @@ END:VEVENT
 END:VCALENDAR
 ICS
 
+mkdir -p "$TMP/config/gh"
+printf 'github.com:\n    oauth_token: gho_demo\n    user: demo\n' > "$TMP/config/gh/hosts.yml"
+python3 "$DIR/github.py" 18765 &
+GITHUB_FAKE=$!
+
 cat > "$TMP/inner.sh" << 'INNER'
 . "$HEADLESS_LIB"
 headless_start_shell --headless --virtual-monitor 1440x900
@@ -117,10 +122,13 @@ sleep 6
 ev "probe.hover('frodo-pill')" > /dev/null
 sleep 1.5
 shot geral frodo-panel 24
-for name in Calendário Áreas IA Notificações Desempenho; do
+for name in Calendário Áreas IA Notificações Desempenho GitHub; do
     tab "$name"
     shot "$(printf '%s' "$name" | iconv -f utf-8 -t ascii//TRANSLIT | tr '[:upper:]' '[:lower:]')" frodo-panel 24
 done
+ev "probe.press('feat: aba do GitHub na ilha, Conflito')" > /dev/null
+sleep 1
+shot github-conflito frodo-panel 24
 tab 'Configurações da ilha'
 shot configuracoes frodo-panel 24
 
@@ -129,7 +137,8 @@ pkill -f "$ROOT/dist/hooks/claude-session.sh" 2> /dev/null
 kill "$SHELL_PID"
 wait "$SHELL_PID" 2> /dev/null || true
 INNER
-headless_run "$TMP/inner.sh" DIR="$DIR" ROOT="$ROOT" OUT="$OUT" > /dev/null 2>&1
+headless_run "$TMP/inner.sh" DIR="$DIR" ROOT="$ROOT" OUT="$OUT" FRODO_GITHUB_GRAPHQL_URL=http://127.0.0.1:18765/graphql > /dev/null 2>&1
+kill "$GITHUB_FAKE" 2> /dev/null || true
 gst-launch-1.0 -q filesrc location="$TMP/demo.mp4" ! decodebin ! videoconvert ! videorate ! video/x-raw,framerate=15/1 ! pngenc ! \
     multifilesink location="$TMP/frames/%04d.png"
 python3 "$DIR/gif.py" "$TMP/frames" "$OUT/demo.gif" 720

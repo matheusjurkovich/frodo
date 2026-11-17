@@ -4,15 +4,18 @@ import {
     classifyAll,
     compareBody,
     GitHubResponseError,
+    initials,
     isRepoName,
     mergePulls,
     parseCompare,
     parsePage,
     prDetail,
+    prMeta,
     primaryAction,
     requestBody,
     shortRef,
     tokenFromHostsYaml,
+    updatedText,
 } from './github.js';
 import type {ClassifiedPr, PullRequest} from './github.types.js';
 
@@ -291,5 +294,28 @@ describe('github', () => {
         const answer = JSON.stringify({data: {c0: {ref: {compare: {behindBy: 3}}}, c1: null}});
         expect([...parseCompare(answer, [a, b])]).toEqual([['dono/frodo#42', 3]]);
         expect([...parseCompare('{quebrado', [a])]).toEqual([]);
+    });
+
+    it('resume o PR numa linha', () => {
+        const now = Date.UTC(2026, 10, 17, 12, 0);
+        const base = classified({additions: 640, deletions: 88, files: 14, comments: 3, updatedAt: now - 12 * 60e3});
+        expect(prMeta(base, false, now)).toBe('+640 −88 · 14 arquivos · 3 comentários · há 12 min');
+        expect(prMeta({...base, files: 1, comments: 1}, false, now)).toBe('+640 −88 · 1 arquivo · 1 comentário · há 12 min');
+        expect(prMeta({...base, comments: 0, updatedAt: now}, true, now)).toBe('+640 −88 · 14 arquivos · agora · alertas silenciados');
+    });
+
+    it('diz quando atualizou', () => {
+        const now = Date.UTC(2026, 10, 17, 12, 0);
+        expect(updatedText(now - 2 * 60e3, false, now)).toBe('Atualizado há 2 min');
+        expect(updatedText(now, false, now)).toBe('Atualizado agora');
+        expect(updatedText(now - 5 * 60e3, true, now)).toBe('Sem conexão · atualizado há 5 min');
+        expect(updatedText(null, true, now)).toBe('Sem conexão');
+        expect(updatedText(null, false, now)).toBe('');
+    });
+
+    it('iniciais do login', () => {
+        expect(initials('matheusjurkovich')).toBe('MA');
+        expect(initials('@rafa')).toBe('RA');
+        expect(initials('')).toBe('?');
     });
 });

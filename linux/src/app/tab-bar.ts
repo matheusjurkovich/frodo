@@ -28,7 +28,7 @@ export class TabBar extends Emitter<{selected: [TabId]}> {
             content.add_child(text);
             content.add_child(badge);
             const button = contentButton(
-                'frodo-tab',
+                `frodo-tab frodo-tab-${id}`,
                 content,
                 () => {
                     this.emit('selected', id);

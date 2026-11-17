@@ -3,6 +3,7 @@ import type {Component} from '../shared/ui/lifecycle.types.js';
 import {CalendarPage} from '../tabs/calendar/calendar-page.js';
 import {ClaudePage} from '../tabs/claude/claude-page.js';
 import {GeneralPage} from '../tabs/general/general-page.js';
+import {GitHubPage} from '../tabs/github/github-page.js';
 import {MixerPage} from '../tabs/mixer/mixer-page.js';
 import {NotificationsPage} from '../tabs/notifications/notifications-page.js';
 import {PerformancePage} from '../tabs/performance/performance-page.js';
@@ -23,6 +24,7 @@ export function createTabPages({
     workspaces,
     performance,
     mixer,
+    github,
 }: TabPagesDependencies): ReadonlyMap<TabId, Component> {
     return new Map<TabId, Component>([
         ['general', new GeneralPage({island, settings, media, mixer, scrollToTop: actions.scrollToTop})],
@@ -48,5 +50,6 @@ export function createTabPages({
         ['notifications', new NotificationsPage(bridge, island)],
         ['performance', new PerformancePage(performance, island)],
         ['mixer', new MixerPage(mixer, island)],
+        ['github', new GitHubPage({github, settings, island, actions: {openSettings: actions.openSettings}})],
     ]);
 }

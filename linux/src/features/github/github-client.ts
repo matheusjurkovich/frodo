@@ -66,7 +66,7 @@ export class GitHubClient implements GitHubBackend {
     }
 
     async post(token: string, body: string): Promise<GitHubHttpResponse> {
-        const message = Soup.Message.new('POST', GITHUB_GRAPHQL_URL);
+        const message = Soup.Message.new('POST', GLib.getenv('FRODO_GITHUB_GRAPHQL_URL') ?? GITHUB_GRAPHQL_URL);
         const headers = message.get_request_headers();
         headers.append('Authorization', `Bearer ${token}`);
         headers.append('Accept', 'application/json');

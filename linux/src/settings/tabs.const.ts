@@ -8,4 +8,5 @@ export const TAB_LABELS: Record<TabId, string> = {
     notifications: 'Notificações',
     performance: 'Desempenho',
     mixer: 'Mixer de volume',
+    github: 'GitHub',
 };

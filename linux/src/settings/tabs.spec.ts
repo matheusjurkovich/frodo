@@ -3,8 +3,8 @@ import {orderedTabs, tabToOpen, visibleTabs} from './tabs.js';
 
 describe('abas', () => {
     it('mostra as não ocultas na ordem fixa', () => {
-        expect(visibleTabs([])).toEqual(['general', 'calendar', 'workspaces', 'claude', 'notifications', 'performance', 'mixer']);
-        expect(visibleTabs(['calendar', 'claude'])).toEqual(['general', 'workspaces', 'notifications', 'performance', 'mixer']);
+        expect(visibleTabs([])).toEqual(['general', 'calendar', 'workspaces', 'claude', 'notifications', 'performance', 'mixer', 'github']);
+        expect(visibleTabs(['calendar', 'claude'])).toEqual(['general', 'workspaces', 'notifications', 'performance', 'mixer', 'github']);
     });
 
     it('nunca fica sem aba', () => {
@@ -25,6 +25,7 @@ describe('abas', () => {
             'notifications',
             'performance',
             'mixer',
+            'github',
         ]);
         expect(orderedTabs([])).toEqual([...TAB_IDS]);
     });
