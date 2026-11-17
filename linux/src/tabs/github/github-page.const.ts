@@ -22,6 +22,9 @@ export const STATUS_TEXTS = {
     'bad-token': 'O token foi recusado pelo GitHub',
     'no-repos': 'Nenhum repositório escolhido',
     loading: 'Buscando pull requests…',
+    offline: 'Sem conexão com o GitHub. Tento de novo no próximo ciclo.',
+    error: 'O GitHub recusou a consulta.',
+    ok: '',
 } as const;
 
 export const TICK_SECONDS = 60;

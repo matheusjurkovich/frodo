@@ -201,12 +201,12 @@ export class GitHubPage implements Component {
         const github = this.#github;
         const status = github.status;
         const pulls = github.pulls;
-        const hasData = status === 'ok' || status === 'offline' || status === 'error';
+        const hasData = (status === 'ok' || status === 'offline' || status === 'error') && github.updatedAt !== null;
         this.#syncUpdated();
         this.#state.visible = !hasData;
-        this.#stateText.text = hasData ? '' : STATUS_TEXTS[status];
-        this.#stateButton.visible = status !== 'loading';
-        this.#error.visible = status === 'error';
+        this.#stateText.text = hasData ? '' : status === 'error' ? (github.errorMessage ?? STATUS_TEXTS.error) : STATUS_TEXTS[status];
+        this.#stateButton.visible = status !== 'loading' && status !== 'offline';
+        this.#error.visible = hasData && status === 'error';
         this.#error.text = github.errorMessage ?? '';
         this.#filters.actor.visible = hasData;
 
@@ -258,7 +258,11 @@ export class GitHubPage implements Component {
         this.#avatar.text = initials(github.login ?? '');
         const scope =
             this.#settings.githubScope === 'list' ? `${String(this.#settings.githubRepos.length)} repositórios` : 'todos os repositórios';
-        this.#accountSub.text = hasData ? `${String(github.alertCount)} alertas · ${scope}` : 'Não conectado';
+        this.#accountSub.text = hasData
+            ? `${String(github.alertCount)} alertas · ${scope}`
+            : status === 'offline' || status === 'error' || status === 'loading'
+              ? scope
+              : 'Não conectado';
     }
 
     #syncReviews(reviews: readonly ClassifiedPr[]): void {

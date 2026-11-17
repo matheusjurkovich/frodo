@@ -26,6 +26,7 @@ export class GitHubService extends Emitter<GitHubServiceEvents> {
     #token: string | null = null;
     #askKeyring = true;
     #run = 0;
+    #busy = false;
     #destroyed = false;
 
     constructor({settings, backend}: GitHubServiceDependencies) {
@@ -36,7 +37,7 @@ export class GitHubService extends Emitter<GitHubServiceEvents> {
             settings.onChanged(['github-enabled', 'github-auth', 'github-scope', 'github-repos'], () => {
                 this.#previous = null;
                 this.#token = null;
-                this.refresh();
+                this.#restart();
             }),
         );
         this.#disposables.add(
@@ -50,7 +51,7 @@ export class GitHubService extends Emitter<GitHubServiceEvents> {
             }),
         );
         this.#schedule();
-        this.refresh();
+        this.#restart();
     }
 
     get status(): GitHubStatus {
@@ -96,7 +97,7 @@ export class GitHubService extends Emitter<GitHubServiceEvents> {
         if (this.#destroyed) return;
         this.#previous = null;
         this.#token = null;
-        this.refresh();
+        this.#restart();
     }
 
     connect(): void {
@@ -110,16 +111,22 @@ export class GitHubService extends Emitter<GitHubServiceEvents> {
 
     refresh(): void {
         this.#askKeyring = true;
+        if (!this.#busy) void this.#cycle();
+    }
+
+    #restart(): void {
+        this.#askKeyring = true;
         void this.#cycle();
     }
 
     #schedule(): void {
         this.#timer.every(this.#settings.githubPollMinutes * 60, () => {
-            void this.#cycle();
+            if (!this.#busy) void this.#cycle();
         });
     }
 
     #idle(status: GitHubStatus): void {
+        this.#busy = false;
         this.#status = status;
         this.#pulls = [];
         this.#login = null;
@@ -130,6 +137,15 @@ export class GitHubService extends Emitter<GitHubServiceEvents> {
 
     async #cycle(): Promise<void> {
         const run = ++this.#run;
+        this.#busy = true;
+        try {
+            await this.#work(run);
+        } finally {
+            if (run === this.#run) this.#busy = false;
+        }
+    }
+
+    async #work(run: number): Promise<void> {
         const current = (): boolean => !this.#destroyed && run === this.#run;
         const settings = this.#settings;
         if (!settings.githubEnabled) {
@@ -143,6 +159,10 @@ export class GitHubService extends Emitter<GitHubServiceEvents> {
         if (this.#token === null && !this.#askKeyring) {
             this.#idle('signed-out');
             return;
+        }
+        if (this.#status !== 'ok' && this.#status !== 'offline' && this.#status !== 'error' && this.#status !== 'loading') {
+            this.#status = 'loading';
+            this.emit('changed');
         }
         const stored = this.#token ?? (await this.#backend.token(settings.githubAuth).catch(() => null));
         if (!current()) return;
@@ -169,6 +189,7 @@ export class GitHubService extends Emitter<GitHubServiceEvents> {
                 this.#idle('bad-token');
                 return;
             }
+            this.#busy = false;
             this.#status = error instanceof GitHubResponseError ? 'error' : 'offline';
             this.#errorMessage = error instanceof GitHubResponseError ? error.message : null;
             this.emit('changed');
@@ -181,6 +202,7 @@ export class GitHubService extends Emitter<GitHubServiceEvents> {
         this.#previous = kindsByKey(classified);
         this.#pulls = classified;
         this.#login = login;
+        this.#busy = false;
         this.#status = 'ok';
         this.#errorMessage = null;
         this.#updatedAt = Date.now();
@@ -200,7 +222,8 @@ export class GitHubService extends Emitter<GitHubServiceEvents> {
                 requestBody(kind, this.#settings.githubScope, this.#settings.githubRepos, after),
             );
             if (response.status === 401) throw new UnauthorizedError();
-            if (response.status !== 200) throw new Error(`GitHub respondeu HTTP ${String(response.status)}`);
+            if (response.status >= 500) throw new Error(`GitHub respondeu HTTP ${String(response.status)}`);
+            if (response.status !== 200) throw new GitHubResponseError(`GitHub respondeu HTTP ${String(response.status)}`);
             const page = parsePage(response.body, kind === 'review');
             login = page.login;
             pulls.push(...page.pulls);

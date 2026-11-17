@@ -46,6 +46,7 @@ class FakeBackend implements GitHubBackend {
     stored: string[] = [];
     cleared = 0;
     failStore = false;
+    delayMs = 0;
     failClear = false;
     destroyed = false;
 
@@ -74,7 +75,14 @@ class FakeBackend implements GitHubBackend {
         this.posts.push(body);
         if (!body.includes('"variables"')) return Promise.resolve(this.compare);
         if (body.includes('user-review-requested')) return Promise.resolve(this.review);
-        return this.mine instanceof Error ? Promise.reject(this.mine) : Promise.resolve(this.mine);
+        const mine = this.mine;
+        if (mine instanceof Error) return Promise.reject(mine);
+        if (this.delayMs === 0) return Promise.resolve(mine);
+        return new Promise(resolve => {
+            new Timer().once(this.delayMs, () => {
+                resolve(mine);
+            });
+        });
     }
 
     destroy(): void {
@@ -337,6 +345,41 @@ describe('GitHubService', () => {
         backend.failStore = true;
         const github = start();
         await expectAsync(github.saveToken('github_pat_x')).toBeRejected();
+    });
+
+    it('volta a buscar mostrando carregando depois de conectar', async () => {
+        backend.tokenValue = null;
+        const github = start();
+        await waitFor(github, () => github.status === 'signed-out');
+        const seen: string[] = [];
+        github.on('changed', () => {
+            seen.push(github.status);
+        });
+        await github.saveToken('github_pat_x');
+        await waitFor(github, () => github.status === 'ok');
+        expect(seen[0]).toBe('loading');
+    });
+
+    it('atualizar durante uma busca não abre outra em paralelo', async () => {
+        backend.delayMs = 50;
+        const github = start();
+        await new Promise<void>(resolve => {
+            new Timer().once(10, resolve);
+        });
+        github.refresh();
+        github.refresh();
+        await waitFor(github, () => github.status === 'ok');
+        await new Promise<void>(resolve => {
+            new Timer().once(30, resolve);
+        });
+        expect(backend.posts.filter(body => body.includes('author:@me')).length).toBe(1);
+    });
+
+    it('HTTP 403 vira erro com o código, não falta de conexão', async () => {
+        backend.mine = {status: 403, body: ''};
+        const github = start();
+        await waitFor(github, () => github.status === 'error');
+        expect(github.errorMessage).toBe('GitHub respondeu HTTP 403');
     });
 
     it('destrói o cliente junto', () => {
