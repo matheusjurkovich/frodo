@@ -51,8 +51,15 @@ export class GitHubSection implements SettingsSection {
         const saveToken = (): void => {
             const token = this.#token.text.trim();
             if (token === '') return;
-            this.#token.text = '';
-            void github.saveToken(token);
+            this.#token.remove_style_pseudo_class('error');
+            github.saveToken(token).then(
+                () => {
+                    this.#token.text = '';
+                },
+                () => {
+                    this.#token.add_style_pseudo_class('error');
+                },
+            );
         };
         this.#token.clutter_text.connect('activate', saveToken);
         this.#tokenLine.add_child(this.#token);

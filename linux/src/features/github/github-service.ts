@@ -24,6 +24,7 @@ export class GitHubService extends Emitter<GitHubServiceEvents> {
     #errorMessage: string | null = null;
     #focused: string | null = null;
     #token: string | null = null;
+    #askKeyring = true;
     #run = 0;
     #destroyed = false;
 
@@ -103,17 +104,18 @@ export class GitHubService extends Emitter<GitHubServiceEvents> {
     }
 
     async disconnect(): Promise<void> {
-        if (this.#settings.githubAuth === 'token') await this.#backend.clearToken();
+        if (this.#settings.githubAuth === 'token') await this.#backend.clearToken().catch(() => undefined);
         if (!this.#destroyed) this.#settings.githubEnabled = false;
     }
 
     refresh(): void {
+        this.#askKeyring = true;
         void this.#cycle();
     }
 
     #schedule(): void {
         this.#timer.every(this.#settings.githubPollMinutes * 60, () => {
-            this.refresh();
+            void this.#cycle();
         });
     }
 
@@ -138,20 +140,28 @@ export class GitHubService extends Emitter<GitHubServiceEvents> {
             this.#idle('no-repos');
             return;
         }
-        const token = this.#token ?? (await this.#backend.token(settings.githubAuth).catch(() => null));
+        if (this.#token === null && !this.#askKeyring) {
+            this.#idle('signed-out');
+            return;
+        }
+        const stored = this.#token ?? (await this.#backend.token(settings.githubAuth).catch(() => null));
         if (!current()) return;
+        const token = stored === '' ? null : stored;
         this.#token = token;
-        if (token === null || token === '') {
+        this.#askKeyring = false;
+        if (token === null) {
             this.#idle('signed-out');
             return;
         }
         let login: string;
         let found: PullRequest[];
+        let complete: boolean;
         try {
             const mine = await this.#search(token, 'mine');
             const review = await this.#search(token, 'review');
             login = mine.login;
             found = mergePulls(mine.pulls, review.pulls);
+            complete = mine.complete && review.complete;
         } catch (error) {
             if (!current()) return;
             if (error instanceof UnauthorizedError) {
@@ -174,13 +184,13 @@ export class GitHubService extends Emitter<GitHubServiceEvents> {
         this.#status = 'ok';
         this.#errorMessage = null;
         this.#updatedAt = Date.now();
-        const muted = pruneMuted(settings.githubMuted, classified);
+        const muted = complete ? pruneMuted(settings.githubMuted, found) : settings.githubMuted;
         if (muted.length !== settings.githubMuted.length) settings.githubMuted = muted;
         this.emit('changed');
         if (fresh.length > 0) this.emit('alert', fresh);
     }
 
-    async #search(token: string, kind: SearchKind): Promise<{login: string; pulls: PullRequest[]}> {
+    async #search(token: string, kind: SearchKind): Promise<{login: string; pulls: PullRequest[]; complete: boolean}> {
         const pulls: PullRequest[] = [];
         let login = '';
         let after: string | null = null;
@@ -197,7 +207,7 @@ export class GitHubService extends Emitter<GitHubServiceEvents> {
             after = page.next;
             if (after === null) break;
         }
-        return {login, pulls};
+        return {login, pulls, complete: after === null};
     }
 
     async #withBehind(token: string, prs: ClassifiedPr[]): Promise<ClassifiedPr[]> {

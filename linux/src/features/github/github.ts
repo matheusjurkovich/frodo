@@ -1,7 +1,17 @@
 import {count, isRecord, optionalString, text} from '../../shared/json.js';
 import {formatAgo} from '../../shared/format.js';
 import type {GitHubScope} from '../../settings/schema-values.types.js';
-import {CHANGES_BODY_MAX, DECISIONS, FAILED_CONCLUSIONS, GITHUB_QUERY, MERGEABLE, PR_KINDS, ROLLUPS, SEARCH_BASE} from './github.const.js';
+import {
+    CHANGES_BODY_MAX,
+    DECISIONS,
+    FAILED_CONCLUSIONS,
+    GITHUB_GRAPHQL_URL,
+    GITHUB_QUERY,
+    MERGEABLE,
+    PR_KINDS,
+    ROLLUPS,
+    SEARCH_BASE,
+} from './github.const.js';
 import type {CheckState, ClassifiedPr, GitHubPage, PrAction, PrCheck, PrDetail, PrKind, PullRequest, SearchKind} from './github.types.js';
 
 export class GitHubResponseError extends Error {
@@ -98,11 +108,12 @@ function parseJson(body: string): unknown {
 
 export function parsePage(body: string, reviewRequested: boolean): GitHubPage {
     const parsed = parseJson(body);
-    const errors = field(parsed, 'errors');
-    if (Array.isArray(errors) && errors.length > 0)
-        throw new GitHubResponseError(optionalString(field(errors[0], 'message')) ?? 'O GitHub recusou a consulta');
     const data = field(parsed, 'data');
-    if (!isRecord(data)) throw new GitHubResponseError('Resposta inesperada do GitHub');
+    if (!isRecord(data) || !isRecord(data.search)) {
+        const errors = field(parsed, 'errors');
+        const message = Array.isArray(errors) ? optionalString(field(errors[0], 'message')) : null;
+        throw new GitHubResponseError(message ?? 'Resposta inesperada do GitHub');
+    }
     const pulls = nodes(data.search)
         .map(item => parsePull(item, reviewRequested))
         .filter((pull): pull is PullRequest => pull !== null);
@@ -129,7 +140,7 @@ export function classifyAll(pulls: readonly PullRequest[], previous: readonly Cl
     const before = new Map(previous.map(pr => [pr.key, pr]));
     const result: ClassifiedPr[] = [];
     for (const pull of pulls) {
-        const mergeable = pull.mergeable === 'UNKNOWN' ? (before.get(pull.key)?.mergeable ?? 'MERGEABLE') : pull.mergeable;
+        const mergeable = pull.mergeable === 'UNKNOWN' ? (before.get(pull.key)?.mergeable ?? 'UNKNOWN') : pull.mergeable;
         const resolved = {...pull, mergeable};
         const kind = classify(resolved);
         if (kind !== null) result.push({...resolved, kind});
@@ -274,4 +285,12 @@ export function updatedText(updatedAt: number | null, offline: boolean, nowMs: n
 export function initials(login: string): string {
     const clean = login.replace(/^@/, '');
     return clean === '' ? '?' : clean.slice(0, 2).toUpperCase();
+}
+
+export function graphqlUrl(override: string | null): string {
+    return override !== null && /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?\//.test(override) ? override : GITHUB_GRAPHQL_URL;
+}
+
+export function reviewMeta(pr: PullRequest, nowMs: number): string {
+    return `${shortRef(pr)} · @${pr.author} · ${ago(pr.updatedAt, nowMs)}`;
 }

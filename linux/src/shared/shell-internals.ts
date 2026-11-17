@@ -7,7 +7,7 @@ import * as Util from 'resource:///org/gnome/shell/misc/util.js';
 import {PopupAnimation} from 'resource:///org/gnome/shell/ui/boxpointer.js';
 import * as Layout from 'resource:///org/gnome/shell/ui/layout.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
-import type * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
+import * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
 import type {QuickSlider, QuickToggleMenu} from 'resource:///org/gnome/shell/ui/quickSettings.js';
 import type {EdgeSpan} from './geometry.types.js';
 import type {Disposer} from './disposables.types.js';
@@ -389,4 +389,10 @@ export function onWindowCoverChanged(callback: () => void): Disposer {
         for (const id of wmIds) wm.disconnect(id);
         workspaces.disconnect(workspaceId);
     };
+}
+
+export function quietNotificationPolicy(): MessageTray.NotificationPolicy {
+    const policy = new MessageTray.NotificationGenericPolicy();
+    Object.defineProperty(policy, 'showBanners', {get: () => false});
+    return policy;
 }

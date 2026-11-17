@@ -4,6 +4,7 @@ import {
     classifyAll,
     compareBody,
     GitHubResponseError,
+    graphqlUrl,
     initials,
     isRepoName,
     mergePulls,
@@ -11,6 +12,7 @@ import {
     parsePage,
     prDetail,
     prMeta,
+    reviewMeta,
     primaryAction,
     requestBody,
     shortRef,
@@ -170,6 +172,22 @@ describe('github', () => {
         expect(() => parsePage('{quebrado', false)).toThrowMatching(error => error instanceof GitHubResponseError);
     });
 
+    it('erro parcial do GraphQL mantém os PRs que vieram', () => {
+        const body = JSON.stringify({
+            data: {viewer: {login: 'eu'}, search: {pageInfo: {hasNextPage: false, endCursor: null}, nodes: [null, node()]}},
+            errors: [{type: 'FORBIDDEN', message: 'Resource protected by organization SAML enforcement'}],
+        });
+        expect(parsePage(body, false).pulls.map(p => p.key)).toEqual(['dono/frodo#42']);
+    });
+
+    it('só aceita outro endereço da API se for local', () => {
+        expect(graphqlUrl(null)).toBe('https://api.github.com/graphql');
+        expect(graphqlUrl('http://127.0.0.1:18765/graphql')).toBe('http://127.0.0.1:18765/graphql');
+        expect(graphqlUrl('http://localhost:9000/graphql')).toBe('http://localhost:9000/graphql');
+        expect(graphqlUrl('https://outro.example/graphql')).toBe('https://api.github.com/graphql');
+        expect(graphqlUrl('http://127.0.0.1.outro.example/graphql')).toBe('https://api.github.com/graphql');
+    });
+
     it('classifica pela ordem de prioridade', () => {
         expect(classify(pr({mergeable: 'CONFLICTING', reviewDecision: 'CHANGES_REQUESTED'}))).toBe('conflict');
         expect(classify(pr({reviewDecision: 'CHANGES_REQUESTED', rollup: 'FAILURE'}))).toBe('changes');
@@ -184,7 +202,7 @@ describe('github', () => {
 
     it('mergeable desconhecido herda o anterior e, sem anterior, não é conflito', () => {
         const unknown = pr({mergeable: 'UNKNOWN', reviewDecision: 'APPROVED'});
-        expect(classifyAll([unknown], []).map(p => p.kind)).toEqual(['ready']);
+        expect(classifyAll([unknown], []).map(p => p.kind)).toEqual([]);
         const before = classified({kind: 'conflict', mergeable: 'CONFLICTING'});
         expect(classifyAll([unknown], [before]).map(p => p.kind)).toEqual(['conflict']);
     });
@@ -311,6 +329,12 @@ describe('github', () => {
         expect(updatedText(now - 5 * 60e3, true, now)).toBe('Sem conexão · atualizado há 5 min');
         expect(updatedText(null, true, now)).toBe('Sem conexão');
         expect(updatedText(null, false, now)).toBe('');
+    });
+
+    it('resume a revisão pedida com o autor e quando', () => {
+        const now = Date.UTC(2026, 10, 17, 12, 0);
+        const review = classified({kind: 'review', author: 'rafa', updatedAt: now - 40 * 60e3});
+        expect(reviewMeta(review, now)).toBe('frodo#42 · @rafa · há 40 min');
     });
 
     it('iniciais do login', () => {

@@ -5,14 +5,9 @@ import {alertTitle} from '../features/github/github.js';
 import type {ClassifiedPr} from '../features/github/github.types.js';
 import type {FrodoSettings} from '../settings/frodo-settings.js';
 import type {Unsubscribe} from '../shared/emitter.types.js';
+import {quietNotificationPolicy} from '../shared/shell-internals.js';
 import {frodoIcon} from '../shared/ui/icons.js';
 import type {GitHubNotifierDependencies} from './github-notifier.types.js';
-
-function quietPolicy(): MessageTray.NotificationPolicy {
-    const policy = new MessageTray.NotificationGenericPolicy();
-    Object.defineProperty(policy, 'showBanners', {get: () => false});
-    return policy;
-}
 
 export class GitHubNotifier {
     readonly #settings: FrodoSettings;
@@ -40,7 +35,7 @@ export class GitHubNotifier {
 
     #ensureSource(): MessageTray.Source {
         if (this.#source) return this.#source;
-        const source = new MessageTray.Source({title: 'GitHub', icon: frodoIcon('github'), policy: quietPolicy()});
+        const source = new MessageTray.Source({title: 'GitHub', icon: frodoIcon('github'), policy: quietNotificationPolicy()});
         source.connect('destroy', () => {
             if (this.#source === source) this.#source = null;
         });
