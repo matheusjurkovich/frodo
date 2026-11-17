@@ -40,3 +40,7 @@ export const PILL_AI_ACTIVITIES = ['always', 'change', 'never'] as const;
 export const SURFACE_STYLES = ['solid', 'frosted', 'clear'] as const;
 export const TAB_IDS = ['general', 'calendar', 'workspaces', 'claude', 'notifications', 'performance', 'mixer'] as const;
 export const CARD_IDS = ['shortcuts', 'apps'] as const;
+export const GITHUB_AUTH_MODES = ['gh', 'token'] as const;
+export const GITHUB_SCOPES = ['mine', 'list'] as const;
+export const GITHUB_ALERT_KINDS = ['conflict', 'changes', 'ci', 'review'] as const;
+export const GITHUB_POLL_MINUTES = [2, 5, 10, 15] as const;
