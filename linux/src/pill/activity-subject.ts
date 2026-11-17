@@ -16,6 +16,8 @@ export function sameSubject(a: PillActivity | null, b: PillActivity | null): boo
             return b.kind === a.kind && a.title === b.title && a.startsAt === b.startsAt;
         case 'notification':
             return b.kind === a.kind && a.item === b.item;
+        case 'github':
+            return b.kind === a.kind && a.pr.key === b.pr.key && a.pr.kind === b.pr.kind;
         case 'media':
             return b.kind === a.kind && a.track.title === b.track.title && a.track.artist === b.track.artist && a.track.app === b.track.app;
     }

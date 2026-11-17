@@ -1,4 +1,6 @@
 import type {PendingRequest, SessionState, SessionStatus} from '../features/claude/claude-sessions.types.js';
+import type {GitHubServiceEvents} from '../features/github/github-service.types.js';
+import type {ClassifiedPr, PrKind} from '../features/github/github.types.js';
 import type {MediaTrack} from '../features/media/media-service.types.js';
 import type {NotificationBridgeEvents} from '../features/notifications/notification-bridge-service.types.js';
 import {ActivityFeed} from './activity-feed.js';
@@ -41,6 +43,39 @@ class FakeBridge extends Emitter<NotificationBridgeEvents> {
     push(title: string): void {
         this.emit('intercepted', {gicon: null, app: 'app', title, body: ''});
     }
+}
+
+class FakeGitHub extends Emitter<GitHubServiceEvents> {
+    push(prs: readonly ClassifiedPr[]): void {
+        this.emit('alert', prs);
+    }
+}
+
+function pr(key: string, kind: PrKind): ClassifiedPr {
+    return {
+        key,
+        repo: 'dono/frodo',
+        number: 42,
+        title: 't',
+        url: '',
+        head: 'feat/x',
+        base: 'master',
+        author: 'eu',
+        additions: 0,
+        deletions: 0,
+        files: 3,
+        comments: 0,
+        updatedAt: 0,
+        mergeable: 'MERGEABLE',
+        reviewDecision: null,
+        changesBy: null,
+        approvedBy: null,
+        rollup: null,
+        checks: [],
+        behindBy: null,
+        reviewRequested: false,
+        kind,
+    };
 }
 
 class FakeVolume extends Emitter<{changed: [number]}> {
@@ -123,6 +158,7 @@ describe('ActivityFeed', () => {
     let bridge: FakeBridge;
     let volume: FakeVolume;
     let media: FakeMedia;
+    let github: FakeGitHub;
     let settings: FrodoSettings;
     let now: number;
     let feed: ActivityFeed;
@@ -151,10 +187,11 @@ describe('ActivityFeed', () => {
         bridge = new FakeBridge();
         volume = new FakeVolume();
         media = new FakeMedia();
+        github = new FakeGitHub();
         settings = createSettings();
         now = 1_000_000;
         spyOn(Date, 'now').and.callFake(() => now);
-        const sources: FeedSources = {recording, sessions, meetings, bridge, volume, media, settings};
+        const sources: FeedSources = {recording, sessions, meetings, bridge, volume, media, github, settings};
         feed = new ActivityFeed(sources);
         changes = 0;
         feed.on('changed', () => {
@@ -164,6 +201,26 @@ describe('ActivityFeed', () => {
 
     afterEach(() => {
         feed.destroy();
+    });
+
+    it('alerta do GitHub aparece na pílula e some depois do aviso', () => {
+        github.push([pr('dono/frodo#42', 'conflict')]);
+        const {current} = feed;
+        expect(current?.kind === 'github' ? [current.pr.key, current.more] : null).toEqual(['dono/frodo#42', 0]);
+        timers.fire(5000);
+        expect(feed.current).toBeNull();
+    });
+
+    it('vários PRs no mesmo alerta mostram o primeiro e quantos mais', () => {
+        github.push([pr('dono/frodo#42', 'conflict'), pr('dono/frodo#7', 'ci')]);
+        const {current} = feed;
+        expect(current?.kind === 'github' ? [current.pr.key, current.more] : null).toEqual(['dono/frodo#42', 1]);
+    });
+
+    it('com a pílula do GitHub desligada o alerta não aparece', () => {
+        settings.githubPill = false;
+        github.push([pr('dono/frodo#42', 'conflict')]);
+        expect(feed.current).toBeNull();
     });
 
     it('sem fontes ativas fica no repouso', () => {
@@ -283,7 +340,7 @@ describe('ActivityFeed', () => {
     it('no modo sempre a sessão que já trabalhava ao ligar aparece', () => {
         settings.pillAiActivity = 'always';
         sessions.set([session('a', 'working', 'Bash ls', 'Bash')]);
-        const later = new ActivityFeed({recording, sessions, meetings, bridge, volume, media, settings});
+        const later = new ActivityFeed({recording, sessions, meetings, bridge, volume, media, github, settings});
         expect(later.current?.kind).toBe('claude-working');
         later.destroy();
     });
@@ -350,7 +407,7 @@ describe('ActivityFeed', () => {
 
     it('sessão que já trabalhava ao ligar não pisca', () => {
         sessions.set([session('a', 'working', 'Bash ls', 'Bash')]);
-        const later = new ActivityFeed({recording, sessions, meetings, bridge, volume, media, settings});
+        const later = new ActivityFeed({recording, sessions, meetings, bridge, volume, media, github, settings});
         expect(later.current).toBeNull();
         later.destroy();
     });
@@ -385,7 +442,7 @@ describe('ActivityFeed', () => {
 
     it('mídia que já tocava ao ligar não aparece', () => {
         media.set(track(true));
-        const later = new ActivityFeed({recording, sessions, meetings, bridge, volume, media, settings});
+        const later = new ActivityFeed({recording, sessions, meetings, bridge, volume, media, github, settings});
         expect(later.current).toBeNull();
         later.destroy();
     });

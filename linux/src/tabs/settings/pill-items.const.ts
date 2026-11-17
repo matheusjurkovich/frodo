@@ -18,4 +18,5 @@ export const ITEM_LABELS: Record<ClosedItem, string> = {
     'codex-weekly': 'Codex · semana',
     'gemini-daily': 'Gemini · hoje',
     extensions: 'Ícones de extensões',
+    github: 'GitHub',
 };

@@ -8,6 +8,7 @@ import {frodoIcon} from '../shared/ui/icons.js';
 import {column, label} from '../shared/ui/layout.js';
 import {PROVIDER_ICONS} from '../shared/ui/provider-tile.const.js';
 import {SegmentBar} from '../shared/ui/segment-bar.js';
+import {alertTitle} from '../features/github/github.js';
 import type {PillActivity} from './activity-feed.types.js';
 import {
     APP_CHARS,
@@ -206,6 +207,29 @@ function mediaRow({track}: Of<'media'>, services: ActivityServices): ActivityRow
     return row(children, {hasAction: true});
 }
 
+function githubRow({pr, more}: Of<'github'>, services: ActivityServices): ActivityRow {
+    const text = column('frodo-pill-github-text');
+    text.y_align = Clutter.ActorAlign.CENTER;
+    text.add_child(label(ellipsize(alertTitle(pr), TITLE_CHARS), 'frodo-pill-title'));
+    const files = `${String(pr.files)} ${pr.files === 1 ? 'arquivo' : 'arquivos'}`;
+    const extra = more > 0 ? ` · +${String(more)}` : '';
+    text.add_child(
+        label(ellipsize(`${files} · ${pr.head} → ${pr.base}${extra}`, TITLE_CHARS), 'frodo-pill-detail frodo-pill-github-detail'),
+    );
+    const open = textButton(
+        'Ver',
+        () => {
+            services.github.focus(pr.key);
+            services.actions.openTab('github');
+        },
+        'primary',
+    );
+    return row([icon(frodoIcon(`pr-${pr.kind}`), `frodo-pill-github-icon frodo-github-kind-${pr.kind}`), text, open], {
+        hasAction: true,
+        clickTab: 'github',
+    });
+}
+
 export function buildRow(activity: PillActivity, services: ActivityServices): ActivityRow {
     switch (activity.kind) {
         case 'recording':
@@ -218,6 +242,8 @@ export function buildRow(activity: PillActivity, services: ActivityServices): Ac
             return meetingRow(activity, services);
         case 'notification':
             return notificationRow(activity);
+        case 'github':
+            return githubRow(activity, services);
         case 'volume':
             return volumeRow(activity);
         case 'claude-working':

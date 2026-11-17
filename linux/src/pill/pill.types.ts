@@ -5,6 +5,7 @@ import type {SystemState} from '../features/system/system-state-service.js';
 import type {ActivityFeed} from './activity-feed.js';
 import type {ActivityServices} from './activity-view.types.js';
 import type {CodexUsage} from '../features/codex/codex-service.js';
+import type {GitHubService} from '../features/github/github-service.js';
 import type {GeminiUsage} from '../features/gemini/gemini-service.js';
 
 export interface PillDependencies extends ActivityServices {
@@ -15,4 +16,5 @@ export interface PillDependencies extends ActivityServices {
     readonly gemini: GeminiUsage;
     readonly bridge: NotificationBridge;
     readonly feed: ActivityFeed;
+    readonly github: GitHubService;
 }

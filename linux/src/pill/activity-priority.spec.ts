@@ -25,6 +25,11 @@ describe('prioridade da pílula', () => {
         ).toBe('a');
     });
 
+    it('alerta do GitHub perde da reunião e vence o volume', () => {
+        expect(pickActivity([{kind: 'github'}, {kind: 'meeting'}])?.kind).toBe('meeting');
+        expect(pickActivity([{kind: 'volume'}, {kind: 'github'}])?.kind).toBe('github');
+    });
+
     it('sem atividade fica no repouso', () => {
         expect(pickActivity([])).toBeNull();
     });

@@ -87,6 +87,21 @@ function notificationsSegment({bridge}: SegmentContext): Segment {
     };
 }
 
+function githubSegment({github}: SegmentContext): Segment {
+    const box = new St.BoxLayout({style_class: 'frodo-pill-github-count', y_align: Clutter.ActorAlign.CENTER});
+    const count = label('', 'frodo-pill-count');
+    box.add_child(new St.Icon({gicon: frodoIcon('github'), style_class: 'frodo-pill-status-icon'}));
+    box.add_child(count);
+    const hasData = (): boolean => github.status === 'ok' || github.status === 'offline' || github.status === 'error';
+    return {
+        actor: box,
+        isVisible: () => hasData() && github.alertCount > 0,
+        update: () => {
+            count.text = String(github.alertCount);
+        },
+    };
+}
+
 function cloneSegment({built, refresh, rebuild}: SegmentContext, read: () => Clutter.Actor[]): Segment {
     const sources = read();
     const box = new St.BoxLayout({style_class: 'frodo-system-icons', y_align: Clutter.ActorAlign.CENTER});
@@ -161,5 +176,7 @@ export function createSegment(item: ClosedItem, context: SegmentContext): Segmen
             return cloneSegment(context, () => present(systemIndicator('battery')));
         case 'ram':
             return ramSegment(context);
+        case 'github':
+            return githubSegment(context);
     }
 }

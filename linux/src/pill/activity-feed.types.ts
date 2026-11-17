@@ -1,5 +1,7 @@
 import type {PendingRequest, SessionState} from '../features/claude/claude-sessions.types.js';
 import type {ClaudeSessions} from '../features/claude/claude-sessions-service.js';
+import type {GitHubService} from '../features/github/github-service.js';
+import type {ClassifiedPr} from '../features/github/github.types.js';
 import type {MediaService} from '../features/media/media-service.js';
 import type {MediaTrack} from '../features/media/media-service.types.js';
 import type {UpcomingMeeting} from '../features/meetings/meetings-service.js';
@@ -15,6 +17,7 @@ export type PillActivity =
     | {kind: 'claude-waiting'; session: SessionState}
     | {kind: 'meeting'; title: string; startsAt: number; url: string | null}
     | {kind: 'notification'; item: InterceptedNotification}
+    | {kind: 'github'; pr: ClassifiedPr; more: number}
     | {kind: 'volume'; percent: number}
     | {kind: 'claude-working'; session: SessionState}
     | {kind: 'media'; track: MediaTrack};
@@ -26,5 +29,6 @@ export interface FeedSources {
     readonly bridge: Pick<NotificationBridge, 'on'>;
     readonly volume: Pick<VolumeWatch, 'on'>;
     readonly media: Pick<MediaService, 'current' | 'on'>;
-    readonly settings: Pick<FrodoSettings, 'pillAiActivity' | 'onChanged'>;
+    readonly github: Pick<GitHubService, 'on'>;
+    readonly settings: Pick<FrodoSettings, 'pillAiActivity' | 'githubPill' | 'onChanged'>;
 }
