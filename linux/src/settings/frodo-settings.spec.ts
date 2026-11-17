@@ -82,4 +82,30 @@ describe('FrodoSettings', () => {
         expect(settings.gsettings.get_string('surface-style')).toBe('clear');
         expect(settings.surfaceStyle).toBe('clear');
     });
+
+    it('lê os padrões do GitHub', () => {
+        const settings = createSettings();
+        expect(settings.githubEnabled).toBeTrue();
+        expect(settings.githubAuth).toBe('gh');
+        expect(settings.githubScope).toBe('mine');
+        expect(settings.githubRepos).toEqual([]);
+        expect(settings.githubAlerts).toEqual(['conflict', 'changes', 'ci', 'review']);
+        expect(settings.githubMuted).toEqual([]);
+        expect(settings.githubPill).toBeTrue();
+        expect(settings.githubNotify).toBeTrue();
+        expect(settings.githubBadge).toBeTrue();
+        expect(settings.githubPollMinutes).toBe(5);
+    });
+
+    it('descarta tipo de alerta do GitHub desconhecido', () => {
+        const settings = createSettings();
+        settings.gsettings.set_strv('github-alerts', ['ci', 'xyz']);
+        expect(settings.githubAlerts).toEqual(['ci']);
+    });
+
+    it('grava a lista de repositórios do GitHub sem repetir', () => {
+        const settings = createSettings();
+        settings.githubRepos = ['a/b', 'c/d', 'a/b'];
+        expect(settings.gsettings.get_strv('github-repos')).toEqual(['a/b', 'c/d']);
+    });
 });

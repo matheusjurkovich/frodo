@@ -9,6 +9,9 @@ import {
     PILL_AI_ACTIVITIES,
     SURFACE_STYLES,
     TAB_IDS,
+    GITHUB_ALERT_KINDS,
+    GITHUB_AUTH_MODES,
+    GITHUB_SCOPES,
 } from './schema-values.const.js';
 import type {TabId} from './schema-values.types.js';
 import {parseProfiles} from './claude-profile.js';
@@ -60,6 +63,15 @@ const subset = <K extends string, T extends string>(key: K, values: readonly T[]
     accessor(
         key,
         settings => known(values, settings.get_strv(key)),
+        (settings, value) => {
+            settings.set_strv(key, [...new Set(value)]);
+        },
+    );
+
+const strings = <K extends string>(key: K): Accessor<K, string[]> =>
+    accessor(
+        key,
+        settings => [...new Set(settings.get_strv(key))],
         (settings, value) => {
             settings.set_strv(key, [...new Set(value)]);
         },
@@ -128,6 +140,16 @@ export const accessors = {
     peekClock: bool('peek-clock'),
     peekEveryMinutes: int('peek-every-minutes'),
     peekSeconds: int('peek-seconds'),
+    githubEnabled: bool('github-enabled'),
+    githubAuth: choice('github-auth', GITHUB_AUTH_MODES, 'gh'),
+    githubScope: choice('github-scope', GITHUB_SCOPES, 'mine'),
+    githubRepos: strings('github-repos'),
+    githubAlerts: subset('github-alerts', GITHUB_ALERT_KINDS),
+    githubMuted: strings('github-muted'),
+    githubPill: bool('github-pill'),
+    githubNotify: bool('github-notify'),
+    githubBadge: bool('github-badge'),
+    githubPollMinutes: int('github-poll-minutes'),
 };
 
 const SettingsBase = class {

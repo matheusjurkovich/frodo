@@ -7,6 +7,9 @@ import type {
     SURFACE_STYLES,
     TAB_IDS,
     CARD_IDS,
+    GITHUB_AUTH_MODES,
+    GITHUB_SCOPES,
+    GITHUB_ALERT_KINDS,
 } from './schema-values.const.js';
 
 export type ClosedMode = (typeof CLOSED_MODES)[number];
@@ -18,3 +21,6 @@ export type PillAiActivity = (typeof PILL_AI_ACTIVITIES)[number];
 export type SurfaceStyle = (typeof SURFACE_STYLES)[number];
 export type TabId = (typeof TAB_IDS)[number];
 export type CardId = (typeof CARD_IDS)[number];
+export type GitHubAuthMode = (typeof GITHUB_AUTH_MODES)[number];
+export type GitHubScope = (typeof GITHUB_SCOPES)[number];
+export type GitHubAlertKind = (typeof GITHUB_ALERT_KINDS)[number];
