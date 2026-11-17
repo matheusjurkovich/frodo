@@ -7,7 +7,7 @@ Dynamic island para o desktop: uma pílula no topo da tela com hora, bateria, RA
 ## O que faz
 
 - **Pílula que reage:** notificação recebida, pedido de permissão do Claude Code ou do Codex (com Negar e Aprovar ali mesmo), sessão de IA trabalhando, reunião chegando, gravação de tela, volume e música.
-- **Ilha com abas:** controles do sistema e player, calendário, áreas de trabalho, IA (cotas, consumo e sessões do Claude Code, Codex e Gemini CLI), notificações e desempenho.
+- **Ilha com abas:** controles do sistema e player, calendário, áreas de trabalho, IA (cotas, consumo e sessões do Claude Code, Codex e Gemini CLI), GitHub (PRs com conflito, alterações pedidas e CI falhando, com alerta na pílula), notificações e desempenho.
 - **Configurável por dentro:** posição em qualquer borda, fundo sólido, fosco ou translúcido, itens e ordem da pílula, abas visíveis e atalhos.
 
 <table>
