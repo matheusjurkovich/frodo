@@ -47,6 +47,11 @@ export class ActivityView implements Component {
     }
 
     activate(): boolean {
+        const custom = this.#row?.activate;
+        if (custom) {
+            custom();
+            return true;
+        }
         const tab = this.clickTab;
         if (tab === null) return false;
         this.#services.actions.openTab(tab, this.clickTarget ?? undefined);

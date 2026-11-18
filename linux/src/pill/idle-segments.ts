@@ -142,7 +142,7 @@ function ramSegment(context: SegmentContext): Segment {
 
 function usageSegment(item: QuotaItem, context: SegmentContext): Segment {
     const {provider} = QUOTA_ITEMS[item];
-    const usage = new UsageSegment(provider);
+    const usage = new UsageSegment(provider, item);
     return {
         actor: usage.actor,
         isVisible: () => provider === 'claude' || context.settings.providerEnabled(provider),

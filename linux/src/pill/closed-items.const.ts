@@ -18,3 +18,19 @@ export const QUOTA_ITEMS: Record<QuotaItem, QuotaSpec> = {
     'codex-weekly': {provider: 'codex', key: 'weekly', name: 'Codex', suffix: ' · 7d'},
     'gemini-daily': {provider: 'gemini', key: 'daily', name: 'Gemini', suffix: ' hoje'},
 };
+
+export const QUOTA_NAMES: Record<QuotaItem, string> = {
+    'claude-session': 'Sessão do Claude',
+    'claude-weekly': 'Semana do Claude',
+    'codex-session': 'Sessão do Codex',
+    'codex-weekly': 'Semana do Codex',
+    'gemini-daily': 'Gemini',
+};
+
+export const QUOTA_PERIODS: Record<QuotaItem, string> = {
+    'claude-session': 'de 5 h',
+    'claude-weekly': 'da semana',
+    'codex-session': 'de 5 h',
+    'codex-weekly': 'da semana',
+    'gemini-daily': 'de hoje',
+};
