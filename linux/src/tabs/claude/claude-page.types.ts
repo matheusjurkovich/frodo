@@ -4,6 +4,7 @@ import type {ClaudeTranscripts} from '../../features/claude/claude-transcripts-s
 import type {CodexUsage} from '../../features/codex/codex-service.js';
 import type {GeminiUsage} from '../../features/gemini/gemini-service.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
+import type {IslandHandle} from '../../shared/island-handle.types.js';
 import type {AiProvider} from '../../shared/ai-provider.types.js';
 import type {ClaudeTabActions} from './limits-card.types.js';
 
@@ -16,5 +17,6 @@ export interface ClaudePageDependencies {
     readonly codex: CodexUsage;
     readonly gemini: GeminiUsage;
     readonly settings: FrodoSettings;
+    readonly island: IslandHandle;
     readonly actions: ClaudeTabActions;
 }

@@ -46,6 +46,7 @@ export function createTabPages({
                 codex,
                 gemini,
                 settings,
+                island,
                 actions: {
                     openSettings: () => {
                         actions.openSettings('ai');

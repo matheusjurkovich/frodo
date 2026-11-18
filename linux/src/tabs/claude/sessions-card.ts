@@ -3,6 +3,7 @@ import {countByStatus, displayStatus} from '../../features/claude/claude-session
 import type {DiffStat, SessionStatus} from '../../features/claude/claude-sessions.types.js';
 import type {ClaudeSessions} from '../../features/claude/claude-sessions-service.js';
 import type {ClaudeTranscripts} from '../../features/claude/claude-transcripts-service.js';
+import type {IslandHandle} from '../../shared/island-handle.types.js';
 import {Disposables} from '../../shared/disposables.js';
 import {Timer} from '../../shared/timer.js';
 import {card, cardHeading, emptyState} from '../../shared/ui/card.js';
@@ -11,6 +12,7 @@ import type {Component} from '../../shared/ui/lifecycle.types.js';
 import {swap} from '../../shared/ui/motion.js';
 import {Segmented} from '../../shared/ui/segmented.js';
 import type {AiProvider} from '../../shared/ai-provider.types.js';
+import {allowBlocked} from './allow-guard.js';
 import {renderWhileMapped} from './render-while-mapped.js';
 import {SessionRow} from './session-row.js';
 import type {SessionRowActions} from './session-row.types.js';
@@ -42,6 +44,7 @@ export class SessionsCard implements Component {
     readonly #rows = new Map<string, SessionRow>();
     readonly #disposables = new Disposables();
     readonly #tick = this.#disposables.own(new Timer());
+    readonly #island: IslandHandle;
     #selected: Filter = 'all';
     #provider: AiProvider | null = null;
     #expanded: string | null = null;
@@ -50,7 +53,8 @@ export class SessionsCard implements Component {
     #hooks = false;
     #destroyed = false;
 
-    constructor(sessions: ClaudeSessions, transcripts: ClaudeTranscripts, close: () => void) {
+    constructor(sessions: ClaudeSessions, transcripts: ClaudeTranscripts, island: IslandHandle, close: () => void) {
+        this.#island = island;
         this.#sessions = sessions;
         this.#transcripts = transcripts;
         this.#close = close;
@@ -199,6 +203,7 @@ export class SessionsCard implements Component {
                 this.#sessions.dismiss(id);
             },
             approve: request => {
+                if (allowBlocked(this.#island.hoverOpenedAt, Date.now())) return;
                 this.#sessions.decide(request, 'allow');
             },
             deny: request => {

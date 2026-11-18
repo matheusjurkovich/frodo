@@ -119,7 +119,7 @@ export class SessionRow implements Component {
             'control',
         );
         this.#approve = textButton(
-            'Aprovar',
+            'Permitir uma vez',
             () => {
                 if (this.#pending) approve(this.#pending);
             },
