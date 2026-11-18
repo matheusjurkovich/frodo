@@ -17,6 +17,8 @@ function name(activity: PillActivity): string {
             return QUEUE_NAMES['claude-permission'](activity);
         case 'claude-waiting':
             return QUEUE_NAMES['claude-waiting'](activity);
+        case 'fault':
+            return QUEUE_NAMES.fault(activity);
         case 'meeting':
             return QUEUE_NAMES.meeting(activity);
         case 'github':

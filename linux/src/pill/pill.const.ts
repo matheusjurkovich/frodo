@@ -1,4 +1,5 @@
 import type {Decision} from '../features/claude/claude-sessions.types.js';
+import type {FaultTone} from './fault.types.js';
 import type {ActivityKind} from './activity-priority.types.js';
 
 export const STATE_CLASSES: Partial<Record<ActivityKind, string>> = {
@@ -8,6 +9,11 @@ export const STATE_CLASSES: Partial<Record<ActivityKind, string>> = {
     meeting: 'frodo-pill-meeting',
     notification: 'frodo-pill-notification',
     github: 'frodo-pill-github',
+};
+
+export const FAULT_CLASSES: Record<FaultTone, string> = {
+    danger: 'frodo-pill-fault-danger',
+    warn: 'frodo-pill-fault-warn',
 };
 
 export const DECISION_CLASSES: Record<Decision, string> = {

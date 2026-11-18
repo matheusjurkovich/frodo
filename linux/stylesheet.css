@@ -144,6 +144,43 @@
     spacing: 1px;
 }
 
+.frodo-pill-fault-danger {
+    border: 1px solid #5c1d1d;
+}
+
+.frodo-pill-fault-warn {
+    border: 1px solid #5c4410;
+}
+
+.frodo-pill-fault-dot {
+    width: 8px;
+    height: 8px;
+    min-height: 8px;
+    border-radius: 4px;
+}
+
+.frodo-pill-fault-danger .frodo-pill-fault-dot {
+    background-color: #f87171;
+}
+
+.frodo-pill-fault-warn .frodo-pill-fault-dot {
+    background-color: #fbbf24;
+}
+
+.frodo-pill-fault-danger .frodo-pill-fault-text,
+.frodo-pill-fault-danger .frodo-pill-fault-clock {
+    color: #fca5a5;
+}
+
+.frodo-pill-fault-warn .frodo-pill-fault-text,
+.frodo-pill-fault-warn .frodo-pill-fault-clock {
+    color: #fde68a;
+}
+
+.frodo-pill-fault-text {
+    font-size: 14px;
+}
+
 .frodo-pill-meeting {
     border: 1px solid -st-accent-color;
 }

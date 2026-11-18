@@ -60,6 +60,7 @@ export class ClaudeSessions extends Emitter<{changed: []; decided: [DecidedReque
         settings,
         root = GLib.getenv('FRODO_RUNTIME_DIR') ?? GLib.build_filenamev([GLib.get_user_runtime_dir(), 'frodo']),
         activate = null,
+        claudeDir,
     }: ClaudeSessionsDependencies) {
         super();
         this.#settings = settings;
@@ -87,7 +88,7 @@ export class ClaudeSessions extends Emitter<{changed: []; decided: [DecidedReque
         void Promise.all([this.#sessionsWatch.ready, this.#pendingWatch.ready]).then(() => {
             this.#changed();
         });
-        this.#hooks = new AgentHooks(settings);
+        this.#hooks = new AgentHooks(settings, claudeDir);
         this.#disposeHooks = this.#hooks.on('changed', () => {
             this.#changed();
         });
@@ -152,6 +153,10 @@ export class ClaudeSessions extends Emitter<{changed: []; decided: [DecidedReque
 
     hooksInstalled(): boolean {
         return this.#hooks.claudeInstalled();
+    }
+
+    hookMissing(): boolean {
+        return this.#hooks.claudeDirExists() && !this.#hooks.claudeInstalled();
     }
 
     agentHooksInstalled(agent: HookedAgent): Promise<boolean> {

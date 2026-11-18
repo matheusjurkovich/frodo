@@ -13,7 +13,8 @@ import type {PillActivity} from './activity-feed.types.js';
 import {ActivityView} from './activity-view.js';
 import {IdleView} from './idle-view.js';
 import {PeekView} from './peek-view.js';
-import {DECISION_CLASSES, STATE_CLASSES} from './pill.const.js';
+import {FAULT_TONES} from './fault.const.js';
+import {DECISION_CLASSES, FAULT_CLASSES, STATE_CLASSES} from './pill.const.js';
 import type {PillDependencies} from './pill.types.js';
 
 function disarm(actor: Clutter.Actor): void {
@@ -141,7 +142,9 @@ export class Pill extends Emitter<{rebuilt: []}> {
         const kind = current?.kind;
         const classes = ['frodo-pill'];
         if (this.#vertical) classes.push('frodo-pill-vertical');
-        const state = current?.kind === 'decision' ? DECISION_CLASSES[current.decided.decision] : kind && STATE_CLASSES[kind];
+        let state: string | undefined | false | null = kind && STATE_CLASSES[kind];
+        if (current?.kind === 'decision') state = DECISION_CLASSES[current.decided.decision];
+        else if (current?.kind === 'fault') state = FAULT_CLASSES[FAULT_TONES[current.fault]];
         if (state) classes.push(state);
         if (this.#activity.hasAction && !this.#peeking) classes.push('frodo-pill-action');
         if (this.#peeking) classes.push('frodo-pill-peeking');

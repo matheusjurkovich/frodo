@@ -55,7 +55,9 @@ export function createServices(gsettings: Gio.Settings, disposables: Disposables
     disposables.own(new DoneAlert(settings, sessions, notifier));
     disposables.own(new QuotaAlerts({settings, claude, codex, gemini, notifier}));
     disposables.own(new GitHubNotifier({settings, github}));
-    const feed = disposables.own(new ActivityFeed({recording, sessions, meetings, bridge, volume, media, github, settings}));
+    const feed = disposables.own(
+        new ActivityFeed({recording, sessions, meetings, bridge, volume, media, github, settings, faults: {wifi: null, calendar: null}}),
+    );
     return {
         settings,
         state,
