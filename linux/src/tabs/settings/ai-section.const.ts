@@ -9,4 +9,10 @@ export const GEMINI_LIMITS: readonly NumberOption[] = GEMINI_DAILY_LIMITS.map(li
     label: limit.toLocaleString('pt-BR'),
 }));
 
-export const HOOK_PATHS: Record<HookedAgent, string> = {codex: '~/.codex/hooks.json', gemini: '~/.gemini/settings.json'};
+export const HOOK_PATHS: Record<HookedAgent, string> = {
+    claude: '~/.claude/settings.json',
+    codex: '~/.codex/hooks.json',
+    gemini: '~/.gemini/settings.json',
+};
+
+export const HOOK_AGENT_NAMES: Record<HookedAgent, string> = {claude: 'Claude Code', codex: 'Codex', gemini: 'Gemini CLI'};

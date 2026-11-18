@@ -1,8 +1,10 @@
 import Clutter from 'gi://Clutter';
+import type {ClaudeSessions} from '../../features/claude/claude-sessions-service.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
 import {AI_PROVIDERS, PROVIDER_NAMES} from '../../shared/ai-provider.const.js';
 import type {AiProvider} from '../../shared/ai-provider.types.js';
 import {Disposables} from '../../shared/disposables.js';
+import {FaultBanner} from '../../shared/ui/fault-banner.js';
 import {column, row} from '../../shared/ui/layout.js';
 import type {Component} from '../../shared/ui/lifecycle.types.js';
 import {swap} from '../../shared/ui/motion.js';
@@ -14,10 +16,14 @@ import {OverviewCard} from './overview-card.js';
 import {SessionsCard} from './sessions-card.js';
 import {VIEWS} from './claude-page.const.js';
 import type {View, ClaudePageDependencies} from './claude-page.types.js';
+import type {ClaudeTabActions} from './limits-card.types.js';
 
 export class ClaudePage implements Component {
     readonly actor = column('frodo-section frodo-ai');
     readonly #settings: FrodoSettings;
+    readonly #sessions: ClaudeSessions;
+    readonly #actions: ClaudeTabActions;
+    readonly #banner = new FaultBanner();
     readonly #selector = row('frodo-ai-selector');
     readonly #overview = row('frodo-ai-overview');
     readonly #overviewCards = new Map<AiProvider, OverviewCard>();
@@ -32,9 +38,12 @@ export class ClaudePage implements Component {
     readonly #disposables = new Disposables();
     #segmented: Segmented<View> | null = null;
     #view: View = 'all';
+    #faulted = false;
 
     constructor({claude, transcripts, sessions, codex, gemini, settings, actions}: ClaudePageDependencies) {
         this.#settings = settings;
+        this.#sessions = sessions;
+        this.#actions = actions;
         const sources = {settings, claude, codex, gemini};
         this.#sessionsAll = new SessionsCard(sessions, transcripts, actions.close);
         this.#sessionsSingle = new SessionsCard(sessions, transcripts, actions.close);
@@ -64,15 +73,46 @@ export class ClaudePage implements Component {
 
         this.#views.add_child(this.#all);
         this.#views.add_child(this.#single);
+        this.actor.add_child(this.#banner.actor);
         this.actor.add_child(this.#selector);
         this.actor.add_child(this.#views);
 
         this.#disposables.add(
             settings.onChanged('disabled-ai', () => {
                 this.#rebuildSelector();
+                this.#syncBanner();
+            }),
+        );
+        this.#disposables.add(
+            sessions.on('changed', () => {
+                this.#syncBanner();
             }),
         );
         this.#rebuildSelector();
+        this.#syncBanner();
+    }
+
+    #syncBanner(): void {
+        const sessions = this.#sessions;
+        if (this.#settings.providerEnabled('claude') && sessions.hookMissing()) {
+            this.#faulted = true;
+            this.#banner.show({
+                tone: 'warn',
+                title: 'O hook do Claude Code não está instalado',
+                body: 'Sem ele, sessões novas e pedidos de permissão não chegam aqui. O Frodo adiciona uma entrada em ~/.claude/settings.json.',
+                primary: {
+                    label: 'Instalar hook',
+                    run: () => {
+                        void sessions.installAgentHooks('claude');
+                    },
+                },
+                secondary: {label: 'Abrir configurações de IA', run: this.#actions.openSettings},
+            });
+            return;
+        }
+        if (this.#faulted && sessions.hooksInstalled()) this.#banner.done('Hook instalado. Sessões novas do Claude Code aparecem aqui.');
+        else this.#banner.show(null);
+        this.#faulted = false;
     }
 
     #rebuildSelector(): void {
@@ -124,6 +164,7 @@ export class ClaudePage implements Component {
         for (const cards of this.#details.values()) for (const detail of cards) detail.destroy();
         this.#sessionsAll.destroy();
         this.#sessionsSingle.destroy();
+        this.#banner.destroy();
         this.actor.destroy();
     }
 }

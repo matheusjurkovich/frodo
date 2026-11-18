@@ -157,7 +157,7 @@ export class GitHubService extends Emitter<GitHubServiceEvents> {
             return;
         }
         if (this.#token === null && !this.#askKeyring) {
-            this.#idle('signed-out');
+            if (this.#status !== 'bad-token') this.#idle('signed-out');
             return;
         }
         if (this.#status !== 'ok' && this.#status !== 'offline' && this.#status !== 'error' && this.#status !== 'loading') {
@@ -184,12 +184,13 @@ export class GitHubService extends Emitter<GitHubServiceEvents> {
             complete = mine.complete && review.complete;
         } catch (error) {
             if (!current()) return;
+            this.#busy = false;
             if (error instanceof UnauthorizedError) {
                 this.#token = null;
-                this.#idle('bad-token');
+                this.#status = 'bad-token';
+                this.emit('changed');
                 return;
             }
-            this.#busy = false;
             this.#status = error instanceof GitHubResponseError ? 'error' : 'offline';
             this.#errorMessage = error instanceof GitHubResponseError ? error.message : null;
             this.emit('changed');

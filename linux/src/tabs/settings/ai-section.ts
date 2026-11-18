@@ -14,7 +14,7 @@ import {column, dimLabel, label, row, wrappedLabel} from '../../shared/ui/layout
 import {providerTile} from '../../shared/ui/provider-tile.js';
 import {Bindings, group, line} from './settings-rows.js';
 import type {SettingsSection} from './settings-rows.types.js';
-import {POLL_MINUTES, GEMINI_LIMITS, HOOK_PATHS} from './ai-section.const.js';
+import {POLL_MINUTES, GEMINI_LIMITS, HOOK_AGENT_NAMES, HOOK_PATHS} from './ai-section.const.js';
 import type {AiSectionDependencies} from './ai-section.types.js';
 
 function homePath(path: string): string {
@@ -95,6 +95,7 @@ export class AiSection implements SettingsSection {
         profiles.add_child(adder);
         return group('Claude Code', [
             this.#follow('claude', 'Acompanhar o Claude Code', 'Cotas pela conta, sessões pelo hook em ~/.claude/settings.json'),
+            this.#hookLine('claude', 'Sessões e permissões', 'Mostra o status e deixa aprovar ou negar pedidos pela ilha'),
             profiles,
         ]);
     }
@@ -137,8 +138,7 @@ export class AiSection implements SettingsSection {
             button.label = installed ? 'Instalado' : 'Instalar hook';
             button.reactive = !installed;
             button.can_focus = !installed;
-            if (installed)
-                status.text = `Hook em ${HOOK_PATHS[agent]}. Reinicie o ${agent === 'codex' ? 'Codex' : 'Gemini CLI'} para valer.`;
+            if (installed) status.text = `Hook em ${HOOK_PATHS[agent]}. Reinicie o ${HOOK_AGENT_NAMES[agent]} para valer.`;
         };
         void refresh();
         const text = column('frodo-settings-line-text');

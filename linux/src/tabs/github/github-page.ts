@@ -7,10 +7,13 @@ import type {GitHubService} from '../../features/github/github-service.js';
 import type {ClassifiedPr} from '../../features/github/github.types.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
 import {Disposables} from '../../shared/disposables.js';
+import {formatClock} from '../../shared/format.js';
 import type {IslandHandle} from '../../shared/island-handle.types.js';
+import {openTerminal} from '../../shared/terminal.js';
 import {Timer} from '../../shared/timer.js';
 import {contentButton, iconButton, textButton} from '../../shared/ui/buttons.js';
 import {card, cardHeading, emptyState} from '../../shared/ui/card.js';
+import {FaultBanner} from '../../shared/ui/fault-banner.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
 import {column, dimLabel, grid, label, packGrid, row, wrappedLabel} from '../../shared/ui/layout.js';
 import {whileMapped} from '../../shared/ui/lifecycle.js';
@@ -25,6 +28,8 @@ export class GitHubPage implements Component {
     readonly #github: GitHubService;
     readonly #settings: FrodoSettings;
     readonly #island: IslandHandle;
+    readonly #openSettings: () => void;
+    readonly #banner = new FaultBanner();
     readonly #updated = dimLabel();
     readonly #filters = new Segmented<GitHubFilter>(FILTERS, 'all', 'frodo-github-filters', true);
     readonly #error = wrappedLabel('', 'frodo-github-error');
@@ -45,11 +50,13 @@ export class GitHubPage implements Component {
     #rows: PrRow[] = [];
     #filter: GitHubFilter = 'all';
     #open: string | null = null;
+    #faulted = false;
 
     constructor({github, settings, island, actions}: GitHubPageDependencies) {
         this.#github = github;
         this.#settings = settings;
         this.#island = island;
+        this.#openSettings = actions.openSettings;
 
         const main = card('frodo-github-main');
         main.x_expand = true;
@@ -87,7 +94,8 @@ export class GitHubPage implements Component {
             'primary',
         );
         this.#state.add_child(this.#stateButton);
-        for (const child of [head, this.#filters.actor, this.#error, this.#state, this.#list, this.#empty]) main.add_child(child);
+        for (const child of [head, this.#banner.actor, this.#filters.actor, this.#error, this.#state, this.#list, this.#empty])
+            main.add_child(child);
 
         const side = column('frodo-section frodo-github-side');
         side.x_expand = false;
@@ -155,6 +163,7 @@ export class GitHubPage implements Component {
             whileMapped(
                 this.actor,
                 () => {
+                    if (github.status === 'bad-token') github.refresh();
                     this.#sync();
                     this.#live.add(
                         github.on('changed', () => {
@@ -201,9 +210,11 @@ export class GitHubPage implements Component {
         const github = this.#github;
         const status = github.status;
         const pulls = github.pulls;
-        const hasData = (status === 'ok' || status === 'offline' || status === 'error') && github.updatedAt !== null;
+        const hasData =
+            (status === 'ok' || status === 'offline' || status === 'error' || status === 'bad-token') && github.updatedAt !== null;
         this.#syncUpdated();
-        this.#state.visible = !hasData;
+        this.#syncBanner();
+        this.#state.visible = !hasData && status !== 'bad-token';
         this.#stateText.text = hasData ? '' : status === 'error' ? (github.errorMessage ?? STATUS_TEXTS.error) : STATUS_TEXTS[status];
         this.#stateButton.visible = status !== 'loading' && status !== 'offline';
         this.#error.visible = hasData && status === 'error';
@@ -265,6 +276,39 @@ export class GitHubPage implements Component {
               : 'Não conectado';
     }
 
+    #syncBanner(): void {
+        const {status, updatedAt} = this.#github;
+        if (status === 'bad-token') {
+            this.#faulted = true;
+            this.#banner.show({
+                tone: 'danger',
+                title: 'O token do GitHub expirou',
+                body:
+                    updatedAt === null
+                        ? 'A lista parou de atualizar.'
+                        : `A lista parou de atualizar às ${formatClock(new Date(updatedAt))}. Os PRs abaixo são da última sincronização.`,
+                primary: {
+                    label: 'Reconectar conta',
+                    run: () => {
+                        this.#reconnect();
+                    },
+                },
+                secondary: {label: 'Abrir configurações do GitHub', run: this.#openSettings},
+            });
+            return;
+        }
+        if (status === 'loading') return;
+        if (this.#faulted && status === 'ok') this.#banner.done('Conta reconectada. A lista voltou a atualizar.');
+        else this.#banner.show(null);
+        this.#faulted = false;
+    }
+
+    #reconnect(): void {
+        if (this.#settings.githubAuth === 'gh' && openTerminal(['gh', 'auth', 'login', '--web'])) this.#island.close();
+        else this.#openSettings();
+        this.#github.refresh();
+    }
+
     #syncReviews(reviews: readonly ClassifiedPr[]): void {
         this.#reviews.destroy_all_children();
         this.#noReviews.visible = reviews.length === 0;
@@ -297,6 +341,7 @@ export class GitHubPage implements Component {
         this.#live.dispose();
         for (const prRow of this.#rows) prRow.destroy();
         this.#filters.destroy();
+        this.#banner.destroy();
         this.actor.destroy();
     }
 }

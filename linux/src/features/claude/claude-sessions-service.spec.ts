@@ -40,6 +40,20 @@ describe('ClaudeSessions', () => {
         dirs = [];
     });
 
+    it('instalar o hook do Claude grava em settings.json e tira a falha na hora', async () => {
+        const claudeDir = `${tmp()}/.claude`;
+        GLib.mkdir_with_parents(claudeDir, 0o700);
+        const sessions = new ClaudeSessions({settings, root: tmp(), claudeDir});
+        await waitFor(sessions, () => sessions.hookMissing());
+        const notified = changed(sessions);
+        expect(await sessions.installAgentHooks('claude')).toBeTrue();
+        await notified;
+        expect(sessions.hookMissing()).toBeFalse();
+        const [, bytes] = GLib.file_get_contents(`${claudeDir}/settings.json`);
+        expect(new TextDecoder().decode(bytes)).toContain('claude-session.sh claude');
+        sessions.destroy();
+    });
+
     it('hook ausente só conta com a pasta do Claude Code presente', async () => {
         const claudeDir = `${tmp()}/.claude`;
         const sessions = new ClaudeSessions({settings, root: tmp(), claudeDir});
