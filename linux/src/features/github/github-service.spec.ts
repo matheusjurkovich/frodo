@@ -216,17 +216,26 @@ describe('GitHubService', () => {
         expect(github.updatedAt).toBe(updatedAt);
     });
 
-    it('com token recusado, o timer não troca a falha por desconectado nem pede o chaveiro', async () => {
+    it('com token recusado, o timer pede o chaveiro de novo e sai da falha quando o login volta', async () => {
         const every = spyOn(Timer.prototype, 'every').and.callThrough();
         backend.mine = {status: 401, body: ''};
         const github = start();
         await waitFor(github, () => github.status === 'bad-token');
+        backend.mine = page([]);
         every.calls.mostRecent().args[1]();
-        await new Promise<void>(resolve => {
-            new Timer().once(30, resolve);
-        });
+        await waitFor(github, () => github.status === 'ok');
+        expect(backend.lookups).toBe(2);
+    });
+
+    it('com token recusado, atualizar não passa por carregando', async () => {
+        backend.mine = {status: 401, body: ''};
+        const github = start();
+        await waitFor(github, () => github.status === 'bad-token');
+        const statuses: string[] = [];
+        github.on('changed', () => statuses.push(github.status));
+        await cycle(github);
+        expect(statuses).not.toContain('loading');
         expect(github.status).toBe('bad-token');
-        expect(backend.lookups).toBe(1);
     });
 
     it('mudar o escopo zera a referência', async () => {
