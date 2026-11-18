@@ -121,6 +121,7 @@ export class GitHubService extends Emitter<GitHubServiceEvents> {
 
     #schedule(): void {
         this.#timer.every(this.#settings.githubPollMinutes * 60, () => {
+            if (this.#status === 'bad-token') this.#askKeyring = true;
             if (!this.#busy) void this.#cycle();
         });
     }
@@ -160,7 +161,13 @@ export class GitHubService extends Emitter<GitHubServiceEvents> {
             if (this.#status !== 'bad-token') this.#idle('signed-out');
             return;
         }
-        if (this.#status !== 'ok' && this.#status !== 'offline' && this.#status !== 'error' && this.#status !== 'loading') {
+        if (
+            this.#status !== 'ok' &&
+            this.#status !== 'offline' &&
+            this.#status !== 'error' &&
+            this.#status !== 'loading' &&
+            this.#status !== 'bad-token'
+        ) {
             this.#status = 'loading';
             this.emit('changed');
         }
