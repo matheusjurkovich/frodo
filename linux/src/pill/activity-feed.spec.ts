@@ -640,6 +640,12 @@ describe('ActivityFeed', () => {
         expect(feed.current?.kind).toBe('claude-waiting');
     });
 
+    it('abrir a ilha não dá como visto o pedido de permissão', () => {
+        sessions.set([session('a', 'waiting')], [request('a', 'r1', 10)]);
+        feed.cancelTransient();
+        expect(feed.current?.kind).toBe('claude-permission');
+    });
+
     it('atividade interrompida volta com 5 s inteiros', () => {
         recording.set(1000);
         bridge.push('Oi');
@@ -697,9 +703,11 @@ describe('ActivityFeed', () => {
             expect(feed.current?.kind).toBe('decision');
         });
 
-        it('cancelar o transitório limpa a confirmação', () => {
+        it('cancelar o transitório mantém a confirmação até o fim dos 4 s', () => {
             sessions.decide(decided('x'));
             feed.cancelTransient();
+            expect(decidedKey()).toBe('a.x');
+            timers.fire(4000);
             expect(feed.current).toBeNull();
         });
     });

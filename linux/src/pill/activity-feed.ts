@@ -141,13 +141,11 @@ export class ActivityFeed extends Emitter<{changed: []}> {
         this.#notificationTimer.stop();
         this.#volumeTimer.stop();
         this.#githubTimer.stop();
-        this.#decisionTimer.stop();
-        this.#decision = null;
         this.#github = null;
         this.#queue = [];
         this.#notification = null;
         this.#volume = null;
-        this.#seen = this.#transient();
+        this.#seen = this.#transient().filter(({kind}) => kind !== 'claude-permission' && kind !== 'decision');
         this.#refresh();
     }
 
