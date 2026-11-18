@@ -5,6 +5,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {GrabHelper} from 'resource:///org/gnome/shell/ui/grabHelper.js';
 import type * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import type {TabId} from '../settings/schema-values.types.js';
+import type {TabTarget} from '../shared/tab-target.types.js';
 import type {ClaudeService} from '../features/claude/claude-service.js';
 import type {SystemState} from '../features/system/system-state-service.js';
 import {Disposables} from '../shared/disposables.js';
@@ -45,6 +46,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
     readonly #surface: IslandSurface;
     #isOpen = false;
     #openedBy: OpenReason | null = null;
+    #hoverOpenedAt: number | null = null;
     readonly #warmTimer = this.#disposables.own(new Timer());
     #unwarm: Disposer | null = null;
 
@@ -58,8 +60,8 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         this.pill = new Pill({
             ...dependencies,
             actions: {
-                openTab: tab => {
-                    this.openTab(tab);
+                openTab: (tab, target) => {
+                    this.openTab(tab, target);
                 },
             },
         });
@@ -210,16 +212,21 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         this.panel.opacity = 0;
     }
 
+    get hoverOpenedAt(): number | null {
+        return this.#hoverOpenedAt;
+    }
+
     open(reason: OpenReason): void {
         if (this.#isOpen) return;
         this.#endWarm();
         const tab = reason === 'hover' ? this.pill.clickTab : null;
-        if (tab) this.emit('tabRequested', tab);
+        if (tab) this.emit('tabRequested', tab, this.pill.clickTarget);
         this.#pointer.cancelOpen();
         this.#feed.cancelTransient();
         this.#presence.finishConceal();
         this.#isOpen = true;
         this.#openedBy = reason;
+        this.#hoverOpenedAt = reason === 'hover' ? Date.now() : null;
         this.pill.actor.set({reactive: false, hover: false});
         this.#claude.refreshIfStale(CLAUDE_MAX_AGE_SECONDS);
 
@@ -250,9 +257,9 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         this.#pointer.syncPanel();
     }
 
-    openTab(tab: TabId): void {
+    openTab(tab: TabId, target?: TabTarget): void {
         this.close();
-        this.emit('tabRequested', tab);
+        this.emit('tabRequested', tab, target ?? null);
         this.open('key');
     }
 
@@ -260,6 +267,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         if (!this.#isOpen) return;
         this.#isOpen = false;
         this.#openedBy = null;
+        this.#hoverOpenedAt = null;
         this.pill.actor.set({reactive: true, hover: false});
         this.#feed.cancelTransient();
         this.#pointer.cancel();

@@ -106,6 +106,7 @@ export class IdleView extends Emitter<{rebuilt: []}> implements Component {
             item => itemText(item, this.#context),
         );
         this.#slot = slot;
+        if (this.#vertical) slot.label.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
         return {
             actor: slot.actor,
             isVisible: () => slot.isVisible(),

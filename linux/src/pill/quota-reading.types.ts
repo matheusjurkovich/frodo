@@ -14,5 +14,4 @@ export interface QuotaSources {
 export interface UsageReading {
     readonly percent: number;
     readonly level: Level;
-    readonly suffix: string;
 }

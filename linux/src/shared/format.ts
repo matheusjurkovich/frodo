@@ -66,3 +66,8 @@ export function formatSpan(seconds: number): string {
 export function ellipsize(text: string, max: number): string {
     return text.length <= max ? text : `${text.slice(0, max - 1)}…`;
 }
+
+export function homeRelative(path: string, home: string): string {
+    if (path === home) return '~';
+    return path.startsWith(`${home}/`) ? `~${path.slice(home.length)}` : path;
+}

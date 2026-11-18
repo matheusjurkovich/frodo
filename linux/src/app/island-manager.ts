@@ -33,6 +33,10 @@ export class IslandManager {
         this.#rebuild();
     }
 
+    get peeking(): boolean {
+        return this.#currentEntry()?.island.pill.peeking ?? false;
+    }
+
     toggle(): void {
         this.#currentEntry()?.island.toggle();
     }
@@ -67,8 +71,8 @@ export class IslandManager {
             });
             const content = new PanelContent({...this.#dependencies, island});
             island.setContent(content.actor);
-            island.on('tabRequested', tab => {
-                content.showOnNextOpen(tab);
+            island.on('tabRequested', (tab, target) => {
+                content.showOnNextOpen(tab, target ?? undefined);
             });
             this.#entries.push({island, content});
         }

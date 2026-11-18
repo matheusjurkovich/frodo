@@ -5,7 +5,7 @@ import {AgentHooks} from './agent-hooks-service.js';
 import type {HookedAgent} from './agent-hooks.types.js';
 import {decisionJson, nextState, oldestPending, parseHookEvent, parsePending} from './claude-sessions.js';
 import type {ClaudeSessionsDependencies} from './claude-sessions-service.types.js';
-import type {Decision, DiffStat, PendingRequest, SessionState} from './claude-sessions.types.js';
+import type {DecidedRequest, Decision, DiffStat, PendingRequest, SessionState} from './claude-sessions.types.js';
 import {focusProcessWindow} from './process-window-service.js';
 import {RepoActions} from './repo-actions-service.js';
 import {WatchedDirectory} from './watched-directory-service.js';
@@ -37,7 +37,7 @@ function jsonKey(file: Gio.File): string | null {
     return name.endsWith('.json') && name.length > '.json'.length ? name.slice(0, -'.json'.length) : null;
 }
 
-export class ClaudeSessions extends Emitter<{changed: []}> {
+export class ClaudeSessions extends Emitter<{changed: []; decided: [DecidedRequest]}> {
     readonly #settings: FrodoSettings;
     readonly #dir: string;
     readonly #decisionsDir: string;
@@ -60,6 +60,7 @@ export class ClaudeSessions extends Emitter<{changed: []}> {
         settings,
         root = GLib.getenv('FRODO_RUNTIME_DIR') ?? GLib.build_filenamev([GLib.get_user_runtime_dir(), 'frodo']),
         activate = null,
+        claudeDir,
     }: ClaudeSessionsDependencies) {
         super();
         this.#settings = settings;
@@ -87,7 +88,7 @@ export class ClaudeSessions extends Emitter<{changed: []}> {
         void Promise.all([this.#sessionsWatch.ready, this.#pendingWatch.ready]).then(() => {
             this.#changed();
         });
-        this.#hooks = new AgentHooks(settings);
+        this.#hooks = new AgentHooks(settings, claudeDir);
         this.#disposeHooks = this.#hooks.on('changed', () => {
             this.#changed();
         });
@@ -121,7 +122,16 @@ export class ClaudeSessions extends Emitter<{changed: []}> {
             return false;
         }
         this.#pending.delete(request.key);
+        const session = this.#states.get(request.sessionId) ?? null;
+        if (session?.status === 'waiting')
+            this.#states.set(session.sessionId, {
+                ...session,
+                status: 'working',
+                since: Date.now(),
+                ...(decision === 'deny' ? {tool: null, step: 'Pensando'} : {}),
+            });
         this.#changed();
+        this.emit('decided', {request, session, decision});
         return true;
     }
 
@@ -150,6 +160,10 @@ export class ClaudeSessions extends Emitter<{changed: []}> {
 
     hooksInstalled(): boolean {
         return this.#hooks.claudeInstalled();
+    }
+
+    hookMissing(): boolean {
+        return !this.#hooks.claudeInstalled() && this.#hooks.claudeDirExists();
     }
 
     agentHooksInstalled(agent: HookedAgent): Promise<boolean> {

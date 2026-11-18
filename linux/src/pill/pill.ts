@@ -3,6 +3,7 @@ import St from 'gi://St';
 import {sameSubject} from './activity-subject.js';
 import type {FrodoSettings} from '../settings/frodo-settings.js';
 import type {TabId} from '../settings/schema-values.types.js';
+import type {TabTarget} from '../shared/tab-target.types.js';
 import {Disposables} from '../shared/disposables.js';
 import {Emitter} from '../shared/emitter.js';
 import {SOFT_SPRING, SPRING} from '../shared/spring.const.js';
@@ -13,7 +14,8 @@ import type {PillActivity} from './activity-feed.types.js';
 import {ActivityView} from './activity-view.js';
 import {IdleView} from './idle-view.js';
 import {PeekView} from './peek-view.js';
-import {STATE_CLASSES} from './pill.const.js';
+import {FAULT_TONES} from './fault.const.js';
+import {DECISION_CLASSES, FAULT_CLASSES, STATE_CLASSES} from './pill.const.js';
 import type {PillDependencies} from './pill.types.js';
 
 function disarm(actor: Clutter.Actor): void {
@@ -75,6 +77,10 @@ export class Pill extends Emitter<{rebuilt: []}> {
         return this.#activity.hasAction;
     }
 
+    get clickTarget(): TabTarget | null {
+        return this.#activity.clickTarget;
+    }
+
     get clickTab(): TabId | null {
         return this.#activity.clickTab;
     }
@@ -84,8 +90,12 @@ export class Pill extends Emitter<{rebuilt: []}> {
         this.#vertical = vertical;
         this.#idle.setVertical(vertical);
         const current = this.#feed.current;
-        if (current) this.#activity.show(current, vertical);
+        if (current) this.#activity.show(current, vertical, this.#feed.queue);
         this.#syncStyle();
+    }
+
+    get peeking(): boolean {
+        return this.#peeking;
     }
 
     setPeek(seconds: number | null): void {
@@ -109,7 +119,7 @@ export class Pill extends Emitter<{rebuilt: []}> {
         this.#shown = next;
         const apply = (): void => {
             this.#idle.actor.visible = next === null && !this.#peeking;
-            if (next) this.#activity.show(next, this.#vertical);
+            if (next) this.#activity.show(next, this.#vertical, this.#feed.queue);
             else this.#activity.clear();
             this.#syncStyle();
         };
@@ -137,10 +147,13 @@ export class Pill extends Emitter<{rebuilt: []}> {
     }
 
     #syncStyle(): void {
-        const kind = this.#feed.current?.kind;
+        const current = this.#feed.current;
+        const kind = current?.kind;
         const classes = ['frodo-pill'];
         if (this.#vertical) classes.push('frodo-pill-vertical');
-        const state = kind === undefined ? undefined : STATE_CLASSES[kind];
+        let state: string | undefined | false | null = kind && STATE_CLASSES[kind];
+        if (current?.kind === 'decision') state = DECISION_CLASSES[current.decided.decision];
+        else if (current?.kind === 'fault') state = FAULT_CLASSES[FAULT_TONES[current.fault]];
         if (state) classes.push(state);
         if (this.#activity.hasAction && !this.#peeking) classes.push('frodo-pill-action');
         if (this.#peeking) classes.push('frodo-pill-peeking');

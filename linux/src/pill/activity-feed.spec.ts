@@ -1,5 +1,5 @@
-import type {PendingRequest, SessionState, SessionStatus} from '../features/claude/claude-sessions.types.js';
-import type {GitHubServiceEvents} from '../features/github/github-service.types.js';
+import type {DecidedRequest, PendingRequest, SessionState, SessionStatus} from '../features/claude/claude-sessions.types.js';
+import type {GitHubServiceEvents, GitHubStatus} from '../features/github/github-service.types.js';
 import type {ClassifiedPr, PrKind} from '../features/github/github.types.js';
 import type {MediaTrack} from '../features/media/media-service.types.js';
 import type {NotificationBridgeEvents} from '../features/notifications/notification-bridge-service.types.js';
@@ -19,9 +19,18 @@ class FakeRecording extends Emitter<{changed: []}> {
     }
 }
 
-class FakeSessions extends Emitter<{changed: []}> {
+class FakeSessions extends Emitter<{changed: []; decided: [DecidedRequest]}> {
     sessions: readonly SessionState[] = [];
     pending: readonly PendingRequest[] = [];
+    missing = false;
+
+    hookMissing(): boolean {
+        return this.missing;
+    }
+
+    decide(decided: DecidedRequest): void {
+        this.emit('decided', decided);
+    }
 
     set(sessions: readonly SessionState[], pending: readonly PendingRequest[] = []): void {
         this.sessions = sessions;
@@ -46,6 +55,13 @@ class FakeBridge extends Emitter<NotificationBridgeEvents> {
 }
 
 class FakeGitHub extends Emitter<GitHubServiceEvents> {
+    status: GitHubStatus = 'ok';
+
+    setStatus(status: GitHubStatus): void {
+        this.status = status;
+        this.emit('changed');
+    }
+
     push(prs: readonly ClassifiedPr[]): void {
         this.emit('alert', prs);
     }
@@ -109,7 +125,7 @@ function session(id: string, status: SessionStatus, step = '', tool: string | nu
 }
 
 function request(sessionId: string, name: string, since: number): PendingRequest {
-    return {key: `${sessionId}.${name}`, sessionId, request: name, pid: 1, tool: 'Bash', since};
+    return {key: `${sessionId}.${name}`, sessionId, request: name, pid: 1, tool: 'Bash', summary: 'Bash', since};
 }
 
 function track(playing: boolean, title = 't'): MediaTrack {
@@ -191,7 +207,17 @@ describe('ActivityFeed', () => {
         settings = createSettings();
         now = 1_000_000;
         spyOn(Date, 'now').and.callFake(() => now);
-        const sources: FeedSources = {recording, sessions, meetings, bridge, volume, media, github, settings};
+        const sources: FeedSources = {
+            recording,
+            sessions,
+            meetings,
+            bridge,
+            volume,
+            media,
+            github,
+            settings,
+            faults: {wifi: null, calendar: null},
+        };
         feed = new ActivityFeed(sources);
         changes = 0;
         feed.on('changed', () => {
@@ -201,6 +227,29 @@ describe('ActivityFeed', () => {
 
     afterEach(() => {
         feed.destroy();
+    });
+
+    it('a fila traz o que espera e deixa de fora o já visto', () => {
+        recording.set(now);
+        meetings.set({title: 'x', startsAt: now + 1000});
+        expect(feed.queue.map(a => a.kind)).toEqual(['meeting']);
+        timers.fire(5000);
+        expect(feed.queue).toEqual([]);
+    });
+
+    it('emite changed quando só a fila muda', () => {
+        recording.set(now);
+        changes = 0;
+        meetings.set({title: 'x', startsAt: now + 1000});
+        expect(changes).toBe(1);
+    });
+
+    it('emite changed quando um item da fila é trocado por outro do mesmo tipo', () => {
+        recording.set(now);
+        meetings.set({title: 'x', startsAt: now + 1000});
+        const before = changes;
+        meetings.set({title: 'y', startsAt: now + 1000});
+        expect(changes).toBe(before + 1);
     });
 
     it('alerta do GitHub aparece na pílula e some depois do aviso', () => {
@@ -340,7 +389,17 @@ describe('ActivityFeed', () => {
     it('no modo sempre a sessão que já trabalhava ao ligar aparece', () => {
         settings.pillAiActivity = 'always';
         sessions.set([session('a', 'working', 'Bash ls', 'Bash')]);
-        const later = new ActivityFeed({recording, sessions, meetings, bridge, volume, media, github, settings});
+        const later = new ActivityFeed({
+            recording,
+            sessions,
+            meetings,
+            bridge,
+            volume,
+            media,
+            github,
+            settings,
+            faults: {wifi: null, calendar: null},
+        });
         expect(later.current?.kind).toBe('claude-working');
         later.destroy();
     });
@@ -407,7 +466,17 @@ describe('ActivityFeed', () => {
 
     it('sessão que já trabalhava ao ligar não pisca', () => {
         sessions.set([session('a', 'working', 'Bash ls', 'Bash')]);
-        const later = new ActivityFeed({recording, sessions, meetings, bridge, volume, media, github, settings});
+        const later = new ActivityFeed({
+            recording,
+            sessions,
+            meetings,
+            bridge,
+            volume,
+            media,
+            github,
+            settings,
+            faults: {wifi: null, calendar: null},
+        });
         expect(later.current).toBeNull();
         later.destroy();
     });
@@ -442,7 +511,17 @@ describe('ActivityFeed', () => {
 
     it('mídia que já tocava ao ligar não aparece', () => {
         media.set(track(true));
-        const later = new ActivityFeed({recording, sessions, meetings, bridge, volume, media, github, settings});
+        const later = new ActivityFeed({
+            recording,
+            sessions,
+            meetings,
+            bridge,
+            volume,
+            media,
+            github,
+            settings,
+            faults: {wifi: null, calendar: null},
+        });
         expect(later.current).toBeNull();
         later.destroy();
     });
@@ -558,14 +637,21 @@ describe('ActivityFeed', () => {
         expect(feed.current).toBeNull();
     });
 
-    it('pedido de permissão aparece por 5 s e cede a vez ao próximo', () => {
-        const waiting = session('b', 'waiting');
-        sessions.set([session('a', 'waiting'), waiting], [request('a', 'r1', 10)]);
+    it('pedido de permissão não arma o tempo de 5 s e fica até ser decidido', () => {
+        sessions.set([session('a', 'waiting')], [request('a', 'r1', 10)]);
         expect(feed.current?.kind).toBe('claude-permission');
-        timers.fire(5000);
-        expect(feed.current).toEqual({kind: 'claude-waiting', session: waiting});
-        timers.fire(5000);
-        expect(feed.current).toBeNull();
+        expect(timers.onceMs()).not.toContain(5000);
+        now += 60_000;
+        sessions.set([session('a', 'waiting')], [request('a', 'r1', 10)]);
+        expect(feed.current?.kind).toBe('claude-permission');
+        sessions.set([session('a', 'waiting')]);
+        expect(feed.current?.kind).toBe('claude-waiting');
+    });
+
+    it('abrir a ilha não dá como visto o pedido de permissão', () => {
+        sessions.set([session('a', 'waiting')], [request('a', 'r1', 10)]);
+        feed.cancelTransient();
+        expect(feed.current?.kind).toBe('claude-permission');
     });
 
     it('atividade interrompida volta com 5 s inteiros', () => {
@@ -581,5 +667,104 @@ describe('ActivityFeed', () => {
         feed.cancelTransient();
         expect(feed.current).toBeNull();
         expect(timers.armed.size).toBe(0);
+    });
+
+    describe('confirmação da decisão', () => {
+        function decided(name: string, decision: 'allow' | 'deny' = 'allow', withSession = true): DecidedRequest {
+            return {request: request('a', name, now), session: withSession ? session('a', 'working') : null, decision};
+        }
+
+        function decidedKey(): string | null {
+            const {current} = feed;
+            return current?.kind === 'decision' ? current.decided.request.key : null;
+        }
+
+        it('mostra Permitido por 4 s depois de permitir', () => {
+            sessions.decide(decided('x'));
+            expect(feed.current?.kind).toBe('decision');
+            timers.fire(4000);
+            expect(feed.current).toBeNull();
+        });
+
+        it('decisão nova substitui a anterior', () => {
+            sessions.decide(decided('x'));
+            sessions.decide(decided('y', 'deny'));
+            expect(decidedKey()).toBe('a.y');
+            expect([...timers.armed.values()].filter(({ms}) => ms === 4000).length).toBe(1);
+        });
+
+        it('pedido esperando passa por cima da confirmação', () => {
+            sessions.set([session('b', 'waiting')], [request('b', 'p', now)]);
+            sessions.decide(decided('x'));
+            expect(feed.current?.kind).toBe('claude-permission');
+        });
+
+        it('sessão ainda esperando quando o pedido sai com a decisão mostra a confirmação', () => {
+            sessions.set([session('a', 'waiting')], [request('a', 'x', now)]);
+            sessions.set([session('a', 'waiting')]);
+            sessions.decide(decided('x'));
+            expect(decidedKey()).toBe('a.x');
+        });
+
+        it('decisão sem sessão não quebra', () => {
+            sessions.decide(decided('x', 'allow', false));
+            expect(feed.current?.kind).toBe('decision');
+        });
+
+        it('cancelar o transitório mantém a confirmação até o fim dos 4 s', () => {
+            sessions.decide(decided('x'));
+            feed.cancelTransient();
+            expect(decidedKey()).toBe('a.x');
+            timers.fire(4000);
+            expect(feed.current).toBeNull();
+        });
+    });
+
+    it('falha aparece por cima por 5 s e depois descansa', () => {
+        media.set(track(true));
+        github.setStatus('bad-token');
+        expect(feed.current).toEqual({kind: 'fault', fault: 'github', resting: false});
+        timers.fire(5000);
+        expect(feed.current?.kind).toBe('media');
+        media.set(null);
+        expect(feed.current).toEqual({kind: 'fault', fault: 'github', resting: true});
+        expect([...timers.armed.values()].map(({ms}) => ms)).not.toContain(5000);
+    });
+
+    it('reunião que chega depois passa por cima da falha em repouso', () => {
+        github.setStatus('bad-token');
+        timers.fire(5000);
+        expect(feed.current).toEqual({kind: 'fault', fault: 'github', resting: true});
+        meetings.set({title: 'x', startsAt: now + 1000});
+        expect(feed.current?.kind).toBe('meeting');
+    });
+
+    it('falha que começa durante a gravação vem já ativa depois, com timer de 5 s', () => {
+        recording.set(now);
+        github.setStatus('bad-token');
+        expect(feed.current?.kind).toBe('recording');
+        recording.set(null);
+        expect(feed.current).toEqual({kind: 'fault', fault: 'github', resting: false});
+        const armed = [...timers.armed.values()].map(({ms}) => ms);
+        expect(armed).toContain(5000);
+        timers.fire(5000);
+        expect(feed.current).toEqual({kind: 'fault', fault: 'github', resting: true});
+    });
+
+    it('falha some quando a condição acaba', () => {
+        github.setStatus('bad-token');
+        timers.fire(5000);
+        github.setStatus('ok');
+        expect(feed.current).toBeNull();
+    });
+
+    it('hook ausente só vira falha com o Claude ligado', () => {
+        sessions.missing = true;
+        settings.setProviderEnabled('claude', false);
+        sessions.set([]);
+        expect(feed.current).toBeNull();
+        settings.setProviderEnabled('claude', true);
+        sessions.set([]);
+        expect(feed.current).toEqual({kind: 'fault', fault: 'hook', resting: false});
     });
 });

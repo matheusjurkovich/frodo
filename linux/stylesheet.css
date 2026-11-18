@@ -121,11 +121,64 @@
 }
 
 .frodo-pill-waiting {
-    border: 1px solid #fbbf24;
+    border: 1px solid #5c4410;
 }
 
-.frodo-pill-meeting {
-    border: 1px solid -st-accent-color;
+.frodo-pill-decision-allow {
+    border: 1px solid #1f5c3a;
+}
+
+.frodo-pill-decision-deny {
+    border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.frodo-pill-decision-allow .frodo-pill-decision-icon {
+    color: #86efac;
+}
+
+.frodo-pill-decision-deny .frodo-pill-decision-icon {
+    color: #d4d4d8;
+}
+
+.frodo-pill-decision-text {
+    spacing: 1px;
+}
+
+.frodo-pill-fault-danger {
+    border: 1px solid #5c1d1d;
+}
+
+.frodo-pill-fault-warn {
+    border: 1px solid #5c4410;
+}
+
+.frodo-pill-fault-dot {
+    width: 8px;
+    height: 8px;
+    min-height: 8px;
+    border-radius: 4px;
+}
+
+.frodo-pill-fault-danger .frodo-pill-fault-dot {
+    background-color: #f87171;
+}
+
+.frodo-pill-fault-warn .frodo-pill-fault-dot {
+    background-color: #fbbf24;
+}
+
+.frodo-pill-fault-danger .frodo-pill-fault-text,
+.frodo-pill-fault-danger .frodo-pill-fault-clock {
+    color: #fca5a5;
+}
+
+.frodo-pill-fault-warn .frodo-pill-fault-text,
+.frodo-pill-fault-warn .frodo-pill-fault-clock {
+    color: #fde68a;
+}
+
+.frodo-pill-fault-text {
+    font-size: 14px;
 }
 
 .frodo-pill-github {
@@ -270,12 +323,17 @@
     spacing: 10px;
 }
 
-.frodo-pill-icon {
-    icon-size: 16px;
+.frodo-pill-queue {
+    padding: 2px 8px;
+    border-radius: 999px;
+    background-color: #232327;
+    color: #e4e4e7;
+    font-size: 12px;
+    font-weight: 500;
 }
 
-.frodo-pill-icon-waiting {
-    color: #fbbf24;
+.frodo-pill-icon {
+    icon-size: 16px;
 }
 
 .frodo-pill-icon-claude {
@@ -288,10 +346,6 @@
 
 .frodo-pill-icon-gemini {
     color: #8ab4f8;
-}
-
-.frodo-pill-icon-wave {
-    color: #a1a1aa;
 }
 
 .frodo-pill-dot {
@@ -313,9 +367,9 @@
 }
 
 .frodo-pill-cover {
-    width: 24px;
-    height: 24px;
-    border-radius: 12px;
+    width: 36px;
+    height: 36px;
+    border-radius: 18px;
     background-size: cover;
     background-position: center;
 }
@@ -375,6 +429,154 @@
     min-height: 32px;
 }
 
+.frodo-pill-circle {
+    width: 28px;
+    height: 28px;
+    min-height: 28px;
+    border-radius: 14px;
+}
+
+.frodo-pill-circle-waiting,
+.frodo-pill-circle-meeting {
+    width: 32px;
+    height: 32px;
+    min-height: 32px;
+    border-radius: 16px;
+}
+
+.frodo-pill-circle-music {
+    width: 36px;
+    height: 36px;
+    min-height: 36px;
+    border-radius: 18px;
+    background-color: #1e7a45;
+    color: #ffffff;
+}
+
+.frodo-pill-circle-waiting {
+    background-color: #3a2c0a;
+    color: #fbbf24;
+}
+
+.frodo-pill-circle-meeting {
+    background-color: #1a2740;
+    color: #8fb4f7;
+}
+
+.frodo-pill-circle-claude {
+    background-color: #2a1a14;
+}
+
+.frodo-pill-circle-codex {
+    background-color: #12261f;
+}
+
+.frodo-pill-circle-gemini {
+    background-color: #1a2130;
+}
+
+.frodo-pill-text {
+    spacing: 1px;
+}
+
+.frodo-pill-summary {
+    max-width: 240px;
+    font-size: 14px;
+}
+
+.frodo-pill-detail-waiting {
+    color: #fde68a;
+}
+
+.frodo-pill-detail-meeting {
+    color: #8fb4f7;
+}
+
+.frodo-pill .frodo-pill-deny,
+.frodo-pill .frodo-pill-allow,
+.frodo-pill .frodo-pill-open {
+    height: 36px;
+    min-height: 36px;
+}
+
+.frodo-pill .frodo-pill-deny {
+    background-color: transparent;
+    border: 1px solid #5c1d1d;
+    color: #fca5a5;
+}
+
+.frodo-pill .frodo-pill-allow {
+    background-color: transparent;
+    border: 1px solid #fbbf24;
+    color: #fde68a;
+    font-weight: 500;
+}
+
+.frodo-pill .frodo-pill-pause {
+    background-color: #232327;
+    color: #f4f4f5;
+}
+
+.frodo-pill-eq {
+    spacing: 3px;
+    height: 18px;
+}
+
+.frodo-pill-eq-bar {
+    width: 3px;
+    border-radius: 2px;
+    background-color: #4ade80;
+}
+
+.frodo-pill .frodo-ring {
+    -frodo-track-color: #3f3f46;
+}
+
+.frodo-pill .frodo-claude .frodo-dim {
+    font-size: 12px;
+    color: #d4d4d8;
+}
+
+.frodo-pill-eq-bar-0 {
+    height: 8px;
+}
+
+.frodo-pill-eq-bar-1 {
+    height: 16px;
+}
+
+.frodo-pill-eq-bar-2 {
+    height: 11px;
+}
+
+.frodo-pill-eq-bar-3 {
+    height: 18px;
+}
+
+.frodo-pill-eq-bar-4 {
+    height: 6px;
+}
+
+.frodo-rotating {
+    spacing: 8px;
+}
+
+.frodo-rotating-dots {
+    spacing: 2px;
+}
+
+.frodo-rotating-dot {
+    width: 4px;
+    height: 4px;
+    min-height: 4px;
+    border-radius: 2px;
+    background-color: #71717a;
+}
+
+.frodo-rotating-dot-current {
+    background-color: #f4f4f5;
+}
+
 .frodo-system-icons {
     padding: 0 2px;
 }
@@ -416,11 +618,6 @@
 
 .frodo-tab-icon {
     icon-size: 16px;
-}
-
-.frodo-claude-icon {
-    icon-size: 14px;
-    color: #d97757;
 }
 
 .frodo-card.frodo-limits {
@@ -3198,4 +3395,135 @@
     height: 30px;
     padding: 0 12px;
     font-size: 12px;
+}
+
+.frodo-fault-banner {
+    padding: 12px 14px;
+    border-radius: 14px;
+    border-width: 1px;
+    border-style: solid;
+    spacing: 12px;
+}
+
+.frodo-fault-banner-danger {
+    background-color: #2a1414;
+    border-color: #5c1d1d;
+}
+
+.frodo-fault-banner-warn {
+    background-color: #241c08;
+    border-color: #5c4410;
+}
+
+.frodo-fault-banner-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 16px;
+}
+
+.frodo-fault-banner-icon {
+    icon-size: 16px;
+}
+
+.frodo-fault-banner-danger .frodo-fault-banner-circle {
+    background-color: #3a1c1c;
+    color: #fca5a5;
+}
+
+.frodo-fault-banner-warn .frodo-fault-banner-circle {
+    background-color: #3a2c0a;
+    color: #fbbf24;
+}
+
+.frodo-fault-banner-text {
+    spacing: 4px;
+}
+
+.frodo-fault-banner-title {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.frodo-fault-banner-danger .frodo-fault-banner-title {
+    color: #fde2e2;
+}
+
+.frodo-fault-banner-warn .frodo-fault-banner-title {
+    color: #fde68a;
+}
+
+.frodo-fault-banner-body {
+    font-size: 12px;
+    color: #d4d4d8;
+}
+
+.frodo-fault-banner-actions,
+.frodo-fault-banner-confirm-actions {
+    spacing: 8px;
+    padding-top: 6px;
+}
+
+.frodo-fault-banner-primary,
+.frodo-fault-banner-secondary {
+    height: 36px;
+    min-height: 36px;
+    padding: 0 14px;
+    font-size: 13px;
+}
+
+.frodo-fault-banner-primary {
+    background-color: #f4f4f5;
+    color: #0a0a0b;
+    font-weight: 500;
+}
+
+.frodo-fault-banner-primary:hover {
+    background-color: #e4e4e7;
+}
+
+.frodo-fault-banner-secondary {
+    background-color: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: #e4e4e7;
+}
+
+.frodo-fault-banner-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+.frodo-fault-banner-confirm {
+    margin-top: 6px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background-color: #3a1c1c;
+    spacing: 4px;
+}
+
+.frodo-fault-banner-confirm-text {
+    font-size: 14px;
+    color: #fde2e2;
+}
+
+.frodo-fault-banner-confirm-no,
+.frodo-fault-banner-confirm-yes {
+    height: 32px;
+    min-height: 32px;
+    padding: 0 12px;
+    font-size: 13px;
+}
+
+.frodo-fault-banner-confirm-no {
+    background-color: #2a1414;
+    color: #fde2e2;
+}
+
+.frodo-fault-banner-confirm-yes {
+    background-color: #b42318;
+    color: #ffffff;
+    font-weight: 500;
+}
+
+.frodo-fault-banner-done {
+    font-size: 12px;
+    color: #86efac;
 }

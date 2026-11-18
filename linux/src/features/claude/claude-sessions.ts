@@ -1,6 +1,6 @@
 import type {SessionStats} from './claude-index.types.js';
 import {contextWindow, modelDisplayName} from './claude-transcript.js';
-import {formatSpan, formatTokens} from '../../shared/format.js';
+import {ellipsize, formatSpan, formatTokens} from '../../shared/format.js';
 import {AI_PROVIDERS, isOneOf} from '../../settings/schema-values.js';
 import {PROVIDER_NAMES} from '../../shared/ai-provider.const.js';
 import {
@@ -10,8 +10,9 @@ import {
     IDLE_AFTER_MS,
     CONTEXT_WARN_FRACTION,
     PENDING_FILE,
+    SUMMARY_CHARS,
 } from './claude-sessions.const.js';
-import {isRecord, optionalString} from '../../shared/json.js';
+import {isRecord, optionalString, text as nonEmpty} from '../../shared/json.js';
 import type {HookEvent, SessionState, SessionStatus, ContextUsage, DiffStat, PendingRequest, Decision} from './claude-sessions.types.js';
 
 function basename(path: string): string {
@@ -148,6 +149,15 @@ export function parseShortstat(text: string): DiffStat | null {
     return {files: Number(files[1]), added: count(/(\d+) insertions?\(\+\)/), removed: count(/(\d+) deletions?\(-\)/)};
 }
 
+export function requestSummary(input: unknown, tool: string): string {
+    const toolInput = isRecord(input) && isRecord(input.tool_input) ? input.tool_input : {};
+    const {command} = toolInput;
+    const joined = Array.isArray(command) ? command.filter(part => typeof part === 'string').join(' ') : command;
+    const path = nonEmpty(toolInput.file_path) ?? nonEmpty(toolInput.path);
+    const raw = nonEmpty(joined)?.replace(/\s+/g, ' ') ?? (path === null ? null : basename(path)) ?? tool;
+    return ellipsize(raw, SUMMARY_CHARS);
+}
+
 export function parsePending(fileName: string, text: string): PendingRequest | null {
     const name = PENDING_FILE.exec(fileName);
     if (!name) return null;
@@ -162,7 +172,7 @@ export function parsePending(fileName: string, text: string): PendingRequest | n
     if (typeof pid !== 'number' || !Number.isSafeInteger(pid) || pid <= 0) return null;
     if (typeof tool !== 'string' || tool === '' || typeof since !== 'number' || !Number.isFinite(since)) return null;
     const [, sessionId = '', request = ''] = name;
-    return {key: `${sessionId}.${request}`, sessionId, request, pid, tool, since};
+    return {key: `${sessionId}.${request}`, sessionId, request, pid, tool, summary: requestSummary(data.input, tool), since};
 }
 
 export function decisionJson(decision: Decision): string {

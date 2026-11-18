@@ -204,6 +204,40 @@ describe('GitHubService', () => {
         expect(github.pulls).toEqual([]);
     });
 
+    it('token recusado depois de sincronizar mantém os PRs e o horário da última sincronização', async () => {
+        backend.mine = page([CONFLICT]);
+        const github = start();
+        await waitFor(github, () => github.status === 'ok');
+        const updatedAt = github.updatedAt;
+        backend.mine = {status: 401, body: ''};
+        await cycle(github);
+        expect(github.status).toBe('bad-token');
+        expect(github.pulls.length).toBe(1);
+        expect(github.updatedAt).toBe(updatedAt);
+    });
+
+    it('com token recusado, o timer pede o chaveiro de novo e sai da falha quando o login volta', async () => {
+        const every = spyOn(Timer.prototype, 'every').and.callThrough();
+        backend.mine = {status: 401, body: ''};
+        const github = start();
+        await waitFor(github, () => github.status === 'bad-token');
+        backend.mine = page([]);
+        every.calls.mostRecent().args[1]();
+        await waitFor(github, () => github.status === 'ok');
+        expect(backend.lookups).toBe(2);
+    });
+
+    it('com token recusado, atualizar não passa por carregando', async () => {
+        backend.mine = {status: 401, body: ''};
+        const github = start();
+        await waitFor(github, () => github.status === 'bad-token');
+        const statuses: string[] = [];
+        github.on('changed', () => statuses.push(github.status));
+        await cycle(github);
+        expect(statuses).not.toContain('loading');
+        expect(github.status).toBe('bad-token');
+    });
+
     it('mudar o escopo zera a referência', async () => {
         const github = start();
         await waitFor(github, () => github.status === 'ok');

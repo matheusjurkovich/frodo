@@ -25,10 +25,17 @@ export function createTabPages({
     performance,
     mixer,
     github,
+    wifi,
+    calendar,
 }: TabPagesDependencies): ReadonlyMap<TabId, Component> {
     return new Map<TabId, Component>([
-        ['general', new GeneralPage({island, settings, media, mixer, scrollToTop: actions.scrollToTop})],
-        ['calendar', new CalendarPage(island)],
+        ['general', new GeneralPage({island, settings, media, mixer, wifi, scrollToTop: actions.scrollToTop})],
+        [
+            'calendar',
+            new CalendarPage(island, calendar, () => {
+                actions.openSettings('agenda');
+            }),
+        ],
         ['workspaces', new WorkspacesPage(workspaces, island)],
         [
             'claude',
@@ -39,8 +46,11 @@ export function createTabPages({
                 codex,
                 gemini,
                 settings,
+                island,
                 actions: {
-                    openSettings: actions.openSettings,
+                    openSettings: () => {
+                        actions.openSettings('ai');
+                    },
                     close: () => {
                         island.close();
                     },

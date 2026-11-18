@@ -32,10 +32,17 @@ export interface PendingRequest {
     readonly request: string;
     readonly pid: number;
     readonly tool: string;
+    readonly summary: string;
     readonly since: number;
 }
 
 export type Decision = 'allow' | 'deny';
+
+export interface DecidedRequest {
+    readonly request: PendingRequest;
+    readonly session: SessionState | null;
+    readonly decision: Decision;
+}
 
 export interface DiffStat {
     readonly files: number;

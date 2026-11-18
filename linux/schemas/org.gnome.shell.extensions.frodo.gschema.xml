@@ -10,7 +10,7 @@
       <default>'compact'</default>
     </key>
     <key name="closed-items" type="as">
-      <default>['clock', 'date', 'notifications', 'network', 'battery']</default>
+      <default>['claude-session', 'clock', 'date', 'notifications', 'network', 'battery']</default>
     </key>
     <key name="rotate-seconds" type="i">
       <range min="2" max="30"/>
@@ -66,6 +66,12 @@
     </key>
     <key name="toggle-shortcut" type="as">
       <default>['&lt;Super&gt;z']</default>
+    </key>
+    <key name="allow-shortcut" type="as">
+      <default>['&lt;Super&gt;&lt;Shift&gt;y']</default>
+    </key>
+    <key name="deny-shortcut" type="as">
+      <default>['&lt;Super&gt;&lt;Shift&gt;n']</default>
     </key>
     <key name="open-on-hover" type="b">
       <default>true</default>

@@ -121,6 +121,7 @@ export class GitHubService extends Emitter<GitHubServiceEvents> {
 
     #schedule(): void {
         this.#timer.every(this.#settings.githubPollMinutes * 60, () => {
+            if (this.#status === 'bad-token') this.#askKeyring = true;
             if (!this.#busy) void this.#cycle();
         });
     }
@@ -157,10 +158,16 @@ export class GitHubService extends Emitter<GitHubServiceEvents> {
             return;
         }
         if (this.#token === null && !this.#askKeyring) {
-            this.#idle('signed-out');
+            if (this.#status !== 'bad-token') this.#idle('signed-out');
             return;
         }
-        if (this.#status !== 'ok' && this.#status !== 'offline' && this.#status !== 'error' && this.#status !== 'loading') {
+        if (
+            this.#status !== 'ok' &&
+            this.#status !== 'offline' &&
+            this.#status !== 'error' &&
+            this.#status !== 'loading' &&
+            this.#status !== 'bad-token'
+        ) {
             this.#status = 'loading';
             this.emit('changed');
         }
@@ -184,12 +191,13 @@ export class GitHubService extends Emitter<GitHubServiceEvents> {
             complete = mine.complete && review.complete;
         } catch (error) {
             if (!current()) return;
+            this.#busy = false;
             if (error instanceof UnauthorizedError) {
                 this.#token = null;
-                this.#idle('bad-token');
+                this.#status = 'bad-token';
+                this.emit('changed');
                 return;
             }
-            this.#busy = false;
             this.#status = error instanceof GitHubResponseError ? 'error' : 'offline';
             this.#errorMessage = error instanceof GitHubResponseError ? error.message : null;
             this.emit('changed');

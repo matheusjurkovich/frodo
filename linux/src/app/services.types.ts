@@ -12,6 +12,8 @@ import type {PerformanceMonitor} from '../features/system/performance-service.js
 import type {Recording} from '../features/system/recording-service.js';
 import type {SystemState} from '../features/system/system-state-service.js';
 import type {VolumeWatch} from '../features/system/volume-service.js';
+import type {CalendarAccounts} from '../features/meetings/calendar-accounts-service.js';
+import type {WifiFailure} from '../features/system/wifi-failure-service.js';
 import type {Workspaces} from '../features/workspaces/workspaces-service.js';
 import type {ActivityFeed} from '../pill/activity-feed.js';
 import type {FrodoSettings} from '../settings/frodo-settings.js';
@@ -33,5 +35,7 @@ export interface FrodoServices {
     readonly meetings: UpcomingMeeting;
     readonly performance: PerformanceMonitor;
     readonly github: GitHubService;
+    readonly wifi: WifiFailure;
+    readonly calendar: CalendarAccounts;
     readonly feed: ActivityFeed;
 }

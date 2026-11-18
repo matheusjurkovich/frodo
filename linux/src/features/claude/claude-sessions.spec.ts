@@ -11,6 +11,7 @@ import {
     parseHookEvent,
     parsePending,
     parseShortstat,
+    requestSummary,
     sessionMeta,
     stepFor,
 } from './claude-sessions.js';
@@ -185,8 +186,34 @@ describe('pedidos de permissão pendentes', () => {
             request: 'r-9',
             pid: 4242,
             tool: 'Bash',
+            summary: 'Bash',
             since: 1700000000000,
         });
+    });
+
+    it('resume o comando do Bash a partir da entrada do hook', () => {
+        const body = JSON.stringify({pid: 10, tool: 'Bash', since: 1, input: {tool_input: {command: 'npm test -- --runInBand'}}});
+        expect(parsePending('s1.r1.json', body)?.summary).toBe('npm test -- --runInBand');
+    });
+
+    it('resume o shell do Codex pelo comando', () => {
+        expect(requestSummary({tool_input: {command: ['bash', '-lc', 'ls']}}, 'shell')).toBe('bash -lc ls');
+    });
+
+    it('resume ferramenta de arquivo pelo nome do arquivo', () => {
+        expect(requestSummary({tool_input: {file_path: '/home/eu/p/src/main.ts'}}, 'Edit')).toBe('main.ts');
+    });
+
+    it('cai no nome da ferramenta sem entrada ou com entrada inválida', () => {
+        expect(parsePending('s1.r1.json', JSON.stringify({pid: 10, tool: 'Bash', since: 1}))?.summary).toBe('Bash');
+        expect(requestSummary('lixo', 'WebFetch')).toBe('WebFetch');
+    });
+
+    it('junta quebras de linha e corta comando longo', () => {
+        const summary = requestSummary({tool_input: {command: `echo "a"\n${'x'.repeat(80)}`}}, 'Bash');
+        expect(summary).not.toContain('\n');
+        expect(summary.length).toBe(40);
+        expect(summary.endsWith('…')).toBeTrue();
     });
 
     it('rejeita nome fora do formato', () => {
@@ -215,9 +242,9 @@ describe('pedidos de permissão pendentes', () => {
     });
 
     it('escolhe o pedido mais antigo, opcionalmente da sessão', () => {
-        const a: PendingRequest = {key: 'a.1', sessionId: 'a', request: '1', pid: 1, tool: 'Bash', since: 30};
-        const b: PendingRequest = {key: 'b.1', sessionId: 'b', request: '1', pid: 1, tool: 'Edit', since: 10};
-        const c: PendingRequest = {key: 'a.2', sessionId: 'a', request: '2', pid: 1, tool: 'Write', since: 20};
+        const a: PendingRequest = {key: 'a.1', sessionId: 'a', request: '1', pid: 1, tool: 'Bash', summary: 'Bash', since: 30};
+        const b: PendingRequest = {key: 'b.1', sessionId: 'b', request: '1', pid: 1, tool: 'Edit', summary: 'Edit', since: 10};
+        const c: PendingRequest = {key: 'a.2', sessionId: 'a', request: '2', pid: 1, tool: 'Write', summary: 'Write', since: 20};
         expect(oldestPending([a, b, c])).toBe(b);
         expect(oldestPending([a, b, c], 'a')).toBe(c);
         expect(oldestPending([], 'a')).toBeNull();

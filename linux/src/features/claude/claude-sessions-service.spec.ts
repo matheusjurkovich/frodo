@@ -1,8 +1,9 @@
 import GLib from 'gi://GLib';
 
 import {ClaudeSessions} from './claude-sessions-service.js';
+import type {DecidedRequest} from './claude-sessions.types.js';
 import {Timer} from '../../shared/timer.js';
-import {createSettings} from '../../../tests/fixtures.js';
+import {createSettings, settle, waitFor} from '../../../tests/fixtures.js';
 
 function changed(sessions: ClaudeSessions): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -18,6 +19,8 @@ function changed(sessions: ClaudeSessions): Promise<void> {
         });
     });
 }
+
+const NO_CLAUDE_DIR = '/nonexistent/frodo-claude';
 
 describe('ClaudeSessions', () => {
     const settings = createSettings();
@@ -37,9 +40,50 @@ describe('ClaudeSessions', () => {
         dirs = [];
     });
 
+    it('instalar o hook do Claude grava em settings.json e tira a falha na hora', async () => {
+        const claudeDir = `${tmp()}/.claude`;
+        GLib.mkdir_with_parents(claudeDir, 0o700);
+        const sessions = new ClaudeSessions({settings, root: tmp(), claudeDir});
+        await waitFor(sessions, () => sessions.hookMissing());
+        const notified = changed(sessions);
+        expect(await sessions.installAgentHooks('claude')).toBeTrue();
+        await notified;
+        expect(sessions.hookMissing()).toBeFalse();
+        const [, bytes] = GLib.file_get_contents(`${claudeDir}/settings.json`);
+        expect(new TextDecoder().decode(bytes)).toContain('claude-session.sh claude');
+        sessions.destroy();
+    });
+
+    it('hook ausente só conta com a pasta do Claude Code presente', async () => {
+        const claudeDir = `${tmp()}/.claude`;
+        const sessions = new ClaudeSessions({settings, root: tmp(), claudeDir});
+        await settle(50);
+        expect(sessions.hookMissing()).toBeFalse();
+        sessions.destroy();
+        GLib.mkdir_with_parents(claudeDir, 0o700);
+        const present = new ClaudeSessions({settings, root: tmp(), claudeDir});
+        await waitFor(present, () => present.hookMissing());
+        expect(present.hookMissing()).toBeTrue();
+        present.destroy();
+    });
+
+    it('hook ausente aparece quando a pasta do Claude Code surge depois', async () => {
+        const claudeDir = `${tmp()}/.claude`;
+        const sessions = new ClaudeSessions({settings, root: tmp(), claudeDir});
+        await settle(50);
+        expect(sessions.hookMissing()).toBeFalse();
+        GLib.mkdir_with_parents(claudeDir, 0o700);
+        const start = Date.now();
+        spyOn(Date, 'now').and.callFake(() => start + 31_000);
+        expect(sessions.hookMissing()).toBeFalse();
+        await waitFor(sessions, () => sessions.hookMissing());
+        expect(sessions.hookMissing()).toBeTrue();
+        sessions.destroy();
+    });
+
     it('cria a pasta que não existe', () => {
         const dir = `${tmp()}/nova`;
-        const sessions = new ClaudeSessions({settings, root: dir});
+        const sessions = new ClaudeSessions({settings, root: dir, claudeDir: NO_CLAUDE_DIR});
         for (const sub of ['sessions', 'pending', 'decisions']) expect(GLib.file_test(`${dir}/${sub}`, GLib.FileTest.IS_DIR)).toBeTrue();
         sessions.destroy();
     });
@@ -56,7 +100,7 @@ describe('ClaudeSessions', () => {
             `${dir}/sessions/c.json`,
             JSON.stringify({pid: dead, event: {session_id: 'c', cwd: '/r/y', transcript_path: '/t', hook_event_name: 'Stop'}}),
         );
-        const sessions = new ClaudeSessions({settings, root: dir});
+        const sessions = new ClaudeSessions({settings, root: dir, claudeDir: NO_CLAUDE_DIR});
         await changed(sessions);
         expect(sessions.sessions.map(state => state.sessionId)).toEqual(['a']);
         expect(GLib.file_test(`${dir}/sessions/c.json`, GLib.FileTest.EXISTS)).toBeFalse();
@@ -65,7 +109,7 @@ describe('ClaudeSessions', () => {
 
     it('segue arquivos novos e o fim da sessão', async () => {
         const dir = tmp();
-        const sessions = new ClaudeSessions({settings, root: dir});
+        const sessions = new ClaudeSessions({settings, root: dir, claudeDir: NO_CLAUDE_DIR});
         await changed(sessions);
         const write = (name: string): void => {
             GLib.file_set_contents(
@@ -90,7 +134,7 @@ describe('ClaudeSessions', () => {
             JSON.stringify({pid: self, event: {session_id: 'a', cwd: '/r/x', transcript_path: '/t', hook_event_name: 'Stop'}}),
         );
         const every = spyOn(Timer.prototype, 'every');
-        const sessions = new ClaudeSessions({settings, root: dir});
+        const sessions = new ClaudeSessions({settings, root: dir, claudeDir: NO_CLAUDE_DIR});
         await changed(sessions);
         expect(sessions.sessions[0]?.status).toBe('done');
         expect(every).toHaveBeenCalledTimes(1);
@@ -100,7 +144,7 @@ describe('ClaudeSessions', () => {
     it('listener que falha uma vez não para as atualizações', async () => {
         const dir = tmp();
         const log = spyOn(globalThis, 'logError');
-        const sessions = new ClaudeSessions({settings, root: dir});
+        const sessions = new ClaudeSessions({settings, root: dir, claudeDir: NO_CLAUDE_DIR});
         await changed(sessions);
         const first = changed(sessions);
         let failed = false;
@@ -133,7 +177,7 @@ describe('ClaudeSessions', () => {
         const dir = tmp();
         pendingFile(dir, 's.r1', self, 10);
         pendingFile(dir, 's.r2', dead, 20);
-        const sessions = new ClaudeSessions({settings, root: dir});
+        const sessions = new ClaudeSessions({settings, root: dir, claudeDir: NO_CLAUDE_DIR});
         await changed(sessions);
         expect(sessions.pending.map(pending => pending.key)).toEqual(['s.r1']);
         sessions.destroy();
@@ -141,7 +185,7 @@ describe('ClaudeSessions', () => {
 
     it('segue pedido novo e pedido apagado pelo hook', async () => {
         const dir = tmp();
-        const sessions = new ClaudeSessions({settings, root: dir});
+        const sessions = new ClaudeSessions({settings, root: dir, claudeDir: NO_CLAUDE_DIR});
         await changed(sessions);
         pendingFile(dir, 's.r1', self, 10);
         await changed(sessions);
@@ -157,7 +201,7 @@ describe('ClaudeSessions', () => {
         pendingFile(dir, 's.r1', self, 20);
         pendingFile(dir, 's.r2', self, 10);
         pendingFile(dir, 't.r3', self, 5);
-        const sessions = new ClaudeSessions({settings, root: dir});
+        const sessions = new ClaudeSessions({settings, root: dir, claudeDir: NO_CLAUDE_DIR});
         await changed(sessions);
         expect(sessions.pendingFor('s')?.key).toBe('s.r2');
         expect(sessions.pendingFor('x')).toBeNull();
@@ -167,32 +211,93 @@ describe('ClaudeSessions', () => {
     it('decide grava o arquivo de decisão e tira o pedido na hora', async () => {
         const dir = tmp();
         pendingFile(dir, 's.r1', self, 10);
-        const sessions = new ClaudeSessions({settings, root: dir});
+        const sessions = new ClaudeSessions({settings, root: dir, claudeDir: NO_CLAUDE_DIR});
         await changed(sessions);
         const pending = sessions.pendingFor('s');
         if (!pending) throw new Error('sem pedido');
+        const decided: DecidedRequest[] = [];
+        sessions.on('decided', item => decided.push(item));
         expect(sessions.decide(pending, 'allow')).toBeTrue();
         expect(sessions.pending).toEqual([]);
+        expect(decided.length).toBe(1);
+        expect(decided[0]?.decision).toBe('allow');
+        expect(decided[0]?.request.key).toBe('s.r1');
+        expect(decided[0]?.session).toBeNull();
         const [, bytes] = GLib.file_get_contents(`${dir}/decisions/s.r1.json`);
         expect(JSON.parse(new TextDecoder().decode(bytes))).toEqual({behavior: 'allow'});
+        sessions.destroy();
+    });
+
+    it('decide entrega a sessão do pedido quando ela existe', async () => {
+        const dir = tmp();
+        GLib.mkdir_with_parents(`${dir}/sessions`, 0o700);
+        GLib.file_set_contents(
+            `${dir}/sessions/s.json`,
+            JSON.stringify({pid: self, event: {session_id: 's', cwd: '/r/x', transcript_path: '/t', hook_event_name: 'Stop'}}),
+        );
+        pendingFile(dir, 's.r1', self, 10);
+        const sessions = new ClaudeSessions({settings, root: dir, claudeDir: NO_CLAUDE_DIR});
+        await changed(sessions);
+        if (sessions.sessions.length === 0 || sessions.pending.length === 0) await changed(sessions);
+        const pending = sessions.pendingFor('s');
+        const [state] = sessions.sessions;
+        if (!pending || !state) throw new Error('sem pedido ou sessão');
+        const decided: DecidedRequest[] = [];
+        sessions.on('decided', item => decided.push(item));
+        sessions.decide(pending, 'deny');
+        expect(decided.length).toBe(1);
+        expect(decided[0]?.session).toEqual(state);
+        sessions.destroy();
+    });
+
+    it('decidir mostra a sessão trabalhando até o arquivo dela mudar', async () => {
+        const dir = tmp();
+        GLib.mkdir_with_parents(`${dir}/sessions`, 0o700);
+        const write = (name: string): void => {
+            GLib.file_set_contents(
+                `${dir}/sessions/s.json`,
+                JSON.stringify({
+                    pid: self,
+                    event: {session_id: 's', cwd: '/r/x', transcript_path: '/t', hook_event_name: name, tool_name: 'Bash'},
+                }),
+            );
+        };
+        write('PermissionRequest');
+        pendingFile(dir, 's.r1', self, 10);
+        const sessions = new ClaudeSessions({settings, root: dir, claudeDir: NO_CLAUDE_DIR});
+        await waitFor(sessions, () => sessions.sessions.length === 1 && sessions.pending.length === 1);
+        expect(sessions.sessions[0]?.status).toBe('waiting');
+        const pending = sessions.pendingFor('s');
+        if (!pending) throw new Error('sem pedido');
+        const decided: DecidedRequest[] = [];
+        sessions.on('decided', item => decided.push(item));
+        sessions.decide(pending, 'allow');
+        expect(sessions.sessions[0]?.status).toBe('working');
+        expect(decided[0]?.session?.status).toBe('waiting');
+        write('PermissionRequest');
+        await waitFor(sessions, () => sessions.sessions[0]?.status === 'waiting');
+        expect(sessions.sessions[0]?.status).toBe('waiting');
         sessions.destroy();
     });
 
     it('decide devolve false e não grava nada quando o hook já saiu', async () => {
         const dir = tmp();
         pendingFile(dir, 's.r1', self, 10);
-        const sessions = new ClaudeSessions({settings, root: dir});
+        const sessions = new ClaudeSessions({settings, root: dir, claudeDir: NO_CLAUDE_DIR});
         await changed(sessions);
         const pending = sessions.pendingFor('s');
         if (!pending) throw new Error('sem pedido');
+        const decided: DecidedRequest[] = [];
+        sessions.on('decided', item => decided.push(item));
         expect(sessions.decide({...pending, pid: dead}, 'deny')).toBeFalse();
+        expect(decided).toEqual([]);
         expect(GLib.file_test(`${dir}/decisions/s.r1.json`, GLib.FileTest.EXISTS)).toBeFalse();
         sessions.destroy();
     });
 
     it('marca a extensão viva com o pid do shell e desmarca ao destruir', () => {
         const dir = tmp();
-        const sessions = new ClaudeSessions({settings, root: dir});
+        const sessions = new ClaudeSessions({settings, root: dir, claudeDir: NO_CLAUDE_DIR});
         const [, bytes] = GLib.file_get_contents(`${dir}/alive`);
         expect(new TextDecoder().decode(bytes).trim()).toBe(`${self} gnome-shell`);
         sessions.destroy();
@@ -201,7 +306,7 @@ describe('ClaudeSessions', () => {
 
     it('não apaga a marca de outro shell ao destruir', () => {
         const dir = tmp();
-        const sessions = new ClaudeSessions({settings, root: dir});
+        const sessions = new ClaudeSessions({settings, root: dir, claudeDir: NO_CLAUDE_DIR});
         GLib.file_set_contents(`${dir}/alive`, '1\n');
         sessions.destroy();
         expect(GLib.file_test(`${dir}/alive`, GLib.FileTest.EXISTS)).toBeTrue();

@@ -9,6 +9,7 @@ export interface QuotaSpec {
     readonly key: string;
     readonly name: string;
     readonly suffix: string;
+    readonly ringSuffix: string;
 }
 
 export interface RotationState {
