@@ -1,4 +1,4 @@
-import type {PendingRequest, SessionState} from '../features/claude/claude-sessions.types.js';
+import type {DecidedRequest, PendingRequest, SessionState} from '../features/claude/claude-sessions.types.js';
 import type {ClaudeSessions} from '../features/claude/claude-sessions-service.js';
 import type {GitHubService} from '../features/github/github-service.js';
 import type {ClassifiedPr} from '../features/github/github.types.js';
@@ -15,6 +15,7 @@ export type PillActivity =
     | {kind: 'recording'; startedAt: number}
     | {kind: 'claude-permission'; session: SessionState; request: PendingRequest}
     | {kind: 'claude-waiting'; session: SessionState}
+    | {kind: 'decision'; decided: DecidedRequest}
     | {kind: 'meeting'; title: string; startsAt: number; url: string | null}
     | {kind: 'notification'; item: InterceptedNotification}
     | {kind: 'github'; pr: ClassifiedPr; more: number}

@@ -7,7 +7,7 @@ import type {InterceptedNotification} from '../features/notifications/notificati
 import {Disposables} from '../shared/disposables.js';
 import {Emitter} from '../shared/emitter.js';
 import {Timer} from '../shared/timer.js';
-import {VOLUME_MS, FLASH_MS, SHOWN_MS} from './activity-feed.const.js';
+import {VOLUME_MS, FLASH_MS, SHOWN_MS, DECISION_MS} from './activity-feed.const.js';
 import type {PillActivity, FeedSources} from './activity-feed.types.js';
 
 function identity(activity: PillActivity): readonly unknown[] {
@@ -19,6 +19,8 @@ function identity(activity: PillActivity): readonly unknown[] {
         case 'claude-waiting':
         case 'claude-working':
             return [activity.kind, activity.session.sessionId, activity.session.status, activity.session.step];
+        case 'decision':
+            return [activity.kind, activity.decided.request.key];
         case 'meeting':
             return [activity.kind, activity.title, activity.startsAt, activity.url];
         case 'notification':
@@ -45,6 +47,7 @@ export class ActivityFeed extends Emitter<{changed: []}> {
     readonly #notificationTimer = this.#disposables.own(new Timer());
     readonly #volumeTimer = this.#disposables.own(new Timer());
     readonly #githubTimer = this.#disposables.own(new Timer());
+    readonly #decisionTimer = this.#disposables.own(new Timer());
     readonly #shownTimer = this.#disposables.own(new Timer());
     readonly #gate = new StepGate();
     #held: Extract<PillActivity, {kind: 'claude-working'}> | null = null;
@@ -52,6 +55,7 @@ export class ActivityFeed extends Emitter<{changed: []}> {
     #queue: InterceptedNotification[] = [];
     #notification: InterceptedNotification | null = null;
     #github: Extract<PillActivity, {kind: 'github'}> | null = null;
+    #decision: Extract<PillActivity, {kind: 'decision'}> | null = null;
     #volume: number | null = null;
     #current: PillActivity | null = null;
 
@@ -78,6 +82,16 @@ export class ActivityFeed extends Emitter<{changed: []}> {
                 this.#github = {kind: 'github', pr: first, more: prs.length - 1};
                 this.#githubTimer.once(FLASH_MS, () => {
                     this.#github = null;
+                    this.#refresh();
+                });
+                this.#refresh();
+            }),
+        );
+        this.#disposables.add(
+            sources.sessions.on('decided', decided => {
+                this.#decision = {kind: 'decision', decided};
+                this.#decisionTimer.once(DECISION_MS, () => {
+                    this.#decision = null;
                     this.#refresh();
                 });
                 this.#refresh();
@@ -115,6 +129,8 @@ export class ActivityFeed extends Emitter<{changed: []}> {
         this.#notificationTimer.stop();
         this.#volumeTimer.stop();
         this.#githubTimer.stop();
+        this.#decisionTimer.stop();
+        this.#decision = null;
         this.#github = null;
         this.#queue = [];
         this.#notification = null;
@@ -161,6 +177,7 @@ export class ActivityFeed extends Emitter<{changed: []}> {
         if (meeting) candidates.push({kind: 'meeting', title: meeting.title, startsAt: meeting.startsAt, url: meeting.url ?? null});
         if (this.#notification) candidates.push({kind: 'notification', item: this.#notification});
         if (this.#github) candidates.push(this.#github);
+        if (this.#decision) candidates.push(this.#decision);
         if (this.#volume !== null) candidates.push({kind: 'volume', percent: this.#volume});
         const track = media.current;
         if (track?.playing) candidates.push({kind: 'media', track});
@@ -200,6 +217,7 @@ export class ActivityFeed extends Emitter<{changed: []}> {
             current.kind !== 'notification' &&
             current.kind !== 'volume' &&
             current.kind !== 'github' &&
+            current.kind !== 'decision' &&
             current.kind !== 'claude-permission'
         )
             this.#shownTimer.once(current.kind === 'claude-working' ? STEP_SHOWN_MS : SHOWN_MS, () => {

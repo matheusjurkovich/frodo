@@ -8,6 +8,7 @@ import {frodoIcon} from '../shared/ui/icons.js';
 import {column, label} from '../shared/ui/layout.js';
 import {PROVIDER_ICONS} from '../shared/ui/provider-tile.const.js';
 import {SegmentBar} from '../shared/ui/segment-bar.js';
+import {PROVIDER_NAMES} from '../shared/ai-provider.const.js';
 import {alertTitle} from '../features/github/github.js';
 import type {PillActivity} from './activity-feed.types.js';
 import {
@@ -81,6 +82,19 @@ function permissionRow({session, request}: Of<'claude-permission'>, services: Ac
         ],
         {hasAction: true},
     );
+}
+
+function decisionRow({decided}: Of<'decision'>): ActivityRow {
+    const {request, session, decision} = decided;
+    const allowed = decision === 'allow';
+    const detail = allowed
+        ? `${request.summary} rodando no ${session?.repo ?? 'projeto'}`
+        : `o ${session ? PROVIDER_NAMES[session.provider] : 'a IA'} vai propor outro caminho`;
+    const text = column('frodo-pill-decision-text');
+    text.y_align = Clutter.ActorAlign.CENTER;
+    text.add_child(label(allowed ? 'Permitido uma vez' : 'Negado', 'frodo-pill-title'));
+    text.add_child(label(ellipsize(detail, STEP_CHARS), 'frodo-pill-detail'));
+    return row([icon(frodoIcon('check'), 'frodo-pill-decision-icon'), text], {clickTab: 'claude'});
 }
 
 function waitingRow({session}: Of<'claude-waiting'>, services: ActivityServices): ActivityRow {
@@ -238,6 +252,8 @@ export function buildRow(activity: PillActivity, services: ActivityServices): Ac
             return permissionRow(activity, services);
         case 'claude-waiting':
             return waitingRow(activity, services);
+        case 'decision':
+            return decisionRow(activity);
         case 'meeting':
             return meetingRow(activity, services);
         case 'notification':
