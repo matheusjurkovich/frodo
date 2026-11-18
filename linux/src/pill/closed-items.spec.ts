@@ -1,4 +1,5 @@
 import type {ClosedItem} from '../settings/schema-values.types.js';
+import {QUOTA_ITEMS} from './closed-items.const.js';
 import {closedItemsFor, rotatingItems} from './closed-items.js';
 
 describe('closedItemsFor', () => {
@@ -39,5 +40,15 @@ describe('rotatingItems', () => {
             'gemini-daily',
             'claude-weekly',
         ]);
+    });
+});
+
+describe('QUOTA_ITEMS', () => {
+    it('o anel mostra o período da cota e o texto rotativo não repete', () => {
+        expect(QUOTA_ITEMS['claude-session'].ringSuffix).toBe('');
+        expect(QUOTA_ITEMS['claude-weekly'].ringSuffix).toBe(' · 7d');
+        expect(QUOTA_ITEMS['codex-weekly'].ringSuffix).toBe(' · 7d');
+        expect(QUOTA_ITEMS['gemini-daily'].ringSuffix).toBe(' hoje');
+        expect(QUOTA_ITEMS['claude-weekly'].suffix).toBe('');
     });
 });

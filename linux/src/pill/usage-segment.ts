@@ -5,6 +5,7 @@ import type {AiProvider} from '../shared/ai-provider.types.js';
 import {dimLabel} from '../shared/ui/layout.js';
 import type {Component} from '../shared/ui/lifecycle.types.js';
 import {ProgressRing} from '../shared/ui/progress-ring.js';
+import {QUOTA_ITEMS} from './closed-items.const.js';
 import type {QuotaItem} from './closed-items.types.js';
 import {quotaAccessibleName} from './quota-reading.js';
 import type {UsageReading} from './quota-reading.types.js';
@@ -31,7 +32,7 @@ export class UsageSegment implements Component {
         }
         this.#ring.level = reading.level;
         this.#ring.percent = reading.percent;
-        this.#value.text = percentLabel(reading.percent);
+        this.#value.text = `${percentLabel(reading.percent)}${QUOTA_ITEMS[this.#item].ringSuffix}`;
         this.actor.accessible_name = quotaAccessibleName(this.#item, reading.percent);
     }
 
