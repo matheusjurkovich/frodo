@@ -9,7 +9,8 @@ import {TopBarVisibility} from './app/top-bar-visibility.js';
 import {Disposables} from './shared/disposables.js';
 import {isScreenLocked, onSessionModeChanged} from './shared/shell-internals.js';
 import {setIconsDirectory} from './shared/ui/icons.js';
-import {TOGGLE_KEYBINDING, CLAUDE_KEYBINDING} from './extension.const.js';
+import {shownRequest} from './pill/shown-request.js';
+import {TOGGLE_KEYBINDING, CLAUDE_KEYBINDING, ALLOW_KEYBINDING, DENY_KEYBINDING} from './extension.const.js';
 
 export default class FrodoExtension extends Extension {
     #disposables: Disposables | null = null;
@@ -55,6 +56,11 @@ export default class FrodoExtension extends Extension {
         disposables.own(new TopBarVisibility(services.settings));
         const islands = disposables.own(new IslandManager(services));
 
+        const decideShown = (decision: 'allow' | 'deny'): void => {
+            const request = shownRequest(services.feed.current);
+            if (request) services.sessions.decide(request, decision);
+        };
+
         for (const [name, action] of [
             [
                 TOGGLE_KEYBINDING,
@@ -66,6 +72,18 @@ export default class FrodoExtension extends Extension {
                 CLAUDE_KEYBINDING,
                 (): void => {
                     islands.show('claude');
+                },
+            ],
+            [
+                ALLOW_KEYBINDING,
+                (): void => {
+                    decideShown('allow');
+                },
+            ],
+            [
+                DENY_KEYBINDING,
+                (): void => {
+                    decideShown('deny');
                 },
             ],
         ] as const) {
