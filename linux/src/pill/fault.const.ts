@@ -1,4 +1,5 @@
 import type {TabId} from '../settings/schema-values.types.js';
+import type {TabTarget} from '../shared/tab-target.types.js';
 import type {FaultKind, FaultTone} from './fault.types.js';
 
 export const FAULT_TEXTS: Record<FaultKind, string> = {
@@ -20,4 +21,8 @@ export const FAULT_TABS: Record<FaultKind, TabId> = {
     wifi: 'general',
     hook: 'claude',
     agenda: 'calendar',
+};
+
+export const FAULT_TARGETS: Partial<Record<FaultKind, TabTarget>> = {
+    wifi: 'wifi',
 };

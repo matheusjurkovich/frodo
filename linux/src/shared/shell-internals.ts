@@ -159,6 +159,10 @@ export function quickSettingsParts(): QuickSettingsParts | null {
     };
 }
 
+export function wirelessToggle(): Clutter.Actor | null {
+    return quickSettings()?._network?._wirelessToggle ?? null;
+}
+
 export function closeQuickSettingsMenu(): void {
     quickSettings()?.menu.close(PopupAnimation.NONE);
 }

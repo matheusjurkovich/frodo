@@ -67,8 +67,8 @@ export class IslandManager {
             });
             const content = new PanelContent({...this.#dependencies, island});
             island.setContent(content.actor);
-            island.on('tabRequested', tab => {
-                content.showOnNextOpen(tab);
+            island.on('tabRequested', (tab, target) => {
+                content.showOnNextOpen(tab, target ?? undefined);
             });
             this.#entries.push({island, content});
         }

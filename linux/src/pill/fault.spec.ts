@@ -1,3 +1,4 @@
+import {FAULT_TABS, FAULT_TARGETS} from './fault.const.js';
 import {pickFault} from './fault.js';
 import type {FaultInputs} from './fault.types.js';
 
@@ -25,5 +26,18 @@ describe('pickFault', () => {
         expect(pickFault({...QUIET, githubStatus: 'bad-token', calendarAttention: true})).toBe('github');
         expect(pickFault({...QUIET, wifiFailed: true, hookMissing: true})).toBe('wifi');
         expect(pickFault({...QUIET, hookMissing: true, calendarAttention: true})).toBe('hook');
+    });
+});
+
+describe('destino da falha', () => {
+    it('wi-fi abre a geral com o painel do wi-fi', () => {
+        expect(FAULT_TABS.wifi).toBe('general');
+        expect(FAULT_TARGETS.wifi).toBe('wifi');
+    });
+
+    it('as outras falhas só abrem a aba', () => {
+        expect(FAULT_TARGETS.github).toBeUndefined();
+        expect(FAULT_TARGETS.hook).toBeUndefined();
+        expect(FAULT_TARGETS.agenda).toBeUndefined();
     });
 });
