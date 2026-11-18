@@ -3,7 +3,7 @@ import {pickActivity} from './activity-priority.js';
 describe('prioridade da pílula', () => {
     it('mostra o estado mais alto', () => {
         expect(pickActivity([{kind: 'media'}, {kind: 'recording'}, {kind: 'claude-working'}])?.kind).toBe('recording');
-        expect(pickActivity([{kind: 'volume'}, {kind: 'meeting'}])?.kind).toBe('meeting');
+        expect(pickActivity([{kind: 'github'}, {kind: 'meeting'}])?.kind).toBe('meeting');
         expect(pickActivity([{kind: 'claude-working'}, {kind: 'notification'}])?.kind).toBe('notification');
     });
 
@@ -25,9 +25,14 @@ describe('prioridade da pílula', () => {
         ).toBe('a');
     });
 
-    it('alerta do GitHub perde da reunião e vence o volume', () => {
+    it('alerta do GitHub perde da reunião e vence a mídia', () => {
         expect(pickActivity([{kind: 'github'}, {kind: 'meeting'}])?.kind).toBe('meeting');
-        expect(pickActivity([{kind: 'volume'}, {kind: 'github'}])?.kind).toBe('github');
+        expect(pickActivity([{kind: 'media'}, {kind: 'github'}])?.kind).toBe('github');
+    });
+
+    it('mídia vence o Claude trabalhando e o volume vence a gravação', () => {
+        expect(pickActivity([{kind: 'claude-working'}, {kind: 'media'}])?.kind).toBe('media');
+        expect(pickActivity([{kind: 'recording'}, {kind: 'volume'}])?.kind).toBe('volume');
     });
 
     it('sem atividade fica no repouso', () => {
