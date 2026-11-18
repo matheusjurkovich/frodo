@@ -244,6 +244,14 @@ describe('ActivityFeed', () => {
         expect(changes).toBe(1);
     });
 
+    it('emite changed quando um item da fila é trocado por outro do mesmo tipo', () => {
+        recording.set(now);
+        meetings.set({title: 'x', startsAt: now + 1000});
+        const before = changes;
+        meetings.set({title: 'y', startsAt: now + 1000});
+        expect(changes).toBe(before + 1);
+    });
+
     it('alerta do GitHub aparece na pílula e some depois do aviso', () => {
         github.push([pr('dono/frodo#42', 'conflict')]);
         const {current} = feed;
