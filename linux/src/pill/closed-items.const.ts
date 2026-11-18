@@ -12,11 +12,11 @@ export const TEXT_ITEMS: readonly ClosedItem[] = [
 ];
 
 export const QUOTA_ITEMS: Record<QuotaItem, QuotaSpec> = {
-    'claude-session': {provider: 'claude', key: 'session', name: 'Claude', suffix: ''},
-    'claude-weekly': {provider: 'claude', key: 'weekly', name: 'Semana', suffix: ''},
-    'codex-session': {provider: 'codex', key: 'session', name: 'Codex', suffix: ''},
-    'codex-weekly': {provider: 'codex', key: 'weekly', name: 'Codex', suffix: ' · 7d'},
-    'gemini-daily': {provider: 'gemini', key: 'daily', name: 'Gemini', suffix: ' hoje'},
+    'claude-session': {provider: 'claude', key: 'session', name: 'Claude', suffix: '', ringSuffix: ''},
+    'claude-weekly': {provider: 'claude', key: 'weekly', name: 'Semana', suffix: '', ringSuffix: ' · 7d'},
+    'codex-session': {provider: 'codex', key: 'session', name: 'Codex', suffix: '', ringSuffix: ''},
+    'codex-weekly': {provider: 'codex', key: 'weekly', name: 'Codex', suffix: ' · 7d', ringSuffix: ' · 7d'},
+    'gemini-daily': {provider: 'gemini', key: 'daily', name: 'Gemini', suffix: ' hoje', ringSuffix: ' hoje'},
 };
 
 export const QUOTA_NAMES: Record<QuotaItem, string> = {
