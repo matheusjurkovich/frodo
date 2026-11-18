@@ -69,6 +69,7 @@ answer_with() {
     hook_pid=$!
     pending_file="$(wait_for_pending)" || { check "$1: pedido apareceu" "sim" "nao"; return; }
     name="$(basename "$pending_file")"
+    grep -c '"input":{' "$pending_file" > "$TMP/entrada"
     printf '%s' "$2" > "$TMP/run dir/decisions/$name"
     wait "$hook_pid"
     cat "$TMP/out"
@@ -77,6 +78,7 @@ answer_with() {
 check "allow devolve a decisao" \
     '{"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"allow"}}}' \
     "$(answer_with allow '{"behavior":"allow"}')"
+check "pedido guarda a entrada do hook" "1" "$(cat "$TMP/entrada")"
 check "deny devolve a decisao com mensagem" \
     '{"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"deny","message":"Negado pela ilha do Frodo."}}}' \
     "$(answer_with deny '{"behavior":"deny"}')"

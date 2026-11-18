@@ -109,7 +109,7 @@ function session(id: string, status: SessionStatus, step = '', tool: string | nu
 }
 
 function request(sessionId: string, name: string, since: number): PendingRequest {
-    return {key: `${sessionId}.${name}`, sessionId, request: name, pid: 1, tool: 'Bash', since};
+    return {key: `${sessionId}.${name}`, sessionId, request: name, pid: 1, tool: 'Bash', summary: 'Bash', since};
 }
 
 function track(playing: boolean, title = 't'): MediaTrack {

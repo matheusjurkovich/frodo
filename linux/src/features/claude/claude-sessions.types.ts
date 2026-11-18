@@ -32,6 +32,7 @@ export interface PendingRequest {
     readonly request: string;
     readonly pid: number;
     readonly tool: string;
+    readonly summary: string;
     readonly since: number;
 }
 
