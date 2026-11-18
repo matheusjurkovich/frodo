@@ -57,7 +57,7 @@ pending="$root/pending/$id.$request.json"
 decision="$root/decisions/$id.$request.json"
 trap 'rm -f "$pending" "$decision"' EXIT
 trap 'exit 0' INT TERM HUP
-printf '{"pid":%s,"tool":"%s","since":%s}\n' "$$" "$tool" "$(now_ms)" > "$pending.tmp" && mv -f "$pending.tmp" "$pending" || exit 0
+printf '{"pid":%s,"tool":"%s","since":%s,"input":%s}\n' "$$" "$tool" "$(now_ms)" "$input" > "$pending.tmp" && mv -f "$pending.tmp" "$pending" || exit 0
 
 if [ "${CLAUDE_CODE_ENTRYPOINT:-}" = claude-desktop ]; then wait=${FRODO_WAIT_SECONDS:-590}; else wait=${FRODO_TERMINAL_WAIT_SECONDS:-15}; fi
 ticks=$((wait * 4))
