@@ -39,6 +39,8 @@ export class ClaudePage implements Component {
     #segmented: Segmented<View> | null = null;
     #view: View = 'all';
     #faulted = false;
+    #installFailed = false;
+    #destroyed = false;
 
     constructor({claude, transcripts, sessions, codex, gemini, settings, island, actions}: ClaudePageDependencies) {
         this.#settings = settings;
@@ -99,11 +101,17 @@ export class ClaudePage implements Component {
             this.#banner.show({
                 tone: 'warn',
                 title: 'O hook do Claude Code não está instalado',
-                body: 'Sem ele, sessões novas e pedidos de permissão não chegam aqui. O Frodo adiciona uma entrada em ~/.claude/settings.json.',
+                body: this.#installFailed
+                    ? 'Não deu para mesclar ~/.claude/settings.json. Confira se o arquivo é JSON válido e tente de novo.'
+                    : 'Sem ele, sessões novas e pedidos de permissão não chegam aqui. O Frodo adiciona uma entrada em ~/.claude/settings.json.',
                 primary: {
                     label: 'Instalar hook',
                     run: () => {
-                        void sessions.installAgentHooks('claude');
+                        void sessions.installAgentHooks('claude').then(ok => {
+                            if (ok || this.#destroyed) return;
+                            this.#installFailed = true;
+                            this.#syncBanner();
+                        });
                     },
                 },
                 secondary: {label: 'Abrir configurações de IA', run: this.#actions.openSettings},
@@ -113,6 +121,7 @@ export class ClaudePage implements Component {
         if (this.#faulted && sessions.hooksInstalled()) this.#banner.done('Hook instalado. Sessões novas do Claude Code aparecem aqui.');
         else this.#banner.show(null);
         this.#faulted = false;
+        this.#installFailed = false;
     }
 
     #rebuildSelector(): void {
@@ -158,6 +167,7 @@ export class ClaudePage implements Component {
     }
 
     destroy(): void {
+        this.#destroyed = true;
         this.#disposables.dispose();
         this.#segmented?.destroy();
         for (const overview of this.#overviewCards.values()) overview.destroy();
