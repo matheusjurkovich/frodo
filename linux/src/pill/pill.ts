@@ -84,7 +84,7 @@ export class Pill extends Emitter<{rebuilt: []}> {
         this.#vertical = vertical;
         this.#idle.setVertical(vertical);
         const current = this.#feed.current;
-        if (current) this.#activity.show(current, vertical);
+        if (current) this.#activity.show(current, vertical, this.#feed.queue);
         this.#syncStyle();
     }
 
@@ -109,7 +109,7 @@ export class Pill extends Emitter<{rebuilt: []}> {
         this.#shown = next;
         const apply = (): void => {
             this.#idle.actor.visible = next === null && !this.#peeking;
-            if (next) this.#activity.show(next, this.#vertical);
+            if (next) this.#activity.show(next, this.#vertical, this.#feed.queue);
             else this.#activity.clear();
             this.#syncStyle();
         };

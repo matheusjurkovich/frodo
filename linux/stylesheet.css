@@ -290,6 +290,15 @@
     spacing: 10px;
 }
 
+.frodo-pill-queue {
+    padding: 2px 8px;
+    border-radius: 999px;
+    background-color: #232327;
+    color: #e4e4e7;
+    font-size: 12px;
+    font-weight: 500;
+}
+
 .frodo-pill-icon {
     icon-size: 16px;
 }
