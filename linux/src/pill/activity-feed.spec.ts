@@ -207,6 +207,21 @@ describe('ActivityFeed', () => {
         feed.destroy();
     });
 
+    it('a fila traz o que espera e deixa de fora o já visto', () => {
+        recording.set(now);
+        meetings.set({title: 'x', startsAt: now + 1000});
+        expect(feed.queue.map(a => a.kind)).toEqual(['meeting']);
+        timers.fire(5000);
+        expect(feed.queue).toEqual([]);
+    });
+
+    it('emite changed quando só a fila muda', () => {
+        recording.set(now);
+        changes = 0;
+        meetings.set({title: 'x', startsAt: now + 1000});
+        expect(changes).toBe(1);
+    });
+
     it('alerta do GitHub aparece na pílula e some depois do aviso', () => {
         github.push([pr('dono/frodo#42', 'conflict')]);
         const {current} = feed;

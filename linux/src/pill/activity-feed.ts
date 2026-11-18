@@ -8,6 +8,7 @@ import {Disposables} from '../shared/disposables.js';
 import {Emitter} from '../shared/emitter.js';
 import {Timer} from '../shared/timer.js';
 import {VOLUME_MS, FLASH_MS, SHOWN_MS, DECISION_MS} from './activity-feed.const.js';
+import {queued} from './activity-queue.js';
 import type {PillActivity, FeedSources} from './activity-feed.types.js';
 
 function identity(activity: PillActivity): readonly unknown[] {
@@ -58,6 +59,7 @@ export class ActivityFeed extends Emitter<{changed: []}> {
     #decision: Extract<PillActivity, {kind: 'decision'}> | null = null;
     #volume: number | null = null;
     #current: PillActivity | null = null;
+    #waiting: readonly PillActivity[] = [];
 
     constructor(sources: FeedSources) {
         super();
@@ -123,6 +125,10 @@ export class ActivityFeed extends Emitter<{changed: []}> {
 
     get current(): PillActivity | null {
         return this.#current;
+    }
+
+    get queue(): readonly PillActivity[] {
+        return this.#waiting;
     }
 
     cancelTransient(): void {
@@ -202,9 +208,17 @@ export class ActivityFeed extends Emitter<{changed: []}> {
         const candidates = this.#candidates();
         this.#seen = this.#seen.filter(seen => candidates.some(candidate => same(seen, candidate)));
         const previous = this.#current;
-        const current = pickActivity(candidates.filter(candidate => !this.#seen.some(seen => same(seen, candidate))));
+        const unseen = candidates.filter(candidate => !this.#seen.some(seen => same(seen, candidate)));
+        const current = pickActivity(unseen);
         this.#current = current;
-        if (same(previous, current)) return;
+        const waiting = queued(unseen, current);
+        const queueChanged =
+            waiting.length !== this.#waiting.length || waiting.some((item, index) => item.kind !== this.#waiting[index]?.kind);
+        this.#waiting = waiting;
+        if (same(previous, current)) {
+            if (queueChanged) this.emit('changed');
+            return;
+        }
         const mode = this.#sources.settings.pillAiActivity;
         if (mode === 'change' && previous?.kind === 'claude-working' && current?.kind === 'claude-working') this.#seen.push(previous);
         if (current?.kind === 'claude-working' && mode === 'change') {
