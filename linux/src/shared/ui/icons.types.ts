@@ -52,4 +52,5 @@ export type FrodoIconName =
     | 'volume'
     | 'volume-off'
     | 'mic'
-    | 'check';
+    | 'check'
+    | 'alert';
