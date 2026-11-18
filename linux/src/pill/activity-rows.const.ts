@@ -6,3 +6,5 @@ export const TITLE_CHARS = 40;
 export const APP_CHARS = 20;
 export const TRACK_CHARS = 30;
 export const ARTIST_CHARS = 24;
+export const DIR_CHARS = 28;
+export const EQUALIZER_BARS = 5;

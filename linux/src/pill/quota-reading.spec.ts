@@ -1,7 +1,7 @@
 import {codexMeters} from '../features/codex/codex-usage.js';
 import {geminiMeters} from '../features/gemini/gemini-usage.js';
 import type {UsageWindow} from '../features/claude/claude-usage.types.js';
-import {quotaReading} from './quota-reading.js';
+import {quotaAccessibleName, quotaReading} from './quota-reading.js';
 import type {QuotaSources} from './quota-reading.types.js';
 
 const window = (role: UsageWindow['role'], utilization: number): UsageWindow => ({
@@ -45,5 +45,15 @@ describe('quotaReading', () => {
     it('provedor desativado ou sem dado não tem leitura', () => {
         expect(quotaReading('gemini-daily', sources({providerEnabled: () => false}), 0)).toBeNull();
         expect(quotaReading('codex-session', sources(), 0)).toBeNull();
+    });
+});
+
+describe('quotaAccessibleName', () => {
+    it('descreve a cota com o período', () => {
+        expect(quotaAccessibleName('claude-session', 62)).toBe('Sessão do Claude: 62% da cota de 5 h usada');
+        expect(quotaAccessibleName('claude-weekly', 34)).toBe('Semana do Claude: 34% da cota da semana usada');
+        expect(quotaAccessibleName('codex-session', 10)).toBe('Sessão do Codex: 10% da cota de 5 h usada');
+        expect(quotaAccessibleName('codex-weekly', 20)).toBe('Semana do Codex: 20% da cota da semana usada');
+        expect(quotaAccessibleName('gemini-daily', 41)).toBe('Gemini: 41% da cota de hoje usada');
     });
 });

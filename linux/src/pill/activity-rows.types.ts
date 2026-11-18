@@ -13,6 +13,7 @@ export interface ActivityRow {
     readonly hasAction: boolean;
     readonly clickTab: TabId | null;
     readonly clickTarget: TabTarget | null;
+    readonly activate: (() => void) | null;
     readonly tick: ActivityTick | null;
     readonly refresh: ((activity: PillActivity) => void) | null;
 }

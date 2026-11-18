@@ -10,6 +10,7 @@ import {
     formatTokens,
     percentLabel,
     formatUntil,
+    homeRelative,
     pad,
     secondsSince,
 } from './format.js';
@@ -109,5 +110,12 @@ describe('formatadores básicos', () => {
         expect(percentLabel(74.6)).toBe('75%');
         expect(percentLabel(0)).toBe('0%');
         expect(percentLabel(0.4)).toBe('0%');
+    });
+
+    it('homeRelative troca o home por til e deixa o resto igual', () => {
+        expect(homeRelative('/home/eu/Field/api', '/home/eu')).toBe('~/Field/api');
+        expect(homeRelative('/home/eu', '/home/eu')).toBe('~');
+        expect(homeRelative('/home/eugenio/x', '/home/eu')).toBe('/home/eugenio/x');
+        expect(homeRelative('/srv/app', '/home/eu')).toBe('/srv/app');
     });
 });

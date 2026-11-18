@@ -1,6 +1,7 @@
 import {displayLevel, shownPercent} from '../features/claude/claude-usage.js';
+import {percentLabel} from '../shared/format.js';
 import {meterLevel, shownMeterPercent} from '../shared/meter.js';
-import {QUOTA_ITEMS} from './closed-items.const.js';
+import {QUOTA_ITEMS, QUOTA_NAMES, QUOTA_PERIODS} from './closed-items.const.js';
 import type {QuotaItem} from './closed-items.types.js';
 import type {QuotaSources, UsageReading} from './quota-reading.types.js';
 
@@ -15,4 +16,8 @@ export function quotaReading(item: QuotaItem, sources: QuotaSources, now: number
     const meter = sources[provider].meters(now).find(candidate => candidate.key === key);
     if (!meter) return null;
     return {percent: shownMeterPercent(meter.percent, sources.showRemaining), level: meterLevel(meter.percent), suffix};
+}
+
+export function quotaAccessibleName(item: QuotaItem, percent: number): string {
+    return `${QUOTA_NAMES[item]}: ${percentLabel(percent)} da cota ${QUOTA_PERIODS[item]} usada`;
 }
