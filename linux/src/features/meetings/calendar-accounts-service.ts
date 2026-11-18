@@ -16,7 +16,7 @@ export class CalendarAccounts extends Emitter<{changed: []}> {
         super();
         Gio.DBusObjectManagerClient.new(
             connection,
-            Gio.DBusObjectManagerClientFlags.NONE,
+            Gio.DBusObjectManagerClientFlags.DO_NOT_AUTO_START,
             GOA_NAME,
             GOA_PATH,
             null,
