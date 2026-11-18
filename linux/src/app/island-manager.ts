@@ -33,6 +33,10 @@ export class IslandManager {
         this.#rebuild();
     }
 
+    get peeking(): boolean {
+        return this.#currentEntry()?.island.pill.peeking ?? false;
+    }
+
     toggle(): void {
         this.#currentEntry()?.island.toggle();
     }

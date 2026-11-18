@@ -57,7 +57,7 @@ export default class FrodoExtension extends Extension {
         const islands = disposables.own(new IslandManager(services));
 
         const decideShown = (decision: 'allow' | 'deny'): void => {
-            const request = shownRequest(services.feed.current);
+            const request = shownRequest(services.feed.current, islands.peeking);
             if (request) services.sessions.decide(request, decision);
         };
 

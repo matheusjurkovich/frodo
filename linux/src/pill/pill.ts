@@ -94,6 +94,10 @@ export class Pill extends Emitter<{rebuilt: []}> {
         this.#syncStyle();
     }
 
+    get peeking(): boolean {
+        return this.#peeking;
+    }
+
     setPeek(seconds: number | null): void {
         const peeking = seconds !== null;
         if (!peeking && !this.#peeking) return;
