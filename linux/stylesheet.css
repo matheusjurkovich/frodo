@@ -3265,3 +3265,134 @@
     padding: 0 12px;
     font-size: 12px;
 }
+
+.frodo-fault-banner {
+    padding: 12px 14px;
+    border-radius: 14px;
+    border-width: 1px;
+    border-style: solid;
+    spacing: 12px;
+}
+
+.frodo-fault-banner-danger {
+    background-color: #2a1414;
+    border-color: #5c1d1d;
+}
+
+.frodo-fault-banner-warn {
+    background-color: #241c08;
+    border-color: #5c4410;
+}
+
+.frodo-fault-banner-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 16px;
+}
+
+.frodo-fault-banner-icon {
+    icon-size: 16px;
+}
+
+.frodo-fault-banner-danger .frodo-fault-banner-circle {
+    background-color: #3a1c1c;
+    color: #fca5a5;
+}
+
+.frodo-fault-banner-warn .frodo-fault-banner-circle {
+    background-color: #3a2c0a;
+    color: #fbbf24;
+}
+
+.frodo-fault-banner-text {
+    spacing: 4px;
+}
+
+.frodo-fault-banner-title {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.frodo-fault-banner-danger .frodo-fault-banner-title {
+    color: #fde2e2;
+}
+
+.frodo-fault-banner-warn .frodo-fault-banner-title {
+    color: #fde68a;
+}
+
+.frodo-fault-banner-body {
+    font-size: 12px;
+    color: #d4d4d8;
+}
+
+.frodo-fault-banner-actions,
+.frodo-fault-banner-confirm-actions {
+    spacing: 8px;
+    padding-top: 6px;
+}
+
+.frodo-fault-banner-primary,
+.frodo-fault-banner-secondary {
+    height: 36px;
+    min-height: 36px;
+    padding: 0 14px;
+    font-size: 13px;
+}
+
+.frodo-fault-banner-primary {
+    background-color: #f4f4f5;
+    color: #0a0a0b;
+    font-weight: 500;
+}
+
+.frodo-fault-banner-primary:hover {
+    background-color: #e4e4e7;
+}
+
+.frodo-fault-banner-secondary {
+    background-color: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: #e4e4e7;
+}
+
+.frodo-fault-banner-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+.frodo-fault-banner-confirm {
+    margin-top: 6px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background-color: #3a1c1c;
+    spacing: 4px;
+}
+
+.frodo-fault-banner-confirm-text {
+    font-size: 14px;
+    color: #fde2e2;
+}
+
+.frodo-fault-banner-confirm-no,
+.frodo-fault-banner-confirm-yes {
+    height: 32px;
+    min-height: 32px;
+    padding: 0 12px;
+    font-size: 13px;
+}
+
+.frodo-fault-banner-confirm-no {
+    background-color: #2a1414;
+    color: #fde2e2;
+}
+
+.frodo-fault-banner-confirm-yes {
+    background-color: #b42318;
+    color: #ffffff;
+    font-weight: 500;
+}
+
+.frodo-fault-banner-done {
+    font-size: 12px;
+    color: #86efac;
+}
