@@ -3,6 +3,8 @@ export interface WifiAttempt {
     readonly uuid: string;
 }
 
+export type WifiResolution = 'connected' | 'forgotten' | 'off' | 'switched';
+
 export interface WifiFault {
     readonly network: string;
     readonly uuid: string;

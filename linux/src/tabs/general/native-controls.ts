@@ -157,7 +157,6 @@ export class NativeControls {
         const banner = new FaultBanner();
         menu.box.insert_child_above(banner.actor, quickToggleMenuHeader(menu).header);
         let shown: string | null = null;
-        let forgetting: string | null = null;
         const sync = (): void => {
             const failure = wifi.failure;
             if (failure) {
@@ -183,21 +182,17 @@ export class NativeControls {
                             label: 'Esquecer',
                         },
                         run: () => {
-                            forgetting = network;
-                            void wifi.forget().finally(() => {
-                                forgetting = null;
-                            });
+                            void wifi.forget();
                         },
                     },
                 });
                 return;
             }
-            if (shown !== null)
-                banner.done(
-                    forgetting === shown
-                        ? `${shown} foi esquecida. Para voltar, escolha a rede e digite a senha.`
-                        : `Conectado a ${shown}.`,
-                );
+            const resolution = wifi.resolution;
+            if (shown !== null && resolution === 'connected') banner.done(`Conectado a ${shown}.`);
+            else if (shown !== null && resolution === 'forgotten')
+                banner.done(`${shown} foi esquecida. Para voltar, escolha a rede e digite a senha.`);
+            else banner.show(null);
             shown = null;
         };
         const off = wifi.on('changed', sync);
