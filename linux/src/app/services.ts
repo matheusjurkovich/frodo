@@ -17,6 +17,7 @@ import {PerformanceMonitor} from '../features/system/performance-service.js';
 import {Recording} from '../features/system/recording-service.js';
 import {SystemState} from '../features/system/system-state-service.js';
 import {VolumeWatch} from '../features/system/volume-service.js';
+import {WifiFailure} from '../features/system/wifi-failure-service.js';
 import {Workspaces} from '../features/workspaces/workspaces-service.js';
 import {ActivityFeed} from '../pill/activity-feed.js';
 import {FrodoSettings} from '../settings/frodo-settings.js';
@@ -49,6 +50,7 @@ export function createServices(gsettings: Gio.Settings, disposables: Disposables
     const mixer = disposables.own(new Mixer());
     const meetings = disposables.own(new UpcomingMeeting(settings));
     const performance = disposables.own(new PerformanceMonitor());
+    const wifi = disposables.own(new WifiFailure());
     const github = disposables.own(new GitHubService({settings, backend: new GitHubClient()}));
     disposables.own(new MemoryAlert(state));
     const notifier = disposables.own(new ProviderNotifier());
@@ -56,7 +58,7 @@ export function createServices(gsettings: Gio.Settings, disposables: Disposables
     disposables.own(new QuotaAlerts({settings, claude, codex, gemini, notifier}));
     disposables.own(new GitHubNotifier({settings, github}));
     const feed = disposables.own(
-        new ActivityFeed({recording, sessions, meetings, bridge, volume, media, github, settings, faults: {wifi: null, calendar: null}}),
+        new ActivityFeed({recording, sessions, meetings, bridge, volume, media, github, settings, faults: {wifi, calendar: null}}),
     );
     return {
         settings,
@@ -75,6 +77,7 @@ export function createServices(gsettings: Gio.Settings, disposables: Disposables
         meetings,
         performance,
         github,
+        wifi,
         feed,
     };
 }
