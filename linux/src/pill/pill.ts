@@ -3,6 +3,7 @@ import St from 'gi://St';
 import {sameSubject} from './activity-subject.js';
 import type {FrodoSettings} from '../settings/frodo-settings.js';
 import type {TabId} from '../settings/schema-values.types.js';
+import type {TabTarget} from '../shared/tab-target.types.js';
 import {Disposables} from '../shared/disposables.js';
 import {Emitter} from '../shared/emitter.js';
 import {SOFT_SPRING, SPRING} from '../shared/spring.const.js';
@@ -74,6 +75,10 @@ export class Pill extends Emitter<{rebuilt: []}> {
 
     get hasAction(): boolean {
         return this.#activity.hasAction;
+    }
+
+    get clickTarget(): TabTarget | null {
+        return this.#activity.clickTarget;
     }
 
     get clickTab(): TabId | null {

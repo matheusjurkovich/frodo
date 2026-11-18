@@ -12,6 +12,7 @@ import {
     quickSliderButtons,
     quickToggleMenuButton,
     quickToggleMenuHeader,
+    wirelessToggle,
 } from '../../shared/shell-internals.js';
 import {Disposables} from '../../shared/disposables.js';
 import type {Disposer} from '../../shared/disposables.types.js';
@@ -20,6 +21,7 @@ import {whileShown} from '../../shared/ui/lifecycle.js';
 import {iconButton} from '../../shared/ui/buttons.js';
 import {packGrid} from '../../shared/ui/layout.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
+import type {TabTarget} from '../../shared/tab-target.types.js';
 import type {IslandHandle} from '../../shared/island-handle.types.js';
 import {TILE_SPACING, TILE_COLUMNS, OVERLAY_BINDINGS} from './native-controls.const.js';
 import {MenuTransition} from './menu-transition.js';
@@ -59,6 +61,7 @@ export class NativeControls {
     readonly #transition: MenuTransition;
     readonly #disposables = new Disposables();
     readonly #loan = new Disposables();
+    #pending: TabTarget | null = null;
 
     constructor(island: IslandHandle, page: Clutter.Actor, overlayHost: St.Widget, content: St.Widget, scrollToTop: () => void) {
         this.#island = island;
@@ -73,6 +76,7 @@ export class NativeControls {
                     this.#borrow();
                 },
                 () => {
+                    this.#pending = null;
                     this.#loan.dispose();
                 },
             ),
@@ -120,6 +124,18 @@ export class NativeControls {
                 this.#island.close();
             }),
         );
+        this.#openPending();
+    }
+
+    openMenu(target: TabTarget): void {
+        this.#pending = target;
+    }
+
+    #openPending(): void {
+        const target = this.#pending;
+        this.#pending = null;
+        const toggle = target === 'wifi' ? wirelessToggle() : null;
+        if (toggle) quickSettingsItemMenu(toggle)?.open(PopupAnimation.NONE);
     }
 
     #lend(item: Clutter.Actor, target: Clutter.Actor): void {

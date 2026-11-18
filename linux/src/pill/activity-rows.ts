@@ -24,7 +24,7 @@ import {
 import type {ActivityRow} from './activity-rows.types.js';
 import type {ActivityServices, Of} from './activity-view.types.js';
 import {Avatar} from './avatar.js';
-import {FAULT_TABS, FAULT_TEXTS} from './fault.const.js';
+import {FAULT_TABS, FAULT_TARGETS, FAULT_TEXTS} from './fault.const.js';
 import {volumeLevel} from './volume-level.js';
 
 function icon(gicon: Gio.Icon, styleClass = ''): St.Icon {
@@ -32,7 +32,7 @@ function icon(gicon: Gio.Icon, styleClass = ''): St.Icon {
 }
 
 function row(children: Clutter.Actor[], extra: Partial<ActivityRow> = {}): ActivityRow {
-    return {children, hasAction: false, clickTab: null, tick: null, refresh: null, ...extra};
+    return {children, hasAction: false, clickTab: null, clickTarget: null, tick: null, refresh: null, ...extra};
 }
 
 function recordingRow({startedAt}: Of<'recording'>, services: ActivityServices): ActivityRow {
@@ -155,6 +155,7 @@ function faultRow({fault}: Of<'fault'>): ActivityRow {
         ],
         {
             clickTab: FAULT_TABS[fault],
+            clickTarget: FAULT_TARGETS[fault] ?? null,
             tick: {
                 seconds: MINUTE_TICK_SECONDS,
                 update: () => {

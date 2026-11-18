@@ -1,6 +1,7 @@
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 import type {TabId} from '../settings/schema-values.types.js';
+import type {TabTarget} from '../shared/tab-target.types.js';
 import {Disposables} from '../shared/disposables.js';
 import {Timer} from '../shared/timer.js';
 import type {Component} from '../shared/ui/lifecycle.types.js';
@@ -37,6 +38,10 @@ export class ActivityView implements Component {
         return this.#row?.clickTab ?? null;
     }
 
+    get clickTarget(): TabTarget | null {
+        return this.#row?.clickTarget ?? null;
+    }
+
     get content(): St.BoxLayout | null {
         return this.#content;
     }
@@ -44,7 +49,7 @@ export class ActivityView implements Component {
     activate(): boolean {
         const tab = this.clickTab;
         if (tab === null) return false;
-        this.#services.actions.openTab(tab);
+        this.#services.actions.openTab(tab, this.clickTarget ?? undefined);
         return true;
     }
 

@@ -7,6 +7,7 @@ import {MediaCard} from './media-card.js';
 import {NativeControls} from './native-controls.js';
 import {ShortcutsCard} from './shortcuts-card.js';
 import {SoundCard} from './sound-card.js';
+import type {TabTarget, TargetablePage} from '../../shared/tab-target.types.js';
 import type {GeneralDependencies} from './general-page.types.js';
 
 function columns(...sides: Clutter.Actor[]): St.BoxLayout {
@@ -16,7 +17,7 @@ function columns(...sides: Clutter.Actor[]): St.BoxLayout {
     return box;
 }
 
-export class GeneralPage implements Component {
+export class GeneralPage implements Component, TargetablePage {
     readonly actor = new St.Widget({style_class: 'frodo-general', layout_manager: new Clutter.BinLayout(), x_expand: true});
     readonly #controls: NativeControls;
     readonly #sound: SoundCard;
@@ -52,6 +53,10 @@ export class GeneralPage implements Component {
         content.add_child(bottom);
         this.actor.add_child(content);
         this.actor.add_child(overlayHost);
+    }
+
+    openPanel(target: TabTarget): void {
+        this.#controls.openMenu(target);
     }
 
     destroy(): void {

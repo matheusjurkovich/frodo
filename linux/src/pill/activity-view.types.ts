@@ -1,4 +1,5 @@
 import type {TabId} from '../settings/schema-values.types.js';
+import type {TabTarget} from '../shared/tab-target.types.js';
 import type {ClaudeSessions} from '../features/claude/claude-sessions-service.js';
 import type {GitHubService} from '../features/github/github-service.js';
 import type {MediaService} from '../features/media/media-service.js';
@@ -8,7 +9,7 @@ import type {PillActivity} from './activity-feed.types.js';
 export type Of<K extends PillActivity['kind']> = Extract<PillActivity, {kind: K}>;
 
 export interface PillActions {
-    openTab(tab: TabId): void;
+    openTab(tab: TabId, target?: TabTarget): void;
 }
 
 export interface ActivityServices {

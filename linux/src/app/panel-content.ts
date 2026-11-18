@@ -9,6 +9,7 @@ import {SPRING} from '../shared/spring.const.js';
 import {column} from '../shared/ui/layout.js';
 import {morphSize, settle, slideIn, slideOut} from '../shared/ui/motion.js';
 import {HEIGHT_AXIS} from '../shared/ui/motion.const.js';
+import type {TabTarget, TargetablePage} from '../shared/tab-target.types.js';
 import type {Component} from '../shared/ui/lifecycle.types.js';
 import {Header} from './header.js';
 import {PowerMenu} from './power-menu.js';
@@ -38,6 +39,7 @@ export class PanelContent {
     #view: PanelView = {kind: 'tab', tab: TAB_IDS[0]};
     #lastTab: TabId = TAB_IDS[0];
     #nextTab: TabId | null = null;
+    #nextTarget: TabTarget | null = null;
 
     constructor(dependencies: PanelDependencies) {
         const {island, claude, sessions, codex, gemini, settings, state, bridge, recording, github} = dependencies;
@@ -77,8 +79,12 @@ export class PanelContent {
         this.#disposables.add(
             island.on('opening', () => {
                 const visible = visibleTabs(settings.hiddenTabs, settings.tabOrder);
-                this.show({kind: 'tab', tab: tabToOpen(this.#nextTab ?? visible[0] ?? TAB_IDS[0], visible)});
+                const tab = tabToOpen(this.#nextTab ?? visible[0] ?? TAB_IDS[0], visible);
+                this.show({kind: 'tab', tab});
+                const page = this.#pages.get(tab);
+                if (this.#nextTarget && page && 'openPanel' in page) (page as Component & TargetablePage).openPanel(this.#nextTarget);
                 this.#nextTab = null;
+                this.#nextTarget = null;
             }),
         );
         this.#pages = createTabPages({
@@ -188,8 +194,9 @@ export class PanelContent {
         };
     }
 
-    showOnNextOpen(tab: TabId): void {
+    showOnNextOpen(tab: TabId, target?: TabTarget): void {
         this.#nextTab = tab;
+        this.#nextTarget = target ?? null;
     }
 
     #scrollToTop(): void {
