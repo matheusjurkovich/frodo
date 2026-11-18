@@ -9,6 +9,7 @@ import {GeminiUsage} from '../features/gemini/gemini-service.js';
 import {GitHubClient} from '../features/github/github-client.js';
 import {GitHubService} from '../features/github/github-service.js';
 import {MediaService} from '../features/media/media-service.js';
+import {CalendarAccounts} from '../features/meetings/calendar-accounts-service.js';
 import {UpcomingMeeting} from '../features/meetings/meetings-service.js';
 import {NotificationBridge} from '../features/notifications/notification-bridge-service.js';
 import {MemoryAlert} from '../features/system/memory-alert-service.js';
@@ -50,6 +51,7 @@ export function createServices(gsettings: Gio.Settings, disposables: Disposables
     const mixer = disposables.own(new Mixer());
     const meetings = disposables.own(new UpcomingMeeting(settings));
     const performance = disposables.own(new PerformanceMonitor());
+    const calendar = disposables.own(new CalendarAccounts());
     const wifi = disposables.own(new WifiFailure());
     const github = disposables.own(new GitHubService({settings, backend: new GitHubClient()}));
     disposables.own(new MemoryAlert(state));
@@ -58,7 +60,7 @@ export function createServices(gsettings: Gio.Settings, disposables: Disposables
     disposables.own(new QuotaAlerts({settings, claude, codex, gemini, notifier}));
     disposables.own(new GitHubNotifier({settings, github}));
     const feed = disposables.own(
-        new ActivityFeed({recording, sessions, meetings, bridge, volume, media, github, settings, faults: {wifi, calendar: null}}),
+        new ActivityFeed({recording, sessions, meetings, bridge, volume, media, github, settings, faults: {wifi, calendar}}),
     );
     return {
         settings,
@@ -78,6 +80,7 @@ export function createServices(gsettings: Gio.Settings, disposables: Disposables
         performance,
         github,
         wifi,
+        calendar,
         feed,
     };
 }
