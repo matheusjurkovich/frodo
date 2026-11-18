@@ -1,6 +1,7 @@
 import GLib from 'gi://GLib';
 
 import {ClaudeSessions} from './claude-sessions-service.js';
+import type {DecidedRequest} from './claude-sessions.types.js';
 import {Timer} from '../../shared/timer.js';
 import {createSettings} from '../../../tests/fixtures.js';
 
@@ -171,10 +172,38 @@ describe('ClaudeSessions', () => {
         await changed(sessions);
         const pending = sessions.pendingFor('s');
         if (!pending) throw new Error('sem pedido');
+        const decided: DecidedRequest[] = [];
+        sessions.on('decided', item => decided.push(item));
         expect(sessions.decide(pending, 'allow')).toBeTrue();
         expect(sessions.pending).toEqual([]);
+        expect(decided.length).toBe(1);
+        expect(decided[0]?.decision).toBe('allow');
+        expect(decided[0]?.request.key).toBe('s.r1');
+        expect(decided[0]?.session).toBeNull();
         const [, bytes] = GLib.file_get_contents(`${dir}/decisions/s.r1.json`);
         expect(JSON.parse(new TextDecoder().decode(bytes))).toEqual({behavior: 'allow'});
+        sessions.destroy();
+    });
+
+    it('decide entrega a sessão do pedido quando ela existe', async () => {
+        const dir = tmp();
+        GLib.mkdir_with_parents(`${dir}/sessions`, 0o700);
+        GLib.file_set_contents(
+            `${dir}/sessions/s.json`,
+            JSON.stringify({pid: self, event: {session_id: 's', cwd: '/r/x', transcript_path: '/t', hook_event_name: 'Stop'}}),
+        );
+        pendingFile(dir, 's.r1', self, 10);
+        const sessions = new ClaudeSessions({settings, root: dir});
+        await changed(sessions);
+        if (sessions.sessions.length === 0 || sessions.pending.length === 0) await changed(sessions);
+        const pending = sessions.pendingFor('s');
+        const [state] = sessions.sessions;
+        if (!pending || !state) throw new Error('sem pedido ou sessão');
+        const decided: DecidedRequest[] = [];
+        sessions.on('decided', item => decided.push(item));
+        sessions.decide(pending, 'deny');
+        expect(decided.length).toBe(1);
+        expect(decided[0]?.session).toEqual(state);
         sessions.destroy();
     });
 
@@ -185,7 +214,10 @@ describe('ClaudeSessions', () => {
         await changed(sessions);
         const pending = sessions.pendingFor('s');
         if (!pending) throw new Error('sem pedido');
+        const decided: DecidedRequest[] = [];
+        sessions.on('decided', item => decided.push(item));
         expect(sessions.decide({...pending, pid: dead}, 'deny')).toBeFalse();
+        expect(decided).toEqual([]);
         expect(GLib.file_test(`${dir}/decisions/s.r1.json`, GLib.FileTest.EXISTS)).toBeFalse();
         sessions.destroy();
     });
