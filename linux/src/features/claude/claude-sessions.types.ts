@@ -38,6 +38,12 @@ export interface PendingRequest {
 
 export type Decision = 'allow' | 'deny';
 
+export interface DecidedRequest {
+    readonly request: PendingRequest;
+    readonly session: SessionState | null;
+    readonly decision: Decision;
+}
+
 export interface DiffStat {
     readonly files: number;
     readonly added: number;

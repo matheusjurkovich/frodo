@@ -13,7 +13,7 @@ import type {PillActivity} from './activity-feed.types.js';
 import {ActivityView} from './activity-view.js';
 import {IdleView} from './idle-view.js';
 import {PeekView} from './peek-view.js';
-import {STATE_CLASSES} from './pill.const.js';
+import {DECISION_CLASSES, STATE_CLASSES} from './pill.const.js';
 import type {PillDependencies} from './pill.types.js';
 
 function disarm(actor: Clutter.Actor): void {
@@ -137,10 +137,11 @@ export class Pill extends Emitter<{rebuilt: []}> {
     }
 
     #syncStyle(): void {
-        const kind = this.#feed.current?.kind;
+        const current = this.#feed.current;
+        const kind = current?.kind;
         const classes = ['frodo-pill'];
         if (this.#vertical) classes.push('frodo-pill-vertical');
-        const state = kind === undefined ? undefined : STATE_CLASSES[kind];
+        const state = current?.kind === 'decision' ? DECISION_CLASSES[current.decided.decision] : kind && STATE_CLASSES[kind];
         if (state) classes.push(state);
         if (this.#activity.hasAction && !this.#peeking) classes.push('frodo-pill-action');
         if (this.#peeking) classes.push('frodo-pill-peeking');

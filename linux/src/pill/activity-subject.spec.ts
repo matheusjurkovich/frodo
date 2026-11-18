@@ -59,4 +59,13 @@ describe('sameSubject', () => {
         expect(sameSubject({kind: 'media', track: track('t', 'a.png')}, {kind: 'media', track: track('t', 'b.png')})).toBeTrue();
         expect(sameSubject({kind: 'media', track: track('t')}, {kind: 'media', track: track('u')})).toBeFalse();
     });
+
+    it('decisões do mesmo pedido são o mesmo assunto', () => {
+        const decision = (key: string): PillActivity => ({
+            kind: 'decision',
+            decided: {request: request(key), session: null, decision: 'allow'},
+        });
+        expect(sameSubject(decision('a'), decision('a'))).toBeTrue();
+        expect(sameSubject(decision('a'), decision('b'))).toBeFalse();
+    });
 });

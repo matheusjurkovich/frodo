@@ -5,7 +5,7 @@ import {AgentHooks} from './agent-hooks-service.js';
 import type {HookedAgent} from './agent-hooks.types.js';
 import {decisionJson, nextState, oldestPending, parseHookEvent, parsePending} from './claude-sessions.js';
 import type {ClaudeSessionsDependencies} from './claude-sessions-service.types.js';
-import type {Decision, DiffStat, PendingRequest, SessionState} from './claude-sessions.types.js';
+import type {DecidedRequest, Decision, DiffStat, PendingRequest, SessionState} from './claude-sessions.types.js';
 import {focusProcessWindow} from './process-window-service.js';
 import {RepoActions} from './repo-actions-service.js';
 import {WatchedDirectory} from './watched-directory-service.js';
@@ -37,7 +37,7 @@ function jsonKey(file: Gio.File): string | null {
     return name.endsWith('.json') && name.length > '.json'.length ? name.slice(0, -'.json'.length) : null;
 }
 
-export class ClaudeSessions extends Emitter<{changed: []}> {
+export class ClaudeSessions extends Emitter<{changed: []; decided: [DecidedRequest]}> {
     readonly #settings: FrodoSettings;
     readonly #dir: string;
     readonly #decisionsDir: string;
@@ -122,6 +122,8 @@ export class ClaudeSessions extends Emitter<{changed: []}> {
         }
         this.#pending.delete(request.key);
         this.#changed();
+        const session = this.#states.get(request.sessionId) ?? null;
+        this.emit('decided', {request, session, decision});
         return true;
     }
 

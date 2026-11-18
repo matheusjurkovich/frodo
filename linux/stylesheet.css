@@ -124,6 +124,26 @@
     border: 1px solid #fbbf24;
 }
 
+.frodo-pill-decision-allow {
+    border: 1px solid #1f5c3a;
+}
+
+.frodo-pill-decision-deny {
+    border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.frodo-pill-decision-allow .frodo-pill-decision-icon {
+    color: #86efac;
+}
+
+.frodo-pill-decision-deny .frodo-pill-decision-icon {
+    color: #d4d4d8;
+}
+
+.frodo-pill-decision-text {
+    spacing: 1px;
+}
+
 .frodo-pill-meeting {
     border: 1px solid -st-accent-color;
 }

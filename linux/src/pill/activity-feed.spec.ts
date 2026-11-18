@@ -1,4 +1,4 @@
-import type {PendingRequest, SessionState, SessionStatus} from '../features/claude/claude-sessions.types.js';
+import type {DecidedRequest, PendingRequest, SessionState, SessionStatus} from '../features/claude/claude-sessions.types.js';
 import type {GitHubServiceEvents} from '../features/github/github-service.types.js';
 import type {ClassifiedPr, PrKind} from '../features/github/github.types.js';
 import type {MediaTrack} from '../features/media/media-service.types.js';
@@ -19,9 +19,13 @@ class FakeRecording extends Emitter<{changed: []}> {
     }
 }
 
-class FakeSessions extends Emitter<{changed: []}> {
+class FakeSessions extends Emitter<{changed: []; decided: [DecidedRequest]}> {
     sessions: readonly SessionState[] = [];
     pending: readonly PendingRequest[] = [];
+
+    decide(decided: DecidedRequest): void {
+        this.emit('decided', decided);
+    }
 
     set(sessions: readonly SessionState[], pending: readonly PendingRequest[] = []): void {
         this.sessions = sessions;
@@ -582,5 +586,47 @@ describe('ActivityFeed', () => {
         feed.cancelTransient();
         expect(feed.current).toBeNull();
         expect(timers.armed.size).toBe(0);
+    });
+
+    describe('confirmação da decisão', () => {
+        function decided(name: string, decision: 'allow' | 'deny' = 'allow', withSession = true): DecidedRequest {
+            return {request: request('a', name, now), session: withSession ? session('a', 'working') : null, decision};
+        }
+
+        function decidedKey(): string | null {
+            const {current} = feed;
+            return current?.kind === 'decision' ? current.decided.request.key : null;
+        }
+
+        it('mostra Permitido por 4 s depois de permitir', () => {
+            sessions.decide(decided('x'));
+            expect(feed.current?.kind).toBe('decision');
+            timers.fire(4000);
+            expect(feed.current).toBeNull();
+        });
+
+        it('decisão nova substitui a anterior', () => {
+            sessions.decide(decided('x'));
+            sessions.decide(decided('y', 'deny'));
+            expect(decidedKey()).toBe('a.y');
+            expect([...timers.armed.values()].filter(({ms}) => ms === 4000).length).toBe(1);
+        });
+
+        it('pedido esperando passa por cima da confirmação', () => {
+            sessions.set([session('b', 'waiting')], [request('b', 'p', now)]);
+            sessions.decide(decided('x'));
+            expect(feed.current?.kind).toBe('claude-permission');
+        });
+
+        it('decisão sem sessão não quebra', () => {
+            sessions.decide(decided('x', 'allow', false));
+            expect(feed.current?.kind).toBe('decision');
+        });
+
+        it('cancelar o transitório limpa a confirmação', () => {
+            sessions.decide(decided('x'));
+            feed.cancelTransient();
+            expect(feed.current).toBeNull();
+        });
     });
 });
