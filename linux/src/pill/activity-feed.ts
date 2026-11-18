@@ -227,7 +227,7 @@ export class ActivityFeed extends Emitter<{changed: []}> {
         this.#current = current;
         const waiting = queued(unseen, current);
         const queueChanged =
-            waiting.length !== this.#waiting.length || waiting.some((item, index) => item.kind !== this.#waiting[index]?.kind);
+            waiting.length !== this.#waiting.length || waiting.some((item, index) => !same(item, this.#waiting[index] ?? null));
         this.#waiting = waiting;
         if (same(previous, current)) {
             if (queueChanged) this.emit('changed');
