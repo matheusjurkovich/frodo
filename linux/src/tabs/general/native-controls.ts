@@ -3,6 +3,7 @@ import GObject from 'gi://GObject';
 import St from 'gi://St';
 import {PopupAnimation} from 'resource:///org/gnome/shell/ui/boxpointer.js';
 import type {QuickSlider, QuickToggleMenu} from 'resource:///org/gnome/shell/ui/quickSettings.js';
+import type {WifiFailure} from '../../features/system/wifi-failure-service.js';
 import {
     closeQuickSettingsMenu,
     interceptCloseQuickSettings,
@@ -17,6 +18,7 @@ import {
 import {Disposables} from '../../shared/disposables.js';
 import type {Disposer} from '../../shared/disposables.types.js';
 import {ActorLoan} from '../../shared/ui/actor-loan.js';
+import {FaultBanner} from '../../shared/ui/fault-banner.js';
 import {whileShown} from '../../shared/ui/lifecycle.js';
 import {iconButton} from '../../shared/ui/buttons.js';
 import {packGrid} from '../../shared/ui/layout.js';
@@ -56,6 +58,7 @@ export class NativeControls {
     readonly input = sliderSlots();
     readonly brightness = sliderSlots();
     readonly #island: IslandHandle;
+    readonly #wifi: WifiFailure;
     readonly #overlayHost: St.Widget;
     readonly #content: St.Widget;
     readonly #transition: MenuTransition;
@@ -63,8 +66,16 @@ export class NativeControls {
     readonly #loan = new Disposables();
     #pending: TabTarget | null = null;
 
-    constructor(island: IslandHandle, page: Clutter.Actor, overlayHost: St.Widget, content: St.Widget, scrollToTop: () => void) {
+    constructor(
+        island: IslandHandle,
+        wifi: WifiFailure,
+        page: Clutter.Actor,
+        overlayHost: St.Widget,
+        content: St.Widget,
+        scrollToTop: () => void,
+    ) {
         this.#island = island;
+        this.#wifi = wifi;
         this.#overlayHost = overlayHost;
         this.#content = content;
         this.#transition = new MenuTransition(page, content, scrollToTop);
@@ -118,6 +129,9 @@ export class NativeControls {
             parts.closeActiveMenu();
         });
         this.#watchMenus(menus);
+        const wireless = wirelessToggle();
+        const wirelessMenu = wireless && tiles.includes(wireless) ? quickSettingsItemMenu(wireless) : null;
+        if (wirelessMenu) this.#lendWifiBanner(wirelessMenu);
         this.#loan.add(keepMicrophoneSliderVisible());
         this.#loan.add(
             interceptCloseQuickSettings(() => {
@@ -136,6 +150,62 @@ export class NativeControls {
         this.#pending = null;
         const toggle = target === 'wifi' ? wirelessToggle() : null;
         if (toggle) quickSettingsItemMenu(toggle)?.open(PopupAnimation.NONE);
+    }
+
+    #lendWifiBanner(menu: QuickToggleMenu): void {
+        const wifi = this.#wifi;
+        const banner = new FaultBanner();
+        menu.box.insert_child_above(banner.actor, quickToggleMenuHeader(menu).header);
+        let shown: string | null = null;
+        let forgetting: string | null = null;
+        const sync = (): void => {
+            const failure = wifi.failure;
+            if (failure) {
+                const network = failure.network;
+                shown = network;
+                banner.show({
+                    tone: 'danger',
+                    title: `Não deu para conectar em ${network}`,
+                    body:
+                        failure.reason === 'password'
+                            ? 'A rede recusou a senha. Confira a senha com quem administra a rede e tente de novo.'
+                            : 'A conexão falhou antes de terminar. Tente de novo ou escolha outra rede.',
+                    primary: {
+                        label: 'Digitar a senha de novo',
+                        run: () => {
+                            wifi.retry();
+                        },
+                    },
+                    secondary: {
+                        label: 'Esquecer a rede',
+                        confirm: {
+                            text: `Esquecer ${network}? A senha salva é apagada e o Ubuntu para de conectar nela sozinho.`,
+                            label: 'Esquecer',
+                        },
+                        run: () => {
+                            forgetting = network;
+                            void wifi.forget().finally(() => {
+                                forgetting = null;
+                            });
+                        },
+                    },
+                });
+                return;
+            }
+            if (shown !== null)
+                banner.done(
+                    forgetting === shown
+                        ? `${shown} foi esquecida. Para voltar, escolha a rede e digite a senha.`
+                        : `Conectado a ${shown}.`,
+                );
+            shown = null;
+        };
+        const off = wifi.on('changed', sync);
+        sync();
+        this.#loan.add(() => {
+            off();
+            banner.destroy();
+        });
     }
 
     #lend(item: Clutter.Actor, target: Clutter.Actor): void {

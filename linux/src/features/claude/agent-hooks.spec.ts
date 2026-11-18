@@ -18,6 +18,24 @@ describe('hooks dos agentes', () => {
         expect(config.hooks.Stop?.[0]?.hooks[0]?.timeout).toBe(5);
     });
 
+    it('cria a configuração do Claude Code com os eventos da sessão e espera longa no pedido de permissão', () => {
+        const config = parse(withFrodoHooks(null, 'claude', SCRIPT));
+        expect(Object.keys(config.hooks)).toEqual([
+            'SessionStart',
+            'UserPromptSubmit',
+            'PreToolUse',
+            'PostToolUse',
+            'PostToolUseFailure',
+            'PermissionRequest',
+            'Notification',
+            'PreCompact',
+            'Stop',
+            'SessionEnd',
+        ]);
+        expect(config.hooks.PermissionRequest?.[0]?.hooks[0]).toEqual({type: 'command', command: `${SCRIPT} claude`, timeout: 600});
+        expect(config.hooks.Stop?.[0]?.hooks[0]?.timeout).toBe(5);
+    });
+
     it('preserva hooks e chaves existentes do Gemini', () => {
         const before = JSON.stringify({
             model: {name: 'm'},

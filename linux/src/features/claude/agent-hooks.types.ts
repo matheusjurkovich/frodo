@@ -1,4 +1,4 @@
-export type HookedAgent = 'codex' | 'gemini';
+export type HookedAgent = 'claude' | 'codex' | 'gemini';
 
 export interface HookPlan {
     readonly events: readonly string[];

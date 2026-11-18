@@ -25,10 +25,10 @@ export class GeneralPage implements Component, TargetablePage {
     readonly #shortcuts: ShortcutsCard;
     readonly #apps: AppsCard;
 
-    constructor({island, settings, media, mixer, scrollToTop}: GeneralDependencies) {
+    constructor({island, settings, media, mixer, wifi, scrollToTop}: GeneralDependencies) {
         const content = column('frodo-section');
         const overlayHost = new St.Widget({x_expand: true, y_expand: true});
-        this.#controls = new NativeControls(island, this.actor, overlayHost, content, scrollToTop);
+        this.#controls = new NativeControls(island, wifi, this.actor, overlayHost, content, scrollToTop);
         this.#sound = new SoundCard(this.#controls, mixer);
         this.#media = new MediaCard(media);
         this.#shortcuts = new ShortcutsCard(island, settings, mixer);
