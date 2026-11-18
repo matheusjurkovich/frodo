@@ -3,7 +3,7 @@ import GObject from 'gi://GObject';
 import NM from 'gi://NM';
 import {Emitter} from '../../shared/emitter.js';
 import {WifiFailureTracker} from './wifi-failure.js';
-import type {WifiAttempt, WifiFault} from './wifi-failure.types.js';
+import type {WifiAttempt, WifiFault, WifiResolution} from './wifi-failure.types.js';
 
 export class WifiFailure extends Emitter<{changed: []}> {
     readonly #tracker = new WifiFailureTracker();
@@ -28,6 +28,10 @@ export class WifiFailure extends Emitter<{changed: []}> {
 
     get failure(): WifiFault | null {
         return this.#tracker.failure;
+    }
+
+    get resolution(): WifiResolution | null {
+        return this.#tracker.resolution;
     }
 
     retry(): void {
@@ -55,7 +59,7 @@ export class WifiFailure extends Emitter<{changed: []}> {
             return false;
         }
         if (this.#cancellable.is_cancelled()) return false;
-        this.#clearFailure();
+        this.#clearFailure('forgotten');
         return true;
     }
 
@@ -82,7 +86,7 @@ export class WifiFailure extends Emitter<{changed: []}> {
                 this.#unwatch(device);
             }),
             client.connect('connection-removed', (_client, connection) => {
-                if (connection.get_uuid() === this.#tracker.failure?.uuid) this.#clearFailure();
+                if (connection.get_uuid() === this.#tracker.failure?.uuid) this.#clearFailure('forgotten');
             }),
         ];
         for (const device of client.get_devices()) this.#watch(device);
@@ -104,12 +108,12 @@ export class WifiFailure extends Emitter<{changed: []}> {
         if (id === undefined) return;
         GObject.signal_handler_disconnect(device, id);
         this.#watched.delete(device);
-        if (device === this.#failedDevice) this.#clearFailure();
+        if (device === this.#failedDevice) this.#clearFailure('off');
     }
 
-    #clearFailure(): void {
+    #clearFailure(resolution: WifiResolution): void {
         this.#failedDevice = null;
-        this.#notify(this.#tracker.clear());
+        this.#notify(this.#tracker.clear(resolution));
     }
 
     #notify(changed: boolean): void {
