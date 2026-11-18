@@ -88,7 +88,7 @@ function decisionRow({decided}: Of<'decision'>): ActivityRow {
     const {request, session, decision} = decided;
     const allowed = decision === 'allow';
     const detail = allowed
-        ? `${request.summary} rodando no ${session?.repo ?? 'projeto'}`
+        ? `${request.summary} rodando${session ? ` no ${session.repo}` : ''}`
         : `o ${session ? PROVIDER_NAMES[session.provider] : 'a IA'} vai propor outro caminho`;
     const text = column('frodo-pill-decision-text');
     text.y_align = Clutter.ActorAlign.CENTER;
