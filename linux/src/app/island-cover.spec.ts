@@ -25,6 +25,11 @@ describe('pillCover', () => {
         expect(pillCover({...FREE, fullscreen: true, kind: 'claude-waiting'}).pillWanted).toBeTrue();
     });
 
+    it('mostra a confirmação da decisão sobre janela maximizada e tela cheia', () => {
+        expect(pillCover({...FREE, maximized: true, kind: 'decision'}).pillWanted).toBeTrue();
+        expect(pillCover({...FREE, fullscreen: true, kind: 'decision'}).pillWanted).toBeTrue();
+    });
+
     it('mostra notificação sobre janela maximizada, mas não sobre tela cheia', () => {
         expect(pillCover({...FREE, maximized: true, kind: 'notification'}).pillWanted).toBeTrue();
         expect(pillCover({...FREE, fullscreen: true, kind: 'notification'}).pillWanted).toBeFalse();
