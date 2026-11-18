@@ -558,14 +558,15 @@ describe('ActivityFeed', () => {
         expect(feed.current).toBeNull();
     });
 
-    it('pedido de permissão aparece por 5 s e cede a vez ao próximo', () => {
-        const waiting = session('b', 'waiting');
-        sessions.set([session('a', 'waiting'), waiting], [request('a', 'r1', 10)]);
+    it('pedido de permissão não arma o tempo de 5 s e fica até ser decidido', () => {
+        sessions.set([session('a', 'waiting')], [request('a', 'r1', 10)]);
         expect(feed.current?.kind).toBe('claude-permission');
-        timers.fire(5000);
-        expect(feed.current).toEqual({kind: 'claude-waiting', session: waiting});
-        timers.fire(5000);
-        expect(feed.current).toBeNull();
+        expect(timers.onceMs()).not.toContain(5000);
+        now += 60_000;
+        sessions.set([session('a', 'waiting')], [request('a', 'r1', 10)]);
+        expect(feed.current?.kind).toBe('claude-permission');
+        sessions.set([session('a', 'waiting')]);
+        expect(feed.current?.kind).toBe('claude-waiting');
     });
 
     it('atividade interrompida volta com 5 s inteiros', () => {

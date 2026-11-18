@@ -195,7 +195,13 @@ export class ActivityFeed extends Emitter<{changed: []}> {
             this.#held = current;
         }
         if (current?.kind === 'claude-working' && mode === 'always') this.#shownTimer.stop();
-        else if (current && current.kind !== 'notification' && current.kind !== 'volume' && current.kind !== 'github')
+        else if (
+            current &&
+            current.kind !== 'notification' &&
+            current.kind !== 'volume' &&
+            current.kind !== 'github' &&
+            current.kind !== 'claude-permission'
+        )
             this.#shownTimer.once(current.kind === 'claude-working' ? STEP_SHOWN_MS : SHOWN_MS, () => {
                 this.#seen.push(current);
                 if (this.#held === current) this.#held = null;
