@@ -156,7 +156,7 @@ export class ClaudeSessions extends Emitter<{changed: []; decided: [DecidedReque
     }
 
     hookMissing(): boolean {
-        return this.#hooks.claudeDirExists() && !this.#hooks.claudeInstalled();
+        return !this.#hooks.claudeInstalled() && this.#hooks.claudeDirExists();
     }
 
     agentHooksInstalled(agent: HookedAgent): Promise<boolean> {

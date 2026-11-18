@@ -53,6 +53,20 @@ describe('ClaudeSessions', () => {
         present.destroy();
     });
 
+    it('hook ausente aparece quando a pasta do Claude Code surge depois', async () => {
+        const claudeDir = `${tmp()}/.claude`;
+        const sessions = new ClaudeSessions({settings, root: tmp(), claudeDir});
+        await settle(50);
+        expect(sessions.hookMissing()).toBeFalse();
+        GLib.mkdir_with_parents(claudeDir, 0o700);
+        const start = Date.now();
+        spyOn(Date, 'now').and.callFake(() => start + 31_000);
+        expect(sessions.hookMissing()).toBeFalse();
+        await waitFor(sessions, () => sessions.hookMissing());
+        expect(sessions.hookMissing()).toBeTrue();
+        sessions.destroy();
+    });
+
     it('cria a pasta que não existe', () => {
         const dir = `${tmp()}/nova`;
         const sessions = new ClaudeSessions({settings, root: dir, claudeDir: NO_CLAUDE_DIR});
