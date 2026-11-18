@@ -178,8 +178,9 @@ export class ActivityFeed extends Emitter<{changed: []}> {
         for (const session of recent) {
             const status = displayStatus(session, now);
             if (session === asking) continue;
-            if (status === 'waiting') candidates.push({kind: 'claude-waiting', session});
-            else if (status === 'working' && session.tool !== null) {
+            if (status === 'waiting') {
+                if (this.#decision?.decided.request.sessionId !== session.sessionId) candidates.push({kind: 'claude-waiting', session});
+            } else if (status === 'working' && session.tool !== null) {
                 const held = this.#held?.session.sessionId === session.sessionId ? this.#held : null;
                 if (held) candidates.push(held);
                 else if (this.#showsWorking(session, now)) candidates.push({kind: 'claude-working', session});

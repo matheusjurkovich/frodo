@@ -122,8 +122,15 @@ export class ClaudeSessions extends Emitter<{changed: []; decided: [DecidedReque
             return false;
         }
         this.#pending.delete(request.key);
-        this.#changed();
         const session = this.#states.get(request.sessionId) ?? null;
+        if (session?.status === 'waiting')
+            this.#states.set(session.sessionId, {
+                ...session,
+                status: 'working',
+                since: Date.now(),
+                ...(decision === 'deny' ? {tool: null, step: 'Pensando'} : {}),
+            });
+        this.#changed();
         this.emit('decided', {request, session, decision});
         return true;
     }

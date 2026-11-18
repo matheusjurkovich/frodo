@@ -685,6 +685,13 @@ describe('ActivityFeed', () => {
             expect(feed.current?.kind).toBe('claude-permission');
         });
 
+        it('sessão ainda esperando quando o pedido sai com a decisão mostra a confirmação', () => {
+            sessions.set([session('a', 'waiting')], [request('a', 'x', now)]);
+            sessions.set([session('a', 'waiting')]);
+            sessions.decide(decided('x'));
+            expect(decidedKey()).toBe('a.x');
+        });
+
         it('decisão sem sessão não quebra', () => {
             sessions.decide(decided('x', 'allow', false));
             expect(feed.current?.kind).toBe('decision');
