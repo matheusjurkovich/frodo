@@ -131,6 +131,14 @@ describe('CalendarAccounts', () => {
         expect(accounts.attention?.provider).toBe('Google');
     });
 
+    it('GOA que sobe depois aparece sem reiniciar', async () => {
+        accounts = new CalendarAccounts(bus.connect());
+        await settle(200);
+        new FakeGoa(bus, bus.connect());
+        await waitFor(accounts, () => accounts?.attention !== null);
+        expect(accounts.attention?.provider).toBe('Google');
+    });
+
     it('sem GOA no barramento a atenção fica nula', async () => {
         accounts = new CalendarAccounts(bus.connect());
         await new Promise<void>(resolve => {
