@@ -26,7 +26,7 @@ const sources = (overrides: Partial<QuotaSources> = {}): QuotaSources => ({
 
 describe('quotaReading', () => {
     it('lê a janela do Claude pelo papel', () => {
-        expect(quotaReading('claude-session', sources(), 0)).toEqual({percent: 30, level: 'ok', suffix: ''});
+        expect(quotaReading('claude-session', sources(), 0)).toEqual({percent: 30, level: 'ok'});
         expect(quotaReading('claude-weekly', sources(), 0)?.percent).toBe(90);
     });
 
@@ -39,7 +39,7 @@ describe('quotaReading', () => {
     });
 
     it('lê a cota do Gemini com o sufixo', () => {
-        expect(quotaReading('gemini-daily', sources(), 0)).toEqual({percent: 25, level: 'ok', suffix: ' hoje'});
+        expect(quotaReading('gemini-daily', sources(), 0)).toEqual({percent: 25, level: 'ok'});
     });
 
     it('provedor desativado ou sem dado não tem leitura', () => {
