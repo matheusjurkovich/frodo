@@ -250,6 +250,36 @@ describe('ClaudeSessions', () => {
         sessions.destroy();
     });
 
+    it('decidir mostra a sessão trabalhando até o arquivo dela mudar', async () => {
+        const dir = tmp();
+        GLib.mkdir_with_parents(`${dir}/sessions`, 0o700);
+        const write = (name: string): void => {
+            GLib.file_set_contents(
+                `${dir}/sessions/s.json`,
+                JSON.stringify({
+                    pid: self,
+                    event: {session_id: 's', cwd: '/r/x', transcript_path: '/t', hook_event_name: name, tool_name: 'Bash'},
+                }),
+            );
+        };
+        write('PermissionRequest');
+        pendingFile(dir, 's.r1', self, 10);
+        const sessions = new ClaudeSessions({settings, root: dir, claudeDir: NO_CLAUDE_DIR});
+        await waitFor(sessions, () => sessions.sessions.length === 1 && sessions.pending.length === 1);
+        expect(sessions.sessions[0]?.status).toBe('waiting');
+        const pending = sessions.pendingFor('s');
+        if (!pending) throw new Error('sem pedido');
+        const decided: DecidedRequest[] = [];
+        sessions.on('decided', item => decided.push(item));
+        sessions.decide(pending, 'allow');
+        expect(sessions.sessions[0]?.status).toBe('working');
+        expect(decided[0]?.session?.status).toBe('waiting');
+        write('PermissionRequest');
+        await waitFor(sessions, () => sessions.sessions[0]?.status === 'waiting');
+        expect(sessions.sessions[0]?.status).toBe('waiting');
+        sessions.destroy();
+    });
+
     it('decide devolve false e não grava nada quando o hook já saiu', async () => {
         const dir = tmp();
         pendingFile(dir, 's.r1', self, 10);
