@@ -52,7 +52,7 @@ export class ActivityView implements Component {
         const refresh = this.#row?.refresh;
         if (refresh && this.#kind === activity.kind && this.#vertical === vertical) {
             refresh(activity);
-            this.#chip(queue);
+            this.#chip(queue, vertical);
             return;
         }
         this.clear();
@@ -68,7 +68,7 @@ export class ActivityView implements Component {
         }
         this.actor.add_child(content);
         this.#content = content;
-        this.#chip(queue);
+        this.#chip(queue, vertical);
         this.#row = row;
         this.#kind = activity.kind;
         this.#vertical = vertical;
@@ -78,7 +78,7 @@ export class ActivityView implements Component {
         }
     }
 
-    #chip(queue: readonly PillActivity[]): void {
+    #chip(queue: readonly PillActivity[], vertical: boolean): void {
         const content = this.#content;
         if (!content) return;
         this.#queueChip?.destroy();
@@ -88,6 +88,7 @@ export class ActivityView implements Component {
             style_class: 'frodo-pill-queue',
             text: `+${queue.length}`,
             y_align: Clutter.ActorAlign.CENTER,
+            x_align: vertical ? Clutter.ActorAlign.CENTER : Clutter.ActorAlign.FILL,
             accessible_name: queueLabel(queue),
         });
         const first = content.get_children().find(child => child instanceof St.Button);
