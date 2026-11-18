@@ -46,6 +46,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
     readonly #surface: IslandSurface;
     #isOpen = false;
     #openedBy: OpenReason | null = null;
+    #hoverOpenedAt: number | null = null;
     readonly #warmTimer = this.#disposables.own(new Timer());
     #unwarm: Disposer | null = null;
 
@@ -211,6 +212,10 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         this.panel.opacity = 0;
     }
 
+    get hoverOpenedAt(): number | null {
+        return this.#hoverOpenedAt;
+    }
+
     open(reason: OpenReason): void {
         if (this.#isOpen) return;
         this.#endWarm();
@@ -221,6 +226,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         this.#presence.finishConceal();
         this.#isOpen = true;
         this.#openedBy = reason;
+        this.#hoverOpenedAt = reason === 'hover' ? Date.now() : null;
         this.pill.actor.set({reactive: false, hover: false});
         this.#claude.refreshIfStale(CLAUDE_MAX_AGE_SECONDS);
 
@@ -261,6 +267,7 @@ export class Island extends Emitter<IslandEvents> implements IslandHandle {
         if (!this.#isOpen) return;
         this.#isOpen = false;
         this.#openedBy = null;
+        this.#hoverOpenedAt = null;
         this.pill.actor.set({reactive: true, hover: false});
         this.#feed.cancelTransient();
         this.#pointer.cancel();

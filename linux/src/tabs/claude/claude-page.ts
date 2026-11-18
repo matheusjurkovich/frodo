@@ -40,13 +40,13 @@ export class ClaudePage implements Component {
     #view: View = 'all';
     #faulted = false;
 
-    constructor({claude, transcripts, sessions, codex, gemini, settings, actions}: ClaudePageDependencies) {
+    constructor({claude, transcripts, sessions, codex, gemini, settings, island, actions}: ClaudePageDependencies) {
         this.#settings = settings;
         this.#sessions = sessions;
         this.#actions = actions;
         const sources = {settings, claude, codex, gemini};
-        this.#sessionsAll = new SessionsCard(sessions, transcripts, actions.close);
-        this.#sessionsSingle = new SessionsCard(sessions, transcripts, actions.close);
+        this.#sessionsAll = new SessionsCard(sessions, transcripts, island, actions.close);
+        this.#sessionsSingle = new SessionsCard(sessions, transcripts, island, actions.close);
 
         for (const provider of AI_PROVIDERS) {
             const overview = new OverviewCard(provider, sources, sessions, () => {

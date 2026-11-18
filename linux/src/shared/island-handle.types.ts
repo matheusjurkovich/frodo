@@ -11,6 +11,7 @@ export interface IslandHandleEvents {
 
 export interface IslandHandle extends Pick<Emitter<IslandHandleEvents>, 'on'> {
     readonly overlay: St.Widget;
+    readonly hoverOpenedAt: number | null;
     close(animate?: boolean): void;
     grabKeyboard(focus: Clutter.Actor): void;
     holdWhileOpen(menu: PopupMenu.PopupMenu): Disposer;
