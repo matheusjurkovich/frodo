@@ -3,7 +3,7 @@ import type Gio from 'gi://Gio';
 
 import {CalendarAccounts} from './calendar-accounts-service.js';
 import {ACCOUNT_IFACE, CALENDAR_IFACE, GOA_NAME, GOA_PATH} from './calendar-accounts-service.const.js';
-import {PrivateBus, waitFor} from '../../../tests/fixtures.js';
+import {PrivateBus, settle, waitFor} from '../../../tests/fixtures.js';
 
 const ACCOUNT_PATH = `${GOA_PATH}/Accounts/account_1`;
 
@@ -29,15 +29,16 @@ class FakeGoa {
     readonly CalendarDisabled = false;
     readonly Uri = 'https://calendar.example';
     readonly #account: Gio.DBusExportedObject;
+    #listed: boolean;
 
-    constructor(bus: PrivateBus, connection: Gio.DBusConnection) {
+    constructor(
+        bus: PrivateBus,
+        readonly connection: Gio.DBusConnection,
+        listed = true,
+    ) {
+        this.#listed = listed;
         bus.serve(connection, GOA_PATH, MANAGER_XML, {
-            GetManagedObjects: () => ({
-                [ACCOUNT_PATH]: {
-                    [ACCOUNT_IFACE]: this.#accountProperties(),
-                    [CALENDAR_IFACE]: {Uri: new GLib.Variant('s', this.Uri)},
-                },
-            }),
+            GetManagedObjects: () => (this.#listed ? {[ACCOUNT_PATH]: this.#interfaces()} : {}),
         });
         this.#account = bus.serve(connection, ACCOUNT_PATH, ACCOUNT_XML, this);
         bus.serve(connection, ACCOUNT_PATH, CALENDAR_XML, this);
@@ -47,6 +48,35 @@ class FakeGoa {
     needAttention(value: boolean): void {
         this.AttentionNeeded = value;
         this.#account.emit_property_changed('AttentionNeeded', new GLib.Variant('b', value));
+    }
+
+    add(): void {
+        this.#listed = true;
+        this.connection.emit_signal(
+            null,
+            GOA_PATH,
+            'org.freedesktop.DBus.ObjectManager',
+            'InterfacesAdded',
+            new GLib.Variant('(oa{sa{sv}})', [ACCOUNT_PATH, this.#interfaces()]),
+        );
+    }
+
+    remove(): void {
+        this.#listed = false;
+        this.connection.emit_signal(
+            null,
+            GOA_PATH,
+            'org.freedesktop.DBus.ObjectManager',
+            'InterfacesRemoved',
+            new GLib.Variant('(oas)', [ACCOUNT_PATH, [ACCOUNT_IFACE, CALENDAR_IFACE]]),
+        );
+    }
+
+    #interfaces(): Record<string, Record<string, GLib.Variant>> {
+        return {
+            [ACCOUNT_IFACE]: this.#accountProperties(),
+            [CALENDAR_IFACE]: {Uri: new GLib.Variant('s', this.Uri)},
+        };
     }
 
     #accountProperties(): Record<string, GLib.Variant> {
@@ -80,6 +110,25 @@ describe('CalendarAccounts', () => {
         fake.needAttention(false);
         await waitFor(accounts, () => accounts?.attention === null);
         expect(accounts.attention).toBeNull();
+    });
+
+    it('conta removida limpa a falha', async () => {
+        const fake = new FakeGoa(bus, bus.connect());
+        accounts = new CalendarAccounts(bus.connect());
+        await waitFor(accounts, () => accounts?.attention !== null);
+        fake.remove();
+        await waitFor(accounts, () => accounts?.attention === null);
+        expect(accounts.attention).toBeNull();
+    });
+
+    it('conta adicionada depois aparece', async () => {
+        const fake = new FakeGoa(bus, bus.connect(), false);
+        accounts = new CalendarAccounts(bus.connect());
+        await settle(200);
+        expect(accounts.attention).toBeNull();
+        fake.add();
+        await waitFor(accounts, () => accounts?.attention !== null);
+        expect(accounts.attention?.provider).toBe('Google');
     });
 
     it('sem GOA no barramento a atenção fica nula', async () => {
