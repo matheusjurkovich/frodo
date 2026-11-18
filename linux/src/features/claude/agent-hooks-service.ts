@@ -16,20 +16,27 @@ function agentConfigPath(agent: HookedAgent): string {
 
 export class AgentHooks extends Emitter<{changed: []}> {
     readonly #settings: FrodoSettings;
+    readonly #claudeDir: string;
     #claudeInstalled = false;
+    #claudeDirExists = false;
     #checking = false;
     #checkedAt = 0;
     #destroyed = false;
 
-    constructor(settings: FrodoSettings) {
+    constructor(settings: FrodoSettings, claudeDir = GLib.build_filenamev([GLib.get_home_dir(), '.claude'])) {
         super();
         this.#settings = settings;
+        this.#claudeDir = claudeDir;
         void this.#check();
     }
 
     claudeInstalled(): boolean {
         if (!this.#claudeInstalled && Date.now() - this.#checkedAt >= RECHECK_SECONDS * 1000) void this.#check();
         return this.#claudeInstalled;
+    }
+
+    claudeDirExists(): boolean {
+        return this.#claudeDirExists;
     }
 
     async installed(agent: HookedAgent): Promise<boolean> {
@@ -70,8 +77,10 @@ export class AgentHooks extends Emitter<{changed: []}> {
         );
         this.#checking = false;
         const installed = texts.some(hasFrodoHooks);
-        if (this.#destroyed || installed === this.#claudeInstalled) return;
+        const dirExists = GLib.file_test(this.#claudeDir, GLib.FileTest.IS_DIR);
+        if (this.#destroyed || (installed === this.#claudeInstalled && dirExists === this.#claudeDirExists)) return;
         this.#claudeInstalled = installed;
+        this.#claudeDirExists = dirExists;
         this.emit('changed');
     }
 

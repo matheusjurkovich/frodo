@@ -9,6 +9,7 @@ import {Emitter} from '../shared/emitter.js';
 import {Timer} from '../shared/timer.js';
 import {VOLUME_MS, FLASH_MS, SHOWN_MS, DECISION_MS} from './activity-feed.const.js';
 import {queued} from './activity-queue.js';
+import {pickFault} from './fault.js';
 import type {PillActivity, FeedSources} from './activity-feed.types.js';
 
 function identity(activity: PillActivity): readonly unknown[] {
@@ -22,6 +23,8 @@ function identity(activity: PillActivity): readonly unknown[] {
             return [activity.kind, activity.session.sessionId, activity.session.status, activity.session.step];
         case 'decision':
             return [activity.kind, activity.decided.request.key];
+        case 'fault':
+            return [activity.kind, activity.fault, activity.resting];
         case 'meeting':
             return [activity.kind, activity.title, activity.startsAt, activity.url];
         case 'notification':
@@ -71,6 +74,9 @@ export class ActivityFeed extends Emitter<{changed: []}> {
         this.#disposables.add(sources.sessions.on('changed', refresh));
         this.#disposables.add(sources.meetings.on('changed', refresh));
         this.#disposables.add(sources.media.on('changed', refresh));
+        this.#disposables.add(sources.github.on('changed', refresh));
+        if (sources.faults.wifi) this.#disposables.add(sources.faults.wifi.on('changed', refresh));
+        if (sources.faults.calendar) this.#disposables.add(sources.faults.calendar.on('changed', refresh));
         this.#disposables.add(
             sources.bridge.on('intercepted', item => {
                 this.#queue.push(item);
@@ -160,7 +166,7 @@ export class ActivityFeed extends Emitter<{changed: []}> {
     }
 
     #candidates(): PillActivity[] {
-        const {recording, sessions, meetings, media} = this.#sources;
+        const {recording, sessions, meetings, media, github, settings, faults} = this.#sources;
         const now = Date.now();
         const candidates: PillActivity[] = [];
         if (recording.startedAt !== null) candidates.push({kind: 'recording', startedAt: recording.startedAt});
@@ -179,6 +185,14 @@ export class ActivityFeed extends Emitter<{changed: []}> {
                 else if (this.#showsWorking(session, now)) candidates.push({kind: 'claude-working', session});
             }
         }
+        const fault = pickFault({
+            githubStatus: github.status,
+            claudeEnabled: settings.providerEnabled('claude'),
+            hookMissing: sessions.hookMissing(),
+            wifiFailed: (faults.wifi?.failure ?? null) !== null,
+            calendarAttention: (faults.calendar?.attention ?? null) !== null,
+        });
+        if (fault) candidates.push({kind: 'fault', fault, resting: false});
         const meeting = meetings.next;
         if (meeting) candidates.push({kind: 'meeting', title: meeting.title, startsAt: meeting.startsAt, url: meeting.url ?? null});
         if (this.#notification) candidates.push({kind: 'notification', item: this.#notification});
@@ -209,7 +223,8 @@ export class ActivityFeed extends Emitter<{changed: []}> {
         this.#seen = this.#seen.filter(seen => candidates.some(candidate => same(seen, candidate)));
         const previous = this.#current;
         const unseen = candidates.filter(candidate => !this.#seen.some(seen => same(seen, candidate)));
-        const current = pickActivity(unseen);
+        const fault = candidates.find((candidate): candidate is Extract<PillActivity, {kind: 'fault'}> => candidate.kind === 'fault');
+        const current = pickActivity(unseen) ?? (fault ? {...fault, resting: true} : null);
         this.#current = current;
         const waiting = queued(unseen, current);
         const queueChanged =
@@ -232,6 +247,7 @@ export class ActivityFeed extends Emitter<{changed: []}> {
             current.kind !== 'volume' &&
             current.kind !== 'github' &&
             current.kind !== 'decision' &&
+            (current.kind !== 'fault' || !current.resting) &&
             current.kind !== 'claude-permission'
         )
             this.#shownTimer.once(current.kind === 'claude-working' ? STEP_SHOWN_MS : SHOWN_MS, () => {

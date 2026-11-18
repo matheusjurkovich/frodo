@@ -1,7 +1,7 @@
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import St from 'gi://St';
-import {ellipsize, formatSpan, formatTimer, formatUntil, secondsSince} from '../shared/format.js';
+import {ellipsize, formatClock, formatSpan, formatTimer, formatUntil, secondsSince} from '../shared/format.js';
 import {clamp} from '../shared/geometry.js';
 import {iconButton, textButton} from '../shared/ui/buttons.js';
 import {frodoIcon} from '../shared/ui/icons.js';
@@ -24,6 +24,7 @@ import {
 import type {ActivityRow} from './activity-rows.types.js';
 import type {ActivityServices, Of} from './activity-view.types.js';
 import {Avatar} from './avatar.js';
+import {FAULT_TABS, FAULT_TEXTS} from './fault.const.js';
 import {volumeLevel} from './volume-level.js';
 
 function icon(gicon: Gio.Icon, styleClass = ''): St.Icon {
@@ -144,6 +145,26 @@ function meetingRow({title, startsAt, url}: Of<'meeting'>, services: ActivitySer
     });
 }
 
+function faultRow({fault}: Of<'fault'>): ActivityRow {
+    const clock = label('', 'frodo-pill-detail frodo-pill-fault-clock frodo-mono');
+    return row(
+        [
+            new St.Widget({style_class: 'frodo-pill-fault-dot', y_align: Clutter.ActorAlign.CENTER}),
+            clock,
+            label(FAULT_TEXTS[fault], 'frodo-pill-title frodo-pill-fault-text'),
+        ],
+        {
+            clickTab: FAULT_TABS[fault],
+            tick: {
+                seconds: MINUTE_TICK_SECONDS,
+                update: () => {
+                    clock.text = formatClock();
+                },
+            },
+        },
+    );
+}
+
 function notificationRow({item}: Of<'notification'>): ActivityRow {
     const app = item.app === '' ? 'agora' : `${ellipsize(item.app, APP_CHARS)} · agora`;
     const body = item.body.replace(/\s+/g, ' ').trim();
@@ -254,6 +275,8 @@ export function buildRow(activity: PillActivity, services: ActivityServices): Ac
             return waitingRow(activity, services);
         case 'decision':
             return decisionRow(activity);
+        case 'fault':
+            return faultRow(activity);
         case 'meeting':
             return meetingRow(activity, services);
         case 'notification':

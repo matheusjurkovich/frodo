@@ -14,6 +14,8 @@ export function sameSubject(a: PillActivity | null, b: PillActivity | null): boo
             return b.kind === a.kind && a.session.sessionId === b.session.sessionId && a.request.key === b.request.key;
         case 'decision':
             return b.kind === a.kind && a.decided.request.key === b.decided.request.key;
+        case 'fault':
+            return b.kind === a.kind && a.fault === b.fault;
         case 'meeting':
             return b.kind === a.kind && a.title === b.title && a.startsAt === b.startsAt;
         case 'notification':
