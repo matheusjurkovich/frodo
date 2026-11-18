@@ -11,6 +11,7 @@ export class WifiFailure extends Emitter<{changed: []}> {
     readonly #watched = new Map<NM.DeviceWifi, number>();
     #client: NM.Client | null = null;
     #clientSignals: number[] = [];
+    #failedDevice: NM.DeviceWifi | null = null;
     #destroyed = false;
 
     constructor() {
@@ -33,9 +34,9 @@ export class WifiFailure extends Emitter<{changed: []}> {
         const failure = this.#tracker.failure;
         const client = this.#client;
         if (!failure || !client || this.#destroyed) return;
-        const connection = client.get_connection_by_uuid(failure.uuid);
-        const device = [...this.#watched.keys()][0] ?? null;
-        client.activate_connection_async(connection, device, null, this.#cancellable, (source, result) => {
+        const connection = client.get_connection_by_uuid(failure.uuid) as NM.RemoteConnection | null;
+        if (!connection) return;
+        client.activate_connection_async(connection, this.#failedDevice, null, this.#cancellable, (source, result) => {
             try {
                 source?.activate_connection_finish(result);
             } catch {
@@ -54,7 +55,7 @@ export class WifiFailure extends Emitter<{changed: []}> {
             return false;
         }
         if (this.#cancellable.is_cancelled()) return false;
-        this.#notify(this.#tracker.clear());
+        this.#clearFailure();
         return true;
     }
 
@@ -66,6 +67,7 @@ export class WifiFailure extends Emitter<{changed: []}> {
         for (const [device, id] of this.#watched) GObject.signal_handler_disconnect(device, id);
         this.#watched.clear();
         this.#clientSignals = [];
+        this.#failedDevice = null;
         this.#client = null;
         this.clearListeners();
     }
@@ -79,6 +81,9 @@ export class WifiFailure extends Emitter<{changed: []}> {
             client.connect('device-removed', (_client, device) => {
                 this.#unwatch(device);
             }),
+            client.connect('connection-removed', (_client, connection) => {
+                if (connection.get_uuid() === this.#tracker.failure?.uuid) this.#clearFailure();
+            }),
         ];
         for (const device of client.get_devices()) this.#watch(device);
     }
@@ -86,7 +91,9 @@ export class WifiFailure extends Emitter<{changed: []}> {
     #watch(device: NM.Device): void {
         if (!(device instanceof NM.DeviceWifi) || this.#watched.has(device)) return;
         const id = device.connect('state-changed', (_device, state, _old, reason) => {
-            this.#notify(this.#tracker.observe(state, reason, attemptOf(device)));
+            const changed = this.#tracker.observe(state, reason, attemptOf(device));
+            this.#failedDevice = this.#tracker.failure ? device : null;
+            this.#notify(changed);
         });
         this.#watched.set(device, id);
     }
@@ -97,7 +104,12 @@ export class WifiFailure extends Emitter<{changed: []}> {
         if (id === undefined) return;
         GObject.signal_handler_disconnect(device, id);
         this.#watched.delete(device);
-        this.#notify(this.#tracker.observe(NM.DeviceState.UNAVAILABLE, 0, null));
+        if (device === this.#failedDevice) this.#clearFailure();
+    }
+
+    #clearFailure(): void {
+        this.#failedDevice = null;
+        this.#notify(this.#tracker.clear());
     }
 
     #notify(changed: boolean): void {
