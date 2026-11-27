@@ -2,7 +2,7 @@ import Clutter from 'gi://Clutter';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
 import {springProgress} from '../spring.js';
-import {FIRM_SPRING, SOFT_SPRING, SPRING} from '../spring.const.js';
+import {FIRM_SPRING, SPRING} from '../spring.const.js';
 import type {Spring} from '../spring.types.js';
 import {
     DOUBLE_PROPERTIES,
@@ -63,18 +63,23 @@ export function springEase(actor: Clutter.Actor, props: SpringProps, spring: Spr
     let interrupted = false;
     for (const {field, property, to} of targets) {
         const from = readNumber(actor, field);
-        const transition = new Clutter.KeyframeTransition({
-            property_name: property,
-            duration,
-            delay,
-            progress_mode: Clutter.AnimationMode.LINEAR,
-            remove_on_complete: true,
-        });
+        const settles = spring.damping >= 1;
+        const transition = settles
+            ? new Clutter.PropertyTransition({
+                  property_name: property,
+                  duration,
+                  delay,
+                  progress_mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
+              })
+            : new Clutter.KeyframeTransition({property_name: property, duration, delay, progress_mode: Clutter.AnimationMode.LINEAR});
+        transition.remove_on_complete = true;
         transition.set_from(typedValue(property, from));
         transition.set_to(typedValue(property, to));
-        transition.set_key_frames(times);
-        transition.set_values(times.map(time => typedValue(property, from + (to - from) * springProgress(spring.damping, time))));
-        transition.set_modes(times.map(() => Clutter.AnimationMode.LINEAR));
+        if (transition instanceof Clutter.KeyframeTransition) {
+            transition.set_key_frames(times);
+            transition.set_values(times.map(time => typedValue(property, from + (to - from) * springProgress(spring.damping, time))));
+            transition.set_modes(times.map(() => Clutter.AnimationMode.LINEAR));
+        }
         transition.connect('stopped', (_transition, finished) => {
             if (finished) Reflect.set(actor, field, to);
             else interrupted = true;
@@ -152,7 +157,7 @@ export function fadeIn(actor: Clutter.Actor): void {
     actor.set_pivot_point(0.5, 0.5);
     actor.set({opacity: 0, scale_x: FADE_IN_SCALE, scale_y: FADE_IN_SCALE});
     actor.ease({opacity: 255, duration: FADE_IN_MS, delay: FADE_IN_DELAY_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
-    springEase(actor, {scaleX: 1, scaleY: 1, delay: ZOOM_DELAY_MS}, SOFT_SPRING);
+    springEase(actor, {scaleX: 1, scaleY: 1, delay: ZOOM_DELAY_MS}, FIRM_SPRING);
 }
 
 export function slideOut(actor: Clutter.Actor, direction: 1 | -1, onGone: () => void): void {
@@ -181,11 +186,12 @@ function naturalHeight(actor: St.Widget, width: number): number {
     return node.adjust_preferred_height(min, natural)[1];
 }
 
-function follow(actor: St.Widget, from: number): void {
+function follow(actor: St.Widget, from: number, onDone?: () => void): void {
     const width = actor.allocation.get_width();
     const to = naturalHeight(actor, width);
     const release = (): void => {
         actor.set({height: -1, clip_to_allocation: false});
+        onDone?.();
     };
     if (Math.round(from) === Math.round(to)) {
         release();
@@ -196,7 +202,7 @@ function follow(actor: St.Widget, from: number): void {
     let frames = 0;
     actor.get_transition('height')?.connect('new-frame', () => {
         frames++;
-        if (frames % FOLLOW_SAMPLE_FRAMES === 0 && Math.abs(naturalHeight(actor, width) - to) >= 1) follow(actor, actor.height);
+        if (frames % FOLLOW_SAMPLE_FRAMES === 0 && Math.abs(naturalHeight(actor, width) - to) >= 1) follow(actor, actor.height, onDone);
     });
 }
 
@@ -228,7 +234,7 @@ export function swap(actor: St.Widget, direction: 1 | -1, change: () => void, ax
     follow(actor, from);
 }
 
-export function reveal(actor: Clutter.Actor, show: boolean, onDone?: () => void): void {
+export function reveal(actor: St.Widget, show: boolean, onDone?: () => void): void {
     const growing = actor.get_transition('height') !== null;
     if (show ? actor.visible && !growing : !actor.visible) {
         onDone?.();
@@ -261,13 +267,7 @@ export function reveal(actor: Clutter.Actor, show: boolean, onDone?: () => void)
         onDone?.();
         return;
     }
-    const width = actor.allocation.get_width();
-    const [, to] = actor.get_preferred_height(width > 0 ? width : (actor.get_parent()?.allocation.get_width() ?? -1));
-    actor.set({height: from, clip_to_allocation: true});
     if (hidden) actor.opacity = 0;
-    springEase(actor, {height: to}, SPRING, () => {
-        actor.set({height: -1, clip_to_allocation: false});
-        onDone?.();
-    });
+    follow(actor, from, onDone);
     actor.ease({opacity: 255, duration: REVEAL_IN_MS, delay: REVEAL_IN_DELAY_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
 }

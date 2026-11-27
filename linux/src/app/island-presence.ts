@@ -2,7 +2,7 @@ import Clutter from 'gi://Clutter';
 import {onWindowCoverChanged, windowCover} from '../shared/shell-internals.js';
 import {Disposables} from '../shared/disposables.js';
 import {nextPeek} from '../shared/peek.js';
-import {SOFT_SPRING, SPRING} from '../shared/spring.const.js';
+import {PILL_SOFT_SPRING, PILL_SPRING} from '../shared/spring.const.js';
 import {Timer} from '../shared/timer.js';
 import {springEase} from '../shared/ui/motion.js';
 import {pillCover, tongueVisible} from './island-cover.js';
@@ -156,10 +156,10 @@ export class IslandPresence {
         const [, tongueWidth] = tongue.get_preferred_width(-1);
         const [, tongueHeight] = tongue.get_preferred_height(tongueWidth);
         if (!wanted) {
-            springEase(pill, {width: tongueWidth, height: tongueHeight}, SOFT_SPRING);
+            springEase(pill, {width: tongueWidth, height: tongueHeight}, PILL_SOFT_SPRING);
             pill.ease({
                 opacity: 0,
-                duration: SOFT_SPRING.ms,
+                duration: PILL_SOFT_SPRING.ms,
                 mode: Clutter.AnimationMode.EASE_IN_QUAD,
                 onComplete: () => {
                     pill.remove_all_transitions();
@@ -181,7 +181,7 @@ export class IslandPresence {
         const [, height] = pill.get_preferred_height(width);
         pill.set_size(fromWidth, fromHeight);
         if (!shown) pill.opacity = 0;
-        springEase(pill, {width, height}, SPRING, () => {
+        springEase(pill, {width, height}, PILL_SPRING, () => {
             pill.set_size(-1, -1);
         });
         pill.ease({opacity: 255, duration: FADE_IN_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});

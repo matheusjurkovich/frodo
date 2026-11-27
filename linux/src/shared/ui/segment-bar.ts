@@ -17,6 +17,7 @@ export class SegmentBar {
             style_class: `frodo-track ${styleClass}`.trim(),
             layout_manager: new Clutter.BinLayout(),
             x_expand: true,
+            y_expand: false,
             y_align: Clutter.ActorAlign.CENTER,
         });
         this.actor.add_child(this.#fills);
