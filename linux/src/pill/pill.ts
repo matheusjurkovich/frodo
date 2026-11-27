@@ -17,6 +17,7 @@ import {PeekView} from './peek-view.js';
 import {FAULT_TONES} from './fault.const.js';
 import {DECISION_CLASSES, FAULT_CLASSES, STATE_CLASSES} from './pill.const.js';
 import type {PillDependencies} from './pill.types.js';
+import {onSurfaceStyleChanged, surfaceClasses, surfaceStyle} from './surface-style.js';
 
 function disarm(actor: Clutter.Actor): void {
     actor.reactive = false;
@@ -62,7 +63,7 @@ export class Pill extends Emitter<{rebuilt: []}> {
             }),
         );
         this.#disposables.add(
-            settings.onChanged('surface-style', () => {
+            onSurfaceStyleChanged(settings, () => {
                 this.#syncStyle();
             }),
         );
@@ -158,8 +159,7 @@ export class Pill extends Emitter<{rebuilt: []}> {
         if (this.#activity.hasAction && !this.#peeking) classes.push('frodo-pill-action');
         if (this.#activity.leadsRound && !this.#peeking && !this.#vertical) classes.push('frodo-pill-lead');
         if (this.#peeking) classes.push('frodo-pill-peeking');
-        const surface = this.#settings.surfaceStyle;
-        if (surface !== 'solid') classes.push(`frodo-surface-${surface}`);
+        classes.push(...surfaceClasses(surfaceStyle(this.#settings)));
         this.actor.style_class = classes.join(' ');
     }
 

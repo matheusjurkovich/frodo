@@ -5,3 +5,8 @@ export interface Mirror {
     readonly clone: Clutter.Clone;
     readonly binding: GObject.Binding;
 }
+
+export interface GlassLook {
+    readonly radius: number;
+    readonly brightness: number;
+}
