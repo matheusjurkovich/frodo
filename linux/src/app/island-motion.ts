@@ -4,8 +4,7 @@ import Meta from 'gi://Meta';
 import Shell from 'gi://Shell';
 import St from 'gi://St';
 import {Disposables} from '../shared/disposables.js';
-import {springWithin} from '../shared/spring.js';
-import {GENTLE_SPRING, SOFT_SPRING} from '../shared/spring.const.js';
+import {FIRM_SPRING, GENTLE_SPRING} from '../shared/spring.const.js';
 import {settle, springEase} from '../shared/ui/motion.js';
 import type {IslandPlacement} from './island-placement.js';
 import {
@@ -108,9 +107,8 @@ export class IslandMotion {
         panel.set_scale(CONTENT_OPEN_SCALE, CONTENT_OPEN_SCALE);
         this.#clipping = true;
         this.#clipToBackdrop();
-        springEase(panel, {scaleX: 1, scaleY: 1}, SOFT_SPRING);
-        springEase(backdrop, {x: panel.x, width: naturalWidth}, GENTLE_SPRING);
-        springEase(backdrop, {y: panel.y, height}, springWithin(GENTLE_SPRING, backdrop.height, height, max), () => {
+        springEase(panel, {scaleX: 1, scaleY: 1}, FIRM_SPRING);
+        springEase(backdrop, {x: panel.x, y: panel.y, width: naturalWidth, height}, GENTLE_SPRING, () => {
             this.#clipping = false;
             panel.remove_clip();
             panel.remove_transition('scale-x');
@@ -137,9 +135,9 @@ export class IslandMotion {
         this.#clipping = true;
         this.#clipToBackdrop();
         this.#blurPanel(0, BLUR_RADIUS, CLOSE_FADE_MS);
-        springEase(panel, {scaleX: CONTENT_CLOSE_SCALE, scaleY: CONTENT_CLOSE_SCALE}, SOFT_SPRING);
+        springEase(panel, {scaleX: CONTENT_CLOSE_SCALE, scaleY: CONTENT_CLOSE_SCALE}, FIRM_SPRING);
         panel.ease({opacity: 0, duration: CLOSE_FADE_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
-        springEase(backdrop, {x: anchorX, y: anchorY, width: anchor.width, height: anchor.height}, SOFT_SPRING, () => {
+        springEase(backdrop, {x: anchorX, y: anchorY, width: anchor.width, height: anchor.height}, FIRM_SPRING, () => {
             backdrop.hide();
             panel.hide();
             panel.remove_clip();
@@ -148,7 +146,7 @@ export class IslandMotion {
             panel.opacity = 0;
             this.#clipping = false;
         });
-        pill.ease({opacity: 255, duration: FADE_IN_MS, delay: SOFT_SPRING.ms - FADE_IN_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+        pill.ease({opacity: 255, duration: FADE_IN_MS, delay: FIRM_SPRING.ms - FADE_IN_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
     }
 
     snapClosed(): void {

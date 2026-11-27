@@ -27,6 +27,7 @@ export class GeneralPage implements Component, TargetablePage {
 
     constructor({island, settings, media, mixer, wifi, scrollToTop}: GeneralDependencies) {
         const content = column('frodo-section');
+        content.set({y_align: Clutter.ActorAlign.START, y_expand: true});
         const overlayHost = new St.Widget({x_expand: true, y_expand: true});
         this.#controls = new NativeControls(island, wifi, this.actor, overlayHost, content, scrollToTop);
         this.#sound = new SoundCard(this.#controls, mixer);

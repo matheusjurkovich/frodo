@@ -100,7 +100,7 @@ export class PanelContent {
         });
         for (const page of this.#pages.values()) this.#stack.add_child(page.actor);
         this.#stack.add_child(this.#settingsPage.actor);
-        for (const page of this.#allActors()) page.y_align = Clutter.ActorAlign.START;
+        for (const page of this.#allActors()) page.set({y_align: Clutter.ActorAlign.START, y_expand: true});
         this.actor.clip_to_allocation = true;
         this.actor.add_child(this.#header.actor);
         this.actor.add_child(this.#scroll);

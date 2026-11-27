@@ -6,7 +6,7 @@ import type {TabId} from '../settings/schema-values.types.js';
 import type {TabTarget} from '../shared/tab-target.types.js';
 import {Disposables} from '../shared/disposables.js';
 import {Emitter} from '../shared/emitter.js';
-import {SOFT_SPRING, SPRING} from '../shared/spring.const.js';
+import {PILL_SOFT_SPRING, PILL_SPRING} from '../shared/spring.const.js';
 import {fadeIn, fadeOut, morphSize, settle} from '../shared/ui/motion.js';
 import {BOTH_AXES} from '../shared/ui/motion.const.js';
 import type {ActivityFeed} from './activity-feed.js';
@@ -124,11 +124,11 @@ export class Pill extends Emitter<{rebuilt: []}> {
             this.#syncStyle();
         };
         if (sameSubject(previous, next)) {
-            morphSize(this.actor, apply, SOFT_SPRING, BOTH_AXES);
+            morphSize(this.actor, apply, PILL_SOFT_SPRING, BOTH_AXES);
             return;
         }
         const outgoing = previous === null ? this.#idle.actor : this.#activity.takeContent();
-        morphSize(this.actor, apply, SPRING, BOTH_AXES);
+        morphSize(this.actor, apply, PILL_SPRING, BOTH_AXES);
         if (outgoing === this.#idle.actor) {
             outgoing.show();
             fadeOut(outgoing, () => {

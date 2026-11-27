@@ -13,7 +13,7 @@ export function providerIcon(provider: AiProvider, styleClass = ''): St.Icon {
 
 export function providerTile(provider: AiProvider, size: 20 | 28 | 32): St.Bin {
     const icon = providerIcon(provider);
-    icon.set({x_align: Clutter.ActorAlign.CENTER, y_align: Clutter.ActorAlign.CENTER, x_expand: true, y_expand: true});
+    icon.set({x_align: Clutter.ActorAlign.CENTER, y_align: Clutter.ActorAlign.CENTER});
     return new St.Bin({
         style_class: `frodo-provider-tile frodo-provider-tile-${size} frodo-provider-${provider}`,
         child: icon,

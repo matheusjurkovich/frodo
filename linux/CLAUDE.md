@@ -81,6 +81,11 @@ Quem precisa dele recebe pelo construtor.
 - `min-height` no CSS **substitui** a altura mínima calculada, não é piso. Como o `St.Viewport` da ilha dimensiona o conteúdo
   rolável pela altura mínima, uma caixa com `min-height` mais baixa que o conteúdo é esmagada quando a página rola. Para altura
   mínima de linha, use um filho fixo (`frodo-settings-strut`), nunca `min-height` em caixa com conteúdo variável.
+- `Clutter.BinLayout` só respeita `x_align`/`y_align` do filho com `x_expand`/`y_expand`; sem isso, centraliza. Página ou
+  conteúdo que precisa ficar no topo leva `y_align: START` e `y_expand: true`.
+- `y_expand` de um filho vaza para todos os pais (`needs_expand`), e a folga de layout vai parar neles. Componente que só usa
+  expand para preencher o próprio `BinLayout` (`SegmentBar`) corta o vazamento com `y_expand: false` explícito; senão a altura
+  animada por `reveal`/`follow` treme.
 - `St.PolicyType.EXTERNAL` esconde a barra de rolagem e mantém a rolagem; `AUTOMATIC` faz a barra aparecer e sumir quando a
   altura muda (o pisca ao abrir um submenu).
 

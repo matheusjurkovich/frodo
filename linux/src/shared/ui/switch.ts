@@ -2,7 +2,7 @@ import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 
 import {Emitter} from '../emitter.js';
-import {SOFT_SPRING} from '../spring.const.js';
+import {FIRM_SPRING} from '../spring.const.js';
 import {springEase} from './motion.js';
 
 export class Switch extends Emitter<{toggled: [boolean]}> {
@@ -41,7 +41,7 @@ export class Switch extends Emitter<{toggled: [boolean]}> {
         if (!this.actor.mapped) return;
         this.actor.get_allocation_box();
         knob.translation_x = from - knob.x;
-        springEase(knob, {translationX: 0}, SOFT_SPRING);
+        springEase(knob, {translationX: 0}, FIRM_SPRING);
     }
 
     destroy(): void {
