@@ -11,6 +11,7 @@ Guia do monorepo para o Claude Code. Cada plataforma tem o próprio guia; leia o
 | `shared/`            | Hook do Claude Code (`hooks/`) e ícones (`icons/`), usados pelas duas         |
 | `docs/superpowers/`  | Specs (`specs/`) e planos (`plans/`) de mudanças grandes, com prefixo de data |
 | `.github/workflows/` | `ci-<plataforma>.yml`, `release-please.yml` (Linux) e `release-macos.yml`     |
+| `DESIGN.md`          | Design system: tokens (cor, fonte, raio, espaço) e componentes das telas      |
 | `LICENSE`            | GPL-2.0                                                                       |
 
 ## Regras do monorepo
@@ -19,6 +20,7 @@ Guia do monorepo para o Claude Code. Cada plataforma tem o próprio guia; leia o
 - Tags de release por plataforma: `linux-vX.Y.Z` e `macos-vX.Y.Z`. No Linux, o release-please abre o PR de release a partir dos commits e o merge cria a tag, a release e o zip (`linux/CLAUDE.md`, seção Release). No macOS, a tag é manual e o `release-macos.yml` roda nela.
 - Workflow de CI filtra por `paths`: só roda quando a pasta da plataforma (ou o próprio workflow) muda.
 - Mudança grande começa por spec e plano em `docs/superpowers/`.
+- Visual segue o `DESIGN.md`: canvas, `linux/stylesheet.css` e macOS usam só os tokens dele. Valor novo entra primeiro lá; `linux/tools/design-tokens.test.sh` (no `npm run check`) recusa cor, fonte ou raio do CSS fora dele.
 - Mudou comportamento visível ou estrutura: atualize o `README.md` e o `CLAUDE.md` da plataforma, e o da raiz quando a mudança aparecer aqui.
 
 ## Commits
