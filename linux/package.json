@@ -15,7 +15,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "mkdir -p .build/shell && glib-compile-schemas --targetdir=.build schemas && glib-compile-schemas --targetdir=.build/shell tests/shell && node tests/entry.js && gjs -m .build/tests.js",
-    "test:sh": "sh ../shared/hooks/claude-session.test.sh && sh tools/get.test.sh",
+    "test:sh": "sh ../shared/hooks/claude-session.test.sh && sh tools/get.test.sh && sh tools/design-tokens.test.sh",
     "check": "npm run typecheck && npm run lint && npm run format:check && npm test && npm run test:sh",
     "prepare": "cd .. && husky linux/.husky"
   },

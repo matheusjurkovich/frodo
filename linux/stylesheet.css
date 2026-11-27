@@ -94,7 +94,7 @@
 
 .frodo-pill-peek-bar {
     height: 2px;
-    border-radius: 1px;
+    border-radius: 999px;
     background-color: -st-accent-color;
 }
 
@@ -156,7 +156,7 @@
     width: 8px;
     height: 8px;
     min-height: 8px;
-    border-radius: 4px;
+    border-radius: 999px;
 }
 
 .frodo-pill-fault-danger .frodo-pill-fault-dot {
@@ -222,7 +222,7 @@
 }
 
 .frodo-pill-date {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 400;
     color: #a1a1aa;
 }
@@ -267,7 +267,7 @@
     border: 1px solid transparent;
     padding: 10px;
     width: 878px;
-    font-size: 10pt;
+    font-size: 14px;
 }
 
 .frodo-panel-backdrop {
@@ -288,7 +288,7 @@
 }
 
 .frodo-header-clock {
-    font-size: 15px;
+    font-size: 18px;
     font-weight: 500;
     font-feature-settings: 'tnum';
 }
@@ -352,12 +352,12 @@
     width: 8px;
     height: 8px;
     min-height: 8px;
-    border-radius: 4px;
+    border-radius: 999px;
     background-color: #fca5a5;
 }
 
 .frodo-pill-title {
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .frodo-pill-detail,
@@ -402,7 +402,7 @@
 }
 
 .frodo-pill-notification-body {
-    font-size: 13px;
+    font-size: 14px;
     color: #a1a1aa;
 }
 
@@ -433,7 +433,7 @@
     width: 28px;
     height: 28px;
     min-height: 28px;
-    border-radius: 14px;
+    border-radius: 999px;
 }
 
 .frodo-pill-circle-waiting,
@@ -441,7 +441,7 @@
     width: 32px;
     height: 32px;
     min-height: 32px;
-    border-radius: 16px;
+    border-radius: 999px;
 }
 
 .frodo-pill-circle-music {
@@ -460,7 +460,7 @@
 
 .frodo-pill-circle-meeting {
     background-color: #1a2740;
-    color: #8fb4f7;
+    color: #8ab4f8;
 }
 
 .frodo-pill-circle-claude {
@@ -489,7 +489,7 @@
 }
 
 .frodo-pill-detail-meeting {
-    color: #8fb4f7;
+    color: #8ab4f8;
 }
 
 .frodo-pill .frodo-pill-deny,
@@ -595,7 +595,7 @@
     min-width: 36px;
     padding: 0 10px;
     border-radius: 999px;
-    font-size: 13px;
+    font-size: 14px;
     color: #a1a1aa;
 }
 
@@ -669,12 +669,12 @@
 }
 
 .frodo-meter-name {
-    font-size: 13px;
+    font-size: 14px;
     color: #f4f4f5;
 }
 
 .frodo-meter-value {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
 }
 
@@ -721,7 +721,7 @@
 }
 
 .frodo-stat-value {
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 500;
 }
 
@@ -746,7 +746,7 @@
 
 .frodo-chart-bar {
     margin: 0 4px;
-    border-radius: 3px;
+    border-radius: 2px;
     background-color: #3f3f46;
 }
 
@@ -780,7 +780,7 @@
 .frodo-track.frodo-model-bar {
     height: 10px;
     min-height: 10px;
-    border-radius: 5px;
+    border-radius: 999px;
 }
 
 .frodo-model-opus {
@@ -834,7 +834,7 @@
 
 .frodo-project-name {
     width: 112px;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .frodo-project-value {
@@ -908,7 +908,7 @@
     height: 8px;
     min-height: 8px;
     margin-top: 6px;
-    border-radius: 4px;
+    border-radius: 999px;
 }
 
 .frodo-session-text {
@@ -934,7 +934,7 @@
 }
 
 .frodo-session-step {
-    font-size: 13px;
+    font-size: 12px;
     color: #d4d4d8;
 }
 
@@ -1011,7 +1011,7 @@
 }
 
 .frodo-session-field-value {
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .frodo-session-diff {
@@ -1072,7 +1072,7 @@
 
 .frodo-empty-state {
     padding: 14px 0;
-    font-size: 13px;
+    font-size: 14px;
     color: #a1a1aa;
 }
 
@@ -1083,7 +1083,7 @@
 .frodo-back-title,
 .frodo-notifications-title,
 .frodo-card-heading {
-    font-size: 15px;
+    font-size: 18px;
     font-weight: 500;
     color: #f4f4f5;
 }
@@ -1096,7 +1096,7 @@
     height: 36px;
     min-height: 36px;
     padding: 0 12px 0 8px;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .frodo-back-button .frodo-button-icon {
@@ -1208,7 +1208,7 @@
     border-radius: 10px;
     background-color: #232327;
     color: #f4f4f5;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .frodo-pill-item .frodo-pill-item-remove {
@@ -1242,7 +1242,7 @@
 .frodo-pill-item-number {
     min-width: 16px;
     padding: 0 3px;
-    border-radius: 5px;
+    border-radius: 6px;
     background-color: #3f3f46;
     color: #e4e4e7;
     font-size: 12px;
@@ -1256,7 +1256,7 @@
     border: 1px dashed #52525b;
     border-radius: 10px;
     color: #d4d4d8;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .frodo-pill-note {
@@ -1264,7 +1264,7 @@
     border: 1px dashed #3f3f46;
     border-radius: 14px;
     color: #a1a1aa;
-    font-size: 13px;
+    font-size: 12px;
     text-align: center;
 }
 
@@ -1277,7 +1277,7 @@
     border-radius: 6px;
     background-color: #232327;
     color: #e4e4e7;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .frodo-stepper {
@@ -1287,7 +1287,7 @@
 .frodo-stepper-value {
     min-width: 52px;
     text-align: center;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .frodo-settings-profiles {
@@ -1308,7 +1308,7 @@
     caret-color: #f4f4f5;
     selection-background-color: -st-accent-color;
     selected-color: -st-accent-fg-color;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .frodo-entry:focus {
@@ -1333,7 +1333,7 @@
 }
 
 .frodo-general .frodo-sound-title {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
 }
 
@@ -1459,7 +1459,7 @@
     height: 36px;
     min-height: 36px;
     padding: 0 14px;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
 }
 
@@ -1491,7 +1491,7 @@
 .frodo-chip-counter {
     min-width: 8px;
     padding: 1px 5px;
-    border-radius: 9px;
+    border-radius: 999px;
     text-align: center;
     background-color: -st-accent-color;
     color: -st-accent-fg-color;
@@ -1724,7 +1724,7 @@
     color: -st-accent-color;
     -slider-handle-radius: 8px;
     -barlevel-height: 7px;
-    -barlevel-background-color: #efefef;
+    -barlevel-background-color: #f4f4f5;
     -barlevel-active-background-color: -st-accent-color;
 }
 
@@ -1810,7 +1810,7 @@
 }
 
 .frodo-general .quick-toggle-menu .header .title {
-    font-size: 15px;
+    font-size: 18px;
     font-weight: 500;
 }
 
@@ -2049,7 +2049,7 @@
     text-align: left;
     background-color: transparent;
     color: #f4f4f5;
-    font-size: 15px;
+    font-size: 18px;
     font-weight: 500;
 }
 
@@ -2087,7 +2087,7 @@
     border-radius: 12px;
     background-color: transparent;
     color: #f4f4f5;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 400;
 }
 
@@ -2121,7 +2121,7 @@
 .frodo-calendar .events-title {
     padding-bottom: 8px;
     color: #f4f4f5;
-    font-size: 15px;
+    font-size: 18px;
     font-weight: 500;
 }
 
@@ -2203,7 +2203,7 @@
 
 .frodo-notification-body {
     max-height: 36px;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .frodo-notification .frodo-button {
@@ -2295,7 +2295,7 @@
     min-height: 148px;
     padding: 0;
     border-radius: 18px;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .frodo-workspace-new:hover {
@@ -2322,7 +2322,7 @@
 
 .frodo-workspaces-hint .frodo-kbd {
     padding: 2px 6px;
-    font-size: 12px;
+    font-size: 14px;
 }
 
 .frodo-app,
@@ -2477,7 +2477,7 @@
 
 .frodo-settings-group-title {
     margin-left: 4px;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
     color: #a1a1aa;
 }
@@ -2531,7 +2531,7 @@
 }
 
 .frodo-settings-accent {
-    font-size: 13px;
+    font-size: 14px;
     color: st-mix(-st-accent-color, #ffffff, 70%);
 }
 
@@ -2547,7 +2547,7 @@
     height: 26px;
     min-height: 26px;
     padding: 3px;
-    border-radius: 13px;
+    border-radius: 999px;
     background-color: #3f3f46;
     transition-duration: 150ms;
 }
@@ -2565,7 +2565,7 @@
 }
 
 .frodo-switch:insensitive {
-    background-color: #27272a;
+    background-color: #26262b;
 }
 
 .frodo-switch-knob {
@@ -2599,7 +2599,7 @@
 }
 
 .frodo-position-cell:hover {
-    background-color: #33333a;
+    background-color: #3a3a40;
 }
 
 .frodo-position-cell:checked {
@@ -2613,7 +2613,7 @@
 .frodo-position-mark {
     width: 18px;
     height: 5px;
-    border-radius: 3px;
+    border-radius: 999px;
 }
 
 .frodo-position-cell:checked .frodo-position-mark {
@@ -2780,13 +2780,13 @@
 }
 
 .frodo-perf-value {
-    font-size: 26px;
+    font-size: 24px;
     font-weight: 500;
     color: #f4f4f5;
 }
 
 .frodo-perf-unit {
-    font-size: 13px;
+    font-size: 12px;
     color: #a1a1aa;
     padding-bottom: 4px;
 }
@@ -2837,7 +2837,7 @@
 .frodo-perf-col {
     width: 84px;
     text-align: right;
-    font-size: 13px;
+    font-size: 12px;
     color: #a1a1aa;
 }
 
@@ -2913,7 +2913,7 @@
 }
 
 .frodo-perf-confirm-text {
-    font-size: 13px;
+    font-size: 14px;
     color: #fde2e2;
 }
 
@@ -3058,12 +3058,12 @@
 }
 
 .frodo-github-box-title {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
 }
 
 .frodo-github-box-body {
-    font-size: 13px;
+    font-size: 14px;
     color: #d4d4d8;
 }
 
@@ -3083,7 +3083,7 @@
     padding: 2px 8px;
     border-radius: 999px;
     font-size: 12px;
-    background-color: #18181b;
+    background-color: #17171a;
 }
 
 .frodo-github-check-ok {
@@ -3117,7 +3117,7 @@
 }
 
 .frodo-github-tile-count {
-    font-size: 22px;
+    font-size: 24px;
     font-weight: 500;
 }
 
@@ -3141,7 +3141,7 @@
 
 .frodo-github-review-title,
 .frodo-github-login {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
 }
 
@@ -3149,7 +3149,7 @@
     width: 32px;
     height: 16px;
     padding: 8px 0;
-    border-radius: 16px;
+    border-radius: 999px;
     background-color: #2f2f35;
     font-size: 12px;
     font-weight: 700;
@@ -3320,7 +3320,7 @@
     color: -st-accent-color;
     -slider-handle-radius: 8px;
     -barlevel-height: 7px;
-    -barlevel-background-color: #efefef;
+    -barlevel-background-color: #f4f4f5;
     -barlevel-active-background-color: -st-accent-color;
 }
 
@@ -3340,7 +3340,7 @@
 }
 
 .frodo-mixer-device-label {
-    font-size: 13px;
+    font-size: 14px;
     color: #d4d4d8;
 }
 
@@ -3351,7 +3351,7 @@
     border-radius: 10px;
     background-color: #232327;
     color: #f4f4f5;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .frodo-mixer-device-content {
@@ -3379,7 +3379,7 @@
 }
 
 .frodo-mixer-recorder-name {
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .frodo-mixer-recorder-state {
@@ -3418,7 +3418,7 @@
 .frodo-fault-banner-circle {
     width: 32px;
     height: 32px;
-    border-radius: 16px;
+    border-radius: 999px;
 }
 
 .frodo-fault-banner-icon {
@@ -3468,7 +3468,7 @@
     height: 36px;
     min-height: 36px;
     padding: 0 14px;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .frodo-fault-banner-primary {
@@ -3509,7 +3509,7 @@
     height: 32px;
     min-height: 32px;
     padding: 0 12px;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .frodo-fault-banner-confirm-no {

@@ -47,6 +47,7 @@ Código agrupado por camada e domínio. Import só desce: `app → pill, tabs �
 | API privada do shell só em `src/shared/shell-internals.ts`                                                                                                                                                 | revisão                             |
 | Controle do sistema (Wi-Fi, Bluetooth, sliders, calendário) é o nativo emprestado (`ActorLoan`), nunca reimplementado; exceção: o Mixer, que fala direto com o `Gvc` porque não há controle nativo por app | revisão                             |
 | Cor só no `stylesheet.css`; desenho em Cairo lê do tema (`get_theme_node()`); destaque é `-st-accent-color`                                                                                                | revisão                             |
+| Cor, tamanho de fonte (12, 14, 18, 24) e raio do `stylesheet.css` só com valores do `../DESIGN.md`                                                                                                         | `tools/design-tokens.test.sh`       |
 | Card que lê disco ou D-Bus periodicamente só roda visível (`whileMapped`)                                                                                                                                  | revisão                             |
 | Sem comentário em código, teste, CSS, XML e shell script (só diretiva de ferramenta)                                                                                                                       | ESLint (`.ts`), revisão (resto)     |
 | Texto de UI em pt-BR, direto no código                                                                                                                                                                     | revisão                             |
@@ -128,7 +129,7 @@ Todos rodam dentro de `linux/`.
 
 ```shell
 npm ci               # também instala o hook commit-msg (husky)
-npm run check        # typecheck + lint + prettier + testes + testes de shell (hook e get.sh)
+npm run check        # typecheck + lint + prettier + testes + testes de shell (hook, get.sh e tokens do DESIGN.md)
 npm test             # só os testes (Jasmine no gjs)
 npm run build        # src/ -> dist/, copia metadata, CSS, ícones, schemas e hooks
 npm run smoke        # build + gnome-shell headless isolado: liga, desliga e religa; falha se não ficar ACTIVE

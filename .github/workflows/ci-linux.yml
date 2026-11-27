@@ -5,12 +5,14 @@ on:
     paths:
       - 'linux/**'
       - 'shared/**'
+      - 'DESIGN.md'
       - '.github/workflows/ci-linux.yml'
   push:
     branches: [master]
     paths:
       - 'linux/**'
       - 'shared/**'
+      - 'DESIGN.md'
       - '.github/workflows/ci-linux.yml'
 
 concurrency:
