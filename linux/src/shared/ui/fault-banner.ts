@@ -71,6 +71,7 @@ export class FaultBanner implements Component {
         this.#box.add_child(text);
         this.actor.add_child(this.#box);
         this.actor.add_child(this.#done);
+        this.#done.visible = false;
         this.#ask(null);
         this.show(null);
     }

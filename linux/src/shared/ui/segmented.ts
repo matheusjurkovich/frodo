@@ -14,14 +14,15 @@ export class Segmented<T extends string> extends Emitter<{changed: [T]}> {
     readonly #indicator: SlidingIndicator | null = null;
     #selected: T;
 
-    constructor(options: readonly {id: T; label: string}[], selected: T, styleClass: string, wrap = false) {
+    constructor(options: readonly {id: T; label: string; dot?: string}[], selected: T, styleClass: string, wrap = false) {
         super();
         this.#selected = selected;
         const actorClass = `frodo-segmented ${styleClass}`.trim();
-        for (const {id, label: text} of options) {
+        for (const {id, label: text, dot} of options) {
             const count = label('', 'frodo-segmented-count frodo-mono');
             count.visible = false;
             const content = new St.BoxLayout({style_class: 'frodo-segmented-content', y_align: Clutter.ActorAlign.CENTER});
+            if (dot) content.add_child(new St.Widget({style_class: `frodo-segmented-dot ${dot}`, y_align: Clutter.ActorAlign.CENTER}));
             content.add_child(new St.Label({text, y_align: Clutter.ActorAlign.CENTER}));
             content.add_child(count);
             const button = contentButton(

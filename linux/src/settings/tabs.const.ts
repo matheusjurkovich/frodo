@@ -7,6 +7,6 @@ export const TAB_LABELS: Record<TabId, string> = {
     claude: 'IA',
     notifications: 'Notificações',
     performance: 'Desempenho',
-    mixer: 'Mixer de volume',
+    mixer: 'Volume por app',
     github: 'GitHub',
 };

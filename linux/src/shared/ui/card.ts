@@ -23,7 +23,7 @@ export function emptyState(text: string): St.Label {
 
 export function backHeader(title: string, onBack: () => void): St.BoxLayout {
     const header = row('frodo-back-header');
-    const back = textButton('Voltar', onBack, 'control', frodoIcon('back'));
+    const back = textButton('Voltar', onBack, 'control', frodoIcon('arrow-left'));
     back.add_style_class_name('frodo-back-button');
     header.add_child(back);
     const heading = label(title, 'frodo-back-title');

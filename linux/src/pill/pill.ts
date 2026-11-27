@@ -156,6 +156,7 @@ export class Pill extends Emitter<{rebuilt: []}> {
         else if (current?.kind === 'fault') state = FAULT_CLASSES[FAULT_TONES[current.fault]];
         if (state) classes.push(state);
         if (this.#activity.hasAction && !this.#peeking) classes.push('frodo-pill-action');
+        if (this.#activity.leadsRound && !this.#peeking && !this.#vertical) classes.push('frodo-pill-lead');
         if (this.#peeking) classes.push('frodo-pill-peeking');
         const surface = this.#settings.surfaceStyle;
         if (surface !== 'solid') classes.push(`frodo-surface-${surface}`);

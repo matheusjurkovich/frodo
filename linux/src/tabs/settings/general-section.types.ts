@@ -2,7 +2,7 @@ import type Clutter from 'gi://Clutter';
 import type Gio from 'gi://Gio';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
 
-export type ShortcutKey = 'toggle-shortcut' | 'claude-shortcut';
+export type ShortcutKey = 'toggle-shortcut' | 'claude-shortcut' | 'allow-shortcut' | 'deny-shortcut';
 
 export interface GeneralSectionDependencies {
     readonly settings: FrodoSettings;

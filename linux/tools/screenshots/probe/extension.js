@@ -52,6 +52,9 @@ export default class Probe {
                 const toggle = find(actor => actor.has_style_class_name?.('quick-toggle') && actor.title === 'Wi-Fi', global.stage, false);
                 if (toggle) toggle.subtitle = 'Casa';
             },
+            showAllTabs: id => {
+                Main.extensionManager.lookup(id).stateObj.getSettings().set_strv('hidden-tabs', []);
+            },
             clearNotifications: () => {
                 for (const source of Main.messageTray.getSources()) source.destroy();
             },

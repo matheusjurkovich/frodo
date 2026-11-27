@@ -106,6 +106,8 @@ export const accessors = {
     claudeProfilesInitialized: bool('claude-profiles-initialized'),
     toggleShortcut: shortcut('toggle-shortcut'),
     claudeShortcut: shortcut('claude-shortcut'),
+    allowShortcut: shortcut('allow-shortcut'),
+    denyShortcut: shortcut('deny-shortcut'),
     openOnHover: bool('open-on-hover'),
     autoClose: bool('auto-close'),
     alwaysShowPill: bool('always-show-pill'),

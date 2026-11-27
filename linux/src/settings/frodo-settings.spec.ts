@@ -40,7 +40,7 @@ describe('FrodoSettings', () => {
         const settings = createSettings();
         expect(settings.openOnHover).toBeTrue();
         expect(settings.autoClose).toBeFalse();
-        expect(settings.hiddenTabs).toEqual([]);
+        expect(settings.hiddenTabs).toEqual(['workspaces', 'mixer', 'performance']);
         settings.gsettings.set_strv('hidden-tabs', ['claude', 'xyz', 'claude']);
         expect(settings.hiddenTabs).toEqual(['claude']);
         settings.collapsedCards = ['apps', 'apps'];

@@ -51,15 +51,15 @@ export class ClaudePage implements Component {
         this.#sessionsSingle = new SessionsCard(sessions, transcripts, island, actions.close);
 
         for (const provider of AI_PROVIDERS) {
-            const overview = new OverviewCard(provider, sources, sessions, () => {
+            const overview = new OverviewCard(provider, sources, () => {
                 this.#show(provider);
             });
             this.#overviewCards.set(provider, overview);
             this.#overview.add_child(overview.actor);
         }
         this.#overview.layout_manager.homogeneous = true;
-        this.#all.add_child(this.#overview);
         this.#all.add_child(this.#sessionsAll.actor);
+        this.#all.add_child(this.#overview);
 
         this.#details.set('claude', [new LimitsCard(claude, settings, actions), new ConsumptionCard(transcripts, 'claude')]);
         this.#details.set('codex', [new MetersCard('codex', sources), new ConsumptionCard(codex, 'codex')]);
@@ -128,8 +128,8 @@ export class ClaudePage implements Component {
         const enabled = this.#settings.enabledProviders;
         this.#segmented?.destroy();
         this.#selector.destroy_all_children();
-        const options: {id: View; label: string}[] = [{id: 'all', label: 'Todos'}];
-        for (const provider of enabled) options.push({id: provider, label: PROVIDER_NAMES[provider]});
+        const options: {id: View; label: string; dot?: string}[] = [{id: 'all', label: 'Todos'}];
+        for (const provider of enabled) options.push({id: provider, label: PROVIDER_NAMES[provider], dot: `frodo-fill-${provider}`});
         const view: View = this.#view === 'all' || enabled.includes(this.#view) ? this.#view : 'all';
         this.#segmented = new Segmented(options, view, 'frodo-ai-providers');
         this.#segmented.on('changed', next => {

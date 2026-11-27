@@ -291,7 +291,3 @@ export function initials(login: string): string {
 export function graphqlUrl(override: string | null): string {
     return override !== null && /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?\//.test(override) ? override : GITHUB_GRAPHQL_URL;
 }
-
-export function reviewMeta(pr: PullRequest, nowMs: number): string {
-    return `${shortRef(pr)} · @${pr.author} · ${ago(pr.updatedAt, nowMs)}`;
-}
