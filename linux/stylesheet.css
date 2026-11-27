@@ -2395,81 +2395,145 @@
     background-color: #17171a;
 }
 
-.frodo-surface-clear .frodo-card,
-.frodo-surface-clear .frodo-workspace,
-.frodo-surface-clear .frodo-general .quick-toggle-menu,
-.frodo-surface-clear .frodo-calendar-month,
-.frodo-surface-clear .frodo-calendar-events,
-.frodo-surface-clear .frodo-settings-nav {
+.frodo-surface-glass .frodo-card,
+.frodo-surface-glass .frodo-workspace,
+.frodo-surface-glass .frodo-general .quick-toggle-menu,
+.frodo-surface-glass .frodo-calendar-month,
+.frodo-surface-glass .frodo-calendar-events,
+.frodo-surface-glass .frodo-settings-nav {
     background-color: rgba(23, 23, 26, 0.25);
 }
 
-.frodo-surface-clear .frodo-settings-line,
-.frodo-surface-clear .frodo-button-control,
-.frodo-surface-clear .frodo-kbd,
-.frodo-surface-clear .frodo-chip-neutral,
-.frodo-surface-clear .frodo-entry,
-.frodo-surface-clear .frodo-segmented,
-.frodo-surface-clear .frodo-position-grid,
-.frodo-surface-clear .frodo-pill-item,
-.frodo-surface-clear .frodo-stat,
-.frodo-surface-clear .frodo-session,
-.frodo-surface-clear .frodo-notification,
-.frodo-surface-clear .frodo-settings-profile-row,
-.frodo-surface-clear .frodo-calendar .event-box,
-.frodo-surface-clear .frodo-general .quick-toggle,
-.frodo-surface-clear .frodo-general .quick-toggle-has-menu,
-.frodo-surface-clear .frodo-general .frodo-sound-icon .icon-button {
+.frodo-surface-glass .frodo-settings-line,
+.frodo-surface-glass .frodo-button-control,
+.frodo-surface-glass .frodo-kbd,
+.frodo-surface-glass .frodo-chip-neutral,
+.frodo-surface-glass .frodo-entry,
+.frodo-surface-glass .frodo-segmented,
+.frodo-surface-glass .frodo-position-grid,
+.frodo-surface-glass .frodo-pill-item,
+.frodo-surface-glass .frodo-stat,
+.frodo-surface-glass .frodo-session,
+.frodo-surface-glass .frodo-notification,
+.frodo-surface-glass .frodo-settings-profile-row,
+.frodo-surface-glass .frodo-calendar .event-box,
+.frodo-surface-glass .frodo-general .quick-toggle,
+.frodo-surface-glass .frodo-general .quick-toggle-has-menu,
+.frodo-surface-glass .frodo-general .frodo-sound-icon .icon-button {
     background-color: rgba(31, 31, 35, 0.45);
 }
 
-.frodo-surface-clear .frodo-settings-nav-item:hover {
+.frodo-surface-glass .frodo-settings-nav-item:hover {
     background-color: rgba(255, 255, 255, 0.05);
 }
 
-.frodo-surface-clear .frodo-button-ghost:checked,
-.frodo-surface-clear .frodo-button-control:hover,
-.frodo-surface-clear .frodo-segmented-indicator,
-.frodo-surface-clear .frodo-position-cell,
-.frodo-surface-clear .frodo-settings-nav-item:checked,
-.frodo-surface-clear .frodo-session-header:hover,
-.frodo-surface-clear .frodo-notification:hover,
-.frodo-surface-clear .frodo-tab-indicator {
+.frodo-surface-glass .frodo-button-ghost:checked,
+.frodo-surface-glass .frodo-button-control:hover,
+.frodo-surface-glass .frodo-segmented-indicator,
+.frodo-surface-glass .frodo-position-cell,
+.frodo-surface-glass .frodo-settings-nav-item:checked,
+.frodo-surface-glass .frodo-session-header:hover,
+.frodo-surface-glass .frodo-notification:hover,
+.frodo-surface-glass .frodo-tab-indicator {
     background-color: rgba(255, 255, 255, 0.08);
 }
 
-.frodo-surface-clear .frodo-position-cell:hover,
-.frodo-surface-clear .frodo-switch {
+.frodo-surface-glass .frodo-position-cell:hover,
+.frodo-surface-glass .frodo-switch {
     background-color: rgba(255, 255, 255, 0.14);
 }
 
-.frodo-surface-clear .frodo-switch:hover {
+.frodo-surface-glass .frodo-switch:hover {
     background-color: rgba(255, 255, 255, 0.2);
 }
 
-.frodo-surface-clear .frodo-position-cell:checked,
-.frodo-surface-clear .frodo-switch:checked {
+.frodo-surface-glass .frodo-position-cell:checked,
+.frodo-surface-glass .frodo-switch:checked {
     background-color: -st-accent-color;
 }
 
-.frodo-surface-clear .frodo-switch:checked:hover {
+.frodo-surface-glass .frodo-switch:checked:hover {
     background-color: st-lighten(-st-accent-color, 4%);
 }
 
-.frodo-surface-clear .frodo-filters {
+.frodo-surface-glass .frodo-segmented.frodo-filters {
     background-color: transparent;
 }
 
-.frodo-surface-clear .frodo-filters .frodo-segmented-item {
+.frodo-surface-glass .frodo-filters .frodo-segmented-item {
     background-color: rgba(31, 31, 35, 0.45);
 }
 
-.frodo-surface-clear .frodo-filters .frodo-segmented-item:checked {
+.frodo-surface-glass .frodo-filters .frodo-segmented-item:checked {
     background-color: #f4f4f5;
 }
 
-.frodo-surface-clear .frodo-switch:insensitive {
+.frodo-surface-glass .frodo-switch:insensitive {
     background-color: rgba(255, 255, 255, 0.06);
+}
+
+.frodo-surface-glass .frodo-more,
+.frodo-surface-glass .frodo-overview,
+.frodo-surface-glass .frodo-github-check {
+    background-color: rgba(23, 23, 26, 0.25);
+}
+
+.frodo-surface-glass .frodo-more:hover,
+.frodo-surface-glass .frodo-overview:hover,
+.frodo-surface-glass .frodo-collapsible-header:hover,
+.frodo-surface-glass .frodo-workspace:hover,
+.frodo-surface-glass .frodo-github-pr {
+    background-color: rgba(31, 31, 35, 0.45);
+}
+
+.frodo-surface-glass .frodo-pill-queue,
+.frodo-surface-glass .frodo-pill .frodo-pill-pause,
+.frodo-surface-glass .frodo-chart-bar-future,
+.frodo-surface-glass .frodo-session.frodo-session-open,
+.frodo-surface-glass .frodo-perf-badge,
+.frodo-surface-glass .frodo-github-pr:checked,
+.frodo-surface-glass .frodo-general .quick-toggle:hover,
+.frodo-surface-glass .frodo-general .frodo-sound-icon .icon-button:hover,
+.frodo-surface-glass .frodo-general .frodo-sound-menu .icon-button:hover,
+.frodo-surface-glass .frodo-general .quick-toggle-menu .header .icon,
+.frodo-surface-glass .frodo-general .quick-toggle-menu .popup-menu-item:hover,
+.frodo-surface-glass .frodo-general .quick-toggle-menu .popup-menu-item:focus,
+.frodo-surface-glass .frodo-general .quick-toggle-menu .popup-separator-menu-item-separator,
+.frodo-surface-glass .frodo-mixer-app-icon,
+.frodo-surface-glass .frodo-mixer-mute,
+.frodo-surface-glass .frodo-mixer-device-button,
+.frodo-surface-glass .frodo-mixer-recorder-icon {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.frodo-surface-glass .frodo-general .quick-toggle:active,
+.frodo-surface-glass .frodo-track,
+.frodo-surface-glass .frodo-workspace-badge {
+    background-color: rgba(255, 255, 255, 0.14);
+}
+
+.frodo-surface-glass .frodo-general .quick-toggle:checked,
+.frodo-surface-glass .frodo-general .quick-toggle-has-menu:checked,
+.frodo-surface-glass .frodo-general .quick-toggle-menu .header .icon.active,
+.frodo-surface-glass .frodo-button-control:checked {
+    background-color: -st-accent-color;
+    color: -st-accent-fg-color;
+}
+
+.frodo-surface-glass .frodo-general .quick-toggle:checked:hover {
+    background-color: st-lighten(-st-accent-color, 4%);
+}
+
+.frodo-surface-glass .frodo-general .quick-toggle:checked:active {
+    background-color: st-lighten(-st-accent-color, 9%);
+}
+
+.frodo-surface-glass .frodo-pill-item.frodo-dragging {
+    background-color: #2f2f35;
+}
+
+.frodo-surface-glass .frodo-settings-line.frodo-dragging {
+    background-color: #232327;
 }
 
 .frodo-settings-nav-item {

@@ -18,7 +18,7 @@ enum Theme {
     private static func byStyle(_ solid: Color, frosted: Color? = nil, clear: Color) -> Color {
         switch Surface.shared.style {
         case .solid: solid
-        case .frosted: frosted ?? solid
+        case .frosted: frosted ?? clear
         case .clear: clear
         }
     }

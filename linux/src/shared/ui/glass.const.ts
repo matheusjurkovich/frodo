@@ -1,6 +1,4 @@
-export const BLUR_RADIUS = 40;
-export const MARGIN = BLUR_RADIUS;
-export const BRIGHTNESS = 0.6;
+export const MARGIN = 40;
 
 export const MASK_DECLARATIONS = `
 uniform vec2 size;

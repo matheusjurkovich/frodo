@@ -6,8 +6,8 @@ import St from 'gi://St';
 import {Disposables} from '../disposables.js';
 import {whileMapped} from './lifecycle.js';
 import type {Component} from './lifecycle.types.js';
-import type {Mirror} from './glass.types.js';
-import {MASK_DECLARATIONS, MASK_CODE, MARGIN, BLUR_RADIUS, BRIGHTNESS} from './glass.const.js';
+import type {GlassLook, Mirror} from './glass.types.js';
+import {MASK_DECLARATIONS, MASK_CODE, MARGIN} from './glass.const.js';
 
 const RoundedMask = GObject.registerClass(
     class RoundedMask extends Shell.GLSLEffect {
@@ -39,6 +39,7 @@ export class Glass implements Component {
     readonly #host: St.Widget;
     readonly #scene = new Clutter.Actor();
     readonly #mask = new RoundedMask();
+    readonly #blur = new Shell.BlurEffect({mode: Shell.BlurMode.ACTOR});
     readonly #disposables = new Disposables();
     readonly #live = new Disposables();
     readonly #mirrors = new Map<Clutter.Actor, Mirror>();
@@ -48,7 +49,7 @@ export class Glass implements Component {
         const {actor} = this;
         actor.add_child(this.#scene);
         actor.add_effect(this.#mask);
-        actor.add_effect(new Shell.BlurEffect({mode: Shell.BlurMode.ACTOR, radius: BLUR_RADIUS, brightness: BRIGHTNESS}));
+        actor.add_effect(this.#blur);
         actor.add_constraint(new Clutter.BindConstraint({source: host, coordinate: Clutter.BindCoordinate.POSITION, offset: -MARGIN}));
         actor.add_constraint(new Clutter.BindConstraint({source: host, coordinate: Clutter.BindCoordinate.SIZE, offset: 2 * MARGIN}));
         for (const property of ['visible', 'opacity']) {
@@ -74,6 +75,11 @@ export class Glass implements Component {
             ),
         );
         host.get_parent()?.insert_child_below(actor, host);
+    }
+
+    look({radius, brightness}: GlassLook): void {
+        this.#blur.radius = radius;
+        this.#blur.brightness = brightness;
     }
 
     #startMirroring(): void {

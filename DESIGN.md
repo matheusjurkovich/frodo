@@ -334,8 +334,12 @@ secundário é contorno. O destaque laranja não entra em fundo vermelho ou âmb
 **A regra do estado com nome.** Cor de estado nunca aparece sozinha: sempre ao lado de um texto ("Conflito", "Falhou") ou de um
 ícone com nome acessível.
 
-**A regra da transparência.** No fundo Fosco ou Translúcido, superfícies viram as versões `frosted`, `clear` e `clear-*`. Não
-invente outra opacidade.
+**A regra da transparência.** Fosco e Translúcido são vidro: a moldura da pílula, da lingueta e da ilha vira `frosted` ou
+`clear`, e nos dois os blocos e controles de dentro viram `clear-card` e `clear-control` (hover e selecionado, `overlay-*`).
+O Fosco desfoca mais (raio 40, brilho 0,6); o Translúcido desfoca menos e escurece mais (raio 20, brilho 0,32), para o texto
+secundário manter 4,5:1 sobre papel de parede branco. Estado ligado (tile, botão, ícone ativo) continua com o destaque. Com
+alto contraste do sistema ligado, vale o Sólido. Não invente outra opacidade; `tools/glass.test.js` recusa fundo opaco sem
+versão de vidro.
 
 ## Typography
 
