@@ -15,7 +15,7 @@ struct SegmentedPicker<Value: Hashable>: View {
                     withAnimation(Motion.standard) { selection = option.0 }
                 } label: {
                     Text(option.1)
-                        .font(Theme.Font.secondary(.medium))
+                        .font(Theme.Font.body(.medium))
                         .foregroundStyle(selected ? Theme.text : Theme.textSecondary)
                         .padding(.horizontal, 12)
                         .frame(height: 26)

@@ -19,7 +19,7 @@ struct ProcessRow: View {
                 VStack(alignment: .leading, spacing: 5) {
                     HStack(spacing: 8) {
                         Text(name).font(Theme.Font.body(.medium)).foregroundStyle(Theme.text).lineLimit(1)
-                        Text("pid \(process.pid)").font(Theme.Font.mono(12)).foregroundStyle(Theme.Performance.muted)
+                        Text("pid \(process.pid)").font(Theme.Font.mono()).foregroundStyle(Theme.Performance.muted)
                     }
                     ProgressBar(fraction: share, tint: Theme.accent.opacity(0.6), height: 3)
                 }
@@ -27,7 +27,7 @@ struct ProcessRow: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             ForEach(ProcessSort.allCases, id: \.self) { column in
                 Text(value(column))
-                    .font(Theme.Font.mono(13))
+                    .font(Theme.Font.monoBody())
                     .foregroundStyle(column == sort ? Theme.text : Theme.textSecondary)
                     .frame(width: 84, alignment: .trailing)
             }
@@ -46,7 +46,7 @@ struct ProcessRow: View {
             }
         }
         .frame(width: 32, height: 32)
-        .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Theme.control))
+        .background(RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous).fill(Theme.control))
     }
 
     @ViewBuilder

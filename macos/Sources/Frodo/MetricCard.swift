@@ -19,8 +19,8 @@ struct MetricCard: View {
     var body: some View {
         CardView(title: title) {
             HStack(alignment: .lastTextBaseline, spacing: 6) {
-                Text(value).font(.system(size: 26, weight: .medium)).foregroundStyle(Theme.text).monospacedDigit().lineLimit(1)
-                if !unit.isEmpty { Text(unit).font(Theme.Font.secondary()).foregroundStyle(Theme.textSecondary).lineLimit(1) }
+                Text(value).font(Theme.Font.display()).foregroundStyle(Theme.text).monospacedDigit().lineLimit(1)
+                if !unit.isEmpty { Text(unit).font(Theme.Font.body()).foregroundStyle(Theme.textSecondary).lineLimit(1) }
             }
             switch graph {
             case .spark(let values):

@@ -28,7 +28,7 @@ struct PillItemsEditor: View {
             } else {
                 note("Itens, da esquerda para a direita")
                 ReorderableList(items: items, axis: .horizontal, onMove: { settings.closedItems = $0 }) { item in
-                    Text(item.label).font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text)
+                    Text(item.label).font(Theme.Font.body(.medium)).foregroundStyle(Theme.text)
                     IconButton(icon: "close", size: 22, iconSize: 10, tint: Theme.textSecondary, help: "Tirar \(item.label) da pílula") {
                         settings.closedItems = removingItem(items, item)
                     }
@@ -43,7 +43,7 @@ struct PillItemsEditor: View {
     }
 
     private func note(_ text: String) -> some View {
-        Text(text).font(Theme.Font.secondary()).foregroundStyle(Theme.textSecondary).fixedSize(horizontal: false, vertical: true)
+        Text(text).font(Theme.Font.body()).foregroundStyle(Theme.textSecondary).fixedSize(horizontal: false, vertical: true)
     }
 
     @ViewBuilder

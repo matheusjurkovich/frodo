@@ -10,7 +10,7 @@ struct NotificationContent: View {
         PillStack(spacing: 10) {
             NotificationBadge(provider: item.provider, size: 30, iconSize: 16)
             VStack(alignment: vertical ? .center : .leading, spacing: 1) {
-                Text("\(item.app) · \(item.title)").font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text).lineLimit(1)
+                Text("\(item.app) · \(item.title)").font(Theme.Font.body(.medium)).foregroundStyle(Theme.text).lineLimit(1)
                 Text(item.body).font(Theme.Font.label()).foregroundStyle(Theme.textSecondary).lineLimit(1)
             }
             .frame(maxWidth: 320, alignment: vertical ? .center : .leading)
@@ -28,8 +28,8 @@ struct PermissionContent: View {
         PillStack(spacing: 10) {
             FrodoIcon(name: session.provider.rawValue, size: 18, color: Theme.warn)
             VStack(alignment: vertical ? .center : .leading, spacing: 1) {
-                Text("\(ellipsize(session.repo, max: 24)) precisa de permissão").font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text).lineLimit(1)
-                Text(session.step.isEmpty ? request.tool : session.step).font(Theme.Font.mono(12)).foregroundStyle(Theme.textSecondary).lineLimit(1)
+                Text("\(ellipsize(session.repo, max: 24)) precisa de permissão").font(Theme.Font.body(.medium)).foregroundStyle(Theme.text).lineLimit(1)
+                Text(session.step.isEmpty ? request.tool : session.step).font(Theme.Font.mono()).foregroundStyle(Theme.textSecondary).lineLimit(1)
             }
             .frame(maxWidth: 280, alignment: vertical ? .center : .leading)
             TextButton(title: "Negar", kind: .secondary, compact: true) { services.sessions.decide(request, .deny) }
@@ -47,9 +47,9 @@ struct WaitingContent: View {
     var body: some View {
         PillStack(spacing: 10) {
             FrodoIcon(name: session.provider.rawValue, size: 18, color: Theme.warn)
-            Text("\(ellipsize(session.repo, max: 24)) precisa de permissão").font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text).lineLimit(1)
+            Text("\(ellipsize(session.repo, max: 24)) precisa de permissão").font(Theme.Font.body(.medium)).foregroundStyle(Theme.text).lineLimit(1)
             if !session.step.isEmpty {
-                Text(ellipsize(session.step, max: 40)).font(Theme.Font.mono(12)).foregroundStyle(Theme.textSecondary).lineLimit(1)
+                Text(ellipsize(session.step, max: 40)).font(Theme.Font.mono()).foregroundStyle(Theme.textSecondary).lineLimit(1)
             }
             TextButton(title: "Abrir", kind: .primary, compact: true) {
                 if !services.sessions.focus(session.sessionId) { openTab(.claude) }
@@ -70,7 +70,7 @@ struct MeetingContent: View {
             PillStack(spacing: 10) {
                 FrodoIcon(name: "calendar", size: 18, color: Theme.accentText)
                 VStack(alignment: vertical ? .center : .leading, spacing: 1) {
-                    Text(title).font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text).lineLimit(1)
+                    Text(title).font(Theme.Font.body(.medium)).foregroundStyle(Theme.text).lineLimit(1)
                     Text(formatUntil(startsAt, now: context.date)).font(Theme.Font.label()).foregroundStyle(Theme.textSecondary)
                 }
                 .frame(maxWidth: 240, alignment: vertical ? .center : .leading)
@@ -89,7 +89,7 @@ struct VolumeContent: View {
         PillStack(spacing: 10) {
             FrodoIcon(name: "wave", size: 16, color: Theme.text)
             ProgressBar(fraction: Double(percent) / 100, tint: Theme.accent, height: 6).frame(width: 120)
-            Text("\(percent)%").font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text).monospacedDigit().frame(width: 40, alignment: .trailing)
+            Text("\(percent)%").font(Theme.Font.body(.medium)).foregroundStyle(Theme.text).monospacedDigit().frame(width: 40, alignment: .trailing)
         }
     }
 }
@@ -101,8 +101,8 @@ struct WorkingContent: View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
             PillStack(spacing: 10) {
                 ProviderIcon(provider: session.provider, size: 16)
-                Text(session.repo).font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text)
-                Text(ellipsize(session.step, max: 36)).font(Theme.Font.mono(12)).foregroundStyle(Theme.textSecondary).lineLimit(1)
+                Text(session.repo).font(Theme.Font.body(.medium)).foregroundStyle(Theme.text)
+                Text(ellipsize(session.step, max: 36)).font(Theme.Font.mono()).foregroundStyle(Theme.textSecondary).lineLimit(1)
                 Text(formatTimer(secondsSince(session.since, now: context.date))).font(Theme.Font.label()).foregroundStyle(Theme.textSecondary).monospacedDigit()
             }
         }
@@ -121,7 +121,7 @@ struct MediaContent: View {
                 FrodoIcon(name: "music", size: 14, color: Theme.accentText)
             }
             VStack(alignment: vertical ? .center : .leading, spacing: 0) {
-                Text(track.title).font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text).lineLimit(1)
+                Text(track.title).font(Theme.Font.body(.medium)).foregroundStyle(Theme.text).lineLimit(1)
                 Text(track.artist).font(Theme.Font.label()).foregroundStyle(Theme.textSecondary).lineLimit(1)
             }
             .frame(maxWidth: 200, alignment: vertical ? .center : .leading)

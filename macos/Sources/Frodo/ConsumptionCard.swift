@@ -25,7 +25,7 @@ struct ConsumptionCard<Source: ConsumptionSource>: View {
         let index = periods.firstIndex { $0.period == period } ?? 0
         CardView(title: "Consumo") {
             if reading {
-                Text("Lendo histórico…").font(Theme.Font.secondary()).foregroundStyle(Theme.textSecondary)
+                Text("Lendo histórico…").font(Theme.Font.body()).foregroundStyle(Theme.textSecondary)
             } else {
                 SwapContainer(key: period, index: index) { content(summary, text: periods[index]) }
             }
@@ -90,10 +90,10 @@ private struct BarChart: View {
                 let bar = bars[index]
                 VStack(spacing: 4) {
                     Spacer(minLength: 0)
-                    RoundedRectangle(cornerRadius: 3, style: .continuous)
+                    RoundedRectangle(cornerRadius: Theme.Radius.bar, style: .continuous)
                         .fill(Theme.color(forBar: bar, provider: provider))
                         .frame(height: max(3, 64 * CGFloat(bar.value) / CGFloat(maximum)))
-                    Text(bar.label).font(.system(size: 9)).foregroundStyle(bar.current ? Theme.text : Theme.textSecondary).lineLimit(1).frame(height: 12)
+                    Color.clear.frame(height: 16).overlay { Text(bar.label).font(Theme.Font.label()).foregroundStyle(bar.current ? Theme.text : Theme.textSecondary).fixedSize() }
                 }
             }
         }
@@ -120,7 +120,7 @@ private struct ModelsBar: View {
                     HStack(spacing: 5) {
                         StatusDot(color: Theme.color(forModel: model.name), size: 7)
                         Text(model.label).font(Theme.Font.label()).foregroundStyle(Theme.textSecondary)
-                        Text("\(Int((model.fraction * 100).rounded()))%").font(Theme.Font.mono(11)).foregroundStyle(Theme.text)
+                        Text("\(Int((model.fraction * 100).rounded()))%").font(Theme.Font.mono()).foregroundStyle(Theme.text)
                     }
                 }
             }
@@ -137,7 +137,7 @@ private struct ProjectList: View {
         VStack(spacing: 6) {
             ForEach(projects, id: \.name) { project in
                 HStack(spacing: 8) {
-                    Text(project.name).font(Theme.Font.mono(12)).foregroundStyle(Theme.text).lineLimit(1).frame(width: 140, alignment: .leading)
+                    Text(project.name).font(Theme.Font.mono()).foregroundStyle(Theme.text).lineLimit(1).frame(width: 140, alignment: .leading)
                     ProgressBar(fraction: largest > 0 ? Double(project.tokens) / Double(largest) : 0, tint: Theme.color(for: provider), height: 6)
                     Text("\(formatTokens(project.tokens)) · \(Int((project.fraction * 100).rounded()))%").font(Theme.Font.label())
                         .foregroundStyle(Theme.textSecondary).monospacedDigit().frame(width: 96, alignment: .trailing)

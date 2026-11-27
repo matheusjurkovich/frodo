@@ -26,7 +26,7 @@ struct NotificationsTab: View {
                 Button { store.doNotDisturb.toggle() } label: {
                     HStack(spacing: 6) {
                         FrodoIcon(name: store.doNotDisturb ? "bell-off" : "bell", size: 14, color: store.doNotDisturb ? .white : Theme.text)
-                        Text("Não perturbe").font(Theme.Font.secondary(.medium)).foregroundStyle(store.doNotDisturb ? Color.white : Theme.text)
+                        Text("Não perturbe").font(Theme.Font.body(.medium)).foregroundStyle(store.doNotDisturb ? Color.white : Theme.text)
                     }
                     .padding(.horizontal, 12).frame(height: 30)
                     .background(Capsule().fill(store.doNotDisturb ? Theme.accent : Theme.control))
@@ -48,7 +48,7 @@ private struct NotificationRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("\(item.app) · \(formatAgo(item.date, now: Date()))").font(Theme.Font.label()).foregroundStyle(Theme.textSecondary)
                 Text(item.title).font(Theme.Font.body(.medium)).foregroundStyle(Theme.text)
-                Text(item.body).font(Theme.Font.secondary()).foregroundStyle(Theme.textSecondary)
+                Text(item.body).font(Theme.Font.body()).foregroundStyle(Theme.textSecondary)
             }
             Spacer()
             IconButton(icon: "close", size: 26, iconSize: 10, action: dismiss)

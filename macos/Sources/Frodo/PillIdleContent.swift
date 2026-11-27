@@ -28,7 +28,7 @@ struct IdleContent: View {
         case .clock:
             Text(formatClock(now, seconds: services.settings.showSeconds)).font(Theme.Font.body(.medium)).foregroundStyle(Theme.text).monospacedDigit()
         case .date:
-            Text(formatDate(now)).font(Theme.Font.secondary()).foregroundStyle(Theme.textSecondary)
+            Text(formatDate(now)).font(Theme.Font.body()).foregroundStyle(Theme.textSecondary)
         case .notifications:
             NotificationCount(count: services.notifications.count)
         case .battery, .ram, .claudeSession, .claudeWeekly, .codexSession, .codexWeekly, .geminiDaily:
@@ -60,13 +60,13 @@ struct IdleContent: View {
                 HStack(spacing: 4) {
                     FrodoIcon(name: batteryIcon(battery), size: 14, color: battery.percent < 15 && !battery.charging ? Theme.danger : Theme.text)
                     if services.settings.showBatteryPercentage {
-                        Text("\(battery.percent)%").font(Theme.Font.secondary()).foregroundStyle(Theme.text).monospacedDigit()
+                        Text("\(battery.percent)%").font(Theme.Font.body()).foregroundStyle(Theme.text).monospacedDigit()
                     }
                 }
             }
         case .ram:
             Text(formatRam(services.system.memoryInfo, percent: services.settings.ramPercent))
-                .font(Theme.Font.secondary()).foregroundStyle(Theme.textSecondary).monospacedDigit()
+                .font(Theme.Font.body()).foregroundStyle(Theme.textSecondary).monospacedDigit()
         case .claudeSession, .claudeWeekly:
             ClaudeUsageSegment(services: services, role: item == .claudeSession ? .session : .weekly, now: now)
         case .codexSession:
@@ -115,7 +115,7 @@ struct ClaudeUsageSegment: View {
             let shown = shownPercent(window.utilization, remaining: services.settings.claudeShowRemaining)
             HStack(spacing: 4) {
                 FrodoIcon(name: "claude", size: 13, color: Theme.claude)
-                Text("\(Int(shown.rounded()))%").font(Theme.Font.secondary(.medium)).foregroundStyle(level == .ok ? Theme.text : Theme.color(for: level)).monospacedDigit()
+                Text("\(Int(shown.rounded()))%").font(Theme.Font.body(.medium)).foregroundStyle(level == .ok ? Theme.text : Theme.color(for: level)).monospacedDigit()
             }
         }
     }
@@ -136,9 +136,9 @@ struct ProviderUsageSegment: View {
                 let level = meterLevel(meter.percent)
                 ProviderRing(provider: provider, used: meter.percent, remaining: remaining, size: 12)
                 Text("\(Int(shownMeterPercent(meter.percent, remaining: remaining).rounded()))%\(suffix)")
-                    .font(Theme.Font.secondary(.medium)).foregroundStyle(level == .ok ? Theme.text : Theme.color(for: level)).monospacedDigit()
+                    .font(Theme.Font.body(.medium)).foregroundStyle(level == .ok ? Theme.text : Theme.color(for: level)).monospacedDigit()
             } else {
-                Text("—").font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.textSecondary)
+                Text("—").font(Theme.Font.body(.medium)).foregroundStyle(Theme.textSecondary)
             }
         }
     }

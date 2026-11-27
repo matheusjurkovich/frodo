@@ -19,7 +19,7 @@ struct AudioAppRow: View {
                 }
             }
             .frame(width: 32, height: 32)
-            .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Theme.control))
+            .background(RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous).fill(Theme.control))
             VStack(alignment: .leading, spacing: 2) {
                 Text(name).font(Theme.Font.body(.medium)).foregroundStyle(Theme.text).lineLimit(1).truncationMode(.tail)
                 Text(state).font(Theme.Font.label()).foregroundStyle(Theme.textSecondary)

@@ -69,7 +69,7 @@ struct ProviderMeters: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             if meters.isEmpty, !empty.isEmpty {
-                Text(empty).font(Theme.Font.secondary()).foregroundStyle(Theme.textSecondary).fixedSize(horizontal: false, vertical: true)
+                Text(empty).font(Theme.Font.body()).foregroundStyle(Theme.textSecondary).fixedSize(horizontal: false, vertical: true)
             }
             ForEach(meters, id: \.key) { meter in
                 MeterRow(meter: meter, remaining: remaining, provider: provider, short: short)

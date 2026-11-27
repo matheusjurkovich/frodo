@@ -103,10 +103,10 @@ private struct SoundCard: View {
     private func group(_ title: String, device: String, icon: String, value: Binding<Double>) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 8) {
-                Text(title).font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text)
+                Text(title).font(Theme.Font.body(.medium)).foregroundStyle(Theme.text)
                 Text(device).font(Theme.Font.label()).foregroundStyle(Theme.textSecondary).lineLimit(1).truncationMode(.tail)
                 Spacer(minLength: 0)
-                Text("\(Int(value.wrappedValue.rounded()))%").font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text).monospacedDigit()
+                Text("\(Int(value.wrappedValue.rounded()))%").font(Theme.Font.body(.medium)).foregroundStyle(Theme.text).monospacedDigit()
             }
             HStack(spacing: 10) {
                 FrodoIcon(name: icon, size: 16, color: Theme.textSecondary)
@@ -128,7 +128,7 @@ private struct MediaCard: View {
                     cover(media.artworkURL)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(track.title).font(Theme.Font.body(.medium)).foregroundStyle(Theme.text).lineLimit(1)
-                        if !track.artist.isEmpty { Text(track.artist).font(Theme.Font.secondary()).foregroundStyle(Theme.textSecondary).lineLimit(1) }
+                        if !track.artist.isEmpty { Text(track.artist).font(Theme.Font.body()).foregroundStyle(Theme.textSecondary).lineLimit(1) }
                         if !track.album.isEmpty { Text(track.album).font(Theme.Font.label()).foregroundStyle(Theme.textSecondary).lineLimit(1) }
                         Text(track.app).font(Theme.Font.label()).foregroundStyle(Theme.textSecondary)
                     }
@@ -146,7 +146,7 @@ private struct MediaCard: View {
                     Spacer()
                 }
             } else {
-                Text("Nada tocando. Funciona com Música e Spotify.").font(Theme.Font.secondary()).foregroundStyle(Theme.textSecondary)
+                Text("Nada tocando. Funciona com Música e Spotify.").font(Theme.Font.body()).foregroundStyle(Theme.textSecondary)
             }
             if media.automationDenied {
                 Text("Sem permissão de Automação. Libere o Frodo em Ajustes do Sistema > Privacidade e Segurança > Automação.")
@@ -159,14 +159,14 @@ private struct MediaCard: View {
 
     private func cover(_ url: URL?) -> some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Theme.control)
+            RoundedRectangle(cornerRadius: Theme.Radius.row, style: .continuous).fill(Theme.control)
             FrodoIcon(name: "music", size: 24, color: Theme.accentText)
             if let url {
                 AsyncImage(url: url) { image in image.resizable().scaledToFill() } placeholder: { Color.clear }
             }
         }
         .frame(width: 60, height: 60)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.row, style: .continuous))
     }
 
     @ViewBuilder
@@ -205,9 +205,9 @@ private struct SystemCard: View {
     private func row(_ title: String, _ value: String, fraction: Double) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text(title).font(Theme.Font.secondary()).foregroundStyle(Theme.textSecondary)
+                Text(title).font(Theme.Font.body()).foregroundStyle(Theme.textSecondary)
                 Spacer()
-                Text(value).font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text).monospacedDigit()
+                Text(value).font(Theme.Font.body(.medium)).foregroundStyle(Theme.text).monospacedDigit()
             }
             ProgressBar(fraction: fraction, tint: Theme.accent, height: 6)
         }

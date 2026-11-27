@@ -58,7 +58,7 @@ enum Theme {
     static let ok = Color(hex: 0x86EFAC)
     static let warn = Color(hex: 0xFBBF24)
     static let danger = Color(hex: 0xFCA5A5)
-    static let dangerStrong = Color(hex: 0xEF4444)
+    static let dangerStrong = Color(hex: 0xF87171)
     static let opus = Color(hex: 0xD97757)
     static let sonnet = Color(hex: 0xF4C7B5)
     static let haiku = Color(hex: 0xA8553A)
@@ -69,7 +69,7 @@ enum Theme {
     static let geminiFlash = Color(hex: 0x4A7FD8)
     static let otherModel = Color(hex: 0x71717A)
     static let taskFill = Color(hex: 0xE4E4E7)
-    static let amberBorder = Color(hex: 0xFBBF24, opacity: 0.55)
+    static let amberBorder = Color(hex: 0x5C4410)
     static let destructive = Color(hex: 0xB42318)
     static let destructiveHover = Color(hex: 0xC8321F)
 
@@ -93,19 +93,26 @@ enum Theme {
     }
 
     enum Radius {
-        static let panel: CGFloat = 28
+        static let island: CGFloat = 28
         static let card: CGFloat = 18
-        static let item: CGFloat = 12
-        static let pill: CGFloat = 999
+        static let item: CGFloat = 14
+        static let row: CGFloat = 12
+        static let control: CGFloat = 10
+        static let tile: CGFloat = 8
+        static let kbd: CGFloat = 6
+        static let bar: CGFloat = 2
+        static let hairline: CGFloat = 1
+        static let full: CGFloat = 999
     }
 
     enum Font {
         static func label(_ weight: SwiftUI.Font.Weight = .regular) -> SwiftUI.Font { .system(size: 12, weight: weight) }
-        static func secondary(_ weight: SwiftUI.Font.Weight = .regular) -> SwiftUI.Font { .system(size: 13, weight: weight) }
         static func body(_ weight: SwiftUI.Font.Weight = .regular) -> SwiftUI.Font { .system(size: 14, weight: weight) }
-        static func title(_ weight: SwiftUI.Font.Weight = .medium) -> SwiftUI.Font { .system(size: 15, weight: weight) }
-        static func number(_ weight: SwiftUI.Font.Weight = .medium) -> SwiftUI.Font { .system(size: 16, weight: weight, design: .rounded) }
-        static func mono(_ size: CGFloat = 13) -> SwiftUI.Font { .system(size: size, design: .monospaced) }
+        static func title(_ weight: SwiftUI.Font.Weight = .medium) -> SwiftUI.Font { .system(size: 18, weight: weight) }
+        static func number(_ weight: SwiftUI.Font.Weight = .medium) -> SwiftUI.Font { .system(size: 18, weight: weight, design: .rounded) }
+        static func display(_ weight: SwiftUI.Font.Weight = .medium) -> SwiftUI.Font { .system(size: 24, weight: weight) }
+        static func mono() -> SwiftUI.Font { .system(size: 12, design: .monospaced) }
+        static func monoBody() -> SwiftUI.Font { .system(size: 14, design: .monospaced) }
     }
 
     static func color(for level: FrodoLevel) -> Color {

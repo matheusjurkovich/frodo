@@ -20,7 +20,7 @@ extension SettingsView {
                         HStack {
                             StatusDot(color: services.sessions.hooksInstalled() ? Theme.ok : Theme.warn)
                             Text(services.sessions.hooksInstalled() ? "Hook do Claude Code ativo" : "Hook do Claude Code não encontrado")
-                                .font(Theme.Font.secondary()).foregroundStyle(Theme.text)
+                                .font(Theme.Font.body()).foregroundStyle(Theme.text)
                             Spacer()
                         }
                         HooksSetup(services: services)
@@ -74,8 +74,8 @@ extension SettingsView {
             ForEach(settings.claudeProfiles, id: \.id) { item in
                 HStack {
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(item.label).font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text)
-                        Text(item.configDir.replacingOccurrences(of: NSHomeDirectory(), with: "~")).font(Theme.Font.mono(11)).foregroundStyle(Theme.textSecondary)
+                        Text(item.label).font(Theme.Font.body(.medium)).foregroundStyle(Theme.text)
+                        Text(item.configDir.replacingOccurrences(of: NSHomeDirectory(), with: "~")).font(Theme.Font.mono()).foregroundStyle(Theme.textSecondary)
                     }
                     Spacer()
                     IconButton(icon: "minus", size: 26, iconSize: 10) { settings.claudeProfiles = settings.claudeProfiles.filter { $0.id != item.id } }

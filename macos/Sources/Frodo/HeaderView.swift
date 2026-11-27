@@ -18,7 +18,7 @@ struct HeaderView: View {
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 HStack(spacing: 8) {
                     Text(formatClock(context.date, seconds: services.settings.showSeconds)).font(Theme.Font.title()).foregroundStyle(Theme.text).monospacedDigit()
-                    Text(formatDate(context.date)).font(Theme.Font.secondary()).foregroundStyle(Theme.textSecondary)
+                    Text(formatDate(context.date)).font(Theme.Font.body()).foregroundStyle(Theme.textSecondary)
                 }
             }
             .frame(width: 170, alignment: .leading)
@@ -53,7 +53,7 @@ struct HeaderView: View {
         } label: {
             HStack(spacing: 6) {
                 FrodoIcon(name: icon(for: tab), size: 15, color: selected ? Theme.text : Theme.textSecondary)
-                Text(tab.label).font(Theme.Font.secondary(.medium)).foregroundStyle(selected ? Theme.text : Theme.textSecondary)
+                Text(tab.label).font(Theme.Font.body(.medium)).foregroundStyle(selected ? Theme.text : Theme.textSecondary)
                 if tab == .notifications, services.notifications.count > 0 {
                     Text("\(services.notifications.count)").font(Theme.Font.label(.semibold)).foregroundStyle(.white)
                         .padding(.horizontal, 6).frame(minWidth: 18, minHeight: 18).background(Capsule().fill(Theme.accent))
@@ -100,7 +100,7 @@ struct PowerMenu: View {
         .frame(width: 232)
         .background(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous).fill(Theme.card))
         .overlay(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous).stroke(Theme.islandBorder))
-        .shadow(color: .black.opacity(0.4), radius: 20, y: 8)
+        .shadow(color: Theme.shadow.opacity(0.45), radius: 20, y: 8)
     }
 
     private func item(_ title: String, icon: String, tint: Color = Theme.text, action: @escaping () -> Void) -> some View {
@@ -115,7 +115,7 @@ struct PowerMenu: View {
             }
             .padding(.horizontal, 10)
             .frame(height: 36)
-            .hoverBackground(.clear, hover: Theme.controlHover, radius: 10)
+            .hoverBackground(.clear, hover: Theme.controlHover)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -160,7 +160,7 @@ struct CollapsibleCard<Content: View, Summary: View>: View {
                     Text(title).font(Theme.Font.title()).foregroundStyle(Theme.text)
                     if collapsed { summary.transition(.opacity) }
                     Spacer()
-                    if let count { Text("\(count)").font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.textSecondary).monospacedDigit() }
+                    if let count { Text("\(count)").font(Theme.Font.body(.medium)).foregroundStyle(Theme.textSecondary).monospacedDigit() }
                     FrodoIcon(name: "collapse", size: 14, color: Theme.textSecondary).rotationEffect(.degrees(collapsed ? 180 : 0))
                 }
                 .contentShape(Rectangle())

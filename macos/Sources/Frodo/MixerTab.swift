@@ -30,7 +30,7 @@ struct MixerTab: View {
                             icon: "mic", mutedIcon: "mic-off", name: input.name, level: volume.inputLevel ?? 1, muted: volume.isInputMuted,
                             setLevel: { volume.setInputLevel($0) }, setMuted: { _ = volume.setInputMuted($0) }
                         )
-                        Text("Usando o microfone agora").font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text).padding(.top, 4)
+                        Text("Usando o microfone agora").font(Theme.Font.body(.medium)).foregroundStyle(Theme.text).padding(.top, 4)
                         recorders(volume.recordingApps)
                     }
                 }
@@ -92,7 +92,7 @@ private struct VolumeControl: View {
                 setLevel(value / 100)
             }))
             .opacity(muted ? 0.4 : 1)
-            Text(volumeLabel(level: level, muted: muted)).font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text).monospacedDigit()
+            Text(volumeLabel(level: level, muted: muted)).font(Theme.Font.body(.medium)).foregroundStyle(Theme.text).monospacedDigit()
                 .frame(width: 44, alignment: .trailing)
         }
     }
