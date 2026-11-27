@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.1](https://github.com/matheusjurkovich/frodo/compare/linux-v1.5.0...linux-v1.5.1) (2026-11-27)
+
+
+### Correções
+
+* vidro do fosco e do translúcido com estado, contraste e cobertura ([ef19893](https://github.com/matheusjurkovich/frodo/commit/ef198936c6d8cbc7350e8121051b95cf7d1014a3))
+
 ## [1.5.0](https://github.com/matheusjurkovich/frodo/compare/linux-v1.4.1...linux-v1.5.0) (2026-11-27)
 
 
