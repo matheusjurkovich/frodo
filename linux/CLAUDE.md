@@ -6,7 +6,7 @@ Guia deste repositório para o Claude Code.
 
 Extensão do GNOME Shell 50 (Wayland) em TypeScript: uma dynamic island no topo da tela. Fechada, é a pílula (hora, bateria,
 RAM, uso do Claude Code, Codex e Gemini CLI e atividades como gravação, reunião e música). Aberta, é a ilha com as abas
-Geral, Calendário, Áreas de trabalho, IA, Notificações, Desempenho, Mixer e GitHub (só a selecionada mostra o nome no cabeçalho), mais configurações e menu de energia. Roda dentro do `gnome-shell`, sem processo extra.
+Geral, Calendário, Áreas de trabalho, IA, Notificações, Desempenho, Mixer e GitHub (Áreas, Mixer e Desempenho desligadas por padrão; com até 5 abas todas mostram o nome no cabeçalho, com mais só a selecionada), mais configurações e menu de energia. Roda dentro do `gnome-shell`, sem processo extra.
 Produto, abas e prioridade da pílula: `README.md` (desta pasta). Este diretório é a versão Linux do monorepo; o guia geral está
 em `../CLAUDE.md`.
 

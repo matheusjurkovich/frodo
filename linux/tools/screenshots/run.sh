@@ -80,6 +80,7 @@ hook '{"session_id":"frodo","cwd":"/home/demo/frodo","hook_event_name":"UserProm
 hook '{"session_id":"api","cwd":"/home/demo/api","hook_event_name":"UserPromptSubmit","prompt":"revise o pr"}'
 hook '{"session_id":"api","cwd":"/home/demo/api","hook_event_name":"Stop"}'
 sleep 3
+ev "probe.showAllTabs('$EXTENSION_ID')" > /dev/null
 ev 'probe.clearNotifications()' > /dev/null
 ev 'probe.maskWifi()' > /dev/null
 ev 'probe.away()' > /dev/null

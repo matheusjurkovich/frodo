@@ -1,46 +1,41 @@
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
-import Pango from 'gi://Pango';
 import St from 'gi://St';
-import {initials, reviewMeta, updatedText} from '../../features/github/github.js';
+import {initials, updatedText} from '../../features/github/github.js';
 import type {GitHubService} from '../../features/github/github-service.js';
-import type {ClassifiedPr} from '../../features/github/github.types.js';
 import type {FrodoSettings} from '../../settings/frodo-settings.js';
 import {Disposables} from '../../shared/disposables.js';
 import {formatClock} from '../../shared/format.js';
 import type {IslandHandle} from '../../shared/island-handle.types.js';
 import {openTerminal} from '../../shared/terminal.js';
 import {Timer} from '../../shared/timer.js';
-import {contentButton, iconButton, textButton} from '../../shared/ui/buttons.js';
+import {iconButton, textButton} from '../../shared/ui/buttons.js';
 import {card, cardHeading, emptyState} from '../../shared/ui/card.js';
 import {FaultBanner} from '../../shared/ui/fault-banner.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
-import {column, dimLabel, grid, label, packGrid, row, wrappedLabel} from '../../shared/ui/layout.js';
+import {column, dimLabel, label, row, wrappedLabel} from '../../shared/ui/layout.js';
 import {whileMapped} from '../../shared/ui/lifecycle.js';
 import type {Component} from '../../shared/ui/lifecycle.types.js';
 import {Segmented} from '../../shared/ui/segmented.js';
-import {FILTERS, STATUS_TEXTS, TICK_SECONDS, TILES} from './github-page.const.js';
+import {FILTERS, STATUS_TEXTS, TICK_SECONDS} from './github-page.const.js';
 import type {GitHubFilter, GitHubPageDependencies} from './github-page.types.js';
 import {PrRow} from './pr-row.js';
 
 export class GitHubPage implements Component {
-    readonly actor = row('frodo-cols frodo-github');
+    readonly actor = column('frodo-section frodo-github');
     readonly #github: GitHubService;
     readonly #settings: FrodoSettings;
     readonly #island: IslandHandle;
     readonly #openSettings: () => void;
     readonly #banner = new FaultBanner();
     readonly #updated = dimLabel();
-    readonly #filters = new Segmented<GitHubFilter>(FILTERS, 'all', 'frodo-github-filters', true);
+    readonly #filters = new Segmented<GitHubFilter>(FILTERS, 'all', 'frodo-filters', true);
     readonly #error = wrappedLabel('', 'frodo-github-error');
     readonly #list = column('frodo-github-list');
     readonly #empty = emptyState('Nenhum pull request neste filtro.');
     readonly #state = column('frodo-github-state');
     readonly #stateText = wrappedLabel('', 'frodo-github-state-text');
     readonly #stateButton: St.Button;
-    readonly #tiles = new Map<GitHubFilter, {button: St.Button; count: St.Label}>();
-    readonly #reviews = column('frodo-github-reviews');
-    readonly #noReviews = dimLabel('Ninguém pediu sua revisão agora.');
     readonly #avatar = label('', 'frodo-github-avatar');
     readonly #login = label('', 'frodo-github-login');
     readonly #accountSub = wrappedLabel('', 'frodo-dim');
@@ -75,7 +70,7 @@ export class GitHubPage implements Component {
                 () => {
                     github.refresh();
                 },
-                'ghost',
+                'control',
                 32,
             ),
         );
@@ -97,43 +92,7 @@ export class GitHubPage implements Component {
         for (const child of [head, this.#banner.actor, this.#filters.actor, this.#error, this.#state, this.#list, this.#empty])
             main.add_child(child);
 
-        const side = column('frodo-section frodo-github-side');
-        side.x_expand = false;
-        side.y_align = Clutter.ActorAlign.START;
-
-        const needs = card('frodo-github-card');
-        needs.add_child(cardHeading('Precisam de você'));
-        const tiles = grid(8);
-        for (const {id, label: text} of TILES) {
-            const content = column('frodo-github-tile-content');
-            const count = label('0', 'frodo-github-tile-count');
-            content.add_child(count);
-            content.add_child(label(text, 'frodo-github-tile-label'));
-            const button = contentButton(
-                `frodo-github-tile frodo-github-kind-${id}`,
-                content,
-                () => {
-                    this.#pick(this.#filter === id ? 'all' : id);
-                },
-                {x_expand: true},
-            );
-            this.#tiles.set(id, {button, count});
-        }
-        this.#disposables.add(
-            packGrid(
-                tiles,
-                [...this.#tiles.values()].map(({button}) => button),
-                2,
-            ),
-        );
-        needs.add_child(tiles);
-
-        const reviews = card('frodo-github-card');
-        reviews.add_child(cardHeading('Revisões pedidas a você'));
-        reviews.add_child(this.#reviews);
-        reviews.add_child(this.#noReviews);
-
-        const account = card('frodo-github-card');
+        const account = card('frodo-github-account-card');
         const accountRow = row('frodo-github-account');
         const who = column('frodo-github-who');
         who.x_expand = true;
@@ -155,9 +114,8 @@ export class GitHubPage implements Component {
         );
         account.add_child(accountRow);
 
-        for (const child of [needs, reviews, account]) side.add_child(child);
         this.actor.add_child(main);
-        this.actor.add_child(side);
+        this.actor.add_child(account);
 
         this.#disposables.add(
             whileMapped(
@@ -224,13 +182,6 @@ export class GitHubPage implements Component {
         const counts: Partial<Record<GitHubFilter, number>> = {all: pulls.length};
         for (const pr of pulls) if (pr.kind !== 'ready') counts[pr.kind] = (counts[pr.kind] ?? 0) + 1;
         this.#filters.setCounts(counts);
-        for (const [id, {button, count}] of this.#tiles) {
-            const n = counts[id] ?? 0;
-            count.text = String(n);
-            button.checked = this.#filter === id;
-            if (n === 0) button.add_style_class_name('frodo-github-tile-zero');
-            else button.remove_style_class_name('frodo-github-tile-zero');
-        }
 
         for (const old of this.#rows) old.destroy();
         const shown = hasData ? pulls.filter(pr => this.#filter === 'all' || pr.kind === this.#filter) : [];
@@ -264,7 +215,6 @@ export class GitHubPage implements Component {
         for (const prRow of this.#rows) this.#list.add_child(prRow.actor);
         this.#empty.visible = hasData && shown.length === 0;
 
-        this.#syncReviews(pulls.filter(pr => pr.kind === 'review'));
         this.#login.text = github.login ?? 'GitHub';
         this.#avatar.text = initials(github.login ?? '');
         const scope =
@@ -307,33 +257,6 @@ export class GitHubPage implements Component {
         if (this.#settings.githubAuth === 'gh' && openTerminal(['gh', 'auth', 'login', '--web'])) this.#island.close();
         else this.#openSettings();
         this.#github.refresh();
-    }
-
-    #syncReviews(reviews: readonly ClassifiedPr[]): void {
-        this.#reviews.destroy_all_children();
-        this.#noReviews.visible = reviews.length === 0;
-        for (const pr of reviews) {
-            const line = row('frodo-github-review');
-            const avatar = label(initials(pr.author), 'frodo-github-avatar');
-            avatar.y_align = Clutter.ActorAlign.CENTER;
-            const text = column('frodo-github-review-text');
-            text.x_expand = true;
-            const title = label(pr.title, 'frodo-github-review-title');
-            title.clutter_text.ellipsize = Pango.EllipsizeMode.END;
-            const meta = label(reviewMeta(pr, Date.now()), 'frodo-dim');
-            meta.clutter_text.ellipsize = Pango.EllipsizeMode.END;
-            text.add_child(title);
-            text.add_child(meta);
-            line.add_child(avatar);
-            line.add_child(text);
-            line.add_child(
-                textButton('Ver', () => {
-                    this.#open = pr.key;
-                    this.#pick('review');
-                }),
-            );
-            this.#reviews.add_child(line);
-        }
     }
 
     destroy(): void {

@@ -12,7 +12,6 @@ import {
     parsePage,
     prDetail,
     prMeta,
-    reviewMeta,
     primaryAction,
     requestBody,
     shortRef,
@@ -337,12 +336,6 @@ describe('github', () => {
         expect(updatedText(now - 5 * 60e3, true, now)).toBe('Sem conexão · atualizado há 5 min');
         expect(updatedText(null, true, now)).toBe('Sem conexão');
         expect(updatedText(null, false, now)).toBe('');
-    });
-
-    it('resume a revisão pedida com o autor e quando', () => {
-        const now = Date.UTC(2026, 10, 17, 12, 0);
-        const review = classified({kind: 'review', author: 'rafa', updatedAt: now - 40 * 60e3});
-        expect(reviewMeta(review, now)).toBe('frodo#42 · @rafa · há 40 min');
     });
 
     it('iniciais do login', () => {

@@ -39,8 +39,16 @@ export class GeneralSection implements SettingsSection {
     #behavior(): St.BoxLayout {
         const bindings = this.#bindings;
         return group('Comportamento', [
-            bindings.toggleLine('Abrir ao passar o mouse', null, 'openOnHover'),
-            bindings.toggleLine('Recolher sozinha após 5 s', 'Quando aberta por clique ou atalho', 'autoClose'),
+            bindings.toggleLine(
+                'Abrir ao passar o mouse',
+                'Só abre com o mouse parado 300 ms sobre a pílula, para não abrir quando você mira as abas do navegador.',
+                'openOnHover',
+            ),
+            bindings.toggleLine(
+                'Recolher sozinha quando o mouse sai',
+                'Espera 5 s depois que o mouse sai. Nunca recolhe com o foco do teclado dentro da ilha.',
+                'autoClose',
+            ),
             bindings.toggleLine('Mostrar segundos no relógio', null, {settings: this.#deps.interfaceSettings, key: SHOW_SECONDS_KEY}),
         ]);
     }
@@ -48,7 +56,12 @@ export class GeneralSection implements SettingsSection {
     #shortcuts(): St.BoxLayout {
         return group(
             'Atalhos',
-            [this.#shortcutRow('Abrir e fechar a ilha', 'toggle-shortcut'), this.#shortcutRow('Abrir na aba IA', 'claude-shortcut')],
+            [
+                this.#shortcutRow('Abrir e fechar a ilha', 'toggle-shortcut'),
+                this.#shortcutRow('Abrir na aba IA', 'claude-shortcut'),
+                this.#shortcutRow('Permitir o pedido do Claude', 'allow-shortcut'),
+                this.#shortcutRow('Negar o pedido do Claude', 'deny-shortcut'),
+            ],
             'Clique em Alterar e pressione a nova combinação. Esc cancela.',
         );
     }
@@ -66,7 +79,18 @@ export class GeneralSection implements SettingsSection {
     }
 
     #shortcut(key: ShortcutKey): string {
-        return key === 'toggle-shortcut' ? this.#deps.settings.toggleShortcut : this.#deps.settings.claudeShortcut;
+        const settings = this.#deps.settings;
+        if (key === 'toggle-shortcut') return settings.toggleShortcut;
+        if (key === 'claude-shortcut') return settings.claudeShortcut;
+        return key === 'allow-shortcut' ? settings.allowShortcut : settings.denyShortcut;
+    }
+
+    #setShortcut(key: ShortcutKey, shortcut: string): void {
+        const settings = this.#deps.settings;
+        if (key === 'toggle-shortcut') settings.toggleShortcut = shortcut;
+        else if (key === 'claude-shortcut') settings.claudeShortcut = shortcut;
+        else if (key === 'allow-shortcut') settings.allowShortcut = shortcut;
+        else settings.denyShortcut = shortcut;
     }
 
     #showShortcut(key: ShortcutKey): void {
@@ -97,11 +121,10 @@ export class GeneralSection implements SettingsSection {
                           alt: (state & Clutter.ModifierType.MOD1_MASK) !== 0,
                           shift: (state & Clutter.ModifierType.SHIFT_MASK) !== 0,
                       });
-            const other = key === 'toggle-shortcut' ? 'claude-shortcut' : 'toggle-shortcut';
-            const claim = shortcut === null ? 'unchanged' : claimShortcut(shortcut, this.#shortcut(key), this.#shortcut(other));
+            const others = [...this.#kbds.keys()].filter(other => other !== key).map(other => this.#shortcut(other));
+            const claim = shortcut === null ? 'unchanged' : claimShortcut(shortcut, this.#shortcut(key), others);
             if (claim === 'free' && shortcut !== null) {
-                if (key === 'toggle-shortcut') this.#deps.settings.toggleShortcut = shortcut;
-                else this.#deps.settings.claudeShortcut = shortcut;
+                this.#setShortcut(key, shortcut);
             } else {
                 this.#syncShortcuts();
                 if (claim === 'taken') this.#warn(kbd);
@@ -115,7 +138,7 @@ export class GeneralSection implements SettingsSection {
     }
 
     #warn(kbd: St.Label): void {
-        kbd.text = 'Já usado na outra ação';
+        kbd.text = 'Já usado em outra ação';
         this.#notice.once(NOTICE_MS, () => {
             this.#syncShortcuts();
         });

@@ -65,7 +65,7 @@ export class ProcessTable implements Component {
             this.#columns.set(id, heading);
             this.#headers.add_child(heading);
         }
-        this.#headers.add_child(label('Ações', 'frodo-perf-col-action'));
+        this.#headers.add_child(label('', 'frodo-perf-col-action'));
         this.actor.add_child(this.#headers);
 
         this.#rows.add_child(this.#loading);

@@ -52,6 +52,7 @@ export class ProcessRow implements Component {
             'ghost',
             32,
         );
+        this.#ask.add_style_class_name('frodo-perf-ask');
         this.actor.add_child(this.#action);
     }
 

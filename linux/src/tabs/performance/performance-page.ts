@@ -14,10 +14,10 @@ import {ProcessTable} from './process-table.js';
 export class PerformancePage implements Component {
     readonly actor = column('frodo-performance');
     readonly #disposables = new Disposables();
-    readonly #cpu = new MetricCard('CPU', 'spark');
-    readonly #memory = new MetricCard('Memória', 'bar');
-    readonly #gpu = new MetricCard('GPU', 'spark');
-    readonly #disk = new MetricCard('Disco', 'bar');
+    readonly #cpu = new MetricCard('CPU', 'cpu', 'spark');
+    readonly #memory = new MetricCard('Memória', 'memory', 'bar');
+    readonly #gpu = new MetricCard('GPU', 'graphics-card', 'spark');
+    readonly #disk = new MetricCard('Disco', 'hard-drives', 'bar');
     readonly #table: ProcessTable;
 
     constructor(monitor: PerformanceMonitor, island: IslandHandle) {

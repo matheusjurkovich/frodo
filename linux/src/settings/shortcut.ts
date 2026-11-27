@@ -17,7 +17,7 @@ export function shortcutLabel(accelerator: string): string {
         .join(' + ');
 }
 
-export function claimShortcut(candidate: string, current: string, other: string): ShortcutClaim {
+export function claimShortcut(candidate: string, current: string, others: readonly string[]): ShortcutClaim {
     if (candidate === current) return 'unchanged';
-    return candidate === other ? 'taken' : 'free';
+    return others.includes(candidate) ? 'taken' : 'free';
 }

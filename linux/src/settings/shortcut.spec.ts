@@ -26,9 +26,9 @@ describe('shortcut', () => {
         expect(shortcutLabel('')).toBe('');
     });
 
-    it('recusa a combinação que a outra ação já usa', () => {
-        expect(claimShortcut('<Super>x', '<Super>z', '<Super>x')).toBe('taken');
-        expect(claimShortcut('<Super>x', '<Super>z', '<Super>c')).toBe('free');
-        expect(claimShortcut('<Super>z', '<Super>z', '<Super>c')).toBe('unchanged');
+    it('recusa a combinação que outra ação já usa', () => {
+        expect(claimShortcut('<Super>x', '<Super>z', ['<Super>c', '<Super>x'])).toBe('taken');
+        expect(claimShortcut('<Super>x', '<Super>z', ['<Super>c', '<Super>v'])).toBe('free');
+        expect(claimShortcut('<Super>z', '<Super>z', ['<Super>c'])).toBe('unchanged');
     });
 });

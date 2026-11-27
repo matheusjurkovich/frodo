@@ -34,6 +34,14 @@ export class ActivityView implements Component {
         return this.#row?.hasAction ?? false;
     }
 
+    get leadsRound(): boolean {
+        const first = this.#row?.children[0];
+        return (
+            first instanceof St.Widget &&
+            (first.has_style_class_name('frodo-pill-circle') || first.has_style_class_name('frodo-pill-cover'))
+        );
+    }
+
     get clickTab(): TabId | null {
         return this.#row?.clickTab ?? null;
     }

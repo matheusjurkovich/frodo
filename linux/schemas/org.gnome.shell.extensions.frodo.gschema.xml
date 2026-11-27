@@ -100,7 +100,7 @@
       <default>false</default>
     </key>
     <key name="hidden-tabs" type="as">
-      <default>[]</default>
+      <default>['workspaces', 'mixer', 'performance']</default>
     </key>
     <key name="collapsed-cards" type="as">
       <default>[]</default>
@@ -117,7 +117,7 @@
       <default>10</default>
     </key>
     <key name="tab-order" type="as">
-      <default>['general', 'calendar', 'workspaces', 'claude', 'notifications', 'performance', 'mixer']</default>
+      <default>['general', 'claude', 'github', 'notifications', 'calendar', 'workspaces', 'mixer', 'performance']</default>
     </key>
     <key name="peek-clock" type="b">
       <default>true</default>

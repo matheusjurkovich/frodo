@@ -53,4 +53,13 @@ export type FrodoIconName =
     | 'volume-off'
     | 'mic'
     | 'check'
-    | 'alert';
+    | 'alert'
+    | 'sparkle'
+    | 'monitor'
+    | 'pill'
+    | 'app-window'
+    | 'arrow-left'
+    | 'cpu'
+    | 'memory'
+    | 'graphics-card'
+    | 'hard-drives';

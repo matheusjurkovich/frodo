@@ -8,7 +8,7 @@ import {frodoIcon} from '../../shared/ui/icons.js';
 import {column, label, row, wrappedLabel} from '../../shared/ui/layout.js';
 import type {Component} from '../../shared/ui/lifecycle.types.js';
 import {Wrap} from '../../shared/ui/wrap.js';
-import {CHECK_LABELS} from './pr-row.const.js';
+import {CHECK_ICONS, CHECK_LABELS} from './pr-row.const.js';
 import type {PrRowOptions} from './pr-row.types.js';
 
 export class PrRow implements Component {
@@ -21,7 +21,11 @@ export class PrRow implements Component {
 
         const head = row('frodo-github-pr-head');
         head.add_child(
-            new St.Icon({gicon: frodoIcon(`pr-${pr.kind}`), style_class: 'frodo-github-pr-icon', y_align: Clutter.ActorAlign.START}),
+            new St.Bin({
+                style_class: 'frodo-github-pr-badge',
+                y_align: Clutter.ActorAlign.START,
+                child: new St.Icon({gicon: frodoIcon(`pr-${pr.kind}`), style_class: 'frodo-github-pr-icon'}),
+            }),
         );
         const text = column('frodo-github-pr-text');
         text.x_expand = true;
@@ -39,6 +43,13 @@ export class PrRow implements Component {
         tags.add_child(meta);
         for (const child of [title, ref, tags]) text.add_child(child);
         head.add_child(text);
+        head.add_child(
+            new St.Icon({
+                gicon: frodoIcon(expanded ? 'collapse' : 'expand'),
+                style_class: 'frodo-github-pr-chevron',
+                y_align: Clutter.ActorAlign.START,
+            }),
+        );
         this.actor.add_child(
             contentButton(
                 'frodo-github-pr-toggle',
@@ -73,13 +84,23 @@ export class PrRow implements Component {
         const body = column('frodo-github-detail');
         body.add_child(box);
         if (pr.checks.length > 0) {
-            body.add_child(label('Checks', 'frodo-card-title'));
-            this.#wrap = new Wrap(
-                'frodo-github-checks',
-                pr.checks.map(check =>
-                    label(`${check.name} · ${CHECK_LABELS[check.state]}`, `frodo-github-check frodo-github-check-${check.state}`),
-                ),
-            );
+            this.#wrap = new Wrap('frodo-github-checks', [
+                label('Checks', 'frodo-dim frodo-github-checks-title'),
+                ...pr.checks.map(check => {
+                    const item = row(`frodo-github-check frodo-github-check-${check.state}`);
+                    item.x_expand = false;
+                    item.accessible_name = `${check.name}, ${CHECK_LABELS[check.state]}`;
+                    item.add_child(
+                        new St.Icon({
+                            gicon: frodoIcon(CHECK_ICONS[check.state]),
+                            style_class: 'frodo-github-check-icon',
+                            y_align: Clutter.ActorAlign.CENTER,
+                        }),
+                    );
+                    item.add_child(label(check.name, 'frodo-github-check-name'));
+                    return item;
+                }),
+            ]);
             body.add_child(this.#wrap.actor);
         }
         const buttons = row('frodo-github-actions');
@@ -99,7 +120,7 @@ export class PrRow implements Component {
                 () => {
                     actions.toggleMute(pr.key);
                 },
-                'ghost',
+                'control',
             ),
         );
         body.add_child(buttons);

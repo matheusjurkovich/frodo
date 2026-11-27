@@ -5,7 +5,7 @@ import {Emitter} from '../shared/emitter.js';
 import {chip, contentButton} from '../shared/ui/buttons.js';
 import {frodoIcon} from '../shared/ui/icons.js';
 import {SlidingIndicator} from '../shared/ui/sliding-indicator.js';
-import {TAB_SPECS} from './tab-bar.const.js';
+import {NAMED_TABS_MAX, TAB_SPECS} from './tab-bar.const.js';
 import type {TabItem} from './tab-bar.types.js';
 
 export class TabBar extends Emitter<{selected: [TabId]}> {
@@ -14,6 +14,7 @@ export class TabBar extends Emitter<{selected: [TabId]}> {
     readonly #indicator = new SlidingIndicator('frodo-tab-indicator', this.#row, () => this.#selected);
     readonly #items = new Map<TabId, TabItem>();
     #selected: St.Button | null = null;
+    #named = false;
 
     constructor() {
         super();
@@ -45,6 +46,8 @@ export class TabBar extends Emitter<{selected: [TabId]}> {
 
     setVisible(ids: readonly TabId[]): void {
         for (const [id, {button}] of this.#items) button.visible = ids.includes(id);
+        this.#named = ids.length <= NAMED_TABS_MAX;
+        for (const {button, label} of this.#items.values()) label.visible = this.#named || button.checked;
         ids.forEach((id, index) => {
             const button = this.#items.get(id)?.button;
             if (button) this.#row.set_child_at_index(button, index);
@@ -54,7 +57,7 @@ export class TabBar extends Emitter<{selected: [TabId]}> {
     select(id: TabId | null, animate = false): void {
         for (const [tab, {button, label}] of this.#items) {
             button.checked = tab === id;
-            label.visible = tab === id;
+            label.visible = this.#named || tab === id;
         }
         this.#selected = id === null ? null : (this.#items.get(id)?.button ?? null);
         this.#indicator.place(animate);
