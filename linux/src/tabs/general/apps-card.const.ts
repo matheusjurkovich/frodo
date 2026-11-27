@@ -1,4 +1,4 @@
-export const COLUMNS = 4;
+export const COLUMNS = 6;
 export const SPACING = 6;
 export const ICON_SIZE = 32;
 export const SUMMARY_ICON_SIZE = 20;

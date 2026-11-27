@@ -7,4 +7,4 @@ export interface SliderSlots {
     readonly menu: St.Bin;
 }
 
-export type Toggle = Clutter.Actor & {subtitle: string | null; checked: boolean};
+export type Toggle = Clutter.Actor & {title: string | null; subtitle: string | null; checked: boolean};
