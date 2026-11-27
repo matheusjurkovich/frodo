@@ -82,7 +82,7 @@ struct ReorderableList<Item: Hashable, Row: View>: View {
         if let drag {
             cell(drag.item, index: drag.target, interactive: false)
                 .frame(width: drag.size.width, height: drag.size.height)
-                .background(RoundedRectangle(cornerRadius: Theme.Radius.item, style: .continuous).fill(Theme.controlHover))
+                .background(RoundedRectangle(cornerRadius: Theme.Radius.row, style: .continuous).fill(Theme.controlHover))
                 .shadow(color: Theme.shadow.opacity(0.3 * Theme.shadowStrength), radius: 8, y: 3)
                 .offset(x: drag.location.x - drag.grab.width, y: drag.location.y - drag.grab.height)
                 .allowsHitTesting(false)
@@ -94,7 +94,7 @@ struct ReorderableList<Item: Hashable, Row: View>: View {
         let content = HStack(spacing: 8) {
             handle(item, interactive: interactive)
             arrows(item)
-            Text("\(index + 1)").font(Theme.Font.mono(11)).foregroundStyle(Theme.textSecondary)
+            Text("\(index + 1)").font(Theme.Font.mono()).foregroundStyle(Theme.textSecondary)
             row(item)
         }
         if axis == .vertical {
@@ -113,7 +113,7 @@ struct ReorderableList<Item: Hashable, Row: View>: View {
         let grip = FrodoIcon(name: "grip", size: 14, color: Theme.textSecondary)
             .frame(width: 24, height: 28)
             .background(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                RoundedRectangle(cornerRadius: Theme.Radius.kbd, style: .continuous)
                     .stroke(interactive && focused == item ? Theme.accent : Color.clear, lineWidth: 1.5)
             )
             .contentShape(Rectangle())

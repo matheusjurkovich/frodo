@@ -47,7 +47,7 @@ struct CalendarTab: View {
                 let isToday = calendar.isDateInToday(date)
                 Button { withAnimation(Motion.standard) { selected = date } } label: {
                     VStack(spacing: 2) {
-                        Text("\(day)").font(Theme.Font.secondary(.medium)).foregroundStyle(isSelected ? .white : Theme.text)
+                        Text("\(day)").font(Theme.Font.body(.medium)).foregroundStyle(isSelected ? .white : Theme.text)
                         Circle().fill(withEvents.contains(day) ? (isSelected ? Color.white : Theme.accentText) : .clear).frame(width: 4, height: 4)
                     }
                     .frame(height: 38)
@@ -83,14 +83,14 @@ struct CalendarTab: View {
             switch services.calendar.access {
             case .denied:
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Sem acesso ao Calendário. Libere em Ajustes do Sistema para ver os eventos.").font(Theme.Font.secondary()).foregroundStyle(Theme.textSecondary)
+                    Text("Sem acesso ao Calendário. Libere em Ajustes do Sistema para ver os eventos.").font(Theme.Font.body()).foregroundStyle(Theme.textSecondary)
                     TextButton(title: "Abrir Ajustes", kind: .primary) { launchExternal { SystemActions.openSystemSettings(pane: "com.apple.preference.security?Privacy_Calendars") } }
                 }
             case .unknown:
                 TextButton(title: "Permitir acesso ao Calendário", kind: .primary) { Task { await services.calendar.requestAccess() } }
             case .granted:
                 if events.isEmpty {
-                    Text("Nenhuma reunião neste dia").font(Theme.Font.secondary()).foregroundStyle(Theme.textSecondary).frame(maxWidth: .infinity, minHeight: 80)
+                    Text("Nenhuma reunião neste dia").font(Theme.Font.body()).foregroundStyle(Theme.textSecondary).frame(maxWidth: .infinity, minHeight: 80)
                 } else {
                     ForEach(events) { event in EventRow(event: event) }
                 }
@@ -109,7 +109,7 @@ private struct EventRow: View {
                 Circle().fill(Color(hexString: event.colorHex)).frame(width: 8, height: 8).padding(.top, 6)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(event.isAllDay ? "Dia inteiro" : "\(event.start.formatted(.dateTime.hour().minute(.twoDigits))) – \(event.end.formatted(.dateTime.hour().minute(.twoDigits)))")
-                        .font(Theme.Font.mono(12)).foregroundStyle(Theme.textSecondary)
+                        .font(Theme.Font.mono()).foregroundStyle(Theme.textSecondary)
                     Text(event.title).font(Theme.Font.body(.medium)).foregroundStyle(Theme.text).lineLimit(2)
                     if !event.location.isEmpty { Text(event.location).font(Theme.Font.label()).foregroundStyle(Theme.textSecondary).lineLimit(1) }
                 }

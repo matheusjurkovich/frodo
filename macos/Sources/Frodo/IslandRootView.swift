@@ -45,7 +45,7 @@ struct IslandRootView: View {
     var body: some View {
         let _ = services.revisions.settings
         let size = model.targetSize
-        let radius = model.isOpen ? Theme.Radius.panel : min(min(size.width, size.height) / 2, model.position.isSideEdge ? 24 : 26)
+        let radius = model.isOpen ? Theme.Radius.island : min(min(size.width, size.height) / 2, model.position.isSideEdge ? 24 : 26)
         ZStack(alignment: model.position.alignment) {
             RoundedRectangle(cornerRadius: radius, style: .continuous)
                 .fill(Theme.island)

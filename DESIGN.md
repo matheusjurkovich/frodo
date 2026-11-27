@@ -258,7 +258,8 @@ components:
 Fonte única das telas e componentes do Frodo. Vale para o canvas de design, para a extensão Linux (`linux/stylesheet.css`) e
 para o app macOS, que replica estes valores. Os tokens do cabeçalho YAML são normativos; o texto explica como aplicá-los.
 `linux/tools/design-tokens.test.sh` (dentro do `npm run check`) falha se o `stylesheet.css` usar cor, tamanho de fonte ou
-raio que não esteja aqui. Valor novo entra primeiro neste arquivo, com papel nomeado, e só depois no CSS ou no canvas.
+raio que não esteja aqui, e `DesignTokensTests` (`macos/Tests/FrodoPlatformTests`) faz o mesmo com o `Theme.swift`. Valor
+novo entra primeiro neste arquivo, com papel nomeado, e só depois no CSS, no `Theme.swift` ou no canvas.
 
 ## Overview
 

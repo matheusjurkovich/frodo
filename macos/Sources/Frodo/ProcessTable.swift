@@ -42,7 +42,7 @@ struct ProcessTable: View {
             VStack(spacing: 0) {
                 header
                 if loading {
-                    Text("Lendo o uso do sistema…").font(Theme.Font.secondary()).foregroundStyle(Theme.textSecondary).padding(.vertical, 6)
+                    Text("Lendo o uso do sistema…").font(Theme.Font.body()).foregroundStyle(Theme.textSecondary).padding(.vertical, 6)
                 }
                 ForEach(rows, id: \.pid) { process in
                     let app = services.apps.apps.first { $0.id == process.pid }
@@ -112,7 +112,7 @@ private struct ProcessConfirm: View {
     var body: some View {
         HStack(spacing: 8) {
             Text("Encerrar \(name)? O que não foi salvo nele pode se perder.")
-                .font(Theme.Font.secondary())
+                .font(Theme.Font.body())
                 .foregroundStyle(Theme.Performance.confirmText)
                 .frame(maxWidth: .infinity, alignment: .leading)
             TextButton(title: "Cancelar", compact: true, action: cancel)
@@ -120,6 +120,6 @@ private struct ProcessConfirm: View {
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 10)
-        .background(RoundedRectangle(cornerRadius: Theme.Radius.item, style: .continuous).fill(Theme.Performance.confirmBackground))
+        .background(RoundedRectangle(cornerRadius: Theme.Radius.row, style: .continuous).fill(Theme.Performance.confirmBackground))
     }
 }

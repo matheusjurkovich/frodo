@@ -17,7 +17,7 @@ struct HoverBackground: ViewModifier {
 
 extension View {
     @MainActor
-    func hoverBackground(_ base: Color = Theme.control, hover: Color = Theme.controlHover, radius: CGFloat = Theme.Radius.item) -> some View {
+    func hoverBackground(_ base: Color = Theme.control, hover: Color = Theme.controlHover, radius: CGFloat = Theme.Radius.row) -> some View {
         modifier(HoverBackground(base: base, hover: hover, radius: radius))
     }
 }
@@ -99,7 +99,7 @@ struct TileButton<Label: View>: View {
             VStack(spacing: 6) { label }
                 .frame(maxWidth: .infinity)
                 .frame(height: 64)
-                .hoverBackground(highlighted ? Theme.accent : Theme.control)
+                .hoverBackground(highlighted ? Theme.accent : Theme.control, radius: Theme.Radius.card)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -118,7 +118,7 @@ struct IconButton: View {
         Button(action: action) {
             FrodoIcon(name: icon, size: iconSize, color: tint)
                 .frame(width: size, height: size)
-                .hoverBackground(Theme.control, radius: size / 2)
+                .hoverBackground(Theme.control, radius: Theme.Radius.full)
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
@@ -138,11 +138,11 @@ struct TextButton: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(Theme.Font.secondary(.medium))
+                .font(Theme.Font.body(.medium))
                 .foregroundStyle(kind == .primary || kind == .destructive ? Color.white : (kind == .danger ? Theme.danger : Theme.text))
                 .padding(.horizontal, compact ? 10 : 14)
                 .frame(height: compact ? 26 : 32)
-                .hoverBackground(fill, hover: hoverFill, radius: compact ? 13 : 16)
+                .hoverBackground(fill, hover: hoverFill, radius: Theme.Radius.full)
         }
         .buttonStyle(.plain)
         .opacity(isEnabled ? 1 : 0.4)
@@ -291,12 +291,12 @@ struct FrodoCheckbox: View {
         } label: {
             HStack(spacing: 8) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 5, style: .continuous).fill(isOn ? Theme.accent : Theme.control)
-                        .overlay(RoundedRectangle(cornerRadius: 5, style: .continuous).stroke(Theme.textSecondary.opacity(isOn ? 0 : 0.5), lineWidth: 1))
-                    if isOn { Image(systemName: "checkmark").font(.system(size: 10, weight: .bold)).foregroundStyle(.white) }
+                    RoundedRectangle(cornerRadius: Theme.Radius.kbd, style: .continuous).fill(isOn ? Theme.accent : Theme.control)
+                        .overlay(RoundedRectangle(cornerRadius: Theme.Radius.kbd, style: .continuous).stroke(Theme.textSecondary.opacity(isOn ? 0 : 0.5), lineWidth: 1))
+                    if isOn { Image(systemName: "checkmark").font(Theme.Font.label(.bold)).foregroundStyle(.white) }
                 }
                 .frame(width: 18, height: 18)
-                Text(title).font(Theme.Font.secondary()).foregroundStyle(Theme.text)
+                Text(title).font(Theme.Font.body()).foregroundStyle(Theme.text)
                 Spacer(minLength: 0)
             }
             .contentShape(Rectangle())
@@ -318,7 +318,7 @@ struct FrodoStepper: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Text(title).font(Theme.Font.secondary()).foregroundStyle(Theme.text)
+            Text(title).font(Theme.Font.body()).foregroundStyle(Theme.text)
             Spacer(minLength: 8)
             IconButton(icon: "minus", size: 26, iconSize: 10) { value = max(range.lowerBound, value - 1) }
             IconButton(icon: "plus", size: 26, iconSize: 10) { value = min(range.upperBound, value + 1) }
@@ -372,7 +372,7 @@ struct PositionPicker: View {
             }
         }
         .padding(6)
-        .innerCard(radius: 10)
+        .innerCard()
     }
 
     @ViewBuilder
@@ -381,7 +381,7 @@ struct PositionPicker: View {
             Button {
                 withAnimation(Motion.hover) { selection = target }
             } label: {
-                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                RoundedRectangle(cornerRadius: Theme.Radius.tile, style: .continuous)
                     .fill(selection == target ? Theme.accent : Theme.control)
                     .frame(width: 38, height: 24)
                     .overlay { if selection == target { Capsule().fill(Color.white).frame(width: 14, height: 5) } }
@@ -390,7 +390,7 @@ struct PositionPicker: View {
             .buttonStyle(.plain)
             .help(target.label)
         } else {
-            RoundedRectangle(cornerRadius: 5, style: .continuous).stroke(Theme.track, lineWidth: 1).frame(width: 38, height: 24)
+            RoundedRectangle(cornerRadius: Theme.Radius.tile, style: .continuous).stroke(Theme.track, lineWidth: 1).frame(width: 38, height: 24)
         }
     }
 }

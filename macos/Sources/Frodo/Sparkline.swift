@@ -15,7 +15,7 @@ struct Sparkline: View {
         HStack(alignment: .bottom, spacing: 2) {
             ForEach(0 ..< slots, id: \.self) { index in
                 let value = index >= offset ? shown[index - offset] : 0
-                RoundedRectangle(cornerRadius: 1)
+                RoundedRectangle(cornerRadius: Theme.Radius.hairline)
                     .fill(Theme.accent)
                     .frame(maxWidth: .infinity)
                     .frame(height: max(minBarHeight, (min(1, max(0, value)) * sparkHeight).rounded()))

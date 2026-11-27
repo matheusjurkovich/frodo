@@ -32,7 +32,7 @@ struct ShortcutRows: View {
             ForEach(Slot.allCases, id: \.self) { slot in
                 SettingRow(slot.title) {
                     HStack(spacing: 10) {
-                        Text(label(slot)).font(Theme.Font.mono(12)).foregroundStyle(conflict == slot ? Theme.danger : Theme.textSecondary)
+                        Text(label(slot)).font(Theme.Font.mono()).foregroundStyle(conflict == slot ? Theme.danger : Theme.textSecondary)
                         TextButton(title: capturing == slot ? "Cancelar" : "Alterar", compact: true) {
                             if capturing == slot { finish(nil) } else { start(slot) }
                         }

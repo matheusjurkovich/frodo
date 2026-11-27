@@ -40,12 +40,12 @@ struct SessionRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 8) {
                     ProviderTile(provider: state.provider, size: 20)
-                    Text(state.repo).font(Theme.Font.mono(13)).foregroundStyle(Theme.text).lineLimit(1)
+                    Text(state.repo).font(Theme.Font.monoBody()).foregroundStyle(Theme.text).lineLimit(1)
                     Spacer(minLength: 8)
                     Text(statusLabel(status)).font(Theme.Font.label(.medium)).foregroundStyle(Theme.color(for: status))
                 }
                 Text(meta).font(Theme.Font.label()).foregroundStyle(Theme.textSecondary)
-                if !step.isEmpty { Text(step).font(Theme.Font.mono(12)).foregroundStyle(Theme.textSecondary).lineLimit(1) }
+                if !step.isEmpty { Text(step).font(Theme.Font.mono()).foregroundStyle(Theme.textSecondary).lineLimit(1) }
             }
             FrodoIcon(name: "expand", size: 12, color: Theme.textSecondary)
                 .rotationEffect(.degrees(expanded ? 180 : 0))
@@ -57,15 +57,15 @@ struct SessionRow: View {
 
     private func permission(_ request: PendingRequest) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(state.step.isEmpty ? request.tool : state.step).font(Theme.Font.mono(12)).foregroundStyle(Theme.text).lineLimit(3)
+            Text(state.step.isEmpty ? request.tool : state.step).font(Theme.Font.mono()).foregroundStyle(Theme.text).lineLimit(3)
             HStack {
                 TextButton(title: "Negar", compact: true) { services.sessions.decide(request, .deny) }
                 TextButton(title: "Aprovar", kind: .primary, compact: true) { services.sessions.decide(request, .allow) }
             }
         }
         .padding(10).frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Theme.control))
-        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(Theme.amberBorder))
+        .background(RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous).fill(Theme.control))
+        .overlay(RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous).stroke(Theme.amberBorder))
     }
 
     @ViewBuilder
@@ -102,7 +102,7 @@ struct SessionRow: View {
                     if let tool = state.tool, !tool.isEmpty { field("Última ferramenta") { value(tool) } }
                 }
             }
-            if !step.isEmpty { Text(step).font(Theme.Font.mono(12)).foregroundStyle(Theme.textSecondary).lineLimit(3) }
+            if !step.isEmpty { Text(step).font(Theme.Font.mono()).foregroundStyle(Theme.textSecondary).lineLimit(3) }
             actions(status: status)
         }
     }
@@ -137,7 +137,7 @@ struct SessionRow: View {
     }
 
     private func value(_ text: String, color: Color = Theme.text) -> some View {
-        Text(text).font(Theme.Font.mono(12)).foregroundStyle(color).lineLimit(1)
+        Text(text).font(Theme.Font.mono()).foregroundStyle(color).lineLimit(1)
     }
 
     private func statusLabel(_ status: SessionStatus) -> String {

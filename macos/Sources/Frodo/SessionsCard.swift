@@ -63,7 +63,7 @@ struct SessionsCard: View {
 
     private func empty(none: Bool) -> some View {
         VStack(spacing: 6) {
-            Text(none ? "Nenhuma sessão ativa" : "Nenhuma sessão neste filtro agora.").font(Theme.Font.secondary()).foregroundStyle(Theme.textSecondary)
+            Text(none ? "Nenhuma sessão ativa" : "Nenhuma sessão neste filtro agora.").font(Theme.Font.body()).foregroundStyle(Theme.textSecondary)
             if none, let provider, provider != .claude {
                 Text("Instale o hook em Configurações › IA para ver as sessões aqui").font(Theme.Font.label()).foregroundStyle(Theme.textSecondary)
                     .multilineTextAlignment(.center)

@@ -15,13 +15,13 @@ struct DevicePicker: View {
                     withAnimation(Motion.standard) { open.toggle() }
                 } label: {
                     HStack(spacing: 8) {
-                        Text(current?.name ?? "").font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text).lineLimit(1).truncationMode(.tail)
+                        Text(current?.name ?? "").font(Theme.Font.body(.medium)).foregroundStyle(Theme.text).lineLimit(1).truncationMode(.tail)
                         Spacer(minLength: 0)
                         FrodoIcon(name: "expand", size: 12, color: Theme.textSecondary).rotationEffect(.degrees(open ? 180 : 0))
                     }
                     .padding(.horizontal, 12)
                     .frame(height: 32)
-                    .hoverBackground(radius: 10)
+                    .hoverBackground(radius: Theme.Radius.control)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -44,7 +44,7 @@ struct DevicePicker: View {
             choose(device)
         } label: {
             HStack(spacing: 10) {
-                Text(device.name).font(Theme.Font.secondary()).foregroundStyle(Theme.text).lineLimit(1).truncationMode(.tail)
+                Text(device.name).font(Theme.Font.body()).foregroundStyle(Theme.text).lineLimit(1).truncationMode(.tail)
                 Spacer(minLength: 0)
                 if device.id == current?.id {
                     Image(systemName: "checkmark").font(Theme.Font.label(.bold)).foregroundStyle(Theme.accentText)
@@ -52,7 +52,7 @@ struct DevicePicker: View {
             }
             .padding(.horizontal, 10)
             .frame(height: 32)
-            .hoverBackground(.clear, hover: Theme.controlHover, radius: 10)
+            .hoverBackground(.clear, hover: Theme.controlHover)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

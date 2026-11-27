@@ -30,16 +30,16 @@ struct LimitsCard: View {
                 if let subtitle = usage.subtitle { Text(subtitle).font(Theme.Font.label()).foregroundStyle(Theme.textSecondary) }
                 switch usage.status {
                 case .loading:
-                    Text("Carregando…").font(Theme.Font.secondary()).foregroundStyle(Theme.textSecondary)
+                    Text("Carregando…").font(Theme.Font.body()).foregroundStyle(Theme.textSecondary)
                 case .signedOut, .error:
-                    Text(usage.error ?? "Erro desconhecido").font(Theme.Font.secondary()).foregroundStyle(Theme.warn)
+                    Text(usage.error ?? "Erro desconhecido").font(Theme.Font.body()).foregroundStyle(Theme.warn)
                     if usage.windows.isEmpty == false { windows(usage) }
                 case .ok:
-                    if let message = usage.error { Text(message).font(Theme.Font.secondary()).foregroundStyle(Theme.warn) }
+                    if let message = usage.error { Text(message).font(Theme.Font.body()).foregroundStyle(Theme.warn) }
                     windows(usage)
                 }
             } else {
-                Text("Nenhum perfil do Claude Code encontrado.").font(Theme.Font.secondary()).foregroundStyle(Theme.textSecondary)
+                Text("Nenhum perfil do Claude Code encontrado.").font(Theme.Font.body()).foregroundStyle(Theme.textSecondary)
             }
         }
         .onAppear { services.claude.refreshIfStale(maxAge: 60) }
@@ -70,10 +70,10 @@ private struct WindowRow: View {
         let note = projectionNote(input, remaining: remaining, now: now)
         VStack(alignment: .leading, spacing: 5) {
             HStack {
-                Text(window.label).font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text)
+                Text(window.label).font(Theme.Font.body(.medium)).foregroundStyle(Theme.text)
                 Spacer()
                 Text(relativeReset(window.resetsAt, now: now)).font(Theme.Font.label()).foregroundStyle(Theme.textSecondary)
-                Text("\(Int(shownPercent(window.utilization, remaining: remaining).rounded()))%").font(Theme.Font.secondary(.semibold))
+                Text("\(Int(shownPercent(window.utilization, remaining: remaining).rounded()))%").font(Theme.Font.body(.semibold))
                     .foregroundStyle(level == .ok ? Theme.text : Theme.color(for: level)).monospacedDigit().frame(width: 44, alignment: .trailing)
             }
             ProgressBar(
@@ -91,7 +91,7 @@ private struct SpendRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             HStack {
-                Text("Uso extra").font(Theme.Font.secondary(.medium)).foregroundStyle(Theme.text)
+                Text("Uso extra").font(Theme.Font.body(.medium)).foregroundStyle(Theme.text)
                 Spacer()
                 Text([spend.used, spend.limit.map { "de \($0)" }].compactMap { $0 }.joined(separator: " ")).font(Theme.Font.label()).foregroundStyle(Theme.textSecondary)
             }
