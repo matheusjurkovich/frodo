@@ -1361,6 +1361,7 @@
 
 .frodo-button:focus,
 .frodo-collapsible-header:focus,
+.frodo-more:focus,
 .frodo-session-header:focus,
 .frodo-notification:focus,
 .frodo-app:focus,
@@ -1443,16 +1444,16 @@
     min-height: 36px;
 }
 
-.frodo-icon-button-44 {
-    width: 44px;
-    height: 44px;
-    min-height: 44px;
+.frodo-icon-button-40 {
+    width: 40px;
+    height: 40px;
+    min-height: 40px;
 }
 
-.frodo-icon-button-52 {
-    width: 52px;
-    height: 52px;
-    min-height: 52px;
+.frodo-icon-button-48 {
+    width: 48px;
+    height: 48px;
+    min-height: 48px;
 }
 
 .frodo-text-button {
@@ -1578,7 +1579,7 @@
 .frodo-general .quick-toggle-has-menu {
     min-width: auto;
     max-width: auto;
-    min-height: 64px;
+    min-height: 56px;
     padding: 0;
     border: none;
     border-radius: 18px;
@@ -1864,39 +1865,19 @@
 }
 
 .frodo-media {
-    padding: 16px;
+    padding: 12px 16px 12px 12px;
     spacing: 16px;
 }
 
-.frodo-media-heading {
-    spacing: 8px;
-}
-
-.frodo-media-label,
-.frodo-media-album,
 .frodo-media-time {
     font-size: 12px;
     color: #a1a1aa;
 }
 
-.frodo-media-label {
-    font-weight: 500;
-}
-
-.frodo-media .frodo-chip {
-    padding: 3px 10px;
-    font-weight: 400;
-    color: #d4d4d8;
-}
-
-.frodo-media-row {
-    spacing: 16px;
-}
-
 .frodo-media-cover {
-    width: 168px;
-    height: 168px;
-    border-radius: 18px;
+    width: 64px;
+    height: 64px;
+    border-radius: 12px;
     background-size: cover;
     background-position: center;
 }
@@ -1907,25 +1888,29 @@
 }
 
 .frodo-media-cover-empty StIcon {
-    icon-size: 56px;
+    icon-size: 28px;
 }
 
 .frodo-media-text {
-    spacing: 6px;
+    spacing: 8px;
+}
+
+.frodo-media-names {
+    spacing: 2px;
 }
 
 .frodo-media-title {
-    font-size: 18px;
+    font-size: 14px;
     font-weight: 500;
 }
 
-.frodo-media-artist {
-    font-size: 14px;
-    color: #d4d4d8;
+.frodo-media-subtitle {
+    font-size: 12px;
+    color: #a1a1aa;
 }
 
 .frodo-media-progress {
-    spacing: 6px;
+    spacing: 10px;
 }
 
 .frodo-media .frodo-track {
@@ -1938,7 +1923,42 @@
 }
 
 .frodo-media-controls {
-    spacing: 16px;
+    spacing: 8px;
+}
+
+.frodo-quick {
+    spacing: 8px;
+}
+
+.frodo-more {
+    height: 40px;
+    min-height: 40px;
+    padding: 0 12px 0 14px;
+    border-radius: 12px;
+    background-color: #17171a;
+    color: #e4e4e7;
+}
+
+.frodo-more:hover {
+    background-color: #1f1f23;
+}
+
+.frodo-more-content {
+    spacing: 10px;
+}
+
+.frodo-more-title {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.frodo-more-summary {
+    font-size: 12px;
+    color: #a1a1aa;
+}
+
+.frodo-more-caret {
+    icon-size: 16px;
 }
 
 .frodo-collapsible {
@@ -1947,8 +1967,8 @@
 }
 
 .frodo-collapsible-header {
-    height: 40px;
-    min-height: 40px;
+    height: 36px;
+    min-height: 36px;
     padding: 0 10px;
     border-radius: 12px;
     color: #a1a1aa;
@@ -1983,9 +2003,9 @@
 }
 
 .frodo-shortcut {
-    height: 64px;
-    min-height: 64px;
-    border-radius: 14px;
+    height: 56px;
+    min-height: 56px;
+    border-radius: 12px;
     font-size: 12px;
 }
 
@@ -2337,6 +2357,7 @@
 .frodo-general .quick-toggle,
 .frodo-general .quick-toggle-menu-button,
 .frodo-general .quick-toggle-menu .popup-menu-item,
+.frodo-more,
 .frodo-notification,
 .frodo-power-item,
 .frodo-session-header,

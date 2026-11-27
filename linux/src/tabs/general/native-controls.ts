@@ -20,9 +20,11 @@ import type {Disposer} from '../../shared/disposables.types.js';
 import {ActorLoan} from '../../shared/ui/actor-loan.js';
 import {FaultBanner} from '../../shared/ui/fault-banner.js';
 import {whileShown} from '../../shared/ui/lifecycle.js';
-import {iconButton} from '../../shared/ui/buttons.js';
-import {packGrid} from '../../shared/ui/layout.js';
+import {contentButton, iconButton} from '../../shared/ui/buttons.js';
+import {column, label, packGrid, row} from '../../shared/ui/layout.js';
 import {frodoIcon} from '../../shared/ui/icons.js';
+import {reveal, springEase} from '../../shared/ui/motion.js';
+import {SPRING} from '../../shared/spring.const.js';
 import type {TabTarget} from '../../shared/tab-target.types.js';
 import type {IslandHandle} from '../../shared/island-handle.types.js';
 import {TILE_SPACING, TILE_COLUMNS, OVERLAY_BINDINGS} from './native-controls.const.js';
@@ -37,6 +39,17 @@ function sliderSlots(): SliderSlots {
     };
 }
 
+function tileGrid(): St.Widget {
+    return new St.Widget({
+        layout_manager: new Clutter.GridLayout({
+            column_spacing: TILE_SPACING,
+            row_spacing: TILE_SPACING,
+            column_homogeneous: true,
+        }),
+        x_expand: true,
+    });
+}
+
 function detachConstraints(actor: Clutter.Actor): Disposer {
     const constraints = actor.get_constraints();
     for (const constraint of constraints) actor.remove_constraint(constraint);
@@ -46,14 +59,13 @@ function detachConstraints(actor: Clutter.Actor): Disposer {
 }
 
 export class NativeControls {
-    readonly tiles = new St.Widget({
-        layout_manager: new Clutter.GridLayout({
-            column_spacing: TILE_SPACING,
-            row_spacing: TILE_SPACING,
-            column_homogeneous: true,
-        }),
-        x_expand: true,
-    });
+    readonly tiles = column('frodo-quick');
+    readonly #grid = tileGrid();
+    readonly #moreGrid = tileGrid();
+    readonly #more: St.Button;
+    readonly #moreSummary = label('', 'frodo-more-summary');
+    readonly #moreCaret = new St.Icon({gicon: frodoIcon('expand'), style_class: 'frodo-more-caret', y_align: Clutter.ActorAlign.CENTER});
+    #moreOpen = false;
     readonly output = sliderSlots();
     readonly input = sliderSlots();
     readonly brightness = sliderSlots();
@@ -79,6 +91,23 @@ export class NativeControls {
         this.#overlayHost = overlayHost;
         this.#content = content;
         this.#transition = new MenuTransition(page, content, scrollToTop);
+
+        const header = row('frodo-more-content');
+        header.add_child(label('Mais ajustes', 'frodo-more-title'));
+        this.#moreSummary.set({x_expand: true, y_align: Clutter.ActorAlign.CENTER});
+        header.add_child(this.#moreSummary);
+        header.add_child(this.#moreCaret);
+        this.#more = contentButton(
+            'frodo-more',
+            header,
+            () => {
+                this.#setMoreOpen(!this.#moreOpen);
+            },
+            {x_expand: true, accessible_name: 'Mais ajustes', visible: false},
+        );
+        this.#moreCaret.set_pivot_point(0.5, 0.5);
+        this.#moreGrid.visible = false;
+        for (const child of [this.#grid, this.#more, this.#moreGrid]) this.tiles.add_child(child);
         this.#disposables.add(
             whileShown(
                 page,
@@ -101,9 +130,11 @@ export class NativeControls {
         if (!parts) return;
         const {isNative} = parts;
 
-        const tiles = parts.tiles.filter(isNative);
+        const primary = parts.tiles.filter(isNative);
+        const secondary = parts.moreTiles.filter(isNative);
+        const tiles = [...primary, ...secondary];
         for (const tile of tiles) {
-            this.#lend(tile, this.tiles);
+            this.#lend(tile, primary.includes(tile) ? this.#grid : this.#moreGrid);
             this.#fillSubtitle(tile as Toggle);
             const menuButton = quickToggleMenuButton(tile);
             if (menuButton) this.#forwardIcon(menuButton);
@@ -118,7 +149,9 @@ export class NativeControls {
             this.#lendSlider(slider, slots);
             sliders.push(slider);
         }
-        this.#loan.add(packGrid(this.tiles, tiles, TILE_COLUMNS));
+        this.#loan.add(packGrid(this.#grid, primary, TILE_COLUMNS));
+        this.#loan.add(packGrid(this.#moreGrid, secondary, TILE_COLUMNS));
+        this.#watchMore(secondary as Toggle[]);
 
         this.#lendOverlay(parts.overlay);
         const menus = [...tiles, ...sliders].map(quickSettingsItemMenu).filter(item => item !== null);
@@ -150,6 +183,37 @@ export class NativeControls {
         this.#pending = null;
         const toggle = target === 'wifi' ? wirelessToggle() : null;
         if (toggle) quickSettingsItemMenu(toggle)?.open(PopupAnimation.NONE);
+    }
+
+    #setMoreOpen(open: boolean): void {
+        this.#moreOpen = open;
+        reveal(this.#moreGrid, open);
+        springEase(this.#moreCaret, {rotationAngleZ: open ? 180 : 0}, SPRING);
+    }
+
+    #watchMore(toggles: readonly Toggle[]): void {
+        const sync = (): void => {
+            const shown = toggles.filter(toggle => toggle.visible);
+            this.#more.visible = shown.length > 0;
+            const on = shown.filter(toggle => toggle.checked).map(toggle => toggle.title ?? '');
+            this.#moreSummary.text = on.length > 0 ? `Ligado: ${on.join(' · ')}` : shown.map(toggle => toggle.title ?? '').join(' · ');
+        };
+        const ids = toggles.map(
+            toggle =>
+                [
+                    toggle,
+                    [
+                        toggle.connect('notify::visible', sync),
+                        toggle.connect('notify::checked', sync),
+                        toggle.connect('notify::title', sync),
+                    ],
+                ] as const,
+        );
+        sync();
+        this.#loan.add(() => {
+            for (const [toggle, toggleIds] of ids) for (const id of toggleIds) toggle.disconnect(id);
+            this.#more.hide();
+        });
     }
 
     #lendWifiBanner(menu: QuickToggleMenu): void {

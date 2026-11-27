@@ -34,23 +34,8 @@ export class GeneralPage implements Component, TargetablePage {
         this.#shortcuts = new ShortcutsCard(island, settings, mixer);
         this.#apps = new AppsCard(island, settings);
 
-        this.#shortcuts.actor.y_align = Clutter.ActorAlign.START;
-        this.#apps.actor.y_align = Clutter.ActorAlign.START;
-        const stack = column('frodo-section');
-        stack.y_align = Clutter.ActorAlign.START;
-        stack.add_child(this.#shortcuts.actor);
-        const bottom = columns(stack, this.#media.actor);
-        const placeApps = (): void => {
-            const target = this.#media.actor.visible ? stack : bottom;
-            if (this.#apps.actor.get_parent() === target) return;
-            this.#apps.actor.get_parent()?.remove_child(this.#apps.actor);
-            target.add_child(this.#apps.actor);
-        };
-        this.#media.actor.connect('notify::visible', placeApps);
-        placeApps();
-
         content.add_child(columns(this.#controls.tiles, this.#sound.actor));
-        content.add_child(bottom);
+        for (const child of [this.#media.actor, this.#shortcuts.actor, this.#apps.actor]) content.add_child(child);
         this.actor.add_child(content);
         this.actor.add_child(overlayHost);
     }

@@ -138,12 +138,10 @@ export function quickSettingsParts(): QuickSettingsParts | null {
     const tiles = [
         quick._network?._wirelessToggle ?? null,
         first(quick._bluetooth),
-        first(quick._rfkill),
         first(quick._powerProfiles),
         first(quick._doNotDisturb),
-        first(quick._nightLight),
-        first(quick._darkMode),
     ].filter(tile => tile !== null);
+    const moreTiles = [first(quick._rfkill), first(quick._nightLight), first(quick._darkMode)].filter(tile => tile !== null);
     const {menu} = quick;
     if (menu._overlay.get_parent() !== menu.actor) return null;
     return {
@@ -153,6 +151,7 @@ export function quickSettingsParts(): QuickSettingsParts | null {
             menu._activeMenu?.close(PopupAnimation.NONE);
         },
         tiles,
+        moreTiles,
         output: first(quick._volumeOutput),
         input: first(quick._volumeInput),
         brightness: first(quick._brightness),
