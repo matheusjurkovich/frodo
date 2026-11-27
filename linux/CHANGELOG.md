@@ -1,5 +1,57 @@
 # Changelog
 
+## [1.5.0](https://github.com/matheusjurkovich/frodo/compare/linux-v1.4.1...linux-v1.5.0) (2026-11-27)
+
+
+### Novidades
+
+* aba geral segue o layout do canvas ([34a5699](https://github.com/matheusjurkovich/frodo/commit/34a569999e9d365e382c1f19a00f4f085f4a5119))
+* aba github com pull requests e alertas ([f72a2f9](https://github.com/matheusjurkovich/frodo/commit/f72a2f937699d047b7ff599f39f3d6a19ef69202))
+* abas mostram só o ícone, com o nome na selecionada ([e93e47d](https://github.com/matheusjurkovich/frodo/commit/e93e47db17d88b62d7115efe0beca3ecaed1b415))
+* alertas do github na pílula e nas notificações ([e8254b3](https://github.com/matheusjurkovich/frodo/commit/e8254b3dc632e1ea5cd31e86b0c8af75f58044e5))
+* atalhos para permitir e negar o pedido da pílula ([ea51659](https://github.com/matheusjurkovich/frodo/commit/ea516598b12a6f7b1858854b631a805b24f41125))
+* avisos de falha nas abas com a ação que resolve ([4d44de8](https://github.com/matheusjurkovich/frodo/commit/4d44de8add82a09d8ffca506bbcea29eab146bb0))
+* chaves de configuração do github ([cf7e9ab](https://github.com/matheusjurkovich/frodo/commit/cf7e9ab9e68a2e0ddf9399ef80c194e694dc9216))
+* clique na falha abre a aba que resolve ([21d2e0d](https://github.com/matheusjurkovich/frodo/commit/21d2e0d84f39fafdfdc42fdd38741bb99985bae7))
+* componente de aviso de falha e lançador de terminal ([805bf55](https://github.com/matheusjurkovich/frodo/commit/805bf55115b5d01f4a6e75e9298ec32764e35aab))
+* configurações do github ([136efe8](https://github.com/matheusjurkovich/frodo/commit/136efe8dd7c11d5410bad5e65039c5831755221f))
+* confirmação na pílula depois de permitir ou negar ([78427bd](https://github.com/matheusjurkovich/frodo/commit/78427bda57d5df45b6132f1a745ccca069b3cf18))
+* contador da fila no estado da pílula ([ff54538](https://github.com/matheusjurkovich/frodo/commit/ff54538aa9d74a6a1d3ecb0ebb10bfc9e3acb10b))
+* design system no DESIGN.md com tokens verificados no check ([4e622f1](https://github.com/matheusjurkovich/frodo/commit/4e622f1626e2ced1bbfbbb42c8bd7ae54573947d))
+* diff de alertas dos pull requests ([a20b4de](https://github.com/matheusjurkovich/frodo/commit/a20b4de4936466ee90e93ab61dfeeea055d45bc3))
+* estado de falha na pílula para github e hook ([84a0a31](https://github.com/matheusjurkovich/frodo/commit/84a0a31b8cdfd18176e8d610a47cd0c8517c754d))
+* falha da agenda pelas contas online do gnome ([8603c90](https://github.com/matheusjurkovich/frodo/commit/8603c90648765a0257079eb6719a6cfabb93f1c2))
+* falha de wi-fi pelo networkmanager ([5c8a8a3](https://github.com/matheusjurkovich/frodo/commit/5c8a8a3bda8f7ba36db6ff19576c03e10226021e))
+* nova prioridade da pílula e pedido de permissão fixo até decidir ([677ad34](https://github.com/matheusjurkovich/frodo/commit/677ad34624e7be11e19b1e260cb9e3eaa7ec3253))
+* pedido de permissão guarda a entrada e mostra o resumo ([b4cb517](https://github.com/matheusjurkovich/frodo/commit/b4cb517ded10075e8123389e912a85ab11d86db1))
+* regra pura dos pull requests do github ([cb42fb6](https://github.com/matheusjurkovich/frodo/commit/cb42fb6ac05ab511160c91e82c763e852352ce7d))
+* serviço do github com token do gh e poll pela api graphql ([177bfa2](https://github.com/matheusjurkovich/frodo/commit/177bfa206d5f63429eee7f1fb67ea39a65f213a1))
+* telas seguem o canvas de design ([537fb2e](https://github.com/matheusjurkovich/frodo/commit/537fb2e6628c8caae778f60b9c024adf8662a950))
+* trava de 600 ms no permitir depois da abertura pelo hover ([5d2038e](https://github.com/matheusjurkovich/frodo/commit/5d2038efd8e6710bb93a22103b48c3dbab91f6d5))
+* visual novo dos estados da pílula e do repouso ([d621881](https://github.com/matheusjurkovich/frodo/commit/d621881d5a716cfad5b72104a2a9aecfb01de641))
+
+
+### Correções
+
+* abrir ou fechar a ilha mantém o pedido de permissão e a confirmação ([40f4a62](https://github.com/matheusjurkovich/frodo/commit/40f4a626b66795a6016bac1a92c77e0867ee6463))
+* anel de cota mantém o período no texto ([af90cf4](https://github.com/matheusjurkovich/frodo/commit/af90cf49a4e68edfd1968cfa20610041c36d0ea4))
+* animações da ilha sem pulo nem quique ([e10669a](https://github.com/matheusjurkovich/frodo/commit/e10669a49f233e41db77340051cd0994ba0e3ba4))
+* atalhos de permitir e negar não agem durante a espiada da hora ([10d124e](https://github.com/matheusjurkovich/frodo/commit/10d124e2994600c02fdb5ffcda2714c02e6aa329))
+* aviso do hook na aba ia mostra quando a instalação falha ([3f68325](https://github.com/matheusjurkovich/frodo/commit/3f6832583a7fe60faad57df31b069ef9f416432c))
+* centraliza a ficha da fila na pílula vertical ([e7a8008](https://github.com/matheusjurkovich/frodo/commit/e7a800896b3f47fa18ca5622316164f31a452e6e))
+* confirmação da decisão aparece sobre janela maximizada e tela cheia ([6c19b98](https://github.com/matheusjurkovich/frodo/commit/6c19b98e273df48fe68037a1a7f011afd4b7b0a5))
+* confirmação da decisão não fica escondida pela sessão ainda esperando ([45b3f97](https://github.com/matheusjurkovich/frodo/commit/45b3f97c1aa2e930af4648107af5fa4b750e7c35))
+* correções da revisão da integração com o github ([da11c0f](https://github.com/matheusjurkovich/frodo/commit/da11c0ffc0cad216d6448394912137c76672f728))
+* estados de carregando, erro e sem conexão na aba github ([fe59aa0](https://github.com/matheusjurkovich/frodo/commit/fe59aa045442d364ce71503b8bc37543e596a4f3))
+* falha da agenda não liga o goa-daemon sozinho ([ae6f93e](https://github.com/matheusjurkovich/frodo/commit/ae6f93e9cb92096337001a4a3f7bccf1e2dee5f4))
+* falha de wi-fi só some ao conectar, desligar ou esquecer, e o aviso diz o motivo ([e457f5d](https://github.com/matheusjurkovich/frodo/commit/e457f5d3f2f3b76946f479d84715c85279ed5dcf))
+* falha do github sai sozinha e não volta a piscar ao atualizar ([2780f0e](https://github.com/matheusjurkovich/frodo/commit/2780f0e2d577f3bb91d260f19838a8d08e7c99c0))
+* ficha da fila atualiza quando um item é trocado por outro do mesmo tipo ([89f9319](https://github.com/matheusjurkovich/frodo/commit/89f9319e3943b068c43b1d9eb256768ba1d3fd5f))
+* hook ausente rechecado quando a pasta do claude surge depois ([057b9e9](https://github.com/matheusjurkovich/frodo/commit/057b9e96241a5368449a75c8cce9df1de47217cf))
+* testa o evento decided e tira o fallback de projeto ([505dd14](https://github.com/matheusjurkovich/frodo/commit/505dd14396a01d41aceffeceedb49ed8ce68e9f0))
+* texto de negado sem sessão fala só da ia ([c3ba515](https://github.com/matheusjurkovich/frodo/commit/c3ba515345199ce359b215ec565e082321fbcbfa))
+* wi-fi retry no adaptador que falhou e limpa ao esquecer a rede ([e8b9d8a](https://github.com/matheusjurkovich/frodo/commit/e8b9d8a18b3f5bd3ec0144c94c070121a7e9411d))
+
 ## [1.4.1](https://github.com/matheusjurkovich/frodo/compare/linux-v1.4.0...linux-v1.4.1) (2026-11-12)
 
 
